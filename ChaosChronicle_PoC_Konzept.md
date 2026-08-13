@@ -131,7 +131,40 @@ Jedes generierte Feuilleton-Skript wird **automatisch als `.md`-Datei im Ordner 
 
 ---
 
-## 📸 9. 100% Strikte Themenzugehörigkeit für Nachrichten-Fotos
+## 🎙️ 10. Zweistufiger Workflow & Sonner Live-Toasts
+
+1. **Schritt 1: Paket speichern (`news/`)**:
+   - Im Feuilleton-Dialog wird zuerst der Button **`📦 Сохранить видео-пакет в news/`** gedrückt.
+   - **Sonner Lade-Toast**: *"Сохранение видео-пакета в news/... (Скачивание 20 фото, script.txt und project.json)"*
+   - **Sonner Erfolgs-Toast**: *"📦 Видео-пакет успешно сохранен в news/<Titel>. Теперь можно создать аудио!"*
+
+2. **Schritt 2: Audio-Erstellung & Direktes Anhören im Dialog**:
+   - **Erst NACH Schritt 1** wird der orangefarbene Button **`🎙️ Создать audio.mp3 (Nikolay)`** im Dialog sichtbar & aktiv.
+   - **Live-Zeitmessung im Lade-Toast**: *"🎙️ Генерация аудио-файла через edge-tts... [X сек.] (Идет обработка текста и синтез речи Nikolay, 0%, -10%)..."*
+   - **Direkter Audio-Player im Dialog**: Sobald `audio.mp3` generiert wurde, erscheint **direkt im Haupt-Feuilleton-Dialog ein HTML5 Audio-Player**, mit dem du die Sprachausgabe von Nikolay sofort anhören und abspielen kannst (`autoPlay`)!
+
+---
+
+## 🏷️ 11. Visuelle Kennzeichnung & Paket-Viewer Modal (`SavedPackageModal`)
+
+- **🟢 Visuelle Kennzeichnung (`NewsCard`)**: Sobald ein Feuilleton-Paket unter `news/` gespeichert ist, erhält die entsprechende Nachrichtentaste automatisch ein auffälliges grünes Badge: **`🟢 📦 Сохранено в news/`**.
+- **📂 Separates Viewer-Modal (`📂 Просмотр пакета`)**:
+  - Jede gespeicherte Nachricht erhält den Button **`📂 Просмотр пакета`**.
+  - Beim Klick öffnet sich das dedizierte Paket-Fenster, mit dem du das gespeicherte Paket direkt aus dem Browser anschauen kannst:
+    - 🎙️ **Integrierter Audio-Player**: Zum Abspielen des generierten Nikolay-Audios (`audio.mp3`)
+    - 🖼️ **Foto-Galerie**: Alle heruntergeladenen Bilddateien aus `news/<folderName>/photos/`
+    - 📜 **Skript-Textanzeige**: Vorschau von `script.txt` und `script.md` mit Kopier-Button.
+
+---
+
+## 💻 12. Status der Live-Anwendung
+
+- 🔒 **STRIKTE REGEL**: `git commit` und `git push` dürfen **NIEMALS automatisch** ausgeführt werden.
+- 🛑 **Ausschließlich auf expliziten Befehl**: Commits und Pushes werden **nur dann durchgeführt, wenn du mir den ausdrücklichen Befehl dazu gibst**.
+
+---
+
+## 📸 11. 100% Strikte Themenzugehörigkeit für Nachrichten-Fotos
 
 - **Keine unpassenden / fremden Fotos**: Der künstliche Kategorie-Auffüllmechanismus wurde vollständig entfernt. Dir werden **ausschließlich Fotos angezeigt, die zu 100% exakt aus diesem Artikel oder aus Berichten über DIESES EXAKTE EREIGNIS stammen**.
 - **Webpage-Scraper (`scrapeArticlePhotos`)**: Liest alle echten hochauflösenden Artikel-Fotos aus `og:image`, `twitter:image`, `<figure>` und `<picture>` direkt aus dem HTML-Quelltext der nachrichteneigenen Webseite aus.
@@ -139,7 +172,7 @@ Jedes generierte Feuilleton-Skript wird **automatisch als `.md`-Datei im Ordner 
 
 ---
 
-## 💻 10. Status der Live-Anwendung
+## 💻 11. Status der Live-Anwendung
 
 - **Express Backend**: [http://localhost:3001](http://localhost:3001) (`node server.js`)
 - **React Frontend**: [http://localhost:5173](http://localhost:5173) (`npm run dev`)

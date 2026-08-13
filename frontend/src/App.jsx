@@ -36,13 +36,85 @@ function timeAgo(pubDate) {
   return `${days} дн. назад`
 }
 
-function NewsCard({ article, index, onGenerate, onOpenPhotos, isGenerating }) {
+// Modal zum Betrachten eines bereits gespeicherten Pakets (Text, Fotos, Audio)
+function SavedPackageModal({ pkg, onClose }) {
+  if (!pkg) return null
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content saved-package-modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <div>
+            <span className="modal-badge saved-badge">📂 Сохраненный видео-пакет в news/</span>
+            <h2 className="modal-title">{pkg.title}</h2>
+            <div className="modal-stats">
+              <span>📁 Папка: news/{pkg.folderName}</span>
+              <span>📸 Фото: {pkg.photosCount} шт.</span>
+              <span>🎙️ Озвучка Nikolay: {pkg.hasAudio ? '✅ Готово' : '❌ Не создана'}</span>
+            </div>
+          </div>
+          <button className="modal-close" onClick={onClose}>✕</button>
+        </div>
+
+        <div className="modal-body">
+          {/* Audio Player */}
+          {pkg.hasAudio && (
+            <div className="audio-player-box">
+              <div className="audio-player-title">🎙️ Озвучка диктора Nikolay (ru-RU-DmitryNeural, 0%, -10%):</div>
+              <audio controls src={pkg.audioUrl} className="audio-element">
+                Ваш браузер не поддерживает элемент audio.
+              </audio>
+            </div>
+          )}
+
+          {/* Fotos aus dem Ordner */}
+          {pkg.photoUrls && pkg.photoUrls.length > 0 && (
+            <div className="saved-photos-section">
+              <h3 className="section-title">🖼️ Скачанные фото из пакета ({pkg.photoUrls.length}):</h3>
+              <div className="multi-source-photos-grid">
+                {pkg.photoUrls.map((url, idx) => (
+                  <div key={idx} className="photo-card-item">
+                    <img src={url} alt={`Фото ${idx + 1}`} className="photo-thumb" />
+                    <div className="photo-info">
+                      <span className="photo-source">Файл: photo_{String(idx + 1).padStart(2, '0')}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Skript-Текст */}
+          <div className="saved-script-section">
+            <h3 className="section-title">📜 Текст фельетона (script.txt / script.md):</h3>
+            <pre className="script-text-preview">{pkg.scriptTxt || pkg.scriptMd}</pre>
+          </div>
+        </div>
+
+        <div className="modal-footer">
+          <button
+            className="copy-btn"
+            onClick={() => {
+              navigator.clipboard.writeText(pkg.scriptTxt || pkg.scriptMd)
+              toast.success('Текст скопирован в буфер обмена!')
+            }}
+          >
+            📋 Скопировать текст
+          </button>
+          <button className="close-btn" onClick={onClose}>Закрыть</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function NewsCard({ article, index, onGenerate, onOpenPhotos, isGenerating, isSavedPkg, savedPkg, onViewSavedPackage }) {
   const [imgError, setImgError] = useState(false)
   const catColor = CATEGORY_COLOR[article.category] || '#6b7280'
 
   return (
     <article
-      className="news-card"
+      className={`news-card ${isSavedPkg ? 'saved-news-card' : ''}`}
       style={{ '--cat-color': catColor, animationDelay: `${index * 30}ms` }}
     >
       {article.imageUrl && !imgError && (
@@ -62,6 +134,11 @@ function NewsCard({ article, index, onGenerate, onOpenPhotos, isGenerating }) {
           </span>
           <span className="card-source">{article.source}</span>
           <span className="card-time">{timeAgo(article.pubDate)}</span>
+          {isSavedPkg && (
+            <span className="saved-status-badge">
+              🟢 📦 Сохранено в news/
+            </span>
+          )}
         </div>
         <h2 className="card-title">
           <a href={article.url} target="_blank" rel="noopener noreferrer">
@@ -83,10 +160,20 @@ function NewsCard({ article, index, onGenerate, onOpenPhotos, isGenerating }) {
           <button
             className="photos-btn"
             onClick={() => onOpenPhotos(article)}
-            title="Посмотреть все фото из разных источников к этой новости"
+            title="Посмотреть фото к этой новости"
           >
             🖼️ Фото
           </button>
+
+          {isSavedPkg && savedPkg && (
+            <button
+              className="view-saved-btn"
+              onClick={() => onViewSavedPackage(savedPkg)}
+              title="Открыть готовый пакет из папки news/"
+            >
+              📂 Просмотр пакета
+            </button>
+          )}
         </div>
       </div>
     </article>
@@ -95,6 +182,102 @@ function NewsCard({ article, index, onGenerate, onOpenPhotos, isGenerating }) {
 
 function FeuilletonModal({ feuilleton, onOpenPhotos, onClose }) {
   if (!feuilleton) return null
+
+  const [saving, setSaving] = useState(false)
+  const [savedInfo, setSavedInfo] = useState(null)
+  const [generatingAudio, setGeneratingAudio] = useState(false)
+  const [audioInfo, setAudioInfo] = useState(null)
+
+  const handleSavePackage = async () => {
+    setSaving(true)
+    const toastId = toast.loading('Сохранение видео-пакета в news/...', {
+      description: 'Скачивание 20 фото, файла script.txt и project.json...',
+    })
+
+    try {
+      const res = await fetch('/api/save-news-package', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: feuilleton.title,
+          text: feuilleton.text,
+          model: feuilleton.modelName,
+          source: feuilleton.source,
+          imageUrl: feuilleton.imageUrl,
+          images: feuilleton.images || [],
+        }),
+      })
+
+      const data = await res.json()
+      if (!res.ok || !data.success) throw new Error(data.error || 'Ошибка сохранения')
+
+      setSavedInfo(data)
+      toast.success('📦 Видео-пакет успешно сохранен в news/', {
+        id: toastId,
+        description: `Папка: news/${data.folderName} (${data.savedPhotosCount} фото скачано). Теперь можно создать аудио!`,
+        duration: 10000,
+      })
+    } catch (err) {
+      toast.error('Ошибка сохранения пакета', {
+        id: toastId,
+        description: err.message,
+      })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleGenerateAudio = async () => {
+    if (!savedInfo || !savedInfo.bundleDir) return
+    setGeneratingAudio(true)
+
+    let seconds = 0
+    const toastId = toast.loading('🎙️ Генерация аудио-файла через edge-tts... [0 сек.]', {
+      description: 'Голос: Nikolay (ru-RU-DmitryNeural) | Скорость: 0% | Голос: -10%',
+    })
+
+    const timer = setInterval(() => {
+      seconds++
+      toast.loading(`🎙️ Генерация аудио-файла через edge-tts... [${seconds} сек.]`, {
+        id: toastId,
+        description: 'Идет обработка текста и синтез речи (Nikolay, 0%, -10%)...',
+      })
+    }, 1000)
+
+    try {
+      const startTime = Date.now()
+      const res = await fetch('/api/generate-audio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bundleDir: savedInfo.bundleDir,
+          text: feuilleton.text,
+        }),
+      })
+
+      const data = await res.json()
+      clearInterval(timer)
+
+      if (!res.ok || !data.success) throw new Error(data.error || 'Ошибка озвучки')
+
+      const totalTimeSec = Math.round((Date.now() - startTime) / 1000)
+      setAudioInfo(data)
+
+      toast.success(`🎙️ Аудио-файл audio.mp3 успешно создан за ${totalTimeSec} сек.!`, {
+        id: toastId,
+        description: `Сохранено в: news/${savedInfo.folderName}/audio.mp3 (Nikolay, 0%, -10%)`,
+        duration: 12000,
+      })
+    } catch (err) {
+      clearInterval(timer)
+      toast.error('Ошибка создания аудио', {
+        id: toastId,
+        description: err.message,
+      })
+    } finally {
+      setGeneratingAudio(false)
+    }
+  }
 
   const articleImages = feuilleton.images && feuilleton.images.length > 0
     ? feuilleton.images
@@ -114,22 +297,35 @@ function FeuilletonModal({ feuilleton, onOpenPhotos, onClose }) {
               <span>📝 Слов: {feuilleton.words}</span>
               <span>🤖 Модель: {feuilleton.modelName}</span>
             </div>
-            {feuilleton.savedFile && (
+            {savedInfo && (
               <div className="saved-file-notice">
-                💾 Сохранено в файл: <code>{feuilleton.savedFile}</code>
+                📦 Видео-пакет сохранен в: <code>news/{savedInfo.folderName}</code> ({savedInfo.savedPhotosCount} фото скачано)
+                {audioInfo && <span> · 🎙️ <code>audio.mp3</code> (Nikolay) создан</span>}
               </div>
             )}
           </div>
           <div className="modal-header-actions">
             <button
               className="photos-header-btn"
-              onClick={() => onOpenPhotos({ title: feuilleton.title, images: feuilleton.images })}
+              onClick={() => onOpenPhotos({ title: feuilleton.title, images: feuilleton.images, id: feuilleton.id, url: feuilleton.url })}
             >
-              🖼️ Фото из разных источников
+              🖼️ Фото к новости
             </button>
             <button className="modal-close" onClick={onClose}>✕</button>
           </div>
         </div>
+
+        {/* Audio Player im Haupt-Feuilleton-Dialog */}
+        {savedInfo && (audioInfo || savedInfo.hasAudio) && (
+          <div style={{ padding: '0 1.5rem', marginTop: '1rem' }}>
+            <div className="audio-player-box" style={{ marginBottom: 0 }}>
+              <div className="audio-player-title">🎙️ Прослушать озвучку Nikolay (audio.mp3, 0%, -10%):</div>
+              <audio controls src={`/news-static/${savedInfo.folderName}/audio.mp3`} className="audio-element" autoPlay>
+                Ваш браузер не поддерживает элемент audio.
+              </audio>
+            </div>
+          </div>
+        )}
 
         <div className="modal-body">
           {feuilleton.text.split('\n\n').map((paragraph, idx) => {
@@ -169,6 +365,24 @@ function FeuilletonModal({ feuilleton, onOpenPhotos, onClose }) {
         </div>
 
         <div className="modal-footer">
+          <button
+            className="save-bundle-btn"
+            onClick={handleSavePackage}
+            disabled={saving || !!savedInfo}
+          >
+            {saving ? '⏳ Сохранение...' : (savedInfo ? '✅ Пакет сохранен в news/' : '📦 Сохранить видео-пакет в news/')}
+          </button>
+          
+          {savedInfo && (
+            <button
+              className="audio-gen-btn"
+              onClick={handleGenerateAudio}
+              disabled={generatingAudio || !!audioInfo}
+            >
+              {generatingAudio ? '⏳ Озвучка Nikolay...' : (audioInfo ? '🎙️ audio.mp3 создан' : '🎙️ Создать audio.mp3 (Nikolay)')}
+            </button>
+          )}
+
           <button
             className="copy-btn"
             onClick={() => {
@@ -307,10 +521,27 @@ export default function App() {
     }
   }, [])
 
+  // Saved Packages State
+  const [savedPackages, setSavedPackages] = useState([])
+  const [activeSavedPackage, setActiveSavedPackage] = useState(null)
+
+  const fetchSavedPackages = useCallback(async () => {
+    try {
+      const res = await fetch('/api/saved-packages')
+      const data = await res.json()
+      if (data.success) {
+        setSavedPackages(data.packages || [])
+      }
+    } catch (err) {
+      console.error('Fetch saved packages error:', err.message)
+    }
+  }, [])
+
   useEffect(() => {
     checkStatus()
     fetchNews(category)
-  }, [category, fetchNews, checkStatus])
+    fetchSavedPackages()
+  }, [category, fetchNews, checkStatus, fetchSavedPackages])
 
   const handleGenerate = async (article) => {
     setGeneratingId(article.id)
@@ -343,13 +574,15 @@ export default function App() {
         minutes: data.minutes,
         modelName: modelObj ? modelObj.name : data.model,
         savedFile: data.savedFile,
+        fileName: data.fileName,
+        savedPhotosCount: data.savedPhotosCount,
         imageUrl: article.imageUrl,
         images: article.images || (article.imageUrl ? [article.imageUrl] : []),
       })
 
-      toast.success('Фельетон успешно создан!', {
+      toast.success('Фельетон и видео-пакет созданы!', {
         id: toastId,
-        description: `Сохранено в scripts/${data.fileName || ''}`,
+        description: `Сохранено в news/${data.fileName || ''}`,
         action: {
           label: '🖼️ Фото к новости',
           onClick: () => handleFetchNewsPhotos(article),
@@ -510,16 +743,22 @@ export default function App() {
 
         {filtered.length > 0 && (
           <div className="news-grid">
-            {filtered.map((article, i) => (
-              <NewsCard
-                key={article.id || i}
-                article={article}
-                index={i}
-                onGenerate={handleGenerate}
-                onOpenPhotos={handleFetchNewsPhotos}
-                isGenerating={generatingId === article.id}
-              />
-            ))}
+            {filtered.map((article, i) => {
+              const matchingSavedPkg = savedPackages.find(p => p.title && article.title && (p.title.includes(article.title.slice(0, 30)) || article.title.includes(p.title.slice(0, 30))))
+              return (
+                <NewsCard
+                  key={article.id || i}
+                  article={article}
+                  index={i}
+                  onGenerate={handleGenerate}
+                  onOpenPhotos={handleFetchNewsPhotos}
+                  isGenerating={generatingId === article.id}
+                  isSavedPkg={!!matchingSavedPkg}
+                  savedPkg={matchingSavedPkg}
+                  onViewSavedPackage={pkg => setActiveSavedPackage(pkg)}
+                />
+              )
+            })}
           </div>
         )}
       </main>
@@ -528,7 +767,16 @@ export default function App() {
       <FeuilletonModal
         feuilleton={currentFeuilleton}
         onOpenPhotos={handleFetchNewsPhotos}
-        onClose={() => setCurrentFeuilleton(null)}
+        onClose={() => {
+          setCurrentFeuilleton(null)
+          fetchSavedPackages()
+        }}
+      />
+
+      {/* Saved Package Viewer Modal */}
+      <SavedPackageModal
+        pkg={activeSavedPackage}
+        onClose={() => setActiveSavedPackage(null)}
       />
 
       {/* Multi-Source News Photos Modal */}

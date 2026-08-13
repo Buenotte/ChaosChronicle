@@ -479,10 +479,10 @@ app.post('/api/generate-feuilleton', async (req, res) => {
     const words = text.split(/\s+/).filter(Boolean).length;
     const minutes = Math.round((words / 140) * 10) / 10;
 
-    // Ordner C:\Projekte\ChaosChronicle\scripts\ anlegen
-    const scriptsDir = path.resolve(__dirname, '../scripts');
-    if (!fs.existsSync(scriptsDir)) {
-      fs.mkdirSync(scriptsDir, { recursive: true });
+    // Hauptordner C:\Projekte\ChaosChronicle\news\ anlegen
+    const newsDir = path.resolve(__dirname, '../news');
+    if (!fs.existsSync(newsDir)) {
+      fs.mkdirSync(newsDir, { recursive: true });
     }
 
     // Dateiname formatieren
@@ -491,10 +491,13 @@ app.post('/api/generate-feuilleton', async (req, res) => {
     const safeTitle = (title || 'Feuilleton')
       .replace(/[^a-zA-Z0-9а-яА-ЯёЁ]/g, '_')
       .slice(0, 40);
-    const fileName = `${dateStr}_${safeTitle}.md`;
-    const filePath = path.join(scriptsDir, fileName);
 
-    // Markdown-Datei Inhalt mit eingebetteten ECHTEN Nachrichten-Bildern erstellen
+    // Spezifischen Unterordner für dieses Projekt anlegen
+    const bundleDir = path.join(newsDir, `${dateStr}_${safeTitle}`);
+    const photosDir = path.join(bundleDir, 'photos');
+    fs.mkdirSync(photosDir, { recursive: true });
+
+    // 1. Markdown-Datei mit eingebetteten Bildern erstellen
     const imagesList = Array.isArray(req.body.images) && req.body.images.length > 0
       ? req.body.images
       : (req.body.imageUrl ? [req.body.imageUrl] : []);
@@ -509,10 +512,51 @@ app.post('/api/generate-feuilleton', async (req, res) => {
       return p;
     }).join('\n\n');
 
-    const fileContent = `# 🎭 ${title}\n\n- **Дата**: ${now.toLocaleString('ru-RU')}\n- **Модель ИИ**: ${modelId}\n- **Хронометраж**: ~${minutes} мин.\n- **Количество слов**: ${words}\n- **Источник**: ${source || 'RSS Feed'}\n\n---\n\n${textWithEmbeddedImages}\n`;
+    const mdContent = `# 🎭 ${title}\n\n- **Дата**: ${now.toLocaleString('ru-RU')}\n- **Модель ИИ**: ${modelId}\n- **Хронометраж**: ~${minutes} мин.\n- **Количество слов**: ${words}\n- **Источник**: ${source || 'RSS Feed'}\n\n---\n\n${textWithEmbeddedImages}\n`;
+    const mdPath = path.join(bundleDir, 'script.md');
+    fs.writeFileSync(mdPath, mdContent, 'utf-8');
 
-    fs.writeFileSync(filePath, fileContent, 'utf-8');
-    console.log(`💾 Фельетон сохранен с картинками: ${filePath}`);
+    // 2. Reinen Sprecher-Text ohne B-Rolls für KI-Voice / TTS anlegen
+    const cleanSpeechText = text
+      .split('\n\n')
+      .filter(p => !p.startsWith('[B-Roll:'))
+      .join('\n\n');
+    const txtPath = path.join(bundleDir, 'script.txt');
+    fs.writeFileSync(txtPath, cleanSpeechText, 'utf-8');
+
+    // 3. Echte Nachrichten-Fotos als Bilddateien im Unterordner photos/ speichern
+    const savedPhotos = [];
+    for (let i = 0; i < Math.min(imagesList.length, 20); i++) {
+      const imgUrl = imagesList[i];
+      try {
+        const imgRes = await fetch(imgUrl, { signal: AbortSignal.timeout(5000) });
+        if (imgRes.ok) {
+          const buffer = Buffer.from(await imgRes.arrayBuffer());
+          const ext = imgUrl.match(/\.(jpg|jpeg|png|webp)/i)?.[1] || 'jpg';
+          const imgFileName = `photo_${String(i + 1).padStart(2, '0')}.${ext}`;
+          const imgPath = path.join(photosDir, imgFileName);
+          fs.writeFileSync(imgPath, buffer);
+          savedPhotos.push(`photos/${imgFileName}`);
+        }
+      } catch (err) {
+        console.error(`Fehler beim Herunterladen von Bild ${imgUrl}:`, err.message);
+      }
+    }
+
+    // 4. project.json Manifest-Datei für automatisierte Video-Generierung erstellen
+    const projectManifest = {
+      title,
+      source,
+      model: modelId,
+      date: now.toISOString(),
+      duration_target_seconds: Math.round(minutes * 60),
+      word_count: words,
+      speech_text_file: 'script.txt',
+      markdown_file: 'script.md',
+      photos: savedPhotos,
+    };
+    const jsonPath = path.join(bundleDir, 'project.json');
+    fs.writeFileSync(jsonPath, JSON.stringify(projectManifest, null, 2), 'utf-8');
 
     res.json({
       success: true,
@@ -520,11 +564,216 @@ app.post('/api/generate-feuilleton', async (req, res) => {
       model: modelId,
       words,
       minutes,
-      savedFile: filePath,
-      fileName,
     });
   } catch (err) {
     console.error('Feuilleton error:', err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/save-news-package - Speichert das Paket in news/ erst auf Button-Klick im Modal!
+app.post('/api/save-news-package', async (req, res) => {
+  try {
+    const { title = '', text = '', model = 'gemini', source = '', images = [], imageUrl = '' } = req.body;
+
+    const newsDir = path.resolve(__dirname, '../news');
+    if (!fs.existsSync(newsDir)) {
+      fs.mkdirSync(newsDir, { recursive: true });
+    }
+
+    const now = new Date();
+    const dateStr = now.toISOString().replace(/[:.]/g, '-').slice(0, 16);
+    const safeTitle = (title || 'Feuilleton')
+      .replace(/[^a-zA-Z0-9а-яА-ЯёЁ]/g, '_')
+      .slice(0, 40);
+
+    const bundleDir = path.join(newsDir, `${dateStr}_${safeTitle}`);
+    const photosDir = path.join(bundleDir, 'photos');
+    fs.mkdirSync(photosDir, { recursive: true });
+
+    const words = text.split(/\s+/).filter(Boolean).length;
+    const minutes = Math.round((words / 140) * 10) / 10;
+
+    const imagesList = Array.isArray(images) && images.length > 0
+      ? images
+      : (imageUrl ? [imageUrl] : []);
+
+    // 1. Markdown-Datei
+    let imageIdx = 0;
+    const textWithEmbeddedImages = text.split('\n\n').map(p => {
+      if (p.startsWith('[B-Roll:')) {
+        const currentImg = imagesList[imageIdx % (imagesList.length || 1)];
+        imageIdx++;
+        return `${p}\n${currentImg ? `![Иллюстрация к новости](${currentImg})` : ''}`;
+      }
+      return p;
+    }).join('\n\n');
+
+    const mdContent = `# 🎭 ${title}\n\n- **Дата**: ${now.toLocaleString('ru-RU')}\n- **Модель ИИ**: ${model}\n- **Хронометраж**: ~${minutes} мин.\n- **Количество слов**: ${words}\n- **Источник**: ${source || 'RSS Feed'}\n\n---\n\n${textWithEmbeddedImages}\n`;
+    fs.writeFileSync(path.join(bundleDir, 'script.md'), mdContent, 'utf-8');
+
+    // 2. Reiner Sprecher-Text (script.txt)
+    const cleanSpeechText = text
+      .split('\n\n')
+      .filter(p => !p.startsWith('[B-Roll:'))
+      .join('\n\n');
+    fs.writeFileSync(path.join(bundleDir, 'script.txt'), cleanSpeechText, 'utf-8');
+
+    // 3. Fotos herunterladen
+    const savedPhotos = [];
+    for (let i = 0; i < Math.min(imagesList.length, 20); i++) {
+      const imgUrl = imagesList[i];
+      try {
+        const imgRes = await fetch(imgUrl, { signal: AbortSignal.timeout(5000) });
+        if (imgRes.ok) {
+          const buffer = Buffer.from(await imgRes.arrayBuffer());
+          const ext = imgUrl.match(/\.(jpg|jpeg|png|webp)/i)?.[1] || 'jpg';
+          const imgFileName = `photo_${String(i + 1).padStart(2, '0')}.${ext}`;
+          fs.writeFileSync(path.join(photosDir, imgFileName), buffer);
+          savedPhotos.push(`photos/${imgFileName}`);
+        }
+      } catch (err) {
+        console.error(`Fehler beim Laden von ${imgUrl}:`, err.message);
+      }
+    }
+
+    // 4. project.json Manifest
+    const projectManifest = {
+      title,
+      source,
+      model,
+      date: now.toISOString(),
+      duration_target_seconds: Math.round(minutes * 60),
+      word_count: words,
+      speech_text_file: 'script.txt',
+      markdown_file: 'script.md',
+      photos: savedPhotos,
+    };
+    fs.writeFileSync(path.join(bundleDir, 'project.json'), JSON.stringify(projectManifest, null, 2), 'utf-8');
+
+    console.log(`💾 Пакет сохранен в news/: ${bundleDir}`);
+
+    res.json({
+      success: true,
+      bundleDir,
+      folderName: path.basename(bundleDir),
+      savedPhotosCount: savedPhotos.length,
+    });
+  } catch (err) {
+    console.error('Save package error:', err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/saved-packages - Listet alle bereits gespeicherten Pakete aus news/ auf
+app.get('/api/saved-packages', async (req, res) => {
+  try {
+    const newsDir = path.resolve(__dirname, '../news');
+    if (!fs.existsSync(newsDir)) {
+      return res.json({ success: true, packages: [] });
+    }
+
+    const entries = fs.readdirSync(newsDir, { withFileTypes: true });
+    const packages = [];
+
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        const bundleDir = path.join(newsDir, entry.name);
+        const jsonPath = path.join(bundleDir, 'project.json');
+        const audioPath = path.join(bundleDir, 'audio.mp3');
+        const txtPath = path.join(bundleDir, 'script.txt');
+        const mdPath = path.join(bundleDir, 'script.md');
+        const photosDir = path.join(bundleDir, 'photos');
+
+        let manifest = {};
+        if (fs.existsSync(jsonPath)) {
+          try {
+            manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+          } catch {}
+        }
+
+        let photoFiles = [];
+        if (fs.existsSync(photosDir)) {
+          photoFiles = fs.readdirSync(photosDir).map(f => `/news-static/${entry.name}/photos/${f}`);
+        }
+
+        packages.push({
+          folderName: entry.name,
+          bundleDir,
+          title: manifest.title || entry.name.replace(/^[0-9T-]{16}_/, '').replace(/_/g, ' '),
+          date: manifest.date || null,
+          model: manifest.model || 'gemini',
+          source: manifest.source || '',
+          hasAudio: fs.existsSync(audioPath),
+          hasScriptTxt: fs.existsSync(txtPath),
+          hasScriptMd: fs.existsSync(mdPath),
+          photosCount: photoFiles.length,
+          photoUrls: photoFiles,
+          audioUrl: fs.existsSync(audioPath) ? `/news-static/${entry.name}/audio.mp3` : null,
+          scriptTxt: fs.existsSync(txtPath) ? fs.readFileSync(txtPath, 'utf-8') : '',
+          scriptMd: fs.existsSync(mdPath) ? fs.readFileSync(mdPath, 'utf-8') : '',
+        });
+      }
+    }
+
+    res.json({ success: true, packages });
+  } catch (err) {
+    console.error('List packages error:', err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Statische Auslieferung für gespeicherte Bilder & Audio-Dateien unter /news-static/
+app.use('/news-static', express.static(path.resolve(__dirname, '../news')));
+
+// POST /api/generate-audio - Erzeugt audio.mp3 mit Stimme Nikolay (ru-RU-DmitryNeural, Rate 0%, Pitch -10%) im Nachricht-Ordner!
+app.post('/api/generate-audio', async (req, res) => {
+  try {
+    const { bundleDir, text = '' } = req.body;
+
+    if (!bundleDir || !fs.existsSync(bundleDir)) {
+      return res.status(400).json({ success: false, error: 'Папка проекта не найдена' });
+    }
+
+    const txtPath = path.join(bundleDir, 'script.txt');
+    const audioPath = path.join(bundleDir, 'audio.mp3');
+
+    // Falls script.txt nicht existiert, erstelle sie aus dem Text
+    if (!fs.existsSync(txtPath) && text) {
+      const cleanSpeechText = text
+        .split('\n\n')
+        .filter(p => !p.startsWith('[B-Roll:'))
+        .join('\n\n');
+      fs.writeFileSync(txtPath, cleanSpeechText, 'utf-8');
+    }
+
+    if (!fs.existsSync(txtPath)) {
+      return res.status(400).json({ success: false, error: 'Файл с текстом script.txt не найден' });
+    }
+
+    // Выполнение edge-tts с голосом Nikolay (ru-RU-DmitryNeural), rate=+0%, pitch=-10Hz
+    const { exec } = await import('child_process');
+    const cmd = `edge-tts --file "${txtPath}" --voice ru-RU-DmitryNeural --rate=+0% --pitch=-10Hz --write-media "${audioPath}"`;
+
+    exec(cmd, (error, stdout, stderr) => {
+      if (error) {
+        console.error('Audio generation error:', error.message, stderr);
+        return res.status(500).json({ success: false, error: `Ошибка генерации аудио: ${error.message}` });
+      }
+
+      console.log(`🎙️ Аудио-файл сохранен: ${audioPath}`);
+      res.json({
+        success: true,
+        audioPath,
+        audioFileName: 'audio.mp3',
+        folderName: path.basename(bundleDir),
+        voice: 'Nikolay (ru-RU-DmitryNeural)',
+        rate: '0%',
+        pitch: '-10%',
+      });
+    });
+  } catch (err) {
+    console.error('Generate audio error:', err.message);
     res.status(500).json({ success: false, error: err.message });
   }
 });

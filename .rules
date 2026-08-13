@@ -1,0 +1,5 @@
+# 📜 Custom Project Rules for ChaosChronicle
+
+## Git Rule
+- **STRICT REQUIREMENT**: Never execute `git commit` or `git push` automatically.
+- **EXPLICIT COMMAND ONLY**: Commits and pushes must ONLY be done when explicitly ordered by the user.
