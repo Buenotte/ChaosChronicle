@@ -133,9 +133,21 @@ function getRelativeTime(dateStr) {
   return `Vor ${diffDays} Tag${diffDays > 1 ? 'en' : ''}`;
 }
 
-// Cache für Feeds (Wird NUR bei Button-Кlick aktualisiert!)
+const cacheFilePath = path.join(__dirname, 'cache_news.json');
+
+// Cache für Feeds (Wird NUR bei explizitem Button-Klick ↻ im Browser aktualisiert!)
 let newsCache = [];
 let lastFetch = 0;
+if (fs.existsSync(cacheFilePath)) {
+  try {
+    const cachedData = JSON.parse(fs.readFileSync(cacheFilePath, 'utf-8'));
+    newsCache = cachedData.articles || [];
+    lastFetch = cachedData.lastFetch || 0;
+    console.log(`📦 ${newsCache.length} Nachrichten aus lokalem Festplatten-Cache geladen (cache_news.json). F5 sucht NICHT im Internet.`);
+  } catch (e) {
+    console.error('Fehler beim Lesen von cache_news.json:', e.message);
+  }
+}
 
 async function fetchAllFeeds(forceRefresh = false) {
   // Wenn bereits Nachrichten im Cache sind und kein erzwungener Button-Klick vorliegt, gib den Cache sofort zurück!
@@ -143,7 +155,7 @@ async function fetchAllFeeds(forceRefresh = false) {
     return newsCache;
   }
 
-  console.log(forceRefresh ? '↻ Nachrichten werden auf Button-Klick neu geladen...' : '📰 Erster Nachrichten-Import...');
+  console.log(forceRefresh ? '↻ Nachrichten werden auf Button-Klick neu im Internet gesucht...' : '📰 Erste Nachrichten-Suche...');
 
   const results = await Promise.allSettled(
     FEEDS.map(async (feed) => {
@@ -173,6 +185,13 @@ async function fetchAllFeeds(forceRefresh = false) {
 
   newsCache = articles;
   lastFetch = Date.now();
+
+  try {
+    fs.writeFileSync(cacheFilePath, JSON.stringify({ lastFetch, articles }, null, 2), 'utf-8');
+  } catch (e) {
+    console.error('Fehler beim Speichern von cache_news.json:', e.message);
+  }
+
   return articles;
 }
 
@@ -783,6 +802,20 @@ app.get('/api/saved-packages', async (req, res) => {
           photoFiles = fs.readdirSync(photosDir).map(f => `/news-static/${entry.name}/photos/${f}`);
         }
 
+        const videoDir = path.join(bundleDir, 'video');
+        let latestVideoFile = null;
+        if (fs.existsSync(videoDir)) {
+          const videoFiles = fs.readdirSync(videoDir)
+            .filter(f => f.endsWith('.mp4'))
+            .map(f => ({ name: f, time: fs.statSync(path.join(videoDir, f)).mtimeMs }))
+            .sort((a, b) => b.time - a.time);
+          if (videoFiles.length > 0) {
+            latestVideoFile = videoFiles[0].name;
+          }
+        }
+        const hasVideo = !!latestVideoFile;
+        const videoUrl = latestVideoFile ? `/news-static/${entry.name}/video/${latestVideoFile}` : null;
+
         packages.push({
           folderName: entry.name,
           bundleDir,
@@ -791,11 +824,13 @@ app.get('/api/saved-packages', async (req, res) => {
           model: manifest.model || 'gemini',
           source: manifest.source || '',
           hasAudio: fs.existsSync(audioPath),
+          hasVideo,
           hasScriptTxt: fs.existsSync(txtPath),
           hasScriptMd: fs.existsSync(mdPath),
           photosCount: photoFiles.length,
           photoUrls: photoFiles,
           audioUrl: fs.existsSync(audioPath) ? `/news-static/${entry.name}/audio.mp3` : null,
+          videoUrl,
           scriptTxt: fs.existsSync(txtPath) ? fs.readFileSync(txtPath, 'utf-8') : '',
           scriptMd: fs.existsSync(mdPath) ? fs.readFileSync(mdPath, 'utf-8') : '',
         });
@@ -1009,6 +1044,107 @@ app.post('/api/generate-audio', async (req, res) => {
     });
   } catch (err) {
     console.error('Generate audio error:', err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/generate-video - Erzeugt video.mp4 (Preset ultrafast) aus photos/ und audio.mp3 im Nachricht-Ordner!
+app.post('/api/generate-video', async (req, res) => {
+  try {
+    const { bundleDir: inputBundleDir, folderName } = req.body;
+
+    const newsDir = path.resolve(__dirname, '../news');
+    let bundleDir = inputBundleDir;
+    if (!bundleDir && folderName) {
+      bundleDir = path.join(newsDir, folderName);
+    }
+
+    if (!bundleDir || !fs.existsSync(bundleDir)) {
+      return res.status(400).json({ success: false, error: 'Папка проекта не найдена' });
+    }
+
+    const audioPath = path.join(bundleDir, 'audio.mp3');
+    const photosDir = path.join(bundleDir, 'photos');
+    const videoDir = path.join(bundleDir, 'video');
+    if (!fs.existsSync(videoDir)) {
+      fs.mkdirSync(videoDir, { recursive: true });
+    }
+    const timeStr = new Date().toISOString().replace(/T/, '_').replace(/:/g, '-').slice(0, 19);
+    const videoFileName = `video_${timeStr}.mp4`;
+    const videoPath = path.join(videoDir, videoFileName);
+
+    if (!fs.existsSync(audioPath)) {
+      return res.status(400).json({ success: false, error: 'Файл audio.mp3 не найден. Сначала создайте аудио!' });
+    }
+
+    if (!fs.existsSync(photosDir)) {
+      return res.status(400).json({ success: false, error: 'Папка photos/ не найдена. Сначала скачайте фото!' });
+    }
+
+    const photoFiles = fs.readdirSync(photosDir).filter(f => /\.(jpg|jpeg|png|webp)/i.test(f));
+    if (photoFiles.length === 0) {
+      return res.status(400).json({ success: false, error: 'В папке photos/ нет фотографий!' });
+    }
+
+    // 1. Audio-Dauer ermitteln (ffprobe)
+    const { exec } = await import('child_process');
+    const probeCmd = `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${audioPath}"`;
+
+    exec(probeCmd, async (probeErr, stdout) => {
+      let duration = parseFloat(stdout.trim());
+      if (isNaN(duration) || duration <= 0) {
+        duration = 180; // Fallback
+      }
+
+      const photoDuration = duration / photoFiles.length;
+
+      // 2. Concat-Datei concat.txt erstellen
+      const concatPath = path.join(bundleDir, 'concat.txt');
+      let concatContent = '';
+      for (let i = 0; i < photoFiles.length; i++) {
+        const photoPath = path.join(photosDir, photoFiles[i]).replace(/\\/g, '/');
+        concatContent += `file '${photoPath}'\nduration ${photoDuration.toFixed(3)}\n`;
+      }
+      const lastPhoto = path.join(photosDir, photoFiles[photoFiles.length - 1]).replace(/\\/g, '/');
+      concatContent += `file '${lastPhoto}'\n`;
+
+      fs.writeFileSync(concatPath, concatContent, 'utf-8');
+
+      // 3. FFmpeg Befehl ausführen (16:9 Full HD 1920x1080, preset ultrafast, yuv420p direkt auf videoPath)
+      const ffmpegCmd = `ffmpeg -y -f concat -safe 0 -i "${concatPath}" -i "${audioPath}" -vf "scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,setsar=1,format=yuv420p" -c:v libx264 -preset ultrafast -c:a copy -shortest "${videoPath}"`;
+
+      exec(ffmpegCmd, (ffmpegErr, ffOut, ffErr) => {
+        if (ffmpegErr) {
+          console.error('FFmpeg video generation error:', ffmpegErr.message, ffErr);
+          return res.status(500).json({ success: false, error: `Ошибка создания видео: ${ffmpegErr.message}` });
+        }
+
+        // Manifest project.json aktualisieren
+        const jsonPath = path.join(bundleDir, 'project.json');
+        if (fs.existsSync(jsonPath)) {
+          try {
+            const manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+            manifest.hasVideo = true;
+            manifest.video_generated_at = new Date().toISOString();
+            fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
+          } catch {}
+        }
+
+        const resFolderName = path.basename(bundleDir);
+        console.log(`🎬 video.mp4 erfolgreich in news/${resFolderName}/video.mp4 generiert (Ultrafast).`);
+
+        res.json({
+          success: true,
+          videoPath,
+          videoFileName: `video/${videoFileName}`,
+          folderName: resFolderName,
+          duration,
+          photosCount: photoFiles.length,
+        });
+      });
+    });
+  } catch (err) {
+    console.error('Generate video error:', err.message);
     res.status(500).json({ success: false, error: err.message });
   }
 });

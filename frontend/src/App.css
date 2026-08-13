@@ -952,6 +952,31 @@ body {
   font-size: 1rem;
 }
 
+/* ── Video Player Controls & Box ──────────────────────── */
+.video-player-box {
+  position: relative;
+  background: #000000;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+.video-element {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  display: block;
+  object-fit: contain;
+  background: #000000;
+  border-radius: 8px;
+  outline: none;
+}
+
+.video-element::-webkit-media-controls-panel {
+  display: flex !important;
+  opacity: 1 !important;
+}
+
 /* ── Footer ─────────────────────────────── */
 .app-footer {
   text-align: center;

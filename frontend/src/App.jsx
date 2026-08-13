@@ -190,6 +190,7 @@ function NewsScriptModal({ pkg, onClose, onSaved }) {
     }
   }
 
+  const [isMaximized, setIsMaximized] = useState(false)
   const computedAudioUrl = audioState.audioUrl || pkg.audioUrl || (pkg.folderName ? `/news-static/${pkg.folderName}/audio.mp3` : null)
   const hasAudioFile = audioState.hasAudio || pkg.hasAudio
 
@@ -198,8 +199,12 @@ function NewsScriptModal({ pkg, onClose, onSaved }) {
       <div
         className={`modal-content script-editor-modal ${isDragging ? 'dragging' : ''}`}
         style={{
+          maxWidth: isMaximized ? '96vw' : '780px',
+          width: isMaximized ? '96vw' : '100%',
+          height: isMaximized ? '94vh' : 'auto',
+          maxHeight: isMaximized ? '94vh' : '88vh',
           transform: `translate3d(${pos.x}px, ${pos.y}px, 0)`,
-          transition: isDragging ? 'none' : 'transform 0.1s ease-out',
+          transition: isDragging ? 'none' : 'all 0.2s ease-out',
         }}
         onClick={e => e.stopPropagation()}
       >
@@ -215,7 +220,16 @@ function NewsScriptModal({ pkg, onClose, onSaved }) {
             </span>
             <h2 className="modal-title">{pkg.title}</h2>
           </div>
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <div style={{ display: 'flex', gap: '0.35rem' }}>
+            <button
+              className="modal-close"
+              onClick={() => setIsMaximized(!isMaximized)}
+              title={isMaximized ? "Свернуть окно" : "Развернуть во весь экран"}
+            >
+              {isMaximized ? '🗗' : '🗖'}
+            </button>
+            <button className="modal-close" onClick={onClose} title="Закрыть окно">✕</button>
+          </div>
         </div>
 
         <div className="modal-body">
@@ -421,6 +435,16 @@ function NewsAudioModal({ pkg, onClose, onRefresh }) {
               <audio controls src={computedAudioUrl} className="audio-element">
                 Ваш браузер не поддерживает элемент audio.
               </audio>
+              <div style={{ marginTop: '0.85rem', textAlign: 'right' }}>
+                <button
+                  className="audio-gen-btn"
+                  onClick={handleGenerateAudioInModal}
+                  disabled={generatingAudio}
+                  style={{ background: '#f59e0b', fontSize: '0.85rem', padding: '0.4rem 0.8rem' }}
+                >
+                  {generatingAudio ? '⏳ Пересоздание audio.mp3...' : '🔄 Пересоздать audio.mp3 (Nikolay)'}
+                </button>
+              </div>
             </div>
           ) : (
             <div className="empty-state" style={{ padding: '1rem', textAlign: 'left', background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: '12px' }}>
@@ -449,17 +473,185 @@ function NewsAudioModal({ pkg, onClose, onRefresh }) {
   )
 }
 
+
+
 // Einziges, vereintes Modal für das komplette Video-Produktionspaket (Status + Audio + Fotos + Skript-Text)
-function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText, onOpenAudio, onClose }) {
+function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText, onOpenAudio, onOpenVideo, onClose, onRefresh }) {
   if (!pkg) return null
+
+  const videoRef = useRef(null)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [currentTime, setCurrentTime] = useState(0)
+  const [duration, setDuration] = useState(0)
+
+  const [generatingAudio, setGeneratingAudio] = useState(false)
+  const [generatingVideo, setGeneratingVideo] = useState(false)
+
+  const [audioState, setAudioState] = useState({
+    hasAudio: !!pkg.hasAudio,
+    audioUrl: pkg.audioUrl,
+  })
+  const [videoState, setVideoState] = useState({
+    hasVideo: !!pkg.hasVideo,
+    videoUrl: pkg.videoUrl,
+  })
+
+  useEffect(() => {
+    setAudioState({
+      hasAudio: !!pkg.hasAudio,
+      audioUrl: pkg.audioUrl,
+    })
+    setVideoState({
+      hasVideo: !!pkg.hasVideo,
+      videoUrl: pkg.videoUrl,
+    })
+    setIsPlaying(false)
+    setCurrentTime(0)
+  }, [pkg])
+
+  const togglePlay = () => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause()
+      } else {
+        videoRef.current.play()
+      }
+      setIsPlaying(!isPlaying)
+    }
+  }
+
+  const handleTimeUpdate = () => {
+    if (videoRef.current) {
+      setCurrentTime(videoRef.current.currentTime)
+      setDuration(videoRef.current.duration || 0)
+    }
+  }
+
+  const handleSeek = (e) => {
+    const time = parseFloat(e.target.value)
+    if (videoRef.current) {
+      videoRef.current.currentTime = time
+      setCurrentTime(time)
+    }
+  }
+
+  const formatTime = (secs) => {
+    if (isNaN(secs)) return '0:00'
+    const m = Math.floor(secs / 60)
+    const s = Math.floor(secs % 60)
+    return `${m}:${s < 10 ? '0' : ''}${s}`
+  }
 
   const photosList = pkg.photoUrls || []
   const actualPhotoCount = photosList.length || (pkg.photosCount || 0)
   const hasTxt = !!(pkg.scriptTxt && !pkg.scriptTxt.includes('Нажмите «✍️'))
 
+  const handleGenerateAudioDirect = async () => {
+    if (!pkg.bundleDir && !pkg.folderName) {
+      toast.error('Сначала сохраните пакет в папку news/')
+      return
+    }
+    setGeneratingAudio(true)
+    const toastId = toast.loading('🎙️ Синтез речи Nikolay (ru-RU-DmitryNeural, 0%, -10%)...', {
+      description: 'Генерация звукового файла audio.mp3...',
+    })
+
+    try {
+      const res = await fetch('/api/generate-audio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bundleDir: pkg.bundleDir,
+          folderName: pkg.folderName,
+          text: pkg.scriptTxt || pkg.scriptMd || '',
+        }),
+      })
+
+      const data = await res.json()
+      if (!res.ok || !data.success) throw new Error(data.error || 'Ошибка генерации аудио')
+
+      const newAudioUrl = `/news-static/${data.folderName}/${data.audioFileName}?t=${Date.now()}`
+      pkg.hasAudio = true
+      pkg.audioUrl = newAudioUrl
+      setAudioState({
+        hasAudio: true,
+        audioUrl: newAudioUrl,
+      })
+
+      if (onRefresh) onRefresh()
+
+      toast.success('🎙️ Голосовой файл audio.mp3 успешно создан!', {
+        id: toastId,
+        description: `Папка: news/${data.folderName}/audio.mp3 (${data.voice})`,
+        duration: 8000,
+      })
+    } catch (err) {
+      toast.error('Ошибка создания аудио', { id: toastId, description: err.message })
+    } finally {
+      setGeneratingAudio(false)
+    }
+  }
+
+  const handleGenerateVideoDirect = async () => {
+    if (!pkg.bundleDir && !pkg.folderName) {
+      toast.error('Сначала сохраните пакет в папку news/')
+      return
+    }
+    setGeneratingVideo(true)
+    const toastId = toast.loading('🎬 Монтаж видео (16:9 FFmpeg Ultrafast)...', {
+      description: 'Сведение фото, переходов и аудио-файла audio.mp3...',
+    })
+
+    try {
+      const res = await fetch('/api/generate-video', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bundleDir: pkg.bundleDir,
+          folderName: pkg.folderName,
+        }),
+      })
+
+      const data = await res.json()
+      if (!res.ok || !data.success) throw new Error(data.error || 'Ошибка создания видео')
+
+      const newVideoUrl = `/news-static/${data.folderName}/${data.videoFileName}?t=${Date.now()}`
+      pkg.hasVideo = true
+      pkg.videoUrl = newVideoUrl
+      setVideoState({
+        hasVideo: true,
+        videoUrl: newVideoUrl,
+      })
+
+      if (onRefresh) onRefresh()
+
+      toast.success('🎬 Видео-файл video.mp4 успешно создан!', {
+        id: toastId,
+        description: `Папка: news/${data.folderName}/video/video.mp4 (16:9)`,
+        duration: 8000,
+      })
+    } catch (err) {
+      toast.error('Ошибка монтажа видео', { id: toastId, description: err.message })
+    } finally {
+      setGeneratingVideo(false)
+    }
+  }
+
+  const [isMaximized, setIsMaximized] = useState(false)
+
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content saved-package-modal" onClick={e => e.stopPropagation()}>
+      <div
+        className="modal-content saved-package-modal"
+        style={{
+          width: isMaximized ? '96vw' : '100%',
+          maxWidth: isMaximized ? '96vw' : '780px',
+          height: isMaximized ? '94vh' : 'auto',
+          maxHeight: isMaximized ? '94vh' : '88vh',
+          transition: 'all 0.25s ease-out',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
         <div className="modal-header">
           <div>
             <span className="modal-badge saved-badge">
@@ -469,15 +661,26 @@ function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText, onOpenAudio, o
             <div className="modal-stats" style={{ marginTop: '0.5rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
               <span className="saved-status-badge">📜 script.txt {hasTxt ? '✅' : '❌'}</span>
               <span className="saved-status-badge">📸 photos/ ({actualPhotoCount})</span>
-              <span className="saved-status-badge">🎙️ audio.mp3 {pkg.hasAudio ? '✅' : '❌'}</span>
+              <span className="saved-status-badge">🎙️ audio.mp3 {audioState.hasAudio ? '✅' : '❌'}</span>
+              <span className="saved-status-badge">🎬 video.mp4 {videoState.hasVideo ? '✅' : '❌'}</span>
             </div>
           </div>
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <div style={{ display: 'flex', gap: '0.35rem' }}>
+            <button
+              className="modal-close"
+              onClick={() => setIsMaximized(!isMaximized)}
+              title={isMaximized ? "Свернуть окно" : "Развернуть во весь экран"}
+            >
+              {isMaximized ? '🗗' : '🗖'}
+            </button>
+            <button className="modal-close" onClick={onClose} title="Закрыть окно">✕</button>
+          </div>
         </div>
 
         <div className="modal-body">
-          {/* 3 Action Buttons */}
-          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+          {/* Секция 1: Текст */}
+          <div style={{ marginBottom: '1.25rem' }}>
+            <h3 style={{ fontSize: '0.95rem', color: '#9ca3af', marginBottom: '0.5rem' }}>1. Скрипт текста:</h3>
             <button
               className="copy-btn"
               style={{ background: '#3b82f6' }}
@@ -485,13 +688,134 @@ function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText, onOpenAudio, o
             >
               📜 Открыть и редактировать текст
             </button>
-            <button
-              className="copy-btn"
-              style={{ background: '#f59e0b' }}
-              onClick={() => onOpenAudio(pkg)}
-            >
-              🎙️ {pkg.hasAudio ? 'Воспроизвести аудио Nikolay' : 'Создать / Открыть аудио'}
-            </button>
+          </div>
+
+          {/* Секция 2: Аудио */}
+          <div style={{ marginBottom: '1.25rem' }}>
+            <h3 style={{ fontSize: '0.95rem', color: '#9ca3af', marginBottom: '0.5rem' }}>2. Озвучка Nikolay (audio.mp3):</h3>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <button
+                className="copy-btn"
+                style={{ background: '#f59e0b' }}
+                onClick={handleGenerateAudioDirect}
+                disabled={generatingAudio}
+              >
+                {generatingAudio ? '⏳ Создание audio.mp3...' : (audioState.hasAudio ? '🔄 Пересоздать audio.mp3' : '🎙️ Создать audio.mp3')}
+              </button>
+
+              {audioState.hasAudio && (
+                <button
+                  className="copy-btn"
+                  style={{ background: '#d97706' }}
+                  onClick={() => onOpenAudio({ ...pkg, ...audioState })}
+                >
+                  ▶️ Воспроизвести аудио
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Секция 3: Видео-плеер 16:9 (Прямо в главном диалоге) */}
+          <div style={{ marginBottom: '1.5rem' }}>
+            <h3 style={{ fontSize: '0.95rem', color: '#a855f7', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              🎬 Видео-монтаж 16:9 (video.mp4):
+            </h3>
+
+            {videoState.hasVideo ? (
+              <div className="video-player-box" style={{ padding: '0.5rem', background: '#09090b', borderRadius: '12px', maxWidth: '560px', margin: '0 auto' }}>
+                <video
+                  ref={videoRef}
+                  controls
+                  preload="metadata"
+                  playsInline
+                  src={videoState.videoUrl || (pkg.folderName ? `/news-static/${pkg.folderName}/video/video.mp4` : null)}
+                  className="video-element"
+                  style={{ width: '100%', maxHeight: '310px', objectFit: 'contain' }}
+                  onTimeUpdate={handleTimeUpdate}
+                  onLoadedMetadata={handleTimeUpdate}
+                  onPlay={() => setIsPlaying(true)}
+                  onPause={() => setIsPlaying(false)}
+                >
+                  Ваш браузер не поддерживает видео-плеер.
+                </video>
+
+                {/* Interaktive Steuerungsleiste (Start/Stopp + Zeitleiste + Dauer + Re-generate) */}
+                <div style={{
+                  marginTop: '0.6rem',
+                  padding: '0.75rem 1rem',
+                  background: '#18181b',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  flexWrap: 'wrap',
+                  border: '1px solid rgba(255, 255, 255, 0.1)'
+                }}>
+                  <button
+                    onClick={togglePlay}
+                    style={{
+                      background: isPlaying ? '#ef4444' : '#10b981',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '0.45rem 1.1rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.35rem'
+                    }}
+                  >
+                    {isPlaying ? '⏸️ Пауза' : '▶️ Старт'}
+                  </button>
+
+                  <span style={{ fontSize: '0.85rem', color: '#d1d5db', fontFamily: 'monospace', minWidth: '85px' }}>
+                    {formatTime(currentTime)} / {formatTime(duration)}
+                  </span>
+
+                  <input
+                    type="range"
+                    min="0"
+                    max={duration || 100}
+                    step="0.1"
+                    value={currentTime}
+                    onChange={handleSeek}
+                    style={{ flex: 1, minWidth: '120px', cursor: 'pointer', accentColor: '#a855f7' }}
+                  />
+
+                  <button
+                    className="audio-gen-btn"
+                    onClick={handleGenerateVideoDirect}
+                    disabled={generatingVideo}
+                    style={{ background: '#a855f7', fontSize: '0.8rem', padding: '0.4rem 0.8rem', marginLeft: 'auto' }}
+                  >
+                    {generatingVideo ? '⏳ Монтаж...' : '🔄 Пересоздать 16:9'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="empty-state" style={{ padding: '1rem', textAlign: 'left', background: 'rgba(168, 85, 247, 0.08)', border: '1px solid rgba(168, 85, 247, 0.25)', borderRadius: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+                  <div>
+                    <p style={{ margin: 0, fontWeight: 600, color: '#a855f7' }}>🎬 Видео-файл video.mp4 еще не смонтирован</p>
+                  </div>
+                  <button
+                    className="audio-gen-btn"
+                    onClick={handleGenerateVideoDirect}
+                    disabled={generatingVideo || !audioState.hasAudio || actualPhotoCount === 0}
+                    style={{ background: '#a855f7', whiteSpace: 'nowrap' }}
+                  >
+                    {generatingVideo ? '⏳ Монтаж 16:9...' : '🎬 Создать видео (MP4 / 16:9)'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Секция 4: Фотографии */}
+          <div>
+            <h3 style={{ fontSize: '0.95rem', color: '#9ca3af', marginBottom: '0.5rem' }}>4. Галерея фотографий:</h3>
             <button
               className="copy-btn"
               style={{ background: '#10b981' }}
@@ -1014,6 +1338,7 @@ export default function App() {
   const [activeSavedPackage, setActiveSavedPackage] = useState(null)
   const [scriptTextPackage, setScriptTextPackage] = useState(null)
   const [audioPackage, setAudioPackage] = useState(null)
+  const [videoPackage, setVideoPackage] = useState(null)
 
   const fetchSavedPackages = useCallback(async () => {
     try {
@@ -1288,6 +1613,7 @@ export default function App() {
         onOpenPhotos={handleFetchNewsPhotos}
         onOpenScriptText={pkg => setScriptTextPackage(pkg)}
         onOpenAudio={pkg => setAudioPackage(pkg)}
+        onOpenVideo={pkg => setVideoPackage(pkg)}
         onClose={() => setActiveSavedPackage(null)}
         onRefresh={fetchSavedPackages}
       />
@@ -1305,6 +1631,8 @@ export default function App() {
         onClose={() => setAudioPackage(null)}
         onRefresh={fetchSavedPackages}
       />
+
+
 
       {/* Multi-Source News Photos Modal */}
       <NewsPhotosModal
