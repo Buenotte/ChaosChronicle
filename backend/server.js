@@ -1110,8 +1110,9 @@ app.post('/api/generate-video', async (req, res) => {
 
       fs.writeFileSync(concatPath, concatContent, 'utf-8');
 
-      // 3. FFmpeg Befehl ausführen (16:9 Full HD 1920x1080, preset ultrafast, yuv420p direkt auf videoPath)
-      const ffmpegCmd = `ffmpeg -y -f concat -safe 0 -i "${concatPath}" -i "${audioPath}" -vf "scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,setsar=1,format=yuv420p" -c:v libx264 -preset ultrafast -c:a copy -shortest "${videoPath}"`;
+      // 3. FFmpeg Befehl ausführen (16:9 Full HD mit edlem unscharfem Blur-Hintergrund für vertikale/hochkant Fotos)
+      const filterGraph = 'split[bg][fg];[bg]scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,gblur=sigma=35[blurred];[fg]scale=1920:1080:force_original_aspect_ratio=decrease[sharp];[blurred][sharp]overlay=(W-w)/2:(H-h)/2,setsar=1,format=yuv420p';
+      const ffmpegCmd = `ffmpeg -y -f concat -safe 0 -i "${concatPath}" -i "${audioPath}" -filter_complex "${filterGraph}" -c:v libx264 -preset ultrafast -c:a copy -shortest "${videoPath}"`;
 
       exec(ffmpegCmd, (ffmpegErr, ffOut, ffErr) => {
         if (ffmpegErr) {
