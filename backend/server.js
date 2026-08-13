@@ -546,16 +546,49 @@ const MODELS = {
   free:     'openrouter/free',
 };
 
-const SATIRE_PROMPT = `Du bist ein Meister des giftigen satirischen Feuilletons und der dunklen Alltagskomödie (im Stil von "Fight Club" und scharfer moderner Gesellschaftssatire). Schreibe auf Russisch.
+// ── Hybrid Prompt Builder aus scripts/ (Klimovski, Kasyanov, Golubuckiy) ──────
+function buildHybridPrompt(newsTitle, newsSummary = '') {
+  const scriptsDir = path.resolve(__dirname, '../scripts');
+  const gibridPath = path.join(scriptsDir, 'gibrid_style.txt');
+  const klimovskiPath = path.join(scriptsDir, 'klimovski_style.txt');
+  const kasjanovPath = path.join(scriptsDir, 'kasjanov_style.txt');
+  const golubuzkiPath = path.join(scriptsDir, 'golubuzki_style.txt');
 
-STIL-REGELN (Böse Satire & Dunkles Alltagsfeuilleton):
-1. STRIKTES VERBOT von «МЫ» (kein «мы создали», «мы привыкли»). Nutze 3. Person («существо», «паразит», «менеджер», «элита») oder «вы».
-2. Giftige Metaphern: «вирус бесполезности», «хрустальный цветок XXI века», «каста офисных паразитов», «стерильная звенящая пустота».
-3. Groteske Hyperbel: Anruf ohne SMS = zivilisatorischer Terrorakt. Punkt im Chat statt Emoji = Woche psychologische Reha. Bett machen = Mount Everest.
-4. Scharfe Satire auf Zoom-Management (Konferenzen über Konferenzen, Entscheidungen ausweichen wie Neo in Matrix) und Polit-Eliten.
-5. Exakt 3 bis 4 Absätze, ~420 Wörter gesamt (exakt 3:00 Minuten Vorlesezeit bei 140 Wörtern/Min).
-6. NUR reiner Sprechertext, keine Nummern, keine Klammerbemerkungen im Text.
-7. Am Ende JEDES Absatzes: eine Zeile [B-Roll: Визуальный кадр / Иллюстрация к новости на английском] mit konkreten Bild- und Kadermotiven für die visuelle Gestaltung des Videos.`;
+  const gibridTemplate = fs.existsSync(gibridPath) ? fs.readFileSync(gibridPath, 'utf-8') : '';
+  const klimovskiStyle = fs.existsSync(klimovskiPath) ? fs.readFileSync(klimovskiPath, 'utf-8') : '';
+  const kasjanovStyle = fs.existsSync(kasjanovPath) ? fs.readFileSync(kasjanovPath, 'utf-8') : '';
+  const golubuzkiStyle = fs.existsSync(golubuzkiPath) ? fs.readFileSync(golubuzkiPath, 'utf-8') : '';
+
+  let fullPrompt = gibridTemplate
+    .replace('{Здесь_будет_текст_из_файла_Климовский}', klimovskiStyle)
+    .replace('{Здесь_будет_текст_из_файла_Касьянов}', kasjanovStyle)
+    .replace('{Здесь_будет_текст_из_файла_Голобуцкий}', golubuzkiStyle);
+
+  const newsText = `ТЕМА НОВОСТИ: ${newsTitle}\nКОНТЕКСТ: ${newsSummary || ''}`;
+  fullPrompt = fullPrompt.replace('[ВСТАВЬТЕ ТЕКСТ НОВОСТИ]', newsText);
+
+  // СТРОГИЕ ПРАВИЛА ДЛЯ 100% ЧИСТОЙ ОЗВУЧКИ ГОЛОСОМ ИИ (TTS):
+  fullPrompt += `\n\nСТРОЖАЙШИЕ ПРАВИЛА ДЛЯ АУДИО-ОЗВУЧКИ (TTS):\n` +
+    `1. ПИШИ ТОЛЬКО ЧИСТЫЙ ПРОИЗНОСИМЫЙ ТЕКСТ ДИКТОРА от первого до последнего слова.\n` +
+    `2. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО писать заголовки блоков (например: НЕ ПИШИ "**Блок 1: Ироничный Крючок...**"), НЕ ПИШИ тайминги "(0:00 – 0:45)".\n` +
+    `3. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО использовать плейсхолдеры в квадратных скобках типа "[Название_канала]". Называй канал "ChaosChronicle". НЕ вставляй строки [B-Roll:...].\n` +
+    `4. Весь текст должен быть единым, ритмичным, готовым дикторским монологом дляозвучки голосовым ИИ.`;
+
+  return fullPrompt;
+}
+
+function cleanSpeechTextForAudio(rawText = '') {
+  return rawText
+    .replace(/\[Название_канала\]/g, 'ChaosChronicle')
+    .replace(/\[[^\]]+\]/g, '') // Entferne alle [B-Roll] oder [Platzhalter]
+    .replace(/\*\*\s*Блок\s*\d+:[^*]+\*\*/gi, '') // Entferne **Блок 1...**
+    .replace(/Блок\s*\d+:[^\n]+/gi, '') // Entferne Блок 1...
+    .replace(/\(\d+:\d+\s*–\s*\d+:\d+\)/g, '') // Entferne (0:00 – 0:45)
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => line.length > 0)
+    .join('\n\n');
+}
 
 app.post('/api/generate-feuilleton', async (req, res) => {
   const { title, summary, model = 'gemini', source = '' } = req.body;
@@ -567,6 +600,8 @@ app.post('/api/generate-feuilleton', async (req, res) => {
   }
 
   try {
+    const hybridPrompt = buildHybridPrompt(title, summary);
+
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -578,11 +613,10 @@ app.post('/api/generate-feuilleton', async (req, res) => {
       body: JSON.stringify({
         model: modelId,
         messages: [
-          { role: 'system', content: SATIRE_PROMPT },
-          { role: 'user', content: `ТЕМА: ${title}\n\nКОНТЕКСТ: ${summary || ''}` },
+          { role: 'user', content: hybridPrompt },
         ],
-        max_tokens: 1800,
-        temperature: 0.88,
+        max_tokens: 2200,
+        temperature: 0.85,
       }),
     });
 
@@ -592,7 +626,8 @@ app.post('/api/generate-feuilleton', async (req, res) => {
     }
 
     const data = await response.json();
-    const text = data.choices?.[0]?.message?.content || '';
+    const rawText = data.choices?.[0]?.message?.content || '';
+    const text = cleanSpeechTextForAudio(rawText);
     const words = text.split(/\s+/).filter(Boolean).length;
     const minutes = Math.round((words / 140) * 10) / 10;
 
@@ -614,30 +649,17 @@ app.post('/api/generate-feuilleton', async (req, res) => {
     const photosDir = path.join(bundleDir, 'photos');
     fs.mkdirSync(photosDir, { recursive: true });
 
-    // 1. Markdown-Datei mit eingebetteten Bildern erstellen
+    // 1. Markdown-Datei mit allen Infos anlegen
     const imagesList = Array.isArray(req.body.images) && req.body.images.length > 0
       ? req.body.images
       : (req.body.imageUrl ? [req.body.imageUrl] : []);
 
-    let imageIdx = 0;
-    const textWithEmbeddedImages = text.split('\n\n').map(p => {
-      if (p.startsWith('[B-Roll:')) {
-        const currentImg = imagesList[imageIdx % (imagesList.length || 1)];
-        imageIdx++;
-        return `${p}\n${currentImg ? `![Иллюстрация к новости](${currentImg})` : ''}`;
-      }
-      return p;
-    }).join('\n\n');
-
-    const mdContent = `# 🎭 ${title}\n\n- **Дата**: ${now.toLocaleString('ru-RU')}\n- **Модель ИИ**: ${modelId}\n- **Хронометраж**: ~${minutes} мин.\n- **Количество слов**: ${words}\n- **Источник**: ${source || 'RSS Feed'}\n\n---\n\n${textWithEmbeddedImages}\n`;
+    const mdContent = `# 🎭 ${title}\n\n- **Дата**: ${now.toLocaleString('ru-RU')}\n- **Модель ИИ**: ${modelId}\n- **Хронометраж**: ~${minutes} мин.\n- **Количество слов**: ${words}\n- **Источник**: ${source || 'RSS Feed'}\n\n---\n\n${text}\n`;
     const mdPath = path.join(bundleDir, 'script.md');
     fs.writeFileSync(mdPath, mdContent, 'utf-8');
 
-    // 2. Reinen Sprecher-Text ohne B-Rolls für KI-Voice / TTS anlegen
-    const cleanSpeechText = text
-      .split('\n\n')
-      .filter(p => !p.startsWith('[B-Roll:'))
-      .join('\n\n');
+    // 2. Reinen Sprecher-Text für KI-Voice / TTS anlegen
+    const cleanSpeechText = cleanSpeechTextForAudio(text);
     const txtPath = path.join(bundleDir, 'script.txt');
     fs.writeFileSync(txtPath, cleanSpeechText, 'utf-8');
 
@@ -677,6 +699,7 @@ app.post('/api/generate-feuilleton', async (req, res) => {
 
     res.json({
       success: true,
+      title,
       text,
       model: modelId,
       words,
