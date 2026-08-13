@@ -133,15 +133,17 @@ function getRelativeTime(dateStr) {
   return `Vor ${diffDays} Tag${diffDays > 1 ? 'en' : ''}`;
 }
 
-// Cache für Feeds
+// Cache für Feeds (Wird NUR bei Button-Кlick aktualisiert!)
 let newsCache = [];
 let lastFetch = 0;
-const CACHE_TTL = 5 * 60 * 1000; // 5 Minuten
 
-async function fetchAllFeeds() {
-  if (Date.now() - lastFetch < CACHE_TTL && newsCache.length > 0) {
+async function fetchAllFeeds(forceRefresh = false) {
+  // Wenn bereits Nachrichten im Cache sind und kein erzwungener Button-Klick vorliegt, gib den Cache sofort zurück!
+  if (!forceRefresh && newsCache.length > 0) {
     return newsCache;
   }
+
+  console.log(forceRefresh ? '↻ Nachrichten werden auf Button-Klick neu geladen...' : '📰 Erster Nachrichten-Import...');
 
   const results = await Promise.allSettled(
     FEEDS.map(async (feed) => {
@@ -174,17 +176,28 @@ async function fetchAllFeeds() {
   return articles;
 }
 
-// GET /api/news?category=alle|feuilleton|politik|tech|wirtschaft
+// GET /api/news?category=alle|feuilleton|politik|tech|wirtschaft&force=true
 app.get('/api/news', async (req, res) => {
   try {
-    const { category = 'alle' } = req.query;
-    const all = await fetchAllFeeds();
-    const filtered = category === 'alle'
-      ? all
-      : all.filter(a => a.category === category);
-    res.json({ success: true, count: filtered.length, articles: filtered });
+    const { category = 'alle', force = 'false' } = req.query;
+    const isForce = force === 'true';
+    const all = await fetchAllFeeds(isForce);
+
+    let filtered = all;
+    if (category !== 'alle' && category !== 'vse') {
+      filtered = all.filter(a => a.category === category);
+    }
+
+    res.json({
+      success: true,
+      count: filtered.length,
+      total: all.length,
+      lastFetch: lastFetch ? new Date(lastFetch).toISOString() : null,
+      wasRefreshed: isForce,
+      articles: filtered,
+    });
   } catch (err) {
-    console.error('Feed error:', err.message);
+    console.error('RSS Fetch error:', err.message);
     res.status(500).json({ success: false, error: err.message });
   }
 });
@@ -352,17 +365,67 @@ async function searchLiveNewsPhotos(queryTitle) {
   }
 }
 
+// Custom UTF-8 Dekodierung für Windows-Pfade mit kyrillischen Zeichen in news/
+app.get('/news-static/*', (req, res) => {
+  try {
+    const rawSubPath = req.params[0] || '';
+    const decodedSubPath = decodeURIComponent(rawSubPath);
+    const fullPath = path.resolve(__dirname, '../news', decodedSubPath);
+
+    if (fs.existsSync(fullPath) && fs.statSync(fullPath).isFile()) {
+      return res.sendFile(fullPath);
+    }
+    return res.status(404).send('File not found');
+  } catch (err) {
+    return res.status(500).send(err.message);
+  }
+});
+
 // GET /api/news-photos?title=...&url=...
 app.get('/api/news-photos', async (req, res) => {
   try {
-    const { title = '', articleId = '', url = '' } = req.query;
-    const all = await fetchAllFeeds();
-    
-    const photos = [];
-    const seen = new Set();
+    const { title = '', articleId = '', url = '', category = 'alle' } = req.query;
+    // 0. Prüfe, ob für diese Nachricht bereits ein Paket in news/ existiert und echte Fotos enthält!
+    const newsDir = path.resolve(__dirname, '../news');
+    if (fs.existsSync(newsDir) && title) {
+      const safeTitlePart = title.replace(/[^a-zA-Z0-9а-яА-ЯёЁ]/g, '_').slice(0, 20);
+      const dirs = fs.readdirSync(newsDir, { withFileTypes: true });
+      for (const d of dirs) {
+        if (d.isDirectory() && d.name.includes(safeTitlePart)) {
+          const existingPhotosDir = path.join(newsDir, d.name, 'photos');
+          if (fs.existsSync(existingPhotosDir)) {
+            const existingFiles = fs.readdirSync(existingPhotosDir).filter(f => /\.(jpg|jpeg|png|webp)/i.test(f));
+            if (existingFiles.length > 0) {
+              console.log(`⚡ Nutze ${existingFiles.length} bereits gespeicherte Fotos aus news/${d.name}/photos/ (kein Internet-Download nötig)`);
+              const localPhotos = existingFiles.map((f) => ({
+                url: `/news-static/${d.name}/photos/${f}`,
+                source: `Локальный файл: news/${d.name}/photos/${f}`,
+                articleTitle: title,
+                isSavedLocal: true,
+              }));
+              return res.json({
+                success: true,
+                count: localPhotos.length,
+                isLocal: true,
+                bundleDir: path.join(newsDir, d.name),
+                photos: localPhotos,
+              });
+            }
+          }
+        }
+      }
+    }
 
-    // Exakten Artikel finden
-    const exactArticle = all.find(a => a.id === articleId || a.url === url || a.title === title);
+    const seen = new Set();
+    const photos = [];
+
+    // Finde den passenden Artikel im Speicher
+    const exactArticle = newsCache.find(a =>
+      a.id === articleId ||
+      (a.url && url && a.url === url) ||
+      (a.title && title && a.title.toLowerCase().includes(title.toLowerCase().slice(0, 30)))
+    );
+
     const targetUrl = url || exactArticle?.url;
 
     // 1. Web-Scrape die Original-Webseite dieser Nachricht
@@ -594,11 +657,26 @@ app.post('/api/save-news-package', async (req, res) => {
     const words = text.split(/\s+/).filter(Boolean).length;
     const minutes = Math.round((words / 140) * 10) / 10;
 
-    const imagesList = Array.isArray(images) && images.length > 0
-      ? images
+    // 1. Sammle alle verfügbaren Fotos (RSS + Scraper + Live-Suche)
+    let imagesList = Array.isArray(images) && images.length > 0
+      ? [...images]
       : (imageUrl ? [imageUrl] : []);
 
-    // 1. Markdown-Datei
+    // Falls weniger als 5 Fotos da sind, starte Scraper & Live-Suche nach dem Titel
+    if (imagesList.length < 5 && title) {
+      try {
+        const livePhotos = await searchLiveNewsPhotos(title);
+        livePhotos.forEach(p => {
+          if (p.url && !imagesList.includes(p.url)) {
+            imagesList.push(p.url);
+          }
+        });
+      } catch (e) {
+        console.error('Live photos error during save:', e.message);
+      }
+    }
+
+    // 2. Markdown-Datei
     let imageIdx = 0;
     const textWithEmbeddedImages = text.split('\n\n').map(p => {
       if (p.startsWith('[B-Roll:')) {
@@ -612,19 +690,27 @@ app.post('/api/save-news-package', async (req, res) => {
     const mdContent = `# 🎭 ${title}\n\n- **Дата**: ${now.toLocaleString('ru-RU')}\n- **Модель ИИ**: ${model}\n- **Хронометраж**: ~${minutes} мин.\n- **Количество слов**: ${words}\n- **Источник**: ${source || 'RSS Feed'}\n\n---\n\n${textWithEmbeddedImages}\n`;
     fs.writeFileSync(path.join(bundleDir, 'script.md'), mdContent, 'utf-8');
 
-    // 2. Reiner Sprecher-Text (script.txt)
+    // 3. Reiner Sprecher-Text (script.txt)
     const cleanSpeechText = text
       .split('\n\n')
       .filter(p => !p.startsWith('[B-Roll:'))
       .join('\n\n');
     fs.writeFileSync(path.join(bundleDir, 'script.txt'), cleanSpeechText, 'utf-8');
 
-    // 3. Fotos herunterladen
+    // 4. Echte Fotos herunterladen und in photos/ speichern
     const savedPhotos = [];
     for (let i = 0; i < Math.min(imagesList.length, 20); i++) {
-      const imgUrl = imagesList[i];
+      const imgUrl = typeof imagesList[i] === 'string' ? imagesList[i] : imagesList[i]?.url;
+      if (!imgUrl) continue;
+
       try {
-        const imgRes = await fetch(imgUrl, { signal: AbortSignal.timeout(5000) });
+        const imgRes = await fetch(imgUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+          },
+          signal: AbortSignal.timeout(6000),
+        });
+
         if (imgRes.ok) {
           const buffer = Buffer.from(await imgRes.arrayBuffer());
           const ext = imgUrl.match(/\.(jpg|jpeg|png|webp)/i)?.[1] || 'jpg';
@@ -723,8 +809,101 @@ app.get('/api/saved-packages', async (req, res) => {
   }
 });
 
-// Statische Auslieferung für gespeicherte Bilder & Audio-Dateien unter /news-static/
-app.use('/news-static', express.static(path.resolve(__dirname, '../news')));
+// POST /api/save-news-photos - Speichert die im Foto-Dialog ausgewählten/gefilterten Fotos im photos/ Unterordner!
+app.post('/api/save-news-photos', async (req, res) => {
+  try {
+    const { title = '', bundleDir: inputBundleDir, photos = [] } = req.body;
+
+    const newsDir = path.resolve(__dirname, '../news');
+    if (!fs.existsSync(newsDir)) {
+      fs.mkdirSync(newsDir, { recursive: true });
+    }
+
+    let bundleDir = inputBundleDir;
+    if (!bundleDir || !fs.existsSync(bundleDir)) {
+      const now = new Date();
+      const dateStr = now.toISOString().replace(/[:.]/g, '-').slice(0, 16);
+      const safeTitle = (title || 'Feuilleton')
+        .replace(/[^a-zA-Z0-9а-яА-ЯёЁ]/g, '_')
+        .slice(0, 40);
+      bundleDir = path.join(newsDir, `${dateStr}_${safeTitle}`);
+    }
+
+    const photosDir = path.join(bundleDir, 'photos');
+    fs.mkdirSync(photosDir, { recursive: true });
+
+    // Alte Fotos im photos/ Ordner leeren
+    const existing = fs.readdirSync(photosDir);
+    existing.forEach(f => {
+      try { fs.unlinkSync(path.join(photosDir, f)); } catch {}
+    });
+
+    const savedPhotos = [];
+    for (let i = 0; i < photos.length; i++) {
+      const imgUrl = typeof photos[i] === 'string' ? photos[i] : photos[i]?.url;
+      if (!imgUrl) continue;
+
+      // Wenn das Bild bereits lokal im /news-static/ Ordner liegt -> Nicht neu herunterladen!
+      if (imgUrl.startsWith('/news-static/')) {
+        const relativePath = imgUrl.replace(/^\/news-static\//, '');
+        const fullLocalPath = path.resolve(__dirname, '../news', relativePath);
+        if (fs.existsSync(fullLocalPath)) {
+          const ext = imgUrl.match(/\.(jpg|jpeg|png|webp)/i)?.[1] || 'jpg';
+          const imgFileName = `photo_${String(i + 1).padStart(2, '0')}.${ext}`;
+          const targetPath = path.join(photosDir, imgFileName);
+          if (fullLocalPath !== targetPath && fs.existsSync(fullLocalPath)) {
+            fs.copyFileSync(fullLocalPath, targetPath);
+          }
+          savedPhotos.push(`photos/${imgFileName}`);
+          continue;
+        }
+      }
+
+      try {
+        const imgRes = await fetch(imgUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+          },
+          signal: AbortSignal.timeout(6000),
+        });
+
+        if (imgRes.ok) {
+          const buffer = Buffer.from(await imgRes.arrayBuffer());
+          const ext = imgUrl.match(/\.(jpg|jpeg|png|webp)/i)?.[1] || 'jpg';
+          const imgFileName = `photo_${String(i + 1).padStart(2, '0')}.${ext}`;
+          const imgPath = path.join(photosDir, imgFileName);
+          fs.writeFileSync(imgPath, buffer);
+          savedPhotos.push(`photos/${imgFileName}`);
+        }
+      } catch (err) {
+        console.error(`Fehler beim Download von Bild ${imgUrl}:`, err.message);
+      }
+    }
+
+    // project.json aktualisieren
+    const jsonPath = path.join(bundleDir, 'project.json');
+    let manifest = {};
+    if (fs.existsSync(jsonPath)) {
+      try { manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8')); } catch {}
+    }
+    manifest.photos = savedPhotos;
+    manifest.photos_saved_at = new Date().toISOString();
+    fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
+
+    console.log(`📸 ${savedPhotos.length} Fotos erfolgreich in ${photosDir} gespeichert.`);
+
+    res.json({
+      success: true,
+      bundleDir,
+      folderName: path.basename(bundleDir),
+      savedPhotosCount: savedPhotos.length,
+      photos: savedPhotos,
+    });
+  } catch (err) {
+    console.error('Save photos error:', err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 // POST /api/generate-audio - Erzeugt audio.mp3 mit Stimme Nikolay (ru-RU-DmitryNeural, Rate 0%, Pitch -10%) im Nachricht-Ordner!
 app.post('/api/generate-audio', async (req, res) => {

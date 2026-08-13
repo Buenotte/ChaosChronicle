@@ -175,10 +175,24 @@ body {
 .audio-gen-btn:hover { opacity: 0.92; transform: translateY(-1px); }
 .audio-gen-btn:disabled { opacity: 0.65; cursor: default; transform: none; }
 
-.saved-news-card {
-  border: 1px solid rgba(16, 185, 129, 0.4) !important;
-  box-shadow: 0 0 16px rgba(16, 185, 129, 0.15) !important;
+.remove-photo-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(239, 68, 68, 0.85);
+  backdrop-filter: blur(4px);
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s, background 0.2s;
 }
+.photo-card-img-wrap:hover .remove-photo-btn { opacity: 1; }
+.remove-photo-btn:hover { background: #dc2626; }
 
 .saved-status-badge {
   background: rgba(16, 185, 129, 0.15);
@@ -190,8 +204,8 @@ body {
   border-radius: 6px;
 }
 
-.view-saved-btn {
-  background: linear-gradient(135deg, #06b6d4, #0891b2);
+.view-artifacts-btn {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
   border: none;
   border-radius: 8px;
   color: #fff;
@@ -201,7 +215,44 @@ body {
   cursor: pointer;
   transition: transform 0.1s, opacity 0.2s;
 }
-.view-saved-btn:hover { opacity: 0.92; transform: translateY(-1px); }
+.view-artifacts-btn:hover { opacity: 0.92; transform: translateY(-1px); }
+
+.artifact-tabs {
+  display: flex;
+  gap: 0.4rem;
+  padding: 0.75rem 1.5rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+}
+
+.artifact-tab-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 0.4rem 0.75rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.artifact-tab-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text);
+}
+
+.artifact-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+.artifact-section-header .section-title {
+  margin-bottom: 0;
+}
 
 .audio-player-box {
   background: rgba(245, 158, 11, 0.08);

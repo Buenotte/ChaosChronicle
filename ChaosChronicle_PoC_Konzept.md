@@ -155,9 +155,33 @@ Jedes generierte Feuilleton-Skript wird **automatisch als `.md`-Datei im Ordner 
     - 🖼️ **Foto-Galerie**: Alle heruntergeladenen Bilddateien aus `news/<folderName>/photos/`
     - 📜 **Skript-Textanzeige**: Vorschau von `script.txt` und `script.md` mit Kopier-Button.
 
+## 🔔 14. Sonner Toast Statusanzeigen (Text, Fotos, Audio & was noch fehlt)
+
+Bei allen Schritten zeigt der Sonner-Toast genau an, welche Komponenten bereits **bereit** sind und was noch **fehlt**:
+
+1. **Nach KI-Erstellung des Feuilletons**:  
+   🎭 *Фельетон успешно создан!*  
+   `📜 Текст: ✅ Готов (420 слов) | 📦 Пакет: ⚠️ Не сохранен | 🎙️ Аудио: ⚠️ Не создано`
+2. **Nach Paket-Speicherung (`news/`)**:  
+   📦 *Видео-пакет сохранен!*  
+   `📜 Текст: ✅ Готов | 📸 Фото: ✅ (15 шт. в news/) | 🎙️ Аудио: ⚠️ Отсутствует (нажмите «Создать audio.mp3»)`
+3. **Nach Audio-Generierung (`audio.mp3`)**:  
+   🎉 *Все компоненты видео-пакета полностью готовы!*  
+   `📜 Текст: ✅ | 📸 Фото: ✅ (15 шт.) | 🎙️ Аудио: ✅ audio.mp3 (4 сек., Nikolay)`
+
+## 📜 16. Speicherung & Anzeige von `script.txt`, `script.md`, `photos/` & `audio.mp3` im Artefakte-Dialog
+
+- **Saubere 4-Tab-Übersicht (ohne `project.json`)**:
+  - Im Artefakte-Dialog werden jetzt nur noch die echten Benutzer-Artefakte angezeigt:
+    1. **`📜 script.txt ✅`**: Reiner Sprecher-Text für KI-Voice / TTS (mit Kopier-Button).
+    2. **`🎭 script.md ✅`**: Vollständiges Feuilleton-Skript mit B-Roll Regieanweisungen.
+    3. **`📸 photos/ (N)`**: Galerie aller heruntergeladenen Bilddateien aus `news/<folderName>/photos/`.
+    4. **`🎙️ audio.mp3 ✅`**: HTML5 Audio-Player zum Anhören der Sprachausgabe von Nikolay.
+  - Technische System-Dateien wie `project.json` bleiben sicher im Ordner auf der Festplatte gespeichert, werden aber nicht mehr im Dialog angezeigt.
+
 ---
 
-## 💻 12. Status der Live-Anwendung
+## 💻 17. Status der Live-Anwendung
 
 - 🔒 **STRIKTE REGEL**: `git commit` und `git push` dürfen **NIEMALS automatisch** ausgeführt werden.
 - 🛑 **Ausschließlich auf expliziten Befehl**: Commits und Pushes werden **nur dann durchgeführt, wenn du mir den ausdrücklichen Befehl dazu gibst**.
