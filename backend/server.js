@@ -321,10 +321,11 @@ async function scrapeArticlePhotos(articleUrl, articlePubDate = null) {
   }
 }
 
-// ── Active Live News Photo Search (DuckDuckGo & Weltagenturen Suche) ──────────────
+// ── Active Live News Photo Search (DuckDuckGo & Weltagenturen Suche - Letzte 24h) ──
 async function fetchDDGPhotos(query) {
   try {
-    const tokenRes = await fetch(`https://duckduckgo.com/?q=${encodeURIComponent(query)}`, {
+    // df=d : Date Filter = Last 24 Hours
+    const tokenRes = await fetch(`https://duckduckgo.com/?q=${encodeURIComponent(query)}&df=d&iar=images`, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
       },
@@ -335,7 +336,7 @@ async function fetchDDGPhotos(query) {
     const vqdMatch = text.match(/vqd=([0-9-]+)/);
     if (!vqdMatch || !vqdMatch[1]) return [];
 
-    const imgRes = await fetch(`https://duckduckgo.com/i.js?l=wt-wt&o=json&q=${encodeURIComponent(query)}&vqd=${vqdMatch[1]}`, {
+    const imgRes = await fetch(`https://duckduckgo.com/i.js?l=wt-wt&o=json&q=${encodeURIComponent(query)}&vqd=${vqdMatch[1]}&df=d&f=,,,d`, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
       },
@@ -361,11 +362,11 @@ async function searchLiveNewsPhotos(queryTitle) {
       .filter(w => w.length > 2 && !stopWords.has(w.toLowerCase()));
 
     const keyNouns = rawWords.slice(0, 4);
-    const primarySubject = keyNouns[0] ? keyNouns[0].toLowerCase().slice(0, 5) : ''; // z.B. "башко"
     const keywords = keyNouns.join(' ');
 
     if (!keywords) return [];
 
+    // 100% Exakte Themen-Suche ohne Medien-Namen im Suchstring (verhindert themenfremde Treffer)
     const [mainResults, agencyResults] = await Promise.all([
       fetchDDGPhotos(`"${keywords}"`),
       fetchDDGPhotos(`${keywords} фото репортаж`),
@@ -375,36 +376,71 @@ async function searchLiveNewsPhotos(queryTitle) {
     const photos = [];
     const seen = new Set();
 
-    // Wörterbuch für unerwünschte Infografiken, Schul-Instruktionen, Vektoren
-    const junkWords = ['инструкция', 'памятка', 'обучающих', 'учащих', 'школ', 'урок', 'плакат', 'схема', 'вектор', 'vector', 'stock', 'drawing', 'illustration', 'логотип', 'правила', 'методичка'];
+    // Infografik-/Junk-Filter und generische Stock-Bilder
+    const junkWords = ['инструкция', 'памятка', 'обучающих', 'учащих', 'школ', 'урок', 'плакат', 'схема', 'вектор', 'vector', 'stock', 'drawing', 'illustration', 'логотип', 'правила', 'методичка', 'avatar', 'author', 'banner', 'shutterstock'];
     const lowerKeyNouns = keyNouns.map(w => w.toLowerCase());
+    const primarySubject = lowerKeyNouns[0] ? lowerKeyNouns[0].slice(0, 5) : '';
 
     combined.forEach(item => {
       const imgUrl = item.image;
       if (!imgUrl || !/^https?:\/\//i.test(imgUrl) || !/\.(jpg|jpeg|png|webp)/i.test(imgUrl)) return;
-      if (seen.has(imgUrl) || imgUrl.includes('pixel') || imgUrl.includes('tracker') || imgUrl.includes('logo')) return;
+      if (seen.has(imgUrl) || imgUrl.includes('pixel') || imgUrl.includes('tracker') || imgUrl.includes('logo') || imgUrl.includes('avatar') || imgUrl.includes('ytimg') || imgUrl.includes('youtube') || imgUrl.includes('vimeo') || imgUrl.includes('rutube')) return;
 
       const itemTitleLower = (item.title || '').toLowerCase();
       const imgUrlLower = imgUrl.toLowerCase();
 
-      // 1. Ausschluss von Schul-Instruktionen, Infografiken, Vektoren
+      // 1. Ausschluss von Vektoren/Infografiken/Stock-Bildern
       const isJunk = junkWords.some(j => itemTitleLower.includes(j) || imgUrlLower.includes(j));
       if (isJunk) return;
 
-      // 2. Erforderlicher Relevanz-Match (Hauptthema ODER mind. 2 Schlagwörter)
+      // 2. STRIKTES FILTERN ALTER JAHRESZAHLEN (2010..2025)
+      const oldYearMatch = /(201\d|202[0-5])/.test(itemTitleLower) || /(201\d|202[0-5])/.test(imgUrlLower);
+      if (oldYearMatch) return;
+
+      // 3. STRIKTES FILTERN ALTER MONATSDATUMS-STEMPEL (z.B. "18 сентября", "24.08", "15.09", "11.10")
+      const hasMonthName = /(января|февраля|марта|апреля|мая|июня|июля|сентября|октября|ноября|декабря)/i.test(itemTitleLower);
+      const hasDotDate = /(0[1-9]|[12][0-9]|3[01])\.(0[1-9]|1[0-2])/.test(itemTitleLower) || /(0[1-9]|[12][0-9]|3[01])\.(0[1-9]|1[0-2])/.test(imgUrlLower);
+      const isAugust = /августа/i.test(itemTitleLower);
+
+      if (hasMonthName || hasDotDate) return; // Monatsnamen und DD.MM Datumsstempel alter Berichte verwerfen
+      if (isAugust && !/1[23]\s*августа/i.test(itemTitleLower)) return; // Nur 12./13. August erlauben
+
+      // 4. STRIKTE THEMEN-RELEVANZ: Das Bild MUSS das Hauptthema der Nachricht im Titel enthalten
       const matchesCount = lowerKeyNouns.filter(noun => itemTitleLower.includes(noun) || imgUrlLower.includes(noun)).length;
       const matchesPrimary = primarySubject && (itemTitleLower.includes(primarySubject) || imgUrlLower.includes(primarySubject));
 
-      if (matchesPrimary || matchesCount >= 2) {
-        seen.add(imgUrl);
-        const provider = item.provider || item.source || 'Пресс-служба / Информагентство';
-        photos.push({
-          url: imgUrl,
-          source: provider,
-          articleTitle: item.title || queryTitle,
-          isExactArticle: false,
-        });
-      }
+      if (!matchesPrimary && matchesCount < 2) return;
+
+      seen.add(imgUrl);
+
+      // Medien-Domain als sauberen Quellennamen extrahieren
+      let providerName = 'Информагентство';
+      try {
+        const hostname = new URL(imgUrl).hostname.replace(/^www\./, '');
+        if (hostname.includes('unian.')) providerName = 'УНИАН (UNIAN)';
+        else if (hostname.includes('suspilne.')) providerName = 'Суспільне (Suspilne)';
+        else if (hostname.includes('ukrinform.')) providerName = 'Укринформ (Ukrinform)';
+        else if (hostname.includes('24tv.ua')) providerName = '24 Канал';
+        else if (hostname.includes('obozrevatel.')) providerName = 'Обозреватель';
+        else if (hostname.includes('liga.net')) providerName = 'ЛІГА.net';
+        else if (hostname.includes('lb.ua')) providerName = 'Левый Берег (LB.ua)';
+        else if (hostname.includes('dw.com')) providerName = 'Deutsche Welle';
+        else if (hostname.includes('meduza.io')) providerName = 'Meduza';
+        else if (hostname.includes('bbc.com') || hostname.includes('bbc.co.uk')) providerName = 'BBC News';
+        else if (hostname.includes('reuters.com')) providerName = 'Reuters';
+        else if (hostname.includes('apnews.com')) providerName = 'Associated Press (AP)';
+        else if (hostname.includes('svoboda.org')) providerName = 'Радио Свобода';
+        else if (hostname.includes('novayagazeta')) providerName = 'Новая газета';
+        else providerName = hostname;
+      } catch {}
+
+      photos.push({
+        url: imgUrl,
+        source: providerName,
+        articleTitle: item.title || queryTitle,
+        isExactArticle: false,
+        quality: 'search',
+      });
     });
 
     return photos.slice(0, 35);
@@ -471,49 +507,69 @@ app.get('/api/news-photos', async (req, res) => {
     const seen = new Set();
     const photos = [];
 
-    // Finde den passenden Artikel im Speicher
-    const exactArticle = newsCache.find(a =>
-      a.id === articleId ||
-      (a.url && url && a.url === url) ||
-      (a.title && title && a.title.toLowerCase().includes(title.toLowerCase().slice(0, 30)))
-    );
+    // Finde ALLE passenden Artikel zum selben Thema in ALLEN RSS-Feeds im Speicher (DW, Meduza, BBC, Novaya Gazeta, Mediazona, Svoboda etc.)
+    const titleClean = cleanText(title);
+    const stopWords = new Set(['в', 'на', 'и', 'с', 'по', 'за', 'из', 'от', 'для', 'что', 'как', 'это', 'был', 'были', 'над', 'под', 'об', 'или', 'но', 'после', 'около']);
+    const rawWords = titleClean
+      .replace(/[^a-zA-Z0-9а-яА-ЯёЁ\s]/g, '')
+      .split(/\s+/)
+      .filter(w => w.length > 2 && !stopWords.has(w.toLowerCase()));
+    const keyNouns = rawWords.slice(0, 3).map(w => w.toLowerCase());
+    const primaryNoun = keyNouns[0] || '';
 
-    const targetUrl = url || exactArticle?.url;
+    const matchingArticles = newsCache.filter(a => {
+      if (a.id === articleId || (a.url && url && a.url === url)) return true;
+      if (!a.title) return false;
+      const aTitleLower = a.title.toLowerCase();
+      // Artikel passt, wenn Hauptbegriff enthalten ist oder mind. 2 Schlagworte übereinstimmen
+      const matchesPrimary = primaryNoun && aTitleLower.includes(primaryNoun);
+      const matchesCount = keyNouns.filter(noun => aTitleLower.includes(noun)).length;
+      return matchesPrimary || matchesCount >= 2;
+    });
 
-    // 1. Web-Scrape die Original-Webseite dieser Nachricht → quality='article'
-    if (targetUrl) {
-      const scrapedImages = await scrapeArticlePhotos(targetUrl, exactArticle?.pubDate);
-      scrapedImages.forEach(imgUrl => {
-        if (!seen.has(imgUrl)) {
-          seen.add(imgUrl);
-          photos.push({
-            url: imgUrl,
-            source: exactArticle?.source || new URL(targetUrl).hostname.replace('www.', ''),
-            articleTitle: exactArticle?.title || title,
-            isExactArticle: true,
-            quality: 'article',
-          });
-        }
-      });
+    // 1. Sammle direkt alle RSS-Bilder aus ALLEN übereinstimmenden RSS-Artikeln (DW, Meduza, BBC, Novaya, Svoboda etc.)
+    for (const art of matchingArticles) {
+      if (art.images) {
+        art.images.forEach(imgUrl => {
+          if (!seen.has(imgUrl) && /^https?:\/\//i.test(imgUrl)) {
+            seen.add(imgUrl);
+            photos.push({
+              url: imgUrl,
+              source: art.source || 'RSS Feed',
+              articleTitle: art.title,
+              isExactArticle: true,
+              quality: 'rss',
+            });
+          }
+        });
+      }
     }
 
-    // 2. Ergänze RSS-Bilder des Artikels → quality='rss'
-    if (exactArticle && exactArticle.images) {
-      exactArticle.images.forEach(imgUrl => {
-        if (!seen.has(imgUrl)) {
-          seen.add(imgUrl);
-          photos.push({
-            url: imgUrl,
-            source: exactArticle.source,
-            articleTitle: exactArticle.title,
-            isExactArticle: true,
-            quality: 'rss',
-          });
-        }
-      });
-    }
+    // 2. Web-Scrape parallel bis zu 8 Artikel-Seiten aus den echten Nachrichten-Feeds
+    const urlsToScrape = matchingArticles
+      .map(a => ({ url: a.url, source: a.source, title: a.title, pubDate: a.pubDate }))
+      .filter(a => a.url)
+      .slice(0, 8);
 
-    // 3. AKTIVE LIVE-SUCHE: Bei forceLive oder wenn weniger als 30 Bilder → quality='search'
+    await Promise.all(urlsToScrape.map(async (art) => {
+      try {
+        const scrapedImages = await scrapeArticlePhotos(art.url, art.pubDate);
+        scrapedImages.forEach(imgUrl => {
+          if (!seen.has(imgUrl) && /^https?:\/\//i.test(imgUrl)) {
+            seen.add(imgUrl);
+            photos.push({
+              url: imgUrl,
+              source: art.source || new URL(art.url).hostname.replace('www.', ''),
+              articleTitle: art.title,
+              isExactArticle: true,
+              quality: 'article',
+            });
+          }
+        });
+      } catch {}
+    }));
+
+    // 3. ERGÄNZUNG AUF 30 FOTOS: Bei forceLive oder wenn weniger als 30 Bilder da sind → lade tagesaktuelle Presse-Fotos der letzten 24h
     if ((isForceLive || photos.length < 30) && title) {
       const livePhotos = await searchLiveNewsPhotos(title);
       livePhotos.forEach(p => {
@@ -524,6 +580,7 @@ app.get('/api/news-photos', async (req, res) => {
       });
     }
 
+    const targetUrl = url || (matchingArticles[0] ? matchingArticles[0].url : null);
     const resultPhotos = photos.slice(0, 30);
     res.json({
       success: true,

@@ -1332,15 +1332,6 @@ function NewsPhotosModal({ newsTopic, photos, loading, onClose, onSaved, onReloa
             </div>
           </div>
           <div className="modal-header-actions" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            <button
-              className="copy-btn"
-              style={{ background: '#06b6d4' }}
-              onClick={onReload}
-              disabled={loading}
-              title="Перенайти и обновить фото из агентств и поисковиков"
-            >
-              {loading ? '⏳ Поиск...' : '🔄 Перенайти 30 фото'}
-            </button>
             {items.length > 0 && (
               <button
                 className="save-bundle-btn"
@@ -1367,77 +1358,38 @@ function NewsPhotosModal({ newsTopic, photos, loading, onClose, onSaved, onReloa
             </div>
           )}
 
-          {!loading && items.length > 0 && (() => {
-            const articlePhotos = items.filter(p => ['article', 'rss', 'local'].includes(p?.quality) || (typeof p === 'string' ? p : p?.url || '').startsWith('/news-static/'))
-            const searchPhotos  = items.filter(p => p?.quality === 'search' && !(typeof p === 'string' ? p : p?.url || '').startsWith('/news-static/'))
+          {!loading && items.length > 0 && (
+            <div className="multi-source-photos-grid">
+              {items.map((photo, i) => {
+                const imgSrc = typeof photo === 'string' ? photo : (photo?.url || '')
+                const titleText = photo?.articleTitle || photo?.source || `Фото #${i + 1}`
+                const sourceText = photo?.source || (imgSrc.startsWith('/news-static/') ? 'Сохранено на диске' : 'Мировые СМИ')
 
-            const PhotoCard = ({ photo, globalIndex }) => {
-              const imgSrc = typeof photo === 'string' ? photo : (photo?.url || '')
-              const titleText = photo?.articleTitle || photo?.source || `Фото #${globalIndex + 1}`
-              const quality = photo?.quality || (imgSrc.startsWith('/news-static/') ? 'local' : 'search')
-              const qualityBadge = {
-                article: { label: '🏆 Из статьи', color: '#10b981' },
-                rss:     { label: '📡 RSS',        color: '#3b82f6' },
-                local:   { label: '💾 Сохранено',  color: '#6366f1' },
-                search:  { label: '🔍 Поиск',      color: '#f59e0b' },
-              }[quality] || { label: '🔍 Поиск', color: '#f59e0b' }
-
-              return (
-                <div className="photo-card-item">
-                  <div className="photo-card-img-wrap">
-                    <img src={imgSrc} alt={titleText} loading="lazy" />
-                    <span className="photo-source-badge" style={{ background: qualityBadge.color }}>
-                      {qualityBadge.label}
-                    </span>
-                    <button
-                      className="remove-photo-btn"
-                      onClick={() => handleRemovePhoto(globalIndex)}
-                      title="Удалить это фото из списка"
-                    >
-                      🗑️ Удалить
-                    </button>
+                return (
+                  <div key={i} className="photo-card-item">
+                    <div className="photo-card-img-wrap">
+                      <img
+                        src={imgSrc}
+                        alt={titleText}
+                        loading="lazy"
+                      />
+                      <span className="photo-source-badge" style={{ background: '#2563eb' }}>
+                        📍 {sourceText}
+                      </span>
+                      <button
+                        className="remove-photo-btn"
+                        onClick={() => handleRemovePhoto(i)}
+                        title="Удалить это фото из списка"
+                      >
+                        🗑️ Удалить
+                      </button>
+                    </div>
+                    <p className="photo-card-title">{titleText}</p>
                   </div>
-                  <p className="photo-card-title">{titleText}</p>
-                </div>
-              )
-            }
-
-            return (
-              <>
-                {/* Раздел 1: Гарантированные фото из статьи */}
-                {articlePhotos.length > 0 && (
-                  <div style={{ marginBottom: '1.5rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', padding: '0.4rem 0.75rem', background: 'rgba(16,185,129,0.12)', borderRadius: '8px', border: '1px solid rgba(16,185,129,0.3)' }}>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#10b981' }}>🏆 Гарантированные фото из оригинальной статьи ({articlePhotos.length})</span>
-                      <span style={{ fontSize: '0.75rem', color: '#6b7280', marginLeft: 'auto' }}>100% к этой новости</span>
-                    </div>
-                    <div className="multi-source-photos-grid">
-                      {articlePhotos.map((photo, i) => {
-                        const globalIndex = items.indexOf(photo)
-                        return <PhotoCard key={i} photo={photo} globalIndex={globalIndex} />
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* Раздел 2: Дополнительные фото из поисковика */}
-                {searchPhotos.length > 0 && (
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', padding: '0.4rem 0.75rem', background: 'rgba(245,158,11,0.1)', borderRadius: '8px', border: '1px solid rgba(245,158,11,0.3)' }}>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#f59e0b' }}>🔍 Дополнительный материал из поисковика Bing ({searchPhotos.length})</span>
-                      <span style={{ fontSize: '0.75rem', color: '#ef4444', marginLeft: 'auto' }}>⚠️ Релевантность не гарантирована</span>
-                    </div>
-                    <div className="multi-source-photos-grid">
-                      {searchPhotos.map((photo, i) => {
-                        const globalIndex = items.indexOf(photo)
-                        return <PhotoCard key={i} photo={photo} globalIndex={globalIndex} />
-                      })}
-                    </div>
-                  </div>
-                )}
-              </>
-            )
-          })()}
+                )
+              })}
+            </div>
+          )}
         </div>
 
         <div className="modal-footer">
