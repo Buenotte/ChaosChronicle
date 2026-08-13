@@ -250,7 +250,7 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
     <div className="modal-overlay" onClick={onClose}>
       <ImageLightboxModal
         imageUrl={lightboxUrl}
-        title={`✨ 16:9 Обложка: news/${pkg.folderName}/thumbnail/thumbnail.jpg`}
+        title="🖼️ 16:9 YouTube Обложка"
         onClose={() => setLightboxUrl(null)}
       />
       <div
@@ -317,7 +317,7 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
                     style={{ background: '#ec4899' }}
                     onClick={handleGenerateAiThumbnail}
                   >
-                    ✨ Создать AI 16:9 Обложку
+                    ✨ Создать Gemini AI 16:9 Обложку
                   </button>
 
                   <button
@@ -339,11 +339,6 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
 
                 {currentThumbnail && (
                   <div style={{ marginTop: '0.75rem', borderRadius: '12px', overflow: 'hidden', border: '2px solid #ec4899', maxWidth: '480px', background: '#09090b' }}>
-                    <div style={{ padding: '0.4rem 0.75rem', background: 'rgba(236,72,153,0.18)', borderBottom: '1px solid rgba(236,72,153,0.3)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.82rem', color: '#f472b6', fontWeight: 600 }}>
-                        ✨ Готовая 16:9 Обложка: news/{pkg.folderName}/thumbnail/thumbnail.jpg
-                      </span>
-                    </div>
                     <img
                       src={currentThumbnail}
                       alt="16:9 YouTube Cover Thumbnail"

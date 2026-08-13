@@ -2,7 +2,7 @@ import express from 'express';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import { execSync } from 'child_process';
+import { execSync, execFileSync } from 'child_process';
 import { newsCache, cleanText } from './news.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -476,15 +476,214 @@ router.post('/api/delete-photo', async (req, res) => {
   }
 });
 
+// ── 4-Corner AI Prompt Generator & Photo Analyzer ────────────────────────────
+async function generate4CornerAiPrompt(title, textExcerpt, photosList = []) {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (apiKey && !apiKey.includes('HIER')) {
+    try {
+      const systemPrompt = `You are an elite visual art director for 16:9 cinematic news editorial thumbnails.
+Your task: Create a detailed English image prompt for Google Gemini / FLUX image generation.
+KEY REQUIREMENTS:
+1. The image must be a unified 16:9 cinematic photo where FOUR distinct perspectives/elements from the news story originate from the four corners (top-left, top-right, bottom-left, bottom-right) and seamlessly merge, dissolve, and blend into a powerful, dramatic center focal point.
+2. ABSOLUTELY NO TEXT, NO LETTERS, NO NUMBERS, NO WORDS, NO HEADLINES, NO CAPTIONS, NO WATERMARKS, NO LOGOS.
+3. ABSOLUTELY NO WHITE SPACES, NO EMPTY GAPS, NO BORDERS, NO MARGINS, NO FRAMES, NO GRID LINES, NO WHITE DIVIDERS. The entire 16:9 canvas must be 100% filled edge-to-edge with continuous rich cinematic photography, smoke, lighting, and environmental atmosphere.
+Output ONLY the raw prompt in English, with dramatic lighting, 8k resolution, photorealistic news reportage style. No quotes or explanations.`;
+
+      const userMsg = `News Story: ${title}\nContext: ${textExcerpt.slice(0, 450)}\nPhotos available: ${photosList.length} items (${photosList.slice(0, 5).join(', ')})`;
+
+      const aiRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userMsg }
+          ],
+          max_tokens: 220,
+          temperature: 0.85,
+        }),
+        signal: AbortSignal.timeout(9000),
+      });
+
+      if (aiRes.ok) {
+        const data = await aiRes.json();
+        const text = data.choices?.[0]?.message?.content?.trim();
+        if (text && text.length > 25) {
+          const cleanPrompt = text.replace(/text|letters|words|typography|border|frame/gi, '').trim();
+          console.log(`🧠 AI 4-Corner Prompt generiert: ${cleanPrompt.slice(0, 100)}...`);
+          return `${cleanPrompt}, full bleed edge-to-edge cinematic composition, zero white spaces, zero borders, zero grid lines, no text, no watermark, seamless atmospheric blending, rich cinematic color palette`;
+        }
+      }
+    } catch (e) {
+      console.warn('AI Prompt Builder Fallback:', e.message);
+    }
+  }
+
+  const cleanTitle = (title || 'Breaking News').replace(/[^a-zA-Z0-9а-яА-ЯёЁ\s]/g, '').slice(0, 90);
+  return `16:9 cinematic photojournalism composite, ${cleanTitle}, four distinct dramatic perspectives from top-left, top-right, bottom-left, and bottom-right corners seamlessly blending and melting towards a central focal point, smoke and emergency lighting, intense atmospheric depth, hyper-detailed, 8k resolution, full bleed edge-to-edge, no white spaces, no borders, no grid lines, no text, no letters, no words, no watermark`;
+}
+
+// ── Google Gemini Image Generator ────────────────────────────────────────────
+async function generateGeminiImage(prompt) {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey || apiKey.includes('HIER')) return null;
+
+  const models = ['google/gemini-2.5-flash-image', 'google/gemini-3.1-flash-image'];
+
+  for (const model of models) {
+    try {
+      console.log(`🤖 Generiere 16:9 Bild via Google Gemini (${model})...`);
+      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            {
+              role: 'user',
+              content: `Generate a 16:9 cinematic photojournalism editorial cover image. Full bleed edge-to-edge composition with ZERO WHITE SPACES, ZERO BORDERS, ZERO MARGINS, ZERO FRAMES, ZERO GRID LINES. Strictly NO TEXT, NO LETTERS, NO WORDS, NO CAPTIONS, NO WATERMARKS. Aspect ratio 16:9 widescreen. Pure clean photographic composition with rich continuous atmospheric scene filling the entire frame. Prompt: ${prompt}`
+            }
+          ],
+          modalities: ['image', 'text']
+        }),
+        signal: AbortSignal.timeout(35000),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        console.warn(`Gemini Image (${model}) Status ${res.status}:`, errText.slice(0, 150));
+        continue;
+      }
+
+      const data = await res.json();
+      const imgObj = data.choices?.[0]?.message?.images?.[0];
+      const imgUrl = imgObj?.image_url?.url || imgObj?.url;
+
+      if (imgUrl) {
+        if (imgUrl.startsWith('data:image/')) {
+          const base64Data = imgUrl.split(',')[1];
+          const buffer = Buffer.from(base64Data, 'base64');
+          console.log(`✨ Google Gemini (${model}) hat ${buffer.length} Bytes Bilddaten geliefert!`);
+          return buffer;
+        } else if (imgUrl.startsWith('http')) {
+          const downloadRes = await fetch(imgUrl);
+          if (downloadRes.ok) {
+            const buffer = Buffer.from(await downloadRes.arrayBuffer());
+            console.log(`✨ Google Gemini (${model}) Download erfolgreich: ${buffer.length} Bytes`);
+            return buffer;
+          }
+        }
+      }
+    } catch (err) {
+      console.warn(`Gemini Image (${model}) Fehler:`, err.message);
+    }
+  }
+  return null;
+}
+
+// ── Russian Large Uppercase Headline Overlay (Top Positioned, 100% Transparent) ──
+function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle) {
+  if (!imagePath || !fs.existsSync(imagePath) || !russianTitle) return;
+
+  try {
+    // 1. Bereinige den Text: KEINE Sonderzeichen, keine Steuerzeichen
+    const clean = String(russianTitle)
+      .replace(/\r/g, '')
+      .replace(/[\n\t]/g, ' ')
+      .replace(/["'«»`]/g, '')
+      .replace(/[^\p{L}\p{N}\s:!?-]/gu, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (!clean) return;
+
+    const words = clean.split(' ');
+    let lines = [];
+    let curLine = '';
+
+    // Max 22 Zeichen pro Zeile für optimale Ausnutzung der Breite
+    const targetCharsPerLine = 22;
+
+    for (const w of words) {
+      if ((curLine + ' ' + w).trim().length <= targetCharsPerLine) {
+        curLine = (curLine + ' ' + w).trim();
+      } else {
+        if (curLine) lines.push(curLine);
+        curLine = w;
+        if (lines.length >= 3) break;
+      }
+    }
+    if (curLine && lines.length < 3) lines.push(curLine);
+
+    const cleanLines = lines.map(l => l.trim().toUpperCase()).filter(Boolean);
+    if (cleanLines.length === 0) return;
+
+    // Dynamische Schriftgröße: 60px bis 86px (RIESIG & vollflächig)
+    const longestLineLen = Math.max(...cleanLines.map(l => l.length), 10);
+    let dynamicFontSize = Math.floor(1200 / (longestLineLen * 0.62));
+    if (dynamicFontSize > 84) dynamicFontSize = 84;
+    if (dynamicFontSize < 56) dynamicFontSize = 56;
+
+    const lineHeight = Math.round(dynamicFontSize * 1.16);
+    const startY = 40; // Startet ganz OBEN im Bild!
+    const safeFontPath = 'C\\:/Windows/Fonts/arialbd.ttf';
+
+    // Generiere für jede Zeile einen separaten drawtext-Filter (OHNE Textdatei = 100% KEINE Quadrate am Ende!)
+    const drawtextFilters = cleanLines.map((line, idx) => {
+      const safeText = line
+        .replace(/\\/g, '\\\\')
+        .replace(/'/g, "'\\''")
+        .replace(/:/g, '\\:')
+        .replace(/%/g, '\\%');
+      const yPos = startY + (idx * lineHeight);
+      return `drawtext=fontfile='${safeFontPath}':text='${safeText}':fontsize=${dynamicFontSize}:fontcolor=yellow:bordercolor=black:borderw=9:shadowcolor=black@0.92:shadowx=4:shadowy=4:box=0:x=(w-text_w)/2:y=${yPos}`;
+    });
+
+    const fullFilter = `scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720,${drawtextFilters.join(',')}`;
+    const tempOut = path.join(path.dirname(imagePath), 'temp_rendered_thumb.jpg');
+
+    execFileSync('ffmpeg', ['-y', '-i', imagePath, '-vf', fullFilter, '-q:v', '2', tempOut]);
+
+    if (fs.existsSync(tempOut) && fs.statSync(tempOut).size > 5000) {
+      fs.copyFileSync(tempOut, imagePath);
+      try { fs.unlinkSync(tempOut); } catch {}
+    }
+
+    console.log(`🏷️ Russische Headline oben platziert (${dynamicFontSize}px, KEIN Hintergrund, KEINE Quadrate):\n${cleanLines.join('\n')}`);
+  } catch (err) {
+    console.warn('Fehler beim Rendern der russischen Headline auf Thumbnail:', err.message);
+  }
+}
+
 // POST /api/set-thumbnail
 router.post('/api/set-thumbnail', async (req, res) => {
   try {
     const { photoUrl, bundleDir, folderName, mode = 'select' } = req.body;
     const newsDir = path.resolve(__dirname, '../../news');
     let targetFolder = bundleDir;
-
-    if (!targetFolder && folderName) {
-      targetFolder = path.join(newsDir, folderName);
+    if (!targetFolder || !fs.existsSync(targetFolder)) {
+      if (folderName) {
+        targetFolder = path.join(newsDir, folderName);
+      }
+      if (!targetFolder || !fs.existsSync(targetFolder)) {
+        const timePrefix = (folderName || '').slice(0, 16);
+        if (timePrefix && fs.existsSync(newsDir)) {
+          const entries = fs.readdirSync(newsDir, { withFileTypes: true });
+          for (const e of entries) {
+            if (e.isDirectory() && e.name.startsWith(timePrefix)) {
+              targetFolder = path.join(newsDir, e.name);
+              break;
+            }
+          }
+        }
+      }
     }
 
     if (!targetFolder || !fs.existsSync(targetFolder)) {
@@ -498,61 +697,128 @@ router.post('/api/set-thumbnail', async (req, res) => {
 
     const destSub = path.join(thumbnailDir, 'thumbnail.jpg');
     const destRoot = path.join(targetFolder, 'thumbnail.jpg');
+    const tempRaw = path.join(thumbnailDir, 'raw_temp.png');
+
+    // 0. VOLLEN ECHTEN TITEL ermitteln (aus project.json oder script.md)
+    let fullNewsTitle = '';
+    const jsonPath = path.join(targetFolder, 'project.json');
+    if (fs.existsSync(jsonPath)) {
+      try {
+        const manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+        fullNewsTitle = manifest.title || '';
+      } catch {}
+    }
+    if (!fullNewsTitle) {
+      const mdPath = path.join(targetFolder, 'script.md');
+      if (fs.existsSync(mdPath)) {
+        try {
+          const firstLine = fs.readFileSync(mdPath, 'utf-8').split('\n')[0];
+          fullNewsTitle = firstLine.replace(/^[#\s🎭\s*]+/, '').trim();
+        } catch {}
+      }
+    }
+    if (!fullNewsTitle) {
+      fullNewsTitle = path.basename(targetFolder).replace(/^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}_/, '').replace(/_/g, ' ');
+    }
 
     if (mode === 'generate_ai' || mode === 'auto') {
-      const folderTitle = path.basename(targetFolder).replace(/^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}_/, '').replace(/_/g, ' ');
-      console.log(`🤖 Echte KI-Bildgenerierung (FLUX 16:9) gestartet für Thema: «${folderTitle}»...`);
+      // 1. Fotos & Text im Ordner analysieren
+      const photosDir = path.join(targetFolder, 'photos');
+      let availablePhotos = [];
+      if (fs.existsSync(photosDir)) {
+        availablePhotos = fs.readdirSync(photosDir)
+          .filter(f => /\.(jpg|jpeg|png|webp)$/i.test(f))
+          .map(f => path.join(photosDir, f));
+      }
 
-      const promptEn = `photorealistic news reportage photo 16:9, ${folderTitle.slice(0, 90)}, dramatic lighting, night emergency scene, hyper detailed photojournalism style, 8k resolution`;
-      const aiApiUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(promptEn)}?width=1280&height=720&nologo=true&model=flux&seed=${Date.now()}`;
+      let scriptText = '';
+      const txtPath = path.join(targetFolder, 'script.txt');
+      const mdPath = path.join(targetFolder, 'script.md');
+      if (fs.existsSync(txtPath)) {
+        try { scriptText = fs.readFileSync(txtPath, 'utf-8'); } catch {}
+      } else if (fs.existsSync(mdPath)) {
+        try { scriptText = fs.readFileSync(mdPath, 'utf-8'); } catch {}
+      }
+
+      console.log(`🔍 Analysiere ${availablePhotos.length} Fotos und Skript für 4-Corner AI Thumbnail...`);
+
+      // 2. Prompt erstellen: 4 verschiedene Szenen aus den Ecken ins Zentrum verschmolzen (Full Bleed)
+      const promptEn = await generate4CornerAiPrompt(
+        fullNewsTitle,
+        scriptText,
+        availablePhotos.map(p => path.basename(p))
+      );
 
       let aiSuccess = false;
-      try {
-        const aiRes = await fetch(aiApiUrl, {
-          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-          signal: AbortSignal.timeout(25000),
-        });
-        if (aiRes.ok) {
-          const buffer = Buffer.from(await aiRes.arrayBuffer());
-          if (buffer.length > 5000) {
-            fs.writeFileSync(destSub, buffer);
-            fs.writeFileSync(destRoot, buffer);
-            aiSuccess = true;
-            console.log(`✨ Echte KI-Bildgenerierung (FLUX 16:9) ERFOLGREICH (${buffer.length} Bytes) -> news/${path.basename(targetFolder)}/thumbnail/thumbnail.jpg`);
-          }
+
+      // 3. Primär: Google Gemini Image Generator verwenden
+      const geminiBuffer = await generateGeminiImage(promptEn);
+      if (geminiBuffer && geminiBuffer.length > 5000) {
+        fs.writeFileSync(tempRaw, geminiBuffer);
+        
+        // Exakter 16:9 Zuschnitt (1280x720) ohne jegliche Ränder mit FFmpeg
+        try {
+          execSync(`ffmpeg -y -i "${tempRaw}" -vf "scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720" -q:v 2 "${destSub}"`, { timeout: 10000 });
+          try { fs.unlinkSync(tempRaw); } catch {}
+        } catch {
+          fs.writeFileSync(destSub, geminiBuffer);
         }
-      } catch (err) {
-        console.warn('AI API Online-Generierung Timeout/Fehler:', err.message);
+        aiSuccess = true;
+        console.log(`✨ GOOGLE GEMINI 16:9 Thumbnail (Full Bleed) erfolgreich erstellt`);
       }
 
+      // 4. Sekundär: FLUX AI Engine Fallback
       if (!aiSuccess) {
-        const photosDir = path.join(targetFolder, 'photos');
-        let availablePhotos = [];
-        if (fs.existsSync(photosDir)) {
-          availablePhotos = fs.readdirSync(photosDir)
-            .filter(f => /\.(jpg|jpeg|png|webp)$/i.test(f))
-            .map(f => path.join(photosDir, f));
+        console.log(`🤖 Fallback auf FLUX 16:9 gestartet...`);
+        const aiApiUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(promptEn)}?width=1280&height=720&nologo=true&model=flux&seed=${Date.now()}`;
+
+        try {
+          const aiRes = await fetch(aiApiUrl, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+            signal: AbortSignal.timeout(25000),
+          });
+          if (aiRes.ok) {
+            const buffer = Buffer.from(await aiRes.arrayBuffer());
+            if (buffer.length > 6000) {
+              fs.writeFileSync(destSub, buffer);
+              aiSuccess = true;
+              console.log(`✨ FLUX 16:9 Thumbnail ERFOLGREICH`);
+            }
+          }
+        } catch (err) {
+          console.warn('FLUX API Timeout/Fehler:', err.message);
         }
+      }
 
-        if (availablePhotos.length > 0) {
-          const randomIndex = Math.floor(Math.random() * availablePhotos.length);
-          const chosenPhoto = (photoUrl && photoUrl.startsWith('/news-static/'))
-            ? path.join(newsDir, decodeURIComponent(photoUrl.replace('/news-static/', '')))
-            : availablePhotos[randomIndex];
+      // 5. Tertiär: 4 Ecken aus den echten Fotos im Ordner ins Zentrum verschmelzen via FFmpeg
+      if (!aiSuccess && availablePhotos.length > 0) {
+        console.log(`🎨 Erstelle 4-Ecken-Verschmelzung aus ${availablePhotos.length} Fotos via FFmpeg...`);
 
-          console.log(`🎲 ZUFÄLLIGES Foto für 16:9 Thumbnail gewählt (Index ${randomIndex + 1}/${availablePhotos.length}): ${path.basename(chosenPhoto)}`);
+        const shuffled = [...availablePhotos].sort(() => 0.5 - Math.random());
+        const p1 = shuffled[0] || availablePhotos[0];
+        const p2 = shuffled[1] || availablePhotos[0];
+        const p3 = shuffled[2] || availablePhotos[0];
+        const p4 = shuffled[3] || availablePhotos[0];
 
-          const ffmpegCmd = `ffmpeg -y -i "${chosenPhoto}" -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720,gblur=sigma=40,eq=brightness=-0.05:contrast=1.15[bg];[0:v]scale=1280:720:force_original_aspect_ratio=decrease[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2" -q:v 2 "${destSub}"`;
+        const ffmpeg4CornerCmd = `ffmpeg -y -i "${p1}" -i "${p2}" -i "${p3}" -i "${p4}" -filter_complex "[0:v]scale=640:360:force_original_aspect_ratio=increase,crop=640:360[tl];[1:v]scale=640:360:force_original_aspect_ratio=increase,crop=640:360[tr];[2:v]scale=640:360:force_original_aspect_ratio=increase,crop=640:360[bl];[3:v]scale=640:360:force_original_aspect_ratio=increase,crop=640:360[br];[tl][tr]hstack[top];[bl][br]hstack[bot];[top][bot]vstack[grid];[grid]gblur=sigma=15[bg];[grid]scale=1280:720[sharp];[bg][sharp]blend=all_mode='overlay':all_opacity=0.3,eq=contrast=1.18:brightness=-0.04:saturation=1.15,vignette=PI/4[out]" -map "[out]" -q:v 2 "${destSub}"`;
 
+        try {
+          execSync(ffmpeg4CornerCmd, { timeout: 18000 });
+        } catch (ffmpegErr) {
+          console.warn('4-Corner FFmpeg Fehler, Fallback auf Single-Photo Blur:', ffmpegErr.message);
+          const singlePhoto = availablePhotos[Math.floor(Math.random() * availablePhotos.length)];
+          const ffmpegCmd = `ffmpeg -y -i "${singlePhoto}" -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720,gblur=sigma=40,eq=brightness=-0.05:contrast=1.15[bg];[0:v]scale=1280:720:force_original_aspect_ratio=decrease[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2" -q:v 2 "${destSub}"`;
           try {
             execSync(ffmpegCmd, { timeout: 15000 });
-            console.log(`✨ Kinematische 16:9 Bildkomposition aus ${path.basename(chosenPhoto)} erfolgreich gerendert!`);
           } catch {
-            fs.copyFileSync(chosenPhoto, destSub);
+            fs.copyFileSync(singlePhoto, destSub);
           }
-          fs.copyFileSync(destSub, destRoot);
         }
       }
+
+      // 6. Große, vollständige russische Headline ohne Quadrate rendern
+      overlayRussianHeadlineOnThumbnail(destSub, fullNewsTitle);
+      fs.copyFileSync(destSub, destRoot);
     } else {
       let sourceFile = null;
       if (photoUrl && photoUrl.startsWith('/news-static/')) {
@@ -562,20 +828,19 @@ router.post('/api/set-thumbnail', async (req, res) => {
 
       if (sourceFile && fs.existsSync(sourceFile)) {
         fs.copyFileSync(sourceFile, destSub);
-        fs.copyFileSync(sourceFile, destRoot);
-        console.log(`🖼️ Thumbnail gesetzt aus ${sourceFile}`);
       } else if (photoUrl && photoUrl.startsWith('http')) {
         const imgRes = await fetch(photoUrl, { signal: AbortSignal.timeout(6000) });
         if (imgRes.ok) {
           const buffer = Buffer.from(await imgRes.arrayBuffer());
           fs.writeFileSync(destSub, buffer);
-          fs.writeFileSync(destRoot, buffer);
-          console.log(`🖼️ Thumbnail heruntergeladen: ${destSub}`);
         }
       }
+
+      // Auch bei manuellem Foto: Vollständige russische Headline rendern
+      overlayRussianHeadlineOnThumbnail(destSub, fullNewsTitle);
+      fs.copyFileSync(destSub, destRoot);
     }
 
-    const jsonPath = path.join(targetFolder, 'project.json');
     if (fs.existsSync(jsonPath)) {
       try {
         const manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
