@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 import ImageLightboxModal from './ImageLightboxModal'
+import ThumbnailSettingsModal from './ThumbnailSettingsModal'
 
 export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText, onOpenAudio, onOpenVideo, onClose, onRefresh }) {
   if (!pkg) return null
@@ -245,6 +246,7 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
   }
 
   const [lightboxUrl, setLightboxUrl] = useState(null)
+  const [showSettingsModal, setShowSettingsModal] = useState(false)
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -253,6 +255,15 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
         title="🖼️ 16:9 YouTube Обложка"
         onClose={() => setLightboxUrl(null)}
       />
+
+      {showSettingsModal && (
+        <ThumbnailSettingsModal
+          pkg={pkg}
+          currentThumbnail={currentThumbnail}
+          onClose={() => setShowSettingsModal(false)}
+          onUpdated={(newUrl) => setCurrentThumbnail(newUrl)}
+        />
+      )}
       <div
         className="modal-content saved-package-modal"
         style={{
@@ -322,6 +333,14 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
 
                   <button
                     className="copy-btn"
+                    style={{ background: '#f59e0b', color: '#000', fontWeight: 700 }}
+                    onClick={() => setShowSettingsModal(true)}
+                  >
+                    ⚙️ Настроить шрифт и текст
+                  </button>
+
+                  <button
+                    className="copy-btn"
                     style={{ background: '#8b5cf6' }}
                     onClick={() => setShowThumbnailGrid(!showThumbnailGrid)}
                   >
@@ -351,7 +370,14 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
                         }}
                       />
                     </div>
-                    <div style={{ marginTop: '0.4rem', display: 'flex', gap: '0.5rem' }}>
+                    <div style={{ marginTop: '0.4rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <button
+                        className="copy-btn"
+                        style={{ background: '#f59e0b', color: '#000', fontWeight: 700, padding: '0.45rem 0.75rem', fontSize: '0.85rem' }}
+                        onClick={() => setShowSettingsModal(true)}
+                      >
+                        ⚙️ Изменить шрифт / текст
+                      </button>
                       <button
                         className="copy-btn"
                         style={{ background: '#10b981', flex: 1, padding: '0.45rem 0.75rem', fontSize: '0.85rem' }}

@@ -588,55 +588,101 @@ async function generateGeminiImage(prompt) {
   return null;
 }
 
-// ── Russian Large Uppercase Headline Overlay (Top Positioned, 100% Transparent) ──
-function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle) {
+// ── Russian Headline Overlay with Custom Font, Size, Color & Position ─────────
+const AVAILABLE_FONTS = {
+  'arialbd': 'C\\:/Windows/Fonts/arialbd.ttf',
+  'impact': 'C\\:/Windows/Fonts/impact.ttf',
+  'segoeuib': 'C\\:/Windows/Fonts/segoeuib.ttf',
+  'tahomabd': 'C\\:/Windows/Fonts/tahomabd.ttf',
+  'trebucbd': 'C\\:/Windows/Fonts/trebucbd.ttf',
+  'verdanab': 'C\\:/Windows/Fonts/verdanab.ttf',
+  'georgiab': 'C\\:/Windows/Fonts/georgiab.ttf',
+};
+
+function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, options = {}) {
   if (!imagePath || !fs.existsSync(imagePath) || !russianTitle) return;
 
   try {
-    // 1. Bereinige den Text: KEINE Sonderzeichen, keine Steuerzeichen
-    const clean = String(russianTitle)
-      .replace(/\r/g, '')
-      .replace(/[\n\t]/g, ' ')
-      .replace(/["'«»`]/g, '')
-      .replace(/[^\p{L}\p{N}\s:!?-]/gu, '')
-      .replace(/\s+/g, ' ')
-      .trim();
+    const {
+      font = 'arialbd',
+      fontSize = 'auto',
+      fontColor = 'yellow',
+      position = 'center',
+      borderWidth = 9,
+      hasBox = false,
+      customLines: inputLines = null,
+    } = options;
 
-    if (!clean) return;
+    let cleanLines = [];
 
-    const words = clean.split(' ');
-    let lines = [];
-    let curLine = '';
+    if (Array.isArray(inputLines) && inputLines.length > 0) {
+      cleanLines = inputLines
+        .map(l => String(l).replace(/[\r\n\t]/g, ' ').trim().toUpperCase())
+        .filter(Boolean);
+    } else if (typeof russianTitle === 'string' && russianTitle.includes('\n')) {
+      cleanLines = russianTitle
+        .split('\n')
+        .map(l => String(l).replace(/\r/g, '').trim().toUpperCase())
+        .filter(Boolean);
+    } else {
+      const clean = String(russianTitle)
+        .replace(/\r/g, '')
+        .replace(/[\n\t]/g, ' ')
+        .replace(/["'«»`]/g, '')
+        .replace(/[^\p{L}\p{N}\s:!?-]/gu, '')
+        .replace(/\s+/g, ' ')
+        .trim();
 
-    // Max 22 Zeichen pro Zeile für optimale Ausnutzung der Breite
-    const targetCharsPerLine = 22;
+      if (!clean) return;
 
-    for (const w of words) {
-      if ((curLine + ' ' + w).trim().length <= targetCharsPerLine) {
-        curLine = (curLine + ' ' + w).trim();
-      } else {
-        if (curLine) lines.push(curLine);
-        curLine = w;
-        if (lines.length >= 3) break;
+      const words = clean.split(' ');
+      let lines = [];
+      let curLine = '';
+      const targetCharsPerLine = 22;
+
+      for (const w of words) {
+        if ((curLine + ' ' + w).trim().length <= targetCharsPerLine) {
+          curLine = (curLine + ' ' + w).trim();
+        } else {
+          if (curLine) lines.push(curLine);
+          curLine = w;
+          if (lines.length >= 3) break;
+        }
       }
+      if (curLine && lines.length < 3) lines.push(curLine);
+      cleanLines = lines.map(l => l.trim().toUpperCase()).filter(Boolean);
     }
-    if (curLine && lines.length < 3) lines.push(curLine);
 
-    const cleanLines = lines.map(l => l.trim().toUpperCase()).filter(Boolean);
     if (cleanLines.length === 0) return;
 
-    // Dynamische Schriftgröße: 60px bis 86px (RIESIG & vollflächig)
-    const longestLineLen = Math.max(...cleanLines.map(l => l.length), 10);
-    let dynamicFontSize = Math.floor(1200 / (longestLineLen * 0.62));
-    if (dynamicFontSize > 84) dynamicFontSize = 84;
-    if (dynamicFontSize < 56) dynamicFontSize = 56;
+    // Font size computation
+    let finalFontSize = 78;
+    if (fontSize && fontSize !== 'auto' && !isNaN(Number(fontSize))) {
+      finalFontSize = Math.min(Math.max(Number(fontSize), 32), 120);
+    } else {
+      const longestLineLen = Math.max(...cleanLines.map(l => l.length), 10);
+      finalFontSize = Math.floor(1200 / (longestLineLen * 0.62));
+      if (finalFontSize > 86) finalFontSize = 86;
+      if (finalFontSize < 50) finalFontSize = 50;
+    }
 
-    const lineHeight = Math.round(dynamicFontSize * 1.16);
+    const safeFontPath = AVAILABLE_FONTS[font] || AVAILABLE_FONTS['arialbd'];
+    const lineHeight = Math.round(finalFontSize * 1.16);
     const totalTextHeight = cleanLines.length * lineHeight;
-    const startY = Math.round((720 - totalTextHeight) / 2); // Exakt im vertikalen ZENTRUM!
-    const safeFontPath = 'C\\:/Windows/Fonts/arialbd.ttf';
 
-    // Generiere für jede Zeile einen separaten drawtext-Filter (Exakt zentriert, OHNE Hintergrundkasten, OHNE Quadrate)
+    let startY = 40;
+    if (position === 'center') {
+      startY = Math.max(Math.round((720 - totalTextHeight) / 2), 20);
+    } else if (position === 'bottom') {
+      startY = Math.max(720 - totalTextHeight - 35, 20);
+    } else if (position === 'top') {
+      startY = 40;
+    }
+
+    const colorVal = fontColor || 'yellow';
+    const bWidth = Number(borderWidth) >= 0 ? Number(borderWidth) : 9;
+    const boxParam = hasBox ? ':box=1:boxcolor=black@0.72:boxborderw=20' : ':box=0';
+
     const drawtextFilters = cleanLines.map((line, idx) => {
       const safeText = line
         .replace(/\\/g, '\\\\')
@@ -644,7 +690,7 @@ function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle) {
         .replace(/:/g, '\\:')
         .replace(/%/g, '\\%');
       const yPos = startY + (idx * lineHeight);
-      return `drawtext=fontfile='${safeFontPath}':text='${safeText}':fontsize=${dynamicFontSize}:fontcolor=yellow:bordercolor=black:borderw=9:shadowcolor=black@0.92:shadowx=4:shadowy=4:box=0:x=(w-text_w)/2:y=${yPos}`;
+      return `drawtext=fontfile='${safeFontPath}':text='${safeText}':fontsize=${finalFontSize}:fontcolor=${colorVal}:bordercolor=black:borderw=${bWidth}:shadowcolor=black@0.92:shadowx=4:shadowy=4${boxParam}:x=(w-text_w)/2:y=${yPos}`;
     });
 
     const fullFilter = `scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720,${drawtextFilters.join(',')}`;
@@ -657,7 +703,7 @@ function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle) {
       try { fs.unlinkSync(tempOut); } catch {}
     }
 
-    console.log(`🏷️ Russische Headline im ZENTRUM platziert (${dynamicFontSize}px, KEIN Hintergrund, KEINE Quadrate):\n${cleanLines.join('\n')}`);
+    console.log(`🏷️ Headline (${font}, ${finalFontSize}px, pos: ${position}, color: ${colorVal}) gerendert:\n${cleanLines.join('\n')}`);
   } catch (err) {
     console.warn('Fehler beim Rendern der russischen Headline auf Thumbnail:', err.message);
   }
@@ -666,7 +712,7 @@ function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle) {
 // POST /api/set-thumbnail
 router.post('/api/set-thumbnail', async (req, res) => {
   try {
-    const { photoUrl, bundleDir, folderName, mode = 'select' } = req.body;
+    const { photoUrl, bundleDir, folderName, mode = 'select', headlineConfig = {} } = req.body;
     const newsDir = path.resolve(__dirname, '../../news');
     let targetFolder = bundleDir;
     if (!targetFolder || !fs.existsSync(targetFolder)) {
@@ -698,6 +744,7 @@ router.post('/api/set-thumbnail', async (req, res) => {
 
     const destSub = path.join(thumbnailDir, 'thumbnail.jpg');
     const destRoot = path.join(targetFolder, 'thumbnail.jpg');
+    const rawBackgroundPath = path.join(thumbnailDir, 'raw_background.jpg');
     const tempRaw = path.join(thumbnailDir, 'raw_temp.png');
 
     // 0. VOLLEN ECHTEN TITEL ermitteln (aus project.json oder script.md)
@@ -722,6 +769,26 @@ router.post('/api/set-thumbnail', async (req, res) => {
       fullNewsTitle = path.basename(targetFolder).replace(/^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}_/, '').replace(/_/g, ' ');
     }
 
+    const titleToRender = headlineConfig?.text || fullNewsTitle;
+
+    // A) Nur Headline neu formatieren auf bestehendem Raw-Hintergrund
+    if (mode === 'apply_headline') {
+      if (fs.existsSync(rawBackgroundPath)) {
+        fs.copyFileSync(rawBackgroundPath, destSub);
+      } else if (fs.existsSync(destSub)) {
+        fs.copyFileSync(destSub, rawBackgroundPath);
+      }
+      overlayRussianHeadlineOnThumbnail(destSub, titleToRender, headlineConfig);
+      fs.copyFileSync(destSub, destRoot);
+
+      return res.json({
+        success: true,
+        thumbnailUrl: `/news-static/${path.basename(targetFolder)}/thumbnail/thumbnail.jpg?t=${Date.now()}`,
+        folderName: path.basename(targetFolder),
+      });
+    }
+
+    // B) Neue KI-Bildgenerierung (Gemini 16:9)
     if (mode === 'generate_ai' || mode === 'auto') {
       // 1. Fotos & Text im Ordner analysieren
       const photosDir = path.join(targetFolder, 'photos');
@@ -817,8 +884,11 @@ router.post('/api/set-thumbnail', async (req, res) => {
         }
       }
 
-      // 6. Große, vollständige russische Headline ohne Quadrate rendern
-      overlayRussianHeadlineOnThumbnail(destSub, fullNewsTitle);
+      // Speichere den sauberen Hintergrund für nachträgliche Typo-Anpassungen
+      fs.copyFileSync(destSub, rawBackgroundPath);
+
+      // 6. Russische Headline mit individuellen Einstellungen rendern
+      overlayRussianHeadlineOnThumbnail(destSub, titleToRender, headlineConfig);
       fs.copyFileSync(destSub, destRoot);
     } else {
       let sourceFile = null;
@@ -837,8 +907,11 @@ router.post('/api/set-thumbnail', async (req, res) => {
         }
       }
 
-      // Auch bei manuellem Foto: Vollständige russische Headline rendern
-      overlayRussianHeadlineOnThumbnail(destSub, fullNewsTitle);
+      // Speichere Rohbild
+      fs.copyFileSync(destSub, rawBackgroundPath);
+
+      // Headline rendern
+      overlayRussianHeadlineOnThumbnail(destSub, titleToRender, headlineConfig);
       fs.copyFileSync(destSub, destRoot);
     }
 
