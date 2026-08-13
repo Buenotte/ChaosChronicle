@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Toaster, toast } from 'sonner'
 
 const CATEGORIES = [
@@ -41,11 +41,417 @@ function cleanMatchTitle(str) {
   return str.toLowerCase().replace(/[^a-z0-9а-яё]/gi, '')
 }
 
-// Einziges, vereintes Modal für das komplette Video-Produktionspaket (Status + Audio + Fotos + Skript-Text)
-function VideoPackageModal({ pkg, onOpenPhotos, onClose }) {
+// Modal zum Bearbeiten und Speichern von script.txt mit integriertem Audio-Player (Verschiebbar per Drag & Drop)
+function NewsScriptModal({ pkg, onClose, onSaved }) {
   if (!pkg) return null
 
-  const [showText, setShowText] = useState(false)
+  const [text, setText] = useState(pkg.scriptTxt || pkg.scriptMd || '')
+  const [savingText, setSavingText] = useState(false)
+  const [generatingAudio, setGeneratingAudio] = useState(false)
+  const [audioState, setAudioState] = useState({
+    hasAudio: pkg.hasAudio,
+    audioUrl: pkg.audioUrl,
+  })
+
+  // Drag & Drop State für Verschiebbarkeit
+  const [pos, setPos] = useState({ x: 0, y: 0 })
+  const [isDragging, setIsDragging] = useState(false)
+  const dragRef = useRef({ startX: 0, startY: 0, initialX: 0, initialY: 0 })
+
+  useEffect(() => {
+    setText(pkg.scriptTxt || pkg.scriptMd || '')
+    setAudioState({
+      hasAudio: pkg.hasAudio,
+      audioUrl: pkg.audioUrl,
+    })
+    setPos({ x: 0, y: 0 })
+  }, [pkg])
+
+  // Drag Event Handlers
+  const handleMouseDown = (e) => {
+    // Falls Klick auf Close-Button oder Input, kein Drag
+    if (e.target.closest('.modal-close') || e.target.closest('button') || e.target.closest('textarea')) return
+    setIsDragging(true)
+    dragRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      initialX: pos.x,
+      initialY: pos.y,
+    }
+  }
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!isDragging) return
+      const dx = e.clientX - dragRef.current.startX
+      const dy = e.clientY - dragRef.current.startY
+      setPos({
+        x: dragRef.current.initialX + dx,
+        y: dragRef.current.initialY + dy,
+      })
+    }
+
+    const handleMouseUp = () => {
+      if (isDragging) setIsDragging(false)
+    }
+
+    if (isDragging) {
+      window.addEventListener('mousemove', handleMouseMove)
+      window.addEventListener('mouseup', handleMouseUp)
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [isDragging])
+
+  const handleSaveText = async () => {
+    if (!text.trim()) return
+    setSavingText(true)
+    const toastId = toast.loading('Сохранение script.txt в папку news/...', {
+      description: 'Обновление файла дикторского текста...',
+    })
+
+    try {
+      const res = await fetch('/api/save-script-text', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bundleDir: pkg.bundleDir,
+          folderName: pkg.folderName,
+          text,
+        }),
+      })
+
+      const data = await res.json()
+      if (!res.ok || !data.success) throw new Error(data.error || 'Ошибка сохранения текста')
+
+      if (onSaved) onSaved()
+
+      toast.success('📜 Текст script.txt успешно обновлен!', {
+        id: toastId,
+        description: `Сохранено в news/${data.folderName}/script.txt`,
+        duration: 10000,
+      })
+    } catch (err) {
+      toast.error('Ошибка сохранения текста', {
+        id: toastId,
+        description: err.message,
+      })
+    } finally {
+      setSavingText(false)
+    }
+  }
+
+  const handleGenerateAudioInTextModal = async () => {
+    if (!pkg.bundleDir && !pkg.folderName) {
+      toast.error('Сначала сохраните пакет в папку news/')
+      return
+    }
+    setGeneratingAudio(true)
+    const toastId = toast.loading('🎙️ Синтез речи Nikolay (ru-RU-DmitryNeural, 0%, -10%)...', {
+      description: 'Генерация аудио-файла для озвучивания текста...',
+    })
+
+    try {
+      const res = await fetch('/api/generate-audio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bundleDir: pkg.bundleDir,
+          folderName: pkg.folderName,
+          text,
+        }),
+      })
+
+      const data = await res.json()
+      if (!res.ok || !data.success) throw new Error(data.error || 'Ошибка генерации аудио')
+
+      const newAudioUrl = `/news-static/${data.folderName}/${data.audioFileName}?t=${Date.now()}`
+      setAudioState({
+        hasAudio: true,
+        audioUrl: newAudioUrl,
+      })
+
+      if (onSaved) onSaved()
+
+      toast.success('🎙️ Голосовой файл audio.mp3 успешно создан!', {
+        id: toastId,
+        description: `Папка: news/${data.folderName}/audio.mp3 (${data.voice})`,
+        duration: 10000,
+      })
+    } catch (err) {
+      toast.error('Ошибка создания аудио', {
+        id: toastId,
+        description: err.message,
+      })
+    } finally {
+      setGeneratingAudio(false)
+    }
+  }
+
+  const computedAudioUrl = audioState.audioUrl || pkg.audioUrl || (pkg.folderName ? `/news-static/${pkg.folderName}/audio.mp3` : null)
+  const hasAudioFile = audioState.hasAudio || pkg.hasAudio
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div
+        className={`modal-content script-editor-modal ${isDragging ? 'dragging' : ''}`}
+        style={{
+          transform: `translate3d(${pos.x}px, ${pos.y}px, 0)`,
+          transition: isDragging ? 'none' : 'transform 0.1s ease-out',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div
+          className="modal-header draggable-header"
+          onMouseDown={handleMouseDown}
+          style={{ cursor: isDragging ? 'grabbing' : 'grab', userSelect: 'none' }}
+          title="Зажмите мышью, чтобы перетащить окно"
+        >
+          <div>
+            <span className="modal-badge saved-badge">
+              📜 Текст и Озвучка диктора (🖐️ Перетащите окно)
+            </span>
+            <h2 className="modal-title">{pkg.title}</h2>
+          </div>
+          <button className="modal-close" onClick={onClose}>✕</button>
+        </div>
+
+        <div className="modal-body">
+          {/* Audio Player im Text-Dialog */}
+          {hasAudioFile && computedAudioUrl ? (
+            <div className="audio-player-box" style={{ marginBottom: '1rem' }}>
+              <div className="audio-player-title">🎙️ Озвучка диктора Nikolay (ru-RU-DmitryNeural, 0%, -10%):</div>
+              <audio controls src={computedAudioUrl} className="audio-element">
+                Ваш браузер не поддерживает элемент audio.
+              </audio>
+            </div>
+          ) : (
+            <div className="empty-state" style={{ padding: '0.8rem 1rem', marginBottom: '1rem', textAlign: 'left', background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <div>
+                  <p style={{ margin: 0, fontWeight: 600, color: '#ef4444' }}>🎙️ Аудио-файл audio.mp3 отсутствует</p>
+                </div>
+                <button
+                  className="audio-gen-btn"
+                  onClick={handleGenerateAudioInTextModal}
+                  disabled={generatingAudio}
+                  style={{ whiteSpace: 'nowrap' }}
+                >
+                  {generatingAudio ? '⏳ Создание audio.mp3...' : '🎙️ Создать audio.mp3 (Nikolay)'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Text Editor */}
+          <div className="script-editor-wrap">
+            <label className="section-title" style={{ display: 'block', marginBottom: '0.5rem' }}>
+              📝 Текст для озвучки Nikolay (можно редактировать и сохранить):
+            </label>
+            <textarea
+              className="script-editor-textarea"
+              value={text}
+              onChange={e => setText(e.target.value)}
+              placeholder="Введите или отредактируйте текст..."
+              rows={12}
+            />
+          </div>
+        </div>
+
+        <div className="modal-footer">
+          <button
+            className="save-bundle-btn"
+            onClick={handleSaveText}
+            disabled={savingText}
+          >
+            {savingText ? '⏳ Сохранение...' : '💾 Сохранить изменения в script.txt'}
+          </button>
+          <button className="close-btn" onClick={onClose}>Закрыть</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Modal zum Abspielen & Generieren von audio.mp3 in einem eigenen Dialog (Verschiebbar)
+function NewsAudioModal({ pkg, onClose, onRefresh }) {
+  if (!pkg) return null
+
+  const [generatingAudio, setGeneratingAudio] = useState(false)
+  const [audioState, setAudioState] = useState({
+    hasAudio: !!pkg.hasAudio,
+    audioUrl: pkg.audioUrl,
+  })
+
+  // Drag & Drop State
+  const [pos, setPos] = useState({ x: 0, y: 0 })
+  const [isDragging, setIsDragging] = useState(false)
+  const dragRef = useRef({ startX: 0, startY: 0, initialX: 0, initialY: 0 })
+
+  useEffect(() => {
+    setAudioState({
+      hasAudio: !!pkg.hasAudio,
+      audioUrl: pkg.audioUrl,
+    })
+    setPos({ x: 0, y: 0 })
+  }, [pkg])
+
+  const handleMouseDown = (e) => {
+    if (e.target.closest('.modal-close') || e.target.closest('button') || e.target.closest('audio')) return
+    setIsDragging(true)
+    dragRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      initialX: pos.x,
+      initialY: pos.y,
+    }
+  }
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!isDragging) return
+      const dx = e.clientX - dragRef.current.startX
+      const dy = e.clientY - dragRef.current.startY
+      setPos({
+        x: dragRef.current.initialX + dx,
+        y: dragRef.current.initialY + dy,
+      })
+    }
+
+    const handleMouseUp = () => {
+      if (isDragging) setIsDragging(false)
+    }
+
+    if (isDragging) {
+      window.addEventListener('mousemove', handleMouseMove)
+      window.addEventListener('mouseup', handleMouseUp)
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [isDragging])
+
+  const handleGenerateAudioInModal = async () => {
+    if (!pkg.bundleDir && !pkg.folderName) {
+      toast.error('Сначала сохраните пакет в папку news/')
+      return
+    }
+    setGeneratingAudio(true)
+    const toastId = toast.loading('🎙️ Синтез речи Nikolay (ru-RU-DmitryNeural, 0%, -10%)...', {
+      description: 'Генерация звукового файла audio.mp3...',
+    })
+
+    try {
+      const res = await fetch('/api/generate-audio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bundleDir: pkg.bundleDir,
+          folderName: pkg.folderName,
+          text: pkg.scriptTxt || pkg.scriptMd || '',
+        }),
+      })
+
+      const data = await res.json()
+      if (!res.ok || !data.success) throw new Error(data.error || 'Ошибка генерации аудио')
+
+      const newAudioUrl = `/news-static/${data.folderName}/${data.audioFileName}?t=${Date.now()}`
+      pkg.hasAudio = true
+      pkg.audioUrl = newAudioUrl
+      setAudioState({
+        hasAudio: true,
+        audioUrl: newAudioUrl,
+      })
+
+      if (onRefresh) onRefresh()
+
+      toast.success('🎙️ Голосовой файл audio.mp3 успешно создан!', {
+        id: toastId,
+        description: `Папка: news/${data.folderName}/audio.mp3 (${data.voice})`,
+        duration: 10000,
+      })
+    } catch (err) {
+      toast.error('Ошибка создания аудио', {
+        id: toastId,
+        description: err.message,
+      })
+    } finally {
+      setGeneratingAudio(false)
+    }
+  }
+
+  const computedAudioUrl = audioState.audioUrl || pkg.audioUrl || (pkg.folderName ? `/news-static/${pkg.folderName}/audio.mp3` : null)
+  const hasAudioFile = audioState.hasAudio || pkg.hasAudio || !!pkg.folderName
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div
+        className={`modal-content ${isDragging ? 'dragging' : ''}`}
+        style={{
+          maxWidth: '540px',
+          transform: `translate3d(${pos.x}px, ${pos.y}px, 0)`,
+          transition: isDragging ? 'none' : 'transform 0.1s ease-out',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div
+          className="modal-header draggable-header"
+          onMouseDown={handleMouseDown}
+          style={{ cursor: isDragging ? 'grabbing' : 'grab', userSelect: 'none' }}
+          title="Зажмите мышью, чтобы перетащить окно"
+        >
+          <div>
+            <span className="modal-badge saved-badge">
+              🎙️ Аудио-сопровождение (🖐️ Перетащите окно)
+            </span>
+            <h2 className="modal-title">{pkg.title}</h2>
+          </div>
+          <button className="modal-close" onClick={onClose}>✕</button>
+        </div>
+
+        <div className="modal-body">
+          {hasAudioFile && computedAudioUrl ? (
+            <div className="audio-player-box" style={{ padding: '1.2rem' }}>
+              <div className="audio-player-title" style={{ fontSize: '0.95rem', marginBottom: '0.75rem' }}>
+                🎙️ Озвучка диктора Nikolay (ru-RU-DmitryNeural, 0%, -10%):
+              </div>
+              <audio controls src={computedAudioUrl} className="audio-element">
+                Ваш браузер не поддерживает элемент audio.
+              </audio>
+            </div>
+          ) : (
+            <div className="empty-state" style={{ padding: '1rem', textAlign: 'left', background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <div>
+                  <p style={{ margin: 0, fontWeight: 600, color: '#ef4444' }}>🎙️ Аудио-файл audio.mp3 отсутствует</p>
+                </div>
+                <button
+                  className="audio-gen-btn"
+                  onClick={handleGenerateAudioInModal}
+                  disabled={generatingAudio}
+                  style={{ whiteSpace: 'nowrap' }}
+                >
+                  {generatingAudio ? '⏳ Создание audio.mp3...' : '🎙️ Создать audio.mp3 (Nikolay)'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="modal-footer">
+          <button className="close-btn" onClick={onClose}>Закрыть</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Einziges, vereintes Modal für das komplette Video-Produktionspaket (Status + Audio + Fotos + Skript-Text)
+function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText, onOpenAudio, onClose }) {
+  if (!pkg) return null
 
   const photosList = pkg.photoUrls || []
   const actualPhotoCount = photosList.length || (pkg.photosCount || 0)
@@ -70,28 +476,21 @@ function VideoPackageModal({ pkg, onOpenPhotos, onClose }) {
         </div>
 
         <div className="modal-body">
-          {/* 1. Nikolay Audio Player */}
-          {pkg.hasAudio ? (
-            <div className="audio-player-box">
-              <div className="audio-player-title">🎙️ Озвучка диктора Nikolay (ru-RU-DmitryNeural, 0%, -10%):</div>
-              <audio controls src={pkg.audioUrl} className="audio-element">
-                Ваш браузер не поддерживает элемент audio.
-              </audio>
-            </div>
-          ) : (
-            <div className="empty-state" style={{ padding: '0.8rem 1rem', marginBottom: '1rem', textAlign: 'left' }}>
-              <p style={{ margin: 0, fontSize: '0.85rem' }}>🎙️ <strong>Аудио еще не создано.</strong> Нажмите «🎙️ Создать audio.mp3» в фельетоне.</p>
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+          {/* 3 Action Buttons */}
+          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
             <button
               className="copy-btn"
-              style={{ background: showText ? '#3b82f6' : 'rgba(255, 255, 255, 0.08)' }}
-              onClick={() => setShowText(!showText)}
+              style={{ background: '#3b82f6' }}
+              onClick={() => onOpenScriptText(pkg)}
             >
-              📜 {showText ? 'Скрыть текст' : 'Показать текст фельетона'}
+              📜 Открыть и редактировать текст
+            </button>
+            <button
+              className="copy-btn"
+              style={{ background: '#f59e0b' }}
+              onClick={() => onOpenAudio(pkg)}
+            >
+              🎙️ {pkg.hasAudio ? 'Воспроизвести аудио Nikolay' : 'Создать / Открыть аудио'}
             </button>
             <button
               className="copy-btn"
@@ -103,14 +502,6 @@ function VideoPackageModal({ pkg, onOpenPhotos, onClose }) {
               🖼️ Открыть фото в отдельном диалоге ({actualPhotoCount})
             </button>
           </div>
-
-          {/* 2. Skript-Текст (wird NUR auf Klick angezeigt) */}
-          {showText && (
-            <div className="saved-script-section">
-              <h3 className="section-title">📜 Текст фельетона (script.txt):</h3>
-              <pre className="script-text-preview">{pkg.scriptTxt || pkg.scriptMd || 'Текст еще не сохранен в папку news/'}</pre>
-            </div>
-          )}
         </div>
 
         <div className="modal-footer">
@@ -621,13 +1012,21 @@ export default function App() {
   // Saved Video Packages State
   const [savedPackages, setSavedPackages] = useState([])
   const [activeSavedPackage, setActiveSavedPackage] = useState(null)
+  const [scriptTextPackage, setScriptTextPackage] = useState(null)
+  const [audioPackage, setAudioPackage] = useState(null)
 
   const fetchSavedPackages = useCallback(async () => {
     try {
       const res = await fetch('/api/saved-packages')
       const data = await res.json()
       if (data.success) {
-        setSavedPackages(data.packages || [])
+        const pkgs = data.packages || []
+        setSavedPackages(pkgs)
+        setActiveSavedPackage(current => {
+          if (!current) return null
+          const updated = pkgs.find(p => p.folderName === current.folderName)
+          return updated ? { ...current, ...updated } : current
+        })
       }
     } catch (err) {
       console.error('Fetch saved packages error:', err.message)
@@ -887,7 +1286,24 @@ export default function App() {
       <VideoPackageModal
         pkg={activeSavedPackage}
         onOpenPhotos={handleFetchNewsPhotos}
+        onOpenScriptText={pkg => setScriptTextPackage(pkg)}
+        onOpenAudio={pkg => setAudioPackage(pkg)}
         onClose={() => setActiveSavedPackage(null)}
+        onRefresh={fetchSavedPackages}
+      />
+
+      {/* Script Text Editor Modal */}
+      <NewsScriptModal
+        pkg={scriptTextPackage}
+        onClose={() => setScriptTextPackage(null)}
+        onSaved={fetchSavedPackages}
+      />
+
+      {/* News Audio Player Modal */}
+      <NewsAudioModal
+        pkg={audioPackage}
+        onClose={() => setAudioPackage(null)}
+        onRefresh={fetchSavedPackages}
       />
 
       {/* Multi-Source News Photos Modal */}

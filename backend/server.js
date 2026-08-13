@@ -905,6 +905,51 @@ app.post('/api/save-news-photos', async (req, res) => {
   }
 });
 
+// POST /api/save-script-text - Speichert den bearbeiteten Sprecher-Text in script.txt im Paket-Ordner!
+app.post('/api/save-script-text', async (req, res) => {
+  try {
+    const { bundleDir: inputBundleDir, folderName, text = '' } = req.body;
+
+    const newsDir = path.resolve(__dirname, '../news');
+    let bundleDir = inputBundleDir;
+
+    if (!bundleDir && folderName) {
+      bundleDir = path.join(newsDir, folderName);
+    }
+
+    if (!bundleDir || !fs.existsSync(bundleDir)) {
+      return res.status(404).json({ success: false, error: 'Ordner existiert nicht' });
+    }
+
+    const txtPath = path.join(bundleDir, 'script.txt');
+    fs.writeFileSync(txtPath, text, 'utf-8');
+
+    // Manifest project.json word count aktualisieren
+    const jsonPath = path.join(bundleDir, 'project.json');
+    if (fs.existsSync(jsonPath)) {
+      try {
+        const manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+        const words = text.split(/\s+/).filter(Boolean).length;
+        manifest.word_count = words;
+        manifest.text_updated_at = new Date().toISOString();
+        fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
+      } catch {}
+    }
+
+    console.log(`📜 script.txt in ${bundleDir} erfolgreich aktualisiert.`);
+
+    res.json({
+      success: true,
+      bundleDir,
+      folderName: path.basename(bundleDir),
+      text,
+    });
+  } catch (err) {
+    console.error('Save script error:', err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // POST /api/generate-audio - Erzeugt audio.mp3 mit Stimme Nikolay (ru-RU-DmitryNeural, Rate 0%, Pitch -10%) im Nachricht-Ordner!
 app.post('/api/generate-audio', async (req, res) => {
   try {
@@ -938,6 +983,17 @@ app.post('/api/generate-audio', async (req, res) => {
       if (error) {
         console.error('Audio generation error:', error.message, stderr);
         return res.status(500).json({ success: false, error: `Ошибка генерации аудио: ${error.message}` });
+      }
+
+      // Manifest project.json mit Audio-Status aktualisieren
+      const jsonPath = path.join(bundleDir, 'project.json');
+      if (fs.existsSync(jsonPath)) {
+        try {
+          const manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+          manifest.hasAudio = true;
+          manifest.audio_generated_at = new Date().toISOString();
+          fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
+        } catch {}
       }
 
       console.log(`🎙️ Аудио-файл сохранен: ${audioPath}`);
