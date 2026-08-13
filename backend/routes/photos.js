@@ -632,10 +632,11 @@ function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle) {
     if (dynamicFontSize < 56) dynamicFontSize = 56;
 
     const lineHeight = Math.round(dynamicFontSize * 1.16);
-    const startY = 40; // Startet ganz OBEN im Bild!
+    const totalTextHeight = cleanLines.length * lineHeight;
+    const startY = Math.round((720 - totalTextHeight) / 2); // Exakt im vertikalen ZENTRUM!
     const safeFontPath = 'C\\:/Windows/Fonts/arialbd.ttf';
 
-    // Generiere für jede Zeile einen separaten drawtext-Filter (OHNE Textdatei = 100% KEINE Quadrate am Ende!)
+    // Generiere für jede Zeile einen separaten drawtext-Filter (Exakt zentriert, OHNE Hintergrundkasten, OHNE Quadrate)
     const drawtextFilters = cleanLines.map((line, idx) => {
       const safeText = line
         .replace(/\\/g, '\\\\')
@@ -656,7 +657,7 @@ function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle) {
       try { fs.unlinkSync(tempOut); } catch {}
     }
 
-    console.log(`🏷️ Russische Headline oben platziert (${dynamicFontSize}px, KEIN Hintergrund, KEINE Quadrate):\n${cleanLines.join('\n')}`);
+    console.log(`🏷️ Russische Headline im ZENTRUM platziert (${dynamicFontSize}px, KEIN Hintergrund, KEINE Quadrate):\n${cleanLines.join('\n')}`);
   } catch (err) {
     console.warn('Fehler beim Rendern der russischen Headline auf Thumbnail:', err.message);
   }

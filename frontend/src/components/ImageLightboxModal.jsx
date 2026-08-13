@@ -10,6 +10,44 @@ export default function ImageLightboxModal({ imageUrl, title, onClose }) {
         />
         <div style={{ marginTop: '0.75rem', display: 'flex', justifyContent: 'center', gap: '1rem', alignItems: 'center' }}>
           <span style={{ color: '#e5e7eb', fontSize: '0.9rem', fontWeight: 600 }}>{title}</span>
+          <button
+            className="copy-btn"
+            style={{ background: '#10b981' }}
+            onClick={async () => {
+              const suggestedName = (title || 'image').replace(/[^a-zA-Z0-9а-яА-ЯёЁ_-]/g, '_') + '.jpg';
+              try {
+                const res = await fetch(imageUrl);
+                const blob = await res.blob();
+                if ('showSaveFilePicker' in window) {
+                  const handle = await window.showSaveFilePicker({
+                    suggestedName,
+                    types: [{
+                      description: 'JPEG Image (*.jpg)',
+                      accept: { 'image/jpeg': ['.jpg', '.jpeg'] },
+                    }],
+                  });
+                  const writable = await handle.createWritable();
+                  await writable.write(blob);
+                  await writable.close();
+                } else {
+                  const blobUrl = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = blobUrl;
+                  a.download = suggestedName;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  window.URL.revokeObjectURL(blobUrl);
+                }
+              } catch (err) {
+                if (err.name !== 'AbortError') {
+                  window.open(imageUrl, '_blank');
+                }
+              }
+            }}
+          >
+            💾 Сохранить как...
+          </button>
           <a
             href={imageUrl}
             target="_blank"
@@ -17,9 +55,9 @@ export default function ImageLightboxModal({ imageUrl, title, onClose }) {
             className="copy-btn"
             style={{ background: '#3b82f6', textDecoration: 'none' }}
           >
-            🔍 Открыть оригинал в новой вкладке
+            🔍 В новой вкладке
           </a>
-          <button className="copy-btn" onClick={onClose} style={{ background: '#ef4444' }}>✕ Закрыть окно</button>
+          <button className="copy-btn" onClick={onClose} style={{ background: '#ef4444' }}>✕ Закрыть</button>
         </div>
       </div>
     </div>

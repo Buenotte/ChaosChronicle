@@ -338,17 +338,68 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
                 </div>
 
                 {currentThumbnail && (
-                  <div style={{ marginTop: '0.75rem', borderRadius: '12px', overflow: 'hidden', border: '2px solid #ec4899', maxWidth: '480px', background: '#09090b' }}>
-                    <img
-                      src={currentThumbnail}
-                      alt="16:9 YouTube Cover Thumbnail"
-                      onClick={() => setLightboxUrl(currentThumbnail)}
-                      title="🔍 Нажмите, чтобы открыть обложку в полном экране"
-                      style={{ width: '100%', height: 'auto', aspectRatio: '16/9', display: 'block', objectFit: 'cover', cursor: 'zoom-in' }}
-                      onError={e => {
-                        e.target.src = `/news-static/${pkg.folderName}/thumbnail.jpg`
-                      }}
-                    />
+                  <div style={{ marginTop: '0.75rem', maxWidth: '480px' }}>
+                    <div style={{ borderRadius: '12px', overflow: 'hidden', border: '2px solid #ec4899', background: '#09090b', position: 'relative' }}>
+                      <img
+                        src={currentThumbnail}
+                        alt="16:9 YouTube Cover Thumbnail"
+                        onClick={() => setLightboxUrl(currentThumbnail)}
+                        title="🔍 Нажмите, чтобы открыть обложку в полном экране"
+                        style={{ width: '100%', height: 'auto', aspectRatio: '16/9', display: 'block', objectFit: 'cover', cursor: 'zoom-in' }}
+                        onError={e => {
+                          e.target.src = `/news-static/${pkg.folderName}/thumbnail.jpg`
+                        }}
+                      />
+                    </div>
+                    <div style={{ marginTop: '0.4rem', display: 'flex', gap: '0.5rem' }}>
+                      <button
+                        className="copy-btn"
+                        style={{ background: '#10b981', flex: 1, padding: '0.45rem 0.75rem', fontSize: '0.85rem' }}
+                        onClick={async () => {
+                          const suggestedName = `thumbnail_${pkg.folderName || 'cover'}.jpg`;
+                          try {
+                            const res = await fetch(currentThumbnail);
+                            const blob = await res.blob();
+                            if ('showSaveFilePicker' in window) {
+                              const handle = await window.showSaveFilePicker({
+                                suggestedName,
+                                types: [{
+                                  description: 'JPEG Image (*.jpg)',
+                                  accept: { 'image/jpeg': ['.jpg', '.jpeg'] },
+                                }],
+                              });
+                              const writable = await handle.createWritable();
+                              await writable.write(blob);
+                              await writable.close();
+                              toast.success('💾 Обложка успешно сохранена в выбранную папку!');
+                            } else {
+                              const blobUrl = window.URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = blobUrl;
+                              a.download = suggestedName;
+                              document.body.appendChild(a);
+                              a.click();
+                              document.body.removeChild(a);
+                              window.URL.revokeObjectURL(blobUrl);
+                              toast.success('💾 Обложка сохранена!');
+                            }
+                          } catch (err) {
+                            if (err.name !== 'AbortError') {
+                              window.open(currentThumbnail, '_blank');
+                            }
+                          }
+                        }}
+                      >
+                        💾 Сохранить как... (Выбрать папку)
+                      </button>
+                      <button
+                        className="copy-btn"
+                        style={{ background: '#3b82f6', padding: '0.45rem 0.75rem', fontSize: '0.85rem' }}
+                        onClick={() => setLightboxUrl(currentThumbnail)}
+                      >
+                        🔍 На весь экран
+                      </button>
+                    </div>
                   </div>
                 )}
 
