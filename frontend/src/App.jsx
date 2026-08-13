@@ -486,6 +486,11 @@ function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText, onOpenAudio, o
 
   const [generatingAudio, setGeneratingAudio] = useState(false)
   const [generatingVideo, setGeneratingVideo] = useState(false)
+  const [videoProgress, setVideoProgress] = useState(0)
+  const [progressLog, setProgressLog] = useState('')
+
+  const [selectedVoice, setSelectedVoice] = useState('nikolay')
+  const [selectedTransition, setSelectedTransition] = useState('concat')
 
   const [audioState, setAudioState] = useState({
     hasAudio: !!pkg.hasAudio,
@@ -552,7 +557,7 @@ function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText, onOpenAudio, o
       return
     }
     setGeneratingAudio(true)
-    const toastId = toast.loading('🎙️ Синтез речи Nikolay (ru-RU-DmitryNeural, 0%, -10%)...', {
+    const toastId = toast.loading(`🎙️ Синтез речи ${selectedVoice} (edge-tts)...`, {
       description: 'Генерация звукового файла audio.mp3...',
     })
 
@@ -564,6 +569,7 @@ function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText, onOpenAudio, o
           bundleDir: pkg.bundleDir,
           folderName: pkg.folderName,
           text: pkg.scriptTxt || pkg.scriptMd || '',
+          voiceKey: selectedVoice,
         }),
       })
 
@@ -580,7 +586,7 @@ function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText, onOpenAudio, o
 
       if (onRefresh) onRefresh()
 
-      toast.success('🎙️ Голосовой файл audio.mp3 успешно создан!', {
+      toast.success(`🎙️ Голосовой файл audio.mp3 успешно создан!`, {
         id: toastId,
         description: `Папка: news/${data.folderName}/audio.mp3 (${data.voice})`,
         duration: 8000,
@@ -598,7 +604,25 @@ function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText, onOpenAudio, o
       return
     }
     setGeneratingVideo(true)
-    const toastId = toast.loading('🎬 Монтаж видео (16:9 FFmpeg Ultrafast)...', {
+    setVideoProgress(0)
+    setProgressLog('Начало...')
+
+    // Eindeutige Job-ID für SSE-Fortschritt
+    const jobId = `job_${Date.now()}`
+
+    // SSE-Verbindung für Echtzeit-Fortschritt
+    const evtSource = new EventSource(`/api/video-progress/${jobId}`)
+    evtSource.onmessage = (e) => {
+      const data = JSON.parse(e.data)
+      setVideoProgress(data.progress || 0)
+      setProgressLog(data.log || '')
+      if (data.status === 'done' || data.status === 'error') {
+        evtSource.close()
+      }
+    }
+    evtSource.onerror = () => evtSource.close()
+
+    const toastId = toast.loading(`🎬 Монтаж видео (16:9 FFmpeg – ${selectedTransition === 'xfade' ? 'xFade Переходы' : 'Прямой монтаж'})...`, {
       description: 'Сведение фото, переходов и аудио-файла audio.mp3...',
     })
 
@@ -609,6 +633,8 @@ function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText, onOpenAudio, o
         body: JSON.stringify({
           bundleDir: pkg.bundleDir,
           folderName: pkg.folderName,
+          transition: selectedTransition,
+          jobId,
         }),
       })
 
@@ -622,15 +648,19 @@ function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText, onOpenAudio, o
         hasVideo: true,
         videoUrl: newVideoUrl,
       })
+      setVideoProgress(100)
+      evtSource.close()
 
       if (onRefresh) onRefresh()
 
       toast.success('🎬 Видео-файл video.mp4 успешно создан!', {
         id: toastId,
-        description: `Папка: news/${data.folderName}/video/video.mp4 (16:9)`,
+        description: `Папка: news/${data.folderName}/video/video.mp4 (16:9 – ${data.transition})`,
         duration: 8000,
       })
     } catch (err) {
+      evtSource.close()
+      setVideoProgress(0)
       toast.error('Ошибка монтажа видео', { id: toastId, description: err.message })
     } finally {
       setGeneratingVideo(false)
@@ -692,7 +722,37 @@ function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText, onOpenAudio, o
 
           {/* Секция 2: Аудио */}
           <div style={{ marginBottom: '1.25rem' }}>
-            <h3 style={{ fontSize: '0.95rem', color: '#9ca3af', marginBottom: '0.5rem' }}>2. Озвучка Nikolay (audio.mp3):</h3>
+            <h3 style={{ fontSize: '0.95rem', color: '#9ca3af', marginBottom: '0.5rem' }}>2. Озвучка (audio.mp3):</h3>
+
+            {/* Stimmen-Auswahl */}
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.65rem', flexWrap: 'wrap' }}>
+              {[
+                { key: 'nikolay',  label: '👨 Nikolay',  desc: 'Männlich, tief' },
+                { key: 'dmitry',   label: '👨 Dmitry',   desc: 'Männlich, schnell' },
+                { key: 'svetlana', label: '👩 Svetlana', desc: 'Weiblich' },
+                { key: 'darya',    label: '👩 Darya',    desc: 'Weiblich, langsam' },
+              ].map(v => (
+                <button
+                  key={v.key}
+                  onClick={() => setSelectedVoice(v.key)}
+                  title={v.desc}
+                  style={{
+                    padding: '0.3rem 0.75rem',
+                    borderRadius: '6px',
+                    border: selectedVoice === v.key ? '2px solid #f59e0b' : '1px solid rgba(255,255,255,0.15)',
+                    background: selectedVoice === v.key ? 'rgba(245,158,11,0.18)' : 'rgba(255,255,255,0.05)',
+                    color: selectedVoice === v.key ? '#fbbf24' : '#9ca3af',
+                    fontSize: '0.8rem',
+                    cursor: 'pointer',
+                    fontWeight: selectedVoice === v.key ? 700 : 400,
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {v.label}
+                </button>
+              ))}
+            </div>
+
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
               <button
                 className="copy-btn"
@@ -700,7 +760,7 @@ function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText, onOpenAudio, o
                 onClick={handleGenerateAudioDirect}
                 disabled={generatingAudio}
               >
-                {generatingAudio ? '⏳ Создание audio.mp3...' : (audioState.hasAudio ? '🔄 Пересоздать audio.mp3' : '🎙️ Создать audio.mp3')}
+                {generatingAudio ? '⏳ Создание audio.mp3...' : (audioState.hasAudio ? `🔄 Пересоздать (${selectedVoice})` : `🎙️ Создать (${selectedVoice})`)}
               </button>
 
               {audioState.hasAudio && (
@@ -721,6 +781,33 @@ function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText, onOpenAudio, o
               🎬 Видео-монтаж 16:9 (video.mp4):
             </h3>
 
+            {/* Transitions-Auswahl */}
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.65rem' }}>
+              {[
+                { key: 'concat', label: '⚡ Прямой монтаж', desc: 'Быстро, без переходов' },
+                { key: 'xfade', label: '✨ xFade Переходы', desc: 'Плавное перетекание, более медленная рендеринг' },
+              ].map(t => (
+                <button
+                  key={t.key}
+                  onClick={() => setSelectedTransition(t.key)}
+                  title={t.desc}
+                  style={{
+                    padding: '0.3rem 0.75rem',
+                    borderRadius: '6px',
+                    border: selectedTransition === t.key ? '2px solid #a855f7' : '1px solid rgba(255,255,255,0.15)',
+                    background: selectedTransition === t.key ? 'rgba(168,85,247,0.18)' : 'rgba(255,255,255,0.05)',
+                    color: selectedTransition === t.key ? '#c084fc' : '#9ca3af',
+                    fontSize: '0.8rem',
+                    cursor: 'pointer',
+                    fontWeight: selectedTransition === t.key ? 700 : 400,
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
             {videoState.hasVideo ? (
               <div className="video-player-box" style={{ padding: '0.5rem', background: '#09090b', borderRadius: '12px', maxWidth: '560px', margin: '0 auto' }}>
                 <video
@@ -739,7 +826,7 @@ function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText, onOpenAudio, o
                   Ваш браузер не поддерживает видео-плеер.
                 </video>
 
-                {/* Interaktive Steuerungsleiste (Start/Stopp + Zeitleiste + Dauer + Re-generate) */}
+                {/* Interaktive Steuerungsleiste */}
                 <div style={{
                   marginTop: '0.6rem',
                   padding: '0.75rem 1rem',
@@ -809,6 +896,29 @@ function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText, onOpenAudio, o
                     {generatingVideo ? '⏳ Монтаж 16:9...' : '🎬 Создать видео (MP4 / 16:9)'}
                   </button>
                 </div>
+              </div>
+            )}
+
+            {/* FFmpeg Live-Fortschrittsbalken */}
+            {generatingVideo && (
+              <div style={{ marginTop: '0.75rem', background: '#18181b', borderRadius: '10px', padding: '0.75rem 1rem', border: '1px solid rgba(168,85,247,0.3)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                  <span style={{ fontSize: '0.8rem', color: '#c084fc', fontWeight: 600 }}>📊 FFmpeg – Прогресс монтажа</span>
+                  <span style={{ fontSize: '0.8rem', color: '#a855f7', fontFamily: 'monospace' }}>{videoProgress}%</span>
+                </div>
+                <div style={{ background: '#27272a', borderRadius: '6px', height: '8px', overflow: 'hidden' }}>
+                  <div style={{
+                    height: '100%',
+                    width: `${videoProgress}%`,
+                    background: 'linear-gradient(90deg, #7c3aed, #a855f7, #c084fc)',
+                    borderRadius: '6px',
+                    transition: 'width 0.4s ease',
+                    boxShadow: '0 0 8px rgba(168,85,247,0.6)',
+                  }} />
+                </div>
+                {progressLog && (
+                  <p style={{ margin: '0.4rem 0 0', fontSize: '0.75rem', color: '#6b7280', fontFamily: 'monospace' }}>{progressLog}</p>
+                )}
               </div>
             )}
           </div>
@@ -1129,7 +1239,7 @@ function FeuilletonModal({ feuilleton, onOpenPhotos, onClose }) {
   )
 }
 
-function NewsPhotosModal({ newsTopic, photos, loading, onClose, onSaved }) {
+function NewsPhotosModal({ newsTopic, photos, loading, onClose, onSaved, onReload }) {
   if (!newsTopic) return null
 
   const [items, setItems] = useState([])
@@ -1140,9 +1250,33 @@ function NewsPhotosModal({ newsTopic, photos, loading, onClose, onSaved }) {
     setItems(photos || [])
   }, [photos])
 
-  const handleRemovePhoto = (indexToRemove) => {
+  const handleRemovePhoto = async (indexToRemove) => {
+    const photoToRemove = items[indexToRemove]
+    const imgSrc = typeof photoToRemove === 'string' ? photoToRemove : (photoToRemove?.url || '')
+
+    if (imgSrc && imgSrc.startsWith('/news-static/')) {
+      try {
+        const res = await fetch('/api/delete-photo', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            photoUrl: imgSrc,
+            bundleDir: newsTopic?.bundleDir,
+          }),
+        })
+        const data = await res.json()
+        if (data.success && data.deleted) {
+          toast.success('🗑️ Фото физически удалено с диска!')
+        }
+      } catch (err) {
+        console.error('Fehler beim Löschen des Fotos:', err)
+      }
+    } else {
+      toast.info('Фото удалено из списка')
+    }
+
     setItems(prev => prev.filter((_, idx) => idx !== indexToRemove))
-    toast.info('Фото удалено из списка')
+    if (onSaved) onSaved()
   }
 
   const handleSavePhotosToFolder = async () => {
@@ -1197,7 +1331,16 @@ function NewsPhotosModal({ newsTopic, photos, loading, onClose, onSaved }) {
               {savedCount !== null && <span className="saved-status-badge">🟢 {savedCount} фото в news/photos/</span>}
             </div>
           </div>
-          <div className="modal-header-actions">
+          <div className="modal-header-actions" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <button
+              className="copy-btn"
+              style={{ background: '#06b6d4' }}
+              onClick={onReload}
+              disabled={loading}
+              title="Перенайти и обновить фото из агентств и поисковиков"
+            >
+              {loading ? '⏳ Поиск...' : '🔄 Перенайти 30 фото'}
+            </button>
             {items.length > 0 && (
               <button
                 className="save-bundle-btn"
@@ -1224,36 +1367,77 @@ function NewsPhotosModal({ newsTopic, photos, loading, onClose, onSaved }) {
             </div>
           )}
 
-          {!loading && items.length > 0 && (
-            <div className="multi-source-photos-grid">
-              {items.map((photo, i) => {
-                const imgSrc = typeof photo === 'string' ? photo : (photo?.url || '')
-                const titleText = photo?.articleTitle || photo?.source || `Фото #${i + 1}`
-                const sourceText = photo?.source || (imgSrc.startsWith('/news-static/') ? 'Локальный файл' : 'RSS')
+          {!loading && items.length > 0 && (() => {
+            const articlePhotos = items.filter(p => ['article', 'rss', 'local'].includes(p?.quality) || (typeof p === 'string' ? p : p?.url || '').startsWith('/news-static/'))
+            const searchPhotos  = items.filter(p => p?.quality === 'search' && !(typeof p === 'string' ? p : p?.url || '').startsWith('/news-static/'))
 
-                return (
-                  <div key={i} className="photo-card-item">
-                    <div className="photo-card-img-wrap">
-                      <img
-                        src={imgSrc}
-                        alt={titleText}
-                        loading="lazy"
-                      />
-                      <span className="photo-source-badge">📍 {sourceText}</span>
-                      <button
-                        className="remove-photo-btn"
-                        onClick={() => handleRemovePhoto(i)}
-                        title="Удалить это фото из списка"
-                      >
-                        🗑️ Удалить
-                      </button>
-                    </div>
-                    <p className="photo-card-title">{titleText}</p>
+            const PhotoCard = ({ photo, globalIndex }) => {
+              const imgSrc = typeof photo === 'string' ? photo : (photo?.url || '')
+              const titleText = photo?.articleTitle || photo?.source || `Фото #${globalIndex + 1}`
+              const quality = photo?.quality || (imgSrc.startsWith('/news-static/') ? 'local' : 'search')
+              const qualityBadge = {
+                article: { label: '🏆 Из статьи', color: '#10b981' },
+                rss:     { label: '📡 RSS',        color: '#3b82f6' },
+                local:   { label: '💾 Сохранено',  color: '#6366f1' },
+                search:  { label: '🔍 Поиск',      color: '#f59e0b' },
+              }[quality] || { label: '🔍 Поиск', color: '#f59e0b' }
+
+              return (
+                <div className="photo-card-item">
+                  <div className="photo-card-img-wrap">
+                    <img src={imgSrc} alt={titleText} loading="lazy" />
+                    <span className="photo-source-badge" style={{ background: qualityBadge.color }}>
+                      {qualityBadge.label}
+                    </span>
+                    <button
+                      className="remove-photo-btn"
+                      onClick={() => handleRemovePhoto(globalIndex)}
+                      title="Удалить это фото из списка"
+                    >
+                      🗑️ Удалить
+                    </button>
                   </div>
-                )
-              })}
-            </div>
-          )}
+                  <p className="photo-card-title">{titleText}</p>
+                </div>
+              )
+            }
+
+            return (
+              <>
+                {/* Раздел 1: Гарантированные фото из статьи */}
+                {articlePhotos.length > 0 && (
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', padding: '0.4rem 0.75rem', background: 'rgba(16,185,129,0.12)', borderRadius: '8px', border: '1px solid rgba(16,185,129,0.3)' }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#10b981' }}>🏆 Гарантированные фото из оригинальной статьи ({articlePhotos.length})</span>
+                      <span style={{ fontSize: '0.75rem', color: '#6b7280', marginLeft: 'auto' }}>100% к этой новости</span>
+                    </div>
+                    <div className="multi-source-photos-grid">
+                      {articlePhotos.map((photo, i) => {
+                        const globalIndex = items.indexOf(photo)
+                        return <PhotoCard key={i} photo={photo} globalIndex={globalIndex} />
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Раздел 2: Дополнительные фото из поисковика */}
+                {searchPhotos.length > 0 && (
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', padding: '0.4rem 0.75rem', background: 'rgba(245,158,11,0.1)', borderRadius: '8px', border: '1px solid rgba(245,158,11,0.3)' }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#f59e0b' }}>🔍 Дополнительный материал из поисковика Bing ({searchPhotos.length})</span>
+                      <span style={{ fontSize: '0.75rem', color: '#ef4444', marginLeft: 'auto' }}>⚠️ Релевантность не гарантирована</span>
+                    </div>
+                    <div className="multi-source-photos-grid">
+                      {searchPhotos.map((photo, i) => {
+                        const globalIndex = items.indexOf(photo)
+                        return <PhotoCard key={i} photo={photo} globalIndex={globalIndex} />
+                      })}
+                    </div>
+                  </div>
+                )}
+              </>
+            )
+          })()}
         </div>
 
         <div className="modal-footer">
@@ -1283,18 +1467,29 @@ export default function App() {
   const [newsPhotos, setNewsPhotos] = useState([])
   const [loadingPhotos, setLoadingPhotos] = useState(false)
 
-  const handleFetchNewsPhotos = async (article) => {
+  const handleFetchNewsPhotos = async (article, forceLive = false) => {
+    if (!article) return
     setPhotoTopic(article)
     setLoadingPhotos(true)
     setNewsPhotos([])
+
+    const toastId = forceLive
+      ? toast.loading('🔎 Поиск 30 фото в мировых агентствах...', { description: article.title })
+      : null
+
     try {
-      const res = await fetch(`/api/news-photos?title=${encodeURIComponent(article.title)}&articleId=${encodeURIComponent(article.id || '')}&url=${encodeURIComponent(article.url || '')}&category=${encodeURIComponent(article.category || 'alle')}`)
+      const url = `/api/news-photos?title=${encodeURIComponent(article.title)}&articleId=${encodeURIComponent(article.id || '')}&url=${encodeURIComponent(article.url || '')}&category=${encodeURIComponent(article.category || 'alle')}${forceLive ? '&forceLive=true' : ''}`
+      const res = await fetch(url)
       const data = await res.json()
       if (data.success) {
         setNewsPhotos(data.photos || [])
+        if (toastId) {
+          toast.success(`📸 Найдено ${data.count} фото из агентств!`, { id: toastId })
+        }
       }
     } catch (err) {
-      toast.error('Ошибка поиска фото', { description: err.message })
+      if (toastId) toast.error('Ошибка поиска фото', { id: toastId, description: err.message })
+      else toast.error('Ошибка поиска фото', { description: err.message })
     } finally {
       setLoadingPhotos(false)
     }
@@ -1641,6 +1836,7 @@ export default function App() {
         loading={loadingPhotos}
         onClose={() => setPhotoTopic(null)}
         onSaved={fetchSavedPackages}
+        onReload={() => handleFetchNewsPhotos(photoTopic, true)}
       />
 
       <footer className="app-footer">

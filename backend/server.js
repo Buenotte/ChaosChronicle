@@ -16,6 +16,9 @@ const parser = new Parser({
   headers: { 'User-Agent': 'ChaosChronicle/1.0' }
 });
 
+// ── SSE Job Store für Video-Fortschritt ─────────────────────────────────────
+const videoJobs = new Map(); // jobId -> { clients: Set, progress: number, status: string, log: string }
+
 app.use(cors());
 app.use(express.json());
 
@@ -318,66 +321,93 @@ async function scrapeArticlePhotos(articleUrl, articlePubDate = null) {
   }
 }
 
-// ── Active Live News Photo Search (DuckDuckGo Live Image Search) ──────────────
-async function searchLiveNewsPhotos(queryTitle) {
-  if (!queryTitle) return [];
-
+// ── Active Live News Photo Search (DuckDuckGo & Weltagenturen Suche) ──────────────
+async function fetchDDGPhotos(query) {
   try {
-    const titleClean = cleanText(queryTitle);
-    const stopWords = new Set(['в', 'на', 'и', 'с', 'по', 'за', 'из', 'от', 'для', 'что', 'как', 'это', 'был', 'были', 'после', 'около', 'новые', 'атаки']);
-    const keywords = titleClean
-      .replace(/[^a-zA-Z0-9а-яА-ЯёЁ\s]/g, '')
-      .split(/\s+/)
-      .filter(w => w.length > 3 && !stopWords.has(w))
-      .slice(0, 4)
-      .join(' ');
-
-    if (!keywords) return [];
-
-    // Step 1: Token holen
-    const tokenRes = await fetch(`https://duckduckgo.com/?q=${encodeURIComponent(keywords)}`, {
+    const tokenRes = await fetch(`https://duckduckgo.com/?q=${encodeURIComponent(query)}`, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
       },
       signal: AbortSignal.timeout(4000),
     });
-
     if (!tokenRes.ok) return [];
     const text = await tokenRes.text();
     const vqdMatch = text.match(/vqd=([0-9-]+)/);
     if (!vqdMatch || !vqdMatch[1]) return [];
 
-    // Step 2: Bilder abrufen
-    const imgRes = await fetch(`https://duckduckgo.com/i.js?l=wt-wt&o=json&q=${encodeURIComponent(keywords)}&vqd=${vqdMatch[1]}`, {
+    const imgRes = await fetch(`https://duckduckgo.com/i.js?l=wt-wt&o=json&q=${encodeURIComponent(query)}&vqd=${vqdMatch[1]}`, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
       },
       signal: AbortSignal.timeout(4000),
     });
-
     if (!imgRes.ok) return [];
     const data = await imgRes.json();
-    const results = data.results || [];
+    return data.results || [];
+  } catch {
+    return [];
+  }
+}
+
+async function searchLiveNewsPhotos(queryTitle) {
+  if (!queryTitle) return [];
+
+  try {
+    const titleClean = cleanText(queryTitle);
+    const stopWords = new Set(['в', 'на', 'и', 'с', 'по', 'за', 'из', 'от', 'для', 'что', 'как', 'это', 'был', 'были', 'над', 'под', 'об', 'или', 'но', 'после', 'около']);
+    const rawWords = titleClean
+      .replace(/[^a-zA-Z0-9а-яА-ЯёЁ\s]/g, '')
+      .split(/\s+/)
+      .filter(w => w.length > 2 && !stopWords.has(w.toLowerCase()));
+
+    const keyNouns = rawWords.slice(0, 4);
+    const primarySubject = keyNouns[0] ? keyNouns[0].toLowerCase().slice(0, 5) : ''; // z.B. "башко"
+    const keywords = keyNouns.join(' ');
+
+    if (!keywords) return [];
+
+    const [mainResults, agencyResults] = await Promise.all([
+      fetchDDGPhotos(`"${keywords}"`),
+      fetchDDGPhotos(`${keywords} фото репортаж`),
+    ]);
+
+    const combined = [...mainResults, ...agencyResults];
     const photos = [];
     const seen = new Set();
 
-    results.forEach(item => {
+    // Wörterbuch für unerwünschte Infografiken, Schul-Instruktionen, Vektoren
+    const junkWords = ['инструкция', 'памятка', 'обучающих', 'учащих', 'школ', 'урок', 'плакат', 'схема', 'вектор', 'vector', 'stock', 'drawing', 'illustration', 'логотип', 'правила', 'методичка'];
+    const lowerKeyNouns = keyNouns.map(w => w.toLowerCase());
+
+    combined.forEach(item => {
       const imgUrl = item.image;
-      if (imgUrl && /^https?:\/\//i.test(imgUrl) && /\.(jpg|jpeg|png|webp)/i.test(imgUrl)) {
-        // Altes Archivmaterial vor 2026 filtern (z. B. /2021/, /2022/, /2023/, /2024/, /2025/)
-        if (!/\/(201\d|202[0-5])\//.test(imgUrl) && !seen.has(imgUrl)) {
-          seen.add(imgUrl);
-          photos.push({
-            url: imgUrl,
-            source: item.source || item.provider || 'Пресса (Поиск по новости)',
-            articleTitle: item.title || queryTitle,
-            isExactArticle: false,
-          });
-        }
+      if (!imgUrl || !/^https?:\/\//i.test(imgUrl) || !/\.(jpg|jpeg|png|webp)/i.test(imgUrl)) return;
+      if (seen.has(imgUrl) || imgUrl.includes('pixel') || imgUrl.includes('tracker') || imgUrl.includes('logo')) return;
+
+      const itemTitleLower = (item.title || '').toLowerCase();
+      const imgUrlLower = imgUrl.toLowerCase();
+
+      // 1. Ausschluss von Schul-Instruktionen, Infografiken, Vektoren
+      const isJunk = junkWords.some(j => itemTitleLower.includes(j) || imgUrlLower.includes(j));
+      if (isJunk) return;
+
+      // 2. Erforderlicher Relevanz-Match (Hauptthema ODER mind. 2 Schlagwörter)
+      const matchesCount = lowerKeyNouns.filter(noun => itemTitleLower.includes(noun) || imgUrlLower.includes(noun)).length;
+      const matchesPrimary = primarySubject && (itemTitleLower.includes(primarySubject) || imgUrlLower.includes(primarySubject));
+
+      if (matchesPrimary || matchesCount >= 2) {
+        seen.add(imgUrl);
+        const provider = item.provider || item.source || 'Пресс-служба / Информагентство';
+        photos.push({
+          url: imgUrl,
+          source: provider,
+          articleTitle: item.title || queryTitle,
+          isExactArticle: false,
+        });
       }
     });
 
-    return photos;
+    return photos.slice(0, 35);
   } catch (err) {
     console.error('Live photo search error:', err.message);
     return [];
@@ -403,10 +433,12 @@ app.get('/news-static/*', (req, res) => {
 // GET /api/news-photos?title=...&url=...
 app.get('/api/news-photos', async (req, res) => {
   try {
-    const { title = '', articleId = '', url = '', category = 'alle' } = req.query;
-    // 0. Prüfe, ob für diese Nachricht bereits ein Paket in news/ existiert und echte Fotos enthält!
+    const { title = '', articleId = '', url = '', category = 'alle', forceLive = 'false' } = req.query;
+    const isForceLive = forceLive === 'true' || forceLive === '1';
+
+    // 0. Prüfe, ob für diese Nachricht bereits ein Paket in news/ existiert (außer bei forceLive)
     const newsDir = path.resolve(__dirname, '../news');
-    if (fs.existsSync(newsDir) && title) {
+    if (!isForceLive && fs.existsSync(newsDir) && title) {
       const safeTitlePart = title.replace(/[^a-zA-Z0-9а-яА-ЯёЁ]/g, '_').slice(0, 20);
       const dirs = fs.readdirSync(newsDir, { withFileTypes: true });
       for (const d of dirs) {
@@ -415,12 +447,13 @@ app.get('/api/news-photos', async (req, res) => {
           if (fs.existsSync(existingPhotosDir)) {
             const existingFiles = fs.readdirSync(existingPhotosDir).filter(f => /\.(jpg|jpeg|png|webp)/i.test(f));
             if (existingFiles.length > 0) {
-              console.log(`⚡ Nutze ${existingFiles.length} bereits gespeicherte Fotos aus news/${d.name}/photos/ (kein Internet-Download nötig)`);
+              console.log(`⚡ Nutze ${existingFiles.length} bereits gespeicherte Fotos aus news/${d.name}/photos/`);
               const localPhotos = existingFiles.map((f) => ({
                 url: `/news-static/${d.name}/photos/${f}`,
-                source: `Локальный файл: news/${d.name}/photos/${f}`,
+                source: `Сохранено: ${d.name}/photos/${f}`,
                 articleTitle: title,
                 isSavedLocal: true,
+                quality: 'local',
               }));
               return res.json({
                 success: true,
@@ -447,7 +480,7 @@ app.get('/api/news-photos', async (req, res) => {
 
     const targetUrl = url || exactArticle?.url;
 
-    // 1. Web-Scrape die Original-Webseite dieser Nachricht
+    // 1. Web-Scrape die Original-Webseite dieser Nachricht → quality='article'
     if (targetUrl) {
       const scrapedImages = await scrapeArticlePhotos(targetUrl, exactArticle?.pubDate);
       scrapedImages.forEach(imgUrl => {
@@ -458,12 +491,13 @@ app.get('/api/news-photos', async (req, res) => {
             source: exactArticle?.source || new URL(targetUrl).hostname.replace('www.', ''),
             articleTitle: exactArticle?.title || title,
             isExactArticle: true,
+            quality: 'article',
           });
         }
       });
     }
 
-    // 2. Ergänze RSS-Bilder des Artikels
+    // 2. Ergänze RSS-Bilder des Artikels → quality='rss'
     if (exactArticle && exactArticle.images) {
       exactArticle.images.forEach(imgUrl => {
         if (!seen.has(imgUrl)) {
@@ -473,23 +507,24 @@ app.get('/api/news-photos', async (req, res) => {
             source: exactArticle.source,
             articleTitle: exactArticle.title,
             isExactArticle: true,
+            quality: 'rss',
           });
         }
       });
     }
 
-    // 3. AKTIVE LIVE-SUCHE: Falls wenige Bilder da sind, starte Live-Suche exakt nach den Hauptbegriffen dieser Nachricht!
-    if (photos.length < 10 && title) {
+    // 3. AKTIVE LIVE-SUCHE: Bei forceLive oder wenn weniger als 30 Bilder → quality='search'
+    if ((isForceLive || photos.length < 30) && title) {
       const livePhotos = await searchLiveNewsPhotos(title);
       livePhotos.forEach(p => {
-        if (photos.length < 20 && !seen.has(p.url)) {
+        if (photos.length < 35 && !seen.has(p.url)) {
           seen.add(p.url);
-          photos.push(p);
+          photos.push({ ...p, quality: 'search' });
         }
       });
     }
 
-    const resultPhotos = photos.slice(0, 20);
+    const resultPhotos = photos.slice(0, 30);
     res.json({
       success: true,
       count: resultPhotos.length,
@@ -608,7 +643,7 @@ app.post('/api/generate-feuilleton', async (req, res) => {
 
     // 3. Echte Nachrichten-Fotos als Bilddateien im Unterordner photos/ speichern
     const savedPhotos = [];
-    for (let i = 0; i < Math.min(imagesList.length, 20); i++) {
+    for (let i = 0; i < Math.min(imagesList.length, 30); i++) {
       const imgUrl = imagesList[i];
       try {
         const imgRes = await fetch(imgUrl, { signal: AbortSignal.timeout(5000) });
@@ -718,7 +753,7 @@ app.post('/api/save-news-package', async (req, res) => {
 
     // 4. Echte Fotos herunterladen und in photos/ speichern
     const savedPhotos = [];
-    for (let i = 0; i < Math.min(imagesList.length, 20); i++) {
+    for (let i = 0; i < Math.min(imagesList.length, 30); i++) {
       const imgUrl = typeof imagesList[i] === 'string' ? imagesList[i] : imagesList[i]?.url;
       if (!imgUrl) continue;
 
@@ -940,6 +975,49 @@ app.post('/api/save-news-photos', async (req, res) => {
   }
 });
 
+// POST /api/delete-photo - Löscht ein bestimmtes Foto aus news/<folderName>/photos/ physikalisch von der Festplatte!
+app.post('/api/delete-photo', async (req, res) => {
+  try {
+    const { photoUrl, bundleDir } = req.body;
+    let targetFile = null;
+
+    const newsDir = path.resolve(__dirname, '../news');
+
+    if (photoUrl && photoUrl.startsWith('/news-static/')) {
+      const subPath = photoUrl.replace('/news-static/', '');
+      targetFile = path.join(newsDir, decodeURIComponent(subPath));
+    } else if (bundleDir && photoUrl) {
+      const fileName = path.basename(photoUrl);
+      targetFile = path.join(bundleDir, 'photos', fileName);
+    }
+
+    if (targetFile && fs.existsSync(targetFile)) {
+      fs.unlinkSync(targetFile);
+      console.log(`🗑️ Foto physikalisch von Festplatte gelöscht: ${targetFile}`);
+
+      // Manifest project.json aktualisieren
+      const photoDir = path.dirname(targetFile);
+      const pkgDir = path.dirname(photoDir);
+      const jsonPath = path.join(pkgDir, 'project.json');
+      if (fs.existsSync(jsonPath)) {
+        try {
+          const manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+          const relName = `photos/${path.basename(targetFile)}`;
+          manifest.photos = (manifest.photos || []).filter(p => p !== relName);
+          fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
+        } catch {}
+      }
+
+      return res.json({ success: true, deleted: true, targetFile });
+    }
+
+    res.json({ success: true, deleted: false, message: 'Datei war nicht auf Festplatte gespeichert' });
+  } catch (err) {
+    console.error('Delete photo error:', err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // POST /api/save-script-text - Speichert den bearbeiteten Sprecher-Text in script.txt im Paket-Ordner!
 app.post('/api/save-script-text', async (req, res) => {
   try {
@@ -985,10 +1063,18 @@ app.post('/api/save-script-text', async (req, res) => {
   }
 });
 
-// POST /api/generate-audio - Erzeugt audio.mp3 mit Stimme Nikolay (ru-RU-DmitryNeural, Rate 0%, Pitch -10%) im Nachricht-Ordner!
+// ── Verfügbare Edge-TTS Stimmen (Russisch) ──────────────────────────────────
+const TTS_VOICES = {
+  nikolay:  { voice: 'ru-RU-DmitryNeural',   label: 'Nikolay',  rate: '+0%',  pitch: '-10Hz' },
+  dmitry:   { voice: 'ru-RU-DmitryNeural',   label: 'Dmitry',   rate: '+8%',  pitch: '+0Hz'  },
+  svetlana: { voice: 'ru-RU-SvetlanaNeural', label: 'Svetlana', rate: '+0%',  pitch: '+0Hz'  },
+  darya:    { voice: 'ru-RU-DaryaNeural',    label: 'Darya',    rate: '-5%',  pitch: '-5Hz'  },
+};
+
+// POST /api/generate-audio - Erzeugt audio.mp3 mit wählbarer Edge-TTS Stimme im Nachricht-Ordner!
 app.post('/api/generate-audio', async (req, res) => {
   try {
-    const { bundleDir, text = '' } = req.body;
+    const { bundleDir, text = '', voiceKey = 'nikolay' } = req.body;
 
     if (!bundleDir || !fs.existsSync(bundleDir)) {
       return res.status(400).json({ success: false, error: 'Папка проекта не найдена' });
@@ -1010,9 +1096,9 @@ app.post('/api/generate-audio', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Файл с текстом script.txt не найден' });
     }
 
-    // Выполнение edge-tts с голосом Nikolay (ru-RU-DmitryNeural), rate=+0%, pitch=-10Hz
+    const voiceCfg = TTS_VOICES[voiceKey] || TTS_VOICES.nikolay;
     const { exec } = await import('child_process');
-    const cmd = `edge-tts --file "${txtPath}" --voice ru-RU-DmitryNeural --rate=+0% --pitch=-10Hz --write-media "${audioPath}"`;
+    const cmd = `edge-tts --file "${txtPath}" --voice ${voiceCfg.voice} --rate=${voiceCfg.rate} --pitch=${voiceCfg.pitch} --write-media "${audioPath}"`;
 
     exec(cmd, (error, stdout, stderr) => {
       if (error) {
@@ -1027,19 +1113,21 @@ app.post('/api/generate-audio', async (req, res) => {
           const manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
           manifest.hasAudio = true;
           manifest.audio_generated_at = new Date().toISOString();
+          manifest.voice = voiceCfg.label;
           fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
         } catch {}
       }
 
-      console.log(`🎙️ Аудио-файл сохранен: ${audioPath}`);
+      console.log(`🎙️ Аудио-файл сохранен: ${audioPath} (${voiceCfg.label})`);
       res.json({
         success: true,
         audioPath,
         audioFileName: 'audio.mp3',
         folderName: path.basename(bundleDir),
-        voice: 'Nikolay (ru-RU-DmitryNeural)',
-        rate: '0%',
-        pitch: '-10%',
+        voice: `${voiceCfg.label} (${voiceCfg.voice})`,
+        voiceKey,
+        rate: voiceCfg.rate,
+        pitch: voiceCfg.pitch,
       });
     });
   } catch (err) {
@@ -1048,10 +1136,45 @@ app.post('/api/generate-audio', async (req, res) => {
   }
 });
 
+// GET /api/voices - Gibt alle verfügbaren TTS-Stimmen zurück
+app.get('/api/voices', (req, res) => {
+  res.json({ voices: Object.entries(TTS_VOICES).map(([key, cfg]) => ({ key, label: cfg.label, voice: cfg.voice })) });
+});
+
+// GET /api/video-progress/:jobId - SSE-Stream für Echtzeit FFmpeg-Fortschritt
+app.get('/api/video-progress/:jobId', (req, res) => {
+  const { jobId } = req.params;
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.flushHeaders();
+
+  const sendEvent = (data) => res.write(`data: ${JSON.stringify(data)}\n\n`);
+
+  // Job sofort anlegen falls noch nicht vorhanden
+  if (!videoJobs.has(jobId)) {
+    videoJobs.set(jobId, { clients: new Set(), progress: 0, status: 'waiting', log: '' });
+  }
+  const job = videoJobs.get(jobId);
+  job.clients.add(sendEvent);
+
+  // Aktuellen Stand sofort senden
+  sendEvent({ progress: job.progress, status: job.status, log: job.log });
+
+  req.on('close', () => {
+    job.clients.delete(sendEvent);
+    if (job.clients.size === 0 && job.status === 'done') {
+      videoJobs.delete(jobId);
+    }
+  });
+});
+
 // POST /api/generate-video - Erzeugt video.mp4 (Preset ultrafast) aus photos/ und audio.mp3 im Nachricht-Ordner!
+// Unterstützt: transition=concat|xfade, jobId für SSE-Fortschritt
 app.post('/api/generate-video', async (req, res) => {
   try {
-    const { bundleDir: inputBundleDir, folderName } = req.body;
+    const { bundleDir: inputBundleDir, folderName, transition = 'concat', jobId } = req.body;
 
     const newsDir = path.resolve(__dirname, '../news');
     let bundleDir = inputBundleDir;
@@ -1086,39 +1209,138 @@ app.post('/api/generate-video', async (req, res) => {
       return res.status(400).json({ success: false, error: 'В папке photos/ нет фотографий!' });
     }
 
+    // Helper: SSE-Fortschritt an alle verbundenen Clients senden
+    const broadcastProgress = (progress, status, log = '') => {
+      if (!jobId) return;
+      if (!videoJobs.has(jobId)) {
+        videoJobs.set(jobId, { clients: new Set(), progress: 0, status: 'waiting', log: '' });
+      }
+      const job = videoJobs.get(jobId);
+      job.progress = progress;
+      job.status = status;
+      job.log = log;
+      for (const client of job.clients) {
+        try { client({ progress, status, log }); } catch {}
+      }
+    };
+
+    broadcastProgress(5, 'probing', 'Определение длительности аудио...');
+
     // 1. Audio-Dauer ermitteln (ffprobe)
-    const { exec } = await import('child_process');
+    const { exec, spawn } = await import('child_process');
     const probeCmd = `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${audioPath}"`;
 
     exec(probeCmd, async (probeErr, stdout) => {
-      let duration = parseFloat(stdout.trim());
-      if (isNaN(duration) || duration <= 0) {
-        duration = 180; // Fallback
+      let audioDuration = parseFloat(stdout.trim());
+      if (isNaN(audioDuration) || audioDuration <= 0) {
+        audioDuration = 180; // Fallback
       }
 
-      const photoDuration = duration / photoFiles.length;
+      broadcastProgress(10, 'building', 'Подготовка фотографий для монтажа...');
 
-      // 2. Concat-Datei concat.txt erstellen
-      const concatPath = path.join(bundleDir, 'concat.txt');
-      let concatContent = '';
-      for (let i = 0; i < photoFiles.length; i++) {
-        const photoPath = path.join(photosDir, photoFiles[i]).replace(/\\/g, '/');
-        concatContent += `file '${photoPath}'\nduration ${photoDuration.toFixed(3)}\n`;
-      }
-      const lastPhoto = path.join(photosDir, photoFiles[photoFiles.length - 1]).replace(/\\/g, '/');
-      concatContent += `file '${lastPhoto}'\n`;
+      const FADE_DURATION = 0.8; // xfade overlap in seconds
+      let ffmpegArgs = [];
+      const blurFilter = 'split[bg][fg];[bg]scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,gblur=sigma=35[blurred];[fg]scale=1920:1080:force_original_aspect_ratio=decrease[sharp];[blurred][sharp]overlay=(W-w)/2:(H-h)/2,setsar=1,format=yuv420p';
 
-      fs.writeFileSync(concatPath, concatContent, 'utf-8');
+      if (transition === 'xfade' && photoFiles.length > 1) {
+        // ── xfade Überblendungsmodus ─────────────────────────────────────────
+        // Jedes Foto als separaten Input, dann xfade chain
+        const photoDuration = audioDuration / photoFiles.length;
+        const effectiveDuration = photoDuration - FADE_DURATION;
 
-      // 3. FFmpeg Befehl ausführen (16:9 Full HD mit edlem unscharfem Blur-Hintergrund für vertikale/hochkant Fotos)
-      const filterGraph = 'split[bg][fg];[bg]scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,gblur=sigma=35[blurred];[fg]scale=1920:1080:force_original_aspect_ratio=decrease[sharp];[blurred][sharp]overlay=(W-w)/2:(H-h)/2,setsar=1,format=yuv420p';
-      const ffmpegCmd = `ffmpeg -y -f concat -safe 0 -i "${concatPath}" -i "${audioPath}" -filter_complex "${filterGraph}" -c:v libx264 -preset ultrafast -c:a copy -shortest "${videoPath}"`;
-
-      exec(ffmpegCmd, (ffmpegErr, ffOut, ffErr) => {
-        if (ffmpegErr) {
-          console.error('FFmpeg video generation error:', ffmpegErr.message, ffErr);
-          return res.status(500).json({ success: false, error: `Ошибка создания видео: ${ffmpegErr.message}` });
+        // Inputs
+        for (const f of photoFiles) {
+          const fp = path.join(photosDir, f);
+          ffmpegArgs.push('-loop', '1', '-t', String(photoDuration.toFixed(3)), '-i', fp);
         }
+        ffmpegArgs.push('-i', audioPath);
+
+        // Blur-Filter pro Input
+        let filterParts = [];
+        for (let i = 0; i < photoFiles.length; i++) {
+          filterParts.push(`[${i}:v]${blurFilter}[v${i}]`);
+        }
+
+        // xfade chain
+        let xfadeChain = '';
+        let prevLabel = 'v0';
+        for (let i = 1; i < photoFiles.length; i++) {
+          const offset = (effectiveDuration * i).toFixed(3);
+          const outLabel = i < photoFiles.length - 1 ? `xf${i}` : 'vout';
+          xfadeChain += `[${prevLabel}][v${i}]xfade=transition=fade:duration=${FADE_DURATION}:offset=${offset}[${outLabel}];`;
+          prevLabel = outLabel;
+        }
+        // Remove trailing semicolon
+        xfadeChain = xfadeChain.replace(/;$/, '');
+
+        const fullFilter = filterParts.join(';') + ';' + xfadeChain;
+        const audioInputIndex = photoFiles.length;
+
+        ffmpegArgs = [
+          ...ffmpegArgs,
+          '-filter_complex', fullFilter,
+          '-map', '[vout]',
+          '-map', `${audioInputIndex}:a`,
+          '-c:v', 'libx264', '-preset', 'ultrafast',
+          '-c:a', 'copy',
+          '-shortest',
+          '-y', videoPath,
+        ];
+      } else {
+        // ── Standard Concat-Modus ─────────────────────────────────────────────
+        const photoDuration = audioDuration / photoFiles.length;
+        const concatPath = path.join(bundleDir, 'concat.txt');
+        let concatContent = '';
+        for (const f of photoFiles) {
+          const fp = path.join(photosDir, f).replace(/\\/g, '/');
+          concatContent += `file '${fp}'\nduration ${photoDuration.toFixed(3)}\n`;
+        }
+        const lastPhoto = path.join(photosDir, photoFiles[photoFiles.length - 1]).replace(/\\/g, '/');
+        concatContent += `file '${lastPhoto}'\n`;
+        fs.writeFileSync(concatPath, concatContent, 'utf-8');
+
+        ffmpegArgs = [
+          '-y',
+          '-f', 'concat', '-safe', '0', '-i', concatPath,
+          '-i', audioPath,
+          '-filter_complex', blurFilter,
+          '-c:v', 'libx264', '-preset', 'ultrafast',
+          '-c:a', 'copy',
+          '-shortest',
+          videoPath,
+        ];
+      }
+
+      broadcastProgress(15, 'encoding', 'Начало кодирования видео FFmpeg...');
+
+      // 3. FFmpeg als spawn ausführen (für Progress-Parsing)
+      const ffmpegProcess = spawn('ffmpeg', ffmpegArgs);
+      let ffmpegStderr = '';
+
+      ffmpegProcess.stderr.on('data', (data) => {
+        const chunk = data.toString();
+        ffmpegStderr += chunk;
+
+        // Zeitfortschritt aus stderr parsen: time=HH:MM:SS.xx
+        const timeMatch = chunk.match(/time=(\d+):(\d+):([\d.]+)/);
+        if (timeMatch) {
+          const h = parseInt(timeMatch[1]);
+          const m = parseInt(timeMatch[2]);
+          const s = parseFloat(timeMatch[3]);
+          const encodedSecs = h * 3600 + m * 60 + s;
+          const pct = Math.min(95, 15 + Math.round((encodedSecs / audioDuration) * 80));
+          broadcastProgress(pct, 'encoding', `Кодирование: ${timeMatch[0].replace('time=', '')} / ${Math.floor(audioDuration)}s`);
+        }
+      });
+
+      ffmpegProcess.on('close', (code) => {
+        if (code !== 0) {
+          broadcastProgress(0, 'error', `FFmpeg завершился с ошибкой (код ${code})`);
+          console.error('FFmpeg error:', ffmpegStderr.slice(-800));
+          return res.status(500).json({ success: false, error: `Ошибка создания видео: FFmpeg код ${code}` });
+        }
+
+        broadcastProgress(100, 'done', 'Видео успешно смонтировано!');
 
         // Manifest project.json aktualisieren
         const jsonPath = path.join(bundleDir, 'project.json');
@@ -1127,20 +1349,22 @@ app.post('/api/generate-video', async (req, res) => {
             const manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
             manifest.hasVideo = true;
             manifest.video_generated_at = new Date().toISOString();
+            manifest.transition = transition;
             fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
           } catch {}
         }
 
         const resFolderName = path.basename(bundleDir);
-        console.log(`🎬 video.mp4 erfolgreich in news/${resFolderName}/video.mp4 generiert (Ultrafast).`);
+        console.log(`🎬 video.mp4 erfolgreich generiert: news/${resFolderName}/video/${videoFileName} (${transition})`);
 
         res.json({
           success: true,
           videoPath,
           videoFileName: `video/${videoFileName}`,
           folderName: resFolderName,
-          duration,
+          duration: audioDuration,
           photosCount: photoFiles.length,
+          transition,
         });
       });
     });
