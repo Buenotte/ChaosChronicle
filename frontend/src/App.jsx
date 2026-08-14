@@ -186,10 +186,12 @@ export default function App() {
         throw new Error(data.error || `HTTP ${res.status}`)
       }
 
-      setCurrentFeuilleton(data.feuilleton)
+      const fData = data.feuilleton || data
+      setCurrentFeuilleton(fData)
+      fetchSavedPackages()
       toast.success('Фельетон успешно создан!', {
         id: toastId,
-        description: `Слов: ${data.feuilleton.words} | Чтение: ~${data.feuilleton.readTimeMin} мин.`,
+        description: `Слов: ${fData.words || ''} | Чтение: ~${fData.readTimeMin || fData.minutes || 3} мин.`,
       })
     } catch (err) {
       toast.error('Ошибка генерации фельетона', {

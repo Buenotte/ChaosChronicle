@@ -124,6 +124,10 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
   }
 
   const handleGenerateAudio = async () => {
+    if (!hasTxt && !pkg.scriptTxt?.trim() && !pkg.scriptMd?.trim()) {
+      toast.error('❌ Текст сценария отсутствует. Сначала создайте текст в разделе «1. Заголовок и сценарий»!')
+      return
+    }
     try {
       setGeneratingAudio(true)
       const toastId = toast.loading('🎙️ Генерация аудио-озвучки...')

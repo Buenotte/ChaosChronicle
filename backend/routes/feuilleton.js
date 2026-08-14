@@ -176,8 +176,8 @@ router.post('/api/generate-feuilleton', async (req, res) => {
       }
     }
 
+    const now = new Date();
     if (!bundleDir) {
-      const now = new Date();
       const dateStr = now.toISOString().replace(/[:.]/g, '-').slice(0, 16);
       const safeTitle = (title || 'Feuilleton')
         .replace(/[^a-zA-Z0-9а-яА-ЯёЁ]/g, '_')
@@ -237,14 +237,27 @@ router.post('/api/generate-feuilleton', async (req, res) => {
     const jsonPath = path.join(bundleDir, 'project.json');
     fs.writeFileSync(jsonPath, JSON.stringify(projectManifest, null, 2), 'utf-8');
 
-    res.json({
-      success: true,
+    const folderName = path.basename(bundleDir);
+    const feuilletonObj = {
       title: punchyTitle || title,
       originalTitle: title,
       text,
       model: modelId,
+      modelName: model,
       words,
       minutes,
+      readTimeMin: minutes,
+      source,
+      imageUrl: req.body.imageUrl,
+      images: req.body.images || [],
+      folderName,
+      bundleDir,
+    };
+
+    res.json({
+      success: true,
+      feuilleton: feuilletonObj,
+      ...feuilletonObj,
     });
   } catch (err) {
     console.error('Feuilleton error:', err.message);

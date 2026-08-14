@@ -11,6 +11,18 @@ export async function saveNewsPhotos({ title = 'News', bundleDir: inputBundleDir
   if (!bundleDir && folderName) {
     bundleDir = path.join(newsDir, folderName);
   }
+  if (!bundleDir && title) {
+    const safeTitlePart = title.replace(/[^a-zA-Z0-9а-яА-ЯёЁ]/g, '_').slice(0, 20);
+    if (safeTitlePart.length >= 6 && fs.existsSync(newsDir)) {
+      const dirs = fs.readdirSync(newsDir, { withFileTypes: true });
+      for (const d of dirs) {
+        if (d.isDirectory() && d.name.includes(safeTitlePart)) {
+          bundleDir = path.join(newsDir, d.name);
+          break;
+        }
+      }
+    }
+  }
   if (!bundleDir) {
     const now = new Date();
     const dateStr = now.toISOString().replace(/[:.]/g, '-').slice(0, 16);
@@ -23,27 +35,27 @@ export async function saveNewsPhotos({ title = 'News', bundleDir: inputBundleDir
     fs.mkdirSync(photosDir, { recursive: true });
   }
 
-  const existingInDir = fs.readdirSync(photosDir);
-  existingInDir.forEach(f => {
-    try { fs.unlinkSync(path.join(photosDir, f)); } catch {}
-  });
-
+  const activeFilenames = new Set();
   const savedPhotos = [];
+
   for (let i = 0; i < photos.length; i++) {
     const imgUrl = typeof photos[i] === 'string' ? photos[i] : photos[i]?.url;
     if (!imgUrl) continue;
 
+    const ext = imgUrl.match(/\.(jpg|jpeg|png|webp)/i)?.[1] || 'jpg';
+    const targetFilename = `photo_${String(i + 1).padStart(2, '0')}.${ext}`;
+    const targetPath = path.join(photosDir, targetFilename);
+
     if (imgUrl.startsWith('/news-static/')) {
-      const relativePath = imgUrl.replace(/^\/news-static\//, '');
+      const relativePath = decodeURIComponent(imgUrl.replace(/^\/news-static\//, ''));
       const fullLocalPath = path.resolve(newsDir, relativePath);
       if (fs.existsSync(fullLocalPath)) {
-        const ext = imgUrl.match(/\.(jpg|jpeg|png|webp)/i)?.[1] || 'jpg';
-        const imgFileName = `photo_${String(i + 1).padStart(2, '0')}.${ext}`;
-        const targetPath = path.join(photosDir, imgFileName);
-        if (fullLocalPath !== targetPath && fs.existsSync(fullLocalPath)) {
-          fs.copyFileSync(fullLocalPath, targetPath);
+        if (fullLocalPath !== targetPath) {
+          const buf = fs.readFileSync(fullLocalPath);
+          fs.writeFileSync(targetPath, buf);
         }
-        savedPhotos.push(`photos/${imgFileName}`);
+        activeFilenames.add(targetFilename);
+        savedPhotos.push(`photos/${targetFilename}`);
         continue;
       }
     }
@@ -58,16 +70,24 @@ export async function saveNewsPhotos({ title = 'News', bundleDir: inputBundleDir
 
       if (imgRes.ok) {
         const buffer = Buffer.from(await imgRes.arrayBuffer());
-        const ext = imgUrl.match(/\.(jpg|jpeg|png|webp)/i)?.[1] || 'jpg';
-        const imgFileName = `photo_${String(i + 1).padStart(2, '0')}.${ext}`;
-        const imgPath = path.join(photosDir, imgFileName);
-        fs.writeFileSync(imgPath, buffer);
-        savedPhotos.push(`photos/${imgFileName}`);
+        fs.writeFileSync(targetPath, buffer);
+        activeFilenames.add(targetFilename);
+        savedPhotos.push(`photos/${targetFilename}`);
       }
     } catch (err) {
       console.error(`Fehler beim Download von Bild ${imgUrl}:`, err.message);
     }
   }
+
+  // Lösche nur Dateien, die nicht mehr in der Auswahl sind
+  try {
+    const allFiles = fs.readdirSync(photosDir);
+    for (const file of allFiles) {
+      if (!activeFilenames.has(file)) {
+        try { fs.unlinkSync(path.join(photosDir, file)); } catch {}
+      }
+    }
+  } catch {}
 
   const jsonPath = path.join(bundleDir, 'project.json');
   let manifest = {};
@@ -93,31 +113,34 @@ export async function saveNewsPhotos({ title = 'News', bundleDir: inputBundleDir
   };
 }
 
-export function deleteNewsPhoto({ photoUrl, bundleDir }) {
+export function deleteNewsPhoto({ photoUrl, bundleDir, folderName }) {
   let targetFile = null;
 
   if (photoUrl && photoUrl.startsWith('/news-static/')) {
     const subPath = photoUrl.replace('/news-static/', '');
     targetFile = path.join(newsDir, decodeURIComponent(subPath));
-  } else if (bundleDir && photoUrl) {
+  } else if ((bundleDir || folderName) && photoUrl) {
+    const dir = bundleDir || path.join(newsDir, folderName);
     const fileName = path.basename(photoUrl);
-    targetFile = path.join(bundleDir, 'photos', fileName);
+    targetFile = path.join(dir, 'photos', fileName);
   }
 
   if (targetFile && fs.existsSync(targetFile)) {
-    fs.unlinkSync(targetFile);
-    const photoDir = path.dirname(targetFile);
-    const pkgDir = path.dirname(photoDir);
-    const jsonPath = path.join(pkgDir, 'project.json');
-    if (fs.existsSync(jsonPath)) {
-      try {
+    try {
+      fs.unlinkSync(targetFile);
+      const photoDir = path.dirname(targetFile);
+      const pkgDir = path.dirname(photoDir);
+      const jsonPath = path.join(pkgDir, 'project.json');
+      if (fs.existsSync(jsonPath)) {
         const manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
         const relName = `photos/${path.basename(targetFile)}`;
-        manifest.photos = (manifest.photos || []).filter(p => p !== relName);
+        manifest.photos = (manifest.photos || []).filter(p => p !== relName && p !== path.basename(targetFile));
         fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
-      } catch {}
+      }
+      return { success: true, deleted: true, targetFile };
+    } catch (err) {
+      return { success: false, error: err.message };
     }
-    return { success: true, deleted: true, targetFile };
   }
 
   return { success: true, deleted: false, message: 'Datei war nicht auf Festplatte' };

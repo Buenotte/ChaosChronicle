@@ -39,7 +39,8 @@ export default function NewsPhotosModal({ newsTopic, photos, loading, onClose, o
     }
   }
 
-  const handleRemovePhoto = async (indexToRemove) => {
+  const handleRemovePhoto = async (e, indexToRemove) => {
+    if (e && e.stopPropagation) e.stopPropagation()
     const photoToRemove = items[indexToRemove]
     const imgSrc = typeof photoToRemove === 'string' ? photoToRemove : (photoToRemove?.url || '')
 
@@ -51,11 +52,12 @@ export default function NewsPhotosModal({ newsTopic, photos, loading, onClose, o
           body: JSON.stringify({
             photoUrl: imgSrc,
             bundleDir: newsTopic?.bundleDir,
+            folderName: newsTopic?.folderName,
           }),
         })
         const data = await res.json()
         if (data.success && data.deleted) {
-          toast.success('🗑️ Фото физически удалено с диска!')
+          toast.success('🗑️ Фото удалено с диска!')
         }
       } catch (err) {
         console.error('Fehler beim Löschen des Fotos:', err)
@@ -172,7 +174,7 @@ export default function NewsPhotosModal({ newsTopic, photos, loading, onClose, o
                       </span>
                       <button
                         className="remove-photo-btn"
-                        onClick={() => handleRemovePhoto(i)}
+                        onClick={(e) => handleRemovePhoto(e, i)}
                         title="Удалить это фото из списка"
                       >
                         🗑️ Удалить

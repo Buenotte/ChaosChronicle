@@ -1,95 +1,1277 @@
 {
-  "lastFetch": 1786690625586,
+  "lastFetch": 1786718078895,
   "articles": [
     {
-      "id": "BBC Русская служба-2-1786690617002",
-      "title": "Война в Украине: в Сумской области двое погибших, включая ребенка; в Ленинградской области снова атакован порт Усть-Луга",
+      "id": "BBC Русская служба-1-1786718069476",
+      "title": "Война в Украине: ВСУ заявили об ударе по комплексу «Новатэка» в Усть-Луге, под Тверью обломки БПЛА упали на склад Wildberries",
       "summary": "Последние новости, комментарии и видео о войне России против Украины.",
       "url": "https://www.bbc.co.uk/russian/live/cp8x50y7gn0t?at_medium=RSS&at_campaign=rss",
       "imageUrl": null,
       "images": [],
       "source": "BBC Русская служба",
       "category": "politika",
-      "pubDate": "2026-08-14T06:56:57.002Z",
+      "pubDate": "2026-08-14T14:34:29.476Z",
       "relativeTime": ""
     },
     {
-      "id": "Хабр-0-1786690617396",
-      "title": "Почему Илону Маску не удается создать по-настоящему правдивую нейросеть?",
-      "summary": "Илон Маск как одержимый выпускает на рынок все новые модели своей нейронной сети Grok, и 12 августа уже стала доступной версия 4.6, но, хотя он постоянно подчеркивает, что его детище является максимал",
-      "url": "https://habr.com/ru/articles/1070372/?utm_source=habrahabr&utm_medium=rss&utm_campaign=1070372",
+      "id": "Медиазона-0-1786718069139",
+      "title": "В Москве по делу о госизмене начали судить командира роты, сдавшегося в плен с пятью солдатами",
+      "summary": "",
+      "url": "https://zona.media/news/2026/08/14/balgrab",
       "imageUrl": null,
       "images": [],
+      "source": "Медиазона",
+      "category": "kultura",
+      "pubDate": "Fri, 14 Aug 2026 14:33:34 GMT",
+      "relativeTime": "Gerade eben"
+    },
+    {
+      "id": "Хабр-0-1786718070217",
+      "title": "BiHA: встроенная отказоустойчивость Postgres Pro Enterprise и Standard",
+      "summary": "Построение HA-кластера в PostgreSQL традиционно требует внешнего стека: Patroni, распределенного хранилища конфигураций и набора вспомогательных утилит. В СУБД Postgres Pro Standard и Enterprise отказ",
+      "url": "https://habr.com/ru/companies/postgrespro/articles/1070620/?utm_source=habrahabr&utm_medium=rss&utm_campaign=1070620",
+      "imageUrl": "https://habrastorage.org/getpro/habr/upload_files/4d5/e88/041/4d5e880417c37c4752bb2c2f35a92348.png",
+      "images": [
+        "https://habrastorage.org/getpro/habr/upload_files/4d5/e88/041/4d5e880417c37c4752bb2c2f35a92348.png"
+      ],
       "source": "Хабр",
       "category": "tekh",
-      "pubDate": "Fri, 14 Aug 2026 06:40:35 GMT",
-      "relativeTime": "Vor 16 Min"
+      "pubDate": "Fri, 14 Aug 2026 14:29:48 GMT",
+      "relativeTime": "Vor 4 Min"
     },
     {
-      "id": "Meduza-0-1786690616006",
-      "title": "На складах Wildberries после украинских атак сгорели более 11 миллионов книг. В их числе — учебники, тираж Конституции, а также книги Симоньян и Прилепина",
-      "summary": "На складах Wildberries, атакованных Украиной, сгорели более 11 миллионов книг, подсчитали в Российском книжном союзе (РКС), Ассоциации книгоиздателей России и Ассоциации книгораспространителей.",
-      "url": "https://meduza.io/news/2026/08/14/na-skladah-wildberries-posle-ukrainskih-atak-sgoreli-bolee-11-millionov-knig-v-ih-chisle-uchebniki-tirazh-konstitutsii-a-takzhe-knigi-simonyan-i-prilepina",
-      "imageUrl": null,
-      "images": [],
-      "source": "Meduza",
-      "category": "kultura",
-      "pubDate": "Fri, 14 Aug 2026 09:36:44 +0300",
-      "relativeTime": "Vor 20 Min"
+      "id": "Хабр-1-1786718070217",
+      "title": "Цифровой рентген: нейросетевой анализ печатных плат",
+      "summary": "В данной статье расскажем о нашем опыте определения типов микросхем на рентгеновских снимках моделью YOLO Читать далее",
+      "url": "https://habr.com/ru/articles/1070618/?utm_source=habrahabr&utm_medium=rss&utm_campaign=1070618",
+      "imageUrl": "https://habrastorage.org/getpro/habr/upload_files/a13/96a/a53/a1396aa5395bfe14ce0279669690942f.png",
+      "images": [
+        "https://habrastorage.org/getpro/habr/upload_files/a13/96a/a53/a1396aa5395bfe14ce0279669690942f.png"
+      ],
+      "source": "Хабр",
+      "category": "tekh",
+      "pubDate": "Fri, 14 Aug 2026 14:28:53 GMT",
+      "relativeTime": "Vor 5 Min"
     },
     {
-      "id": "Meduza Новости-0-1786690616676",
-      "title": "На складах Wildberries после украинских атак сгорели более 11 миллионов книг. В их числе — учебники, тираж Конституции, а также книги Симоньян и Прилепина",
-      "summary": "На складах Wildberries, атакованных Украиной, сгорели более 11 миллионов книг, подсчитали в Российском книжном союзе (РКС), Ассоциации книгоиздателей России и Ассоциации книгораспространителей.",
-      "url": "https://meduza.io/news/2026/08/14/na-skladah-wildberries-posle-ukrainskih-atak-sgoreli-bolee-11-millionov-knig-v-ih-chisle-uchebniki-tirazh-konstitutsii-a-takzhe-knigi-simonyan-i-prilepina",
-      "imageUrl": null,
-      "images": [],
-      "source": "Meduza Новости",
-      "category": "ekonomika",
-      "pubDate": "Fri, 14 Aug 2026 09:36:44 +0300",
-      "relativeTime": "Vor 20 Min"
-    },
-    {
-      "id": "Deutsche Welle RU-0-1786690616214",
-      "title": "Истребители НАТО сбили над Латвией залетевший беспилотник",
-      "summary": "Во время атаки дронов на российские регионы один из БПЛА попал в воздушное пространство Латвии, он был перехвачен истребителями НАТО, заявила армия Латвии. Финляндия также приняла меры предосторожност",
-      "url": "https://www.dw.com/ru/истребители-нато-сбили-над-латвией-залетевший-беспилотник/a-78361927?maca=rus-rss-ru-all-1126-rdf",
+      "id": "Deutsche Welle RU-0-1786718069205",
+      "title": "Блэкаут - сразу в четырех странах Центральной Азии",
+      "summary": "Кыргызстан, Казахстан, Таджикистан и Узбекистан столкнулись с отключением электроэнергии. В городе Алматы не работали светофоры, некоторые районы Бишкека остались без света.",
+      "url": "https://www.dw.com/ru/блэкаут-сразу-в-четырех-странах-центральной-азии/a-78373847?maca=rus-rss-ru-all-1126-rdf",
       "imageUrl": null,
       "images": [],
       "source": "Deutsche Welle RU",
       "category": "kultura",
-      "pubDate": "2026-08-14T06:21:00.000Z",
-      "relativeTime": "Vor 35 Min"
+      "pubDate": "2026-08-14T14:24:00.000Z",
+      "relativeTime": "Vor 10 Min"
     },
     {
-      "id": "DW Мир-0-1786690616594",
-      "title": "Истребители НАТО сбили над Латвией залетевший беспилотник",
-      "summary": "Во время атаки дронов на российские регионы один из БПЛА попал в воздушное пространство Латвии, он был перехвачен истребителями НАТО, заявила армия Латвии. Финляндия также приняла меры предосторожност",
-      "url": "https://www.dw.com/ru/истребители-нато-сбили-над-латвией-залетевший-беспилотник/a-78361927?maca=rus-rss-ru-all-1126-rdf",
+      "id": "DW Политика-0-1786718069412",
+      "title": "Блэкаут - сразу в четырех странах Центральной Азии",
+      "summary": "Кыргызстан, Казахстан, Таджикистан и Узбекистан столкнулись с отключением электроэнергии. В городе Алматы не работали светофоры, некоторые районы Бишкека остались без света.",
+      "url": "https://www.dw.com/ru/блэкаут-сразу-в-четырех-странах-центральной-азии/a-78373847?maca=rus-rss-ru-pol-6381-rdf",
+      "imageUrl": null,
+      "images": [],
+      "source": "DW Политика",
+      "category": "politika",
+      "pubDate": "2026-08-14T14:24:00.000Z",
+      "relativeTime": "Vor 10 Min"
+    },
+    {
+      "id": "DW Мир-0-1786718069357",
+      "title": "Блэкаут - сразу в четырех странах Центральной Азии",
+      "summary": "Кыргызстан, Казахстан, Таджикистан и Узбекистан столкнулись с отключением электроэнергии. В городе Алматы не работали светофоры, некоторые районы Бишкека остались без света.",
+      "url": "https://www.dw.com/ru/блэкаут-сразу-в-четырех-странах-центральной-азии/a-78373847?maca=rus-rss-ru-all-1126-rdf",
       "imageUrl": null,
       "images": [],
       "source": "DW Мир",
       "category": "mir",
-      "pubDate": "2026-08-14T06:21:00.000Z",
-      "relativeTime": "Vor 35 Min"
+      "pubDate": "2026-08-14T14:24:00.000Z",
+      "relativeTime": "Vor 10 Min"
     },
     {
-      "id": "Хабр-1-1786690617396",
-      "title": "GLM-5.3: Z.ai выпустил новую модель",
-      "summary": "14 августа 2026 года компания Z.ai (бывшая Zhipu AI, Пекин) официально представила GLM-5.3 - новую версию своей флагманской линейки языковых моделей GLM-5. Анонс сопровождается слоганом \"Built to Code",
-      "url": "https://habr.com/ru/articles/1070366/?utm_source=habrahabr&utm_medium=rss&utm_campaign=1070366",
-      "imageUrl": "https://habrastorage.org/getpro/habr/upload_files/e6f/6d6/f26/e6f6d6f269b85cfaa71f4eb1fea5723a.png",
+      "id": "Хабр-2-1786718070217",
+      "title": "Собеседовании для вас большой стресс? Для меня было да, поэтому создал решение",
+      "summary": "Естественная пауза после вопроса на собеседовании — две-четыре секунды. AI-чат в соседней вкладке в этот бюджет не помещается: переключить окно, напечатать, дождаться, вернуться — транспорт съедает бо",
+      "url": "https://habr.com/ru/articles/1070616/?utm_source=habrahabr&utm_medium=rss&utm_campaign=1070616",
+      "imageUrl": "https://habrastorage.org/getpro/habr/upload_files/bae/60a/2ce/bae60a2cebc37e4c6a1c769c96956245.jpg",
       "images": [
-        "https://habrastorage.org/getpro/habr/upload_files/e6f/6d6/f26/e6f6d6f269b85cfaa71f4eb1fea5723a.png"
+        "https://habrastorage.org/getpro/habr/upload_files/bae/60a/2ce/bae60a2cebc37e4c6a1c769c96956245.jpg"
       ],
       "source": "Хабр",
       "category": "tekh",
-      "pubDate": "Fri, 14 Aug 2026 06:18:18 GMT",
+      "pubDate": "Fri, 14 Aug 2026 14:21:31 GMT",
+      "relativeTime": "Vor 12 Min"
+    },
+    {
+      "id": "Хабр-3-1786718070217",
+      "title": "Не начинайте пилить фичу, пока не прочитаете этот текст",
+      "summary": "Почему одни идеи превращаются в востребованные продукты, а другие так и остаются красивыми презентациями — или мемами про очередной B2B AI SaaS? Часто проблема не в технологии и не в качестве реализац",
+      "url": "https://habr.com/ru/companies/avito/articles/1070108/?utm_source=habrahabr&utm_medium=rss&utm_campaign=1070108",
+      "imageUrl": "https://habrastorage.org/getpro/habr/upload_files/bfa/dfe/33e/bfadfe33edec817b7416dc45a06bee50.jpg",
+      "images": [
+        "https://habrastorage.org/getpro/habr/upload_files/bfa/dfe/33e/bfadfe33edec817b7416dc45a06bee50.jpg"
+      ],
+      "source": "Хабр",
+      "category": "tekh",
+      "pubDate": "Fri, 14 Aug 2026 14:20:21 GMT",
+      "relativeTime": "Vor 14 Min"
+    },
+    {
+      "id": "Медиазона-1-1786718069139",
+      "title": "В Польше задержали россиянина по делу о подготовке покушения на гражданина Украины и США; RFM 24 пишет, что целью был рэпер Киевстонер",
+      "summary": "",
+      "url": "https://zona.media/news/2026/08/14/kyivstoner",
+      "imageUrl": null,
+      "images": [],
+      "source": "Медиазона",
+      "category": "kultura",
+      "pubDate": "Fri, 14 Aug 2026 14:17:44 GMT",
+      "relativeTime": "Vor 16 Min"
+    },
+    {
+      "id": "Meduza-0-1786718069079",
+      "title": "Конституционный совет Франции заблокировал закон о запрете соцсетей для детей до 15 лет",
+      "summary": "Конституционный совет Франции заблокировал закон, запретивший использование социальных сетей для детей до 15 лет",
+      "url": "https://meduza.io/news/2026/08/14/konstitutsionnyy-sovet-frantsii-zablokiroval-zakon-o-zaprete-sotssetey-dlya-detey-do-15-let",
+      "imageUrl": null,
+      "images": [],
+      "source": "Meduza",
+      "category": "kultura",
+      "pubDate": "Fri, 14 Aug 2026 17:08:40 +0300",
+      "relativeTime": "Vor 25 Min"
+    },
+    {
+      "id": "Meduza Новости-0-1786718069380",
+      "title": "Конституционный совет Франции заблокировал закон о запрете соцсетей для детей до 15 лет",
+      "summary": "Конституционный совет Франции заблокировал закон, запретивший использование социальных сетей для детей до 15 лет",
+      "url": "https://meduza.io/news/2026/08/14/konstitutsionnyy-sovet-frantsii-zablokiroval-zakon-o-zaprete-sotssetey-dlya-detey-do-15-let",
+      "imageUrl": null,
+      "images": [],
+      "source": "Meduza Новости",
+      "category": "ekonomika",
+      "pubDate": "Fri, 14 Aug 2026 17:08:40 +0300",
+      "relativeTime": "Vor 25 Min"
+    },
+    {
+      "id": "Хабр-4-1786718070217",
+      "title": "[Перевод] Когда один инженер делает работу команды: новые правила технического лидерства",
+      "summary": "Искусственный интеллект резко ускорил разработку, но вместе со скоростью выросла цена управленческих и архитектурных ошибок. В статье разбираем, как на этом фоне меняются роль техлида, устройство кома",
+      "url": "https://habr.com/ru/companies/otus/articles/1069804/?utm_source=habrahabr&utm_medium=rss&utm_campaign=1069804",
+      "imageUrl": "https://habrastorage.org/getpro/habr/upload_files/dba/ab6/584/dbaab65843b6124edf7a2e5af6a1cf9c.png",
+      "images": [
+        "https://habrastorage.org/getpro/habr/upload_files/dba/ab6/584/dbaab65843b6124edf7a2e5af6a1cf9c.png"
+      ],
+      "source": "Хабр",
+      "category": "tekh",
+      "pubDate": "Fri, 14 Aug 2026 14:05:20 GMT",
+      "relativeTime": "Vor 29 Min"
+    },
+    {
+      "id": "Хабр-5-1786718070217",
+      "title": "“Автомойка в 50 метрах от дома. Пойдем пешком?” Как простая загадка вызвала грандиозный философский спор о будущем ИИ",
+      "summary": "Автомойка в 50 метрах от дома. Как доберетесь – на машине или пешком? Если вы ответили “конечно, пешком, отчего не прогуляться” – поздравляем. Вы угодили в старую как мир ловушку здравого смысла. Но н",
+      "url": "https://habr.com/ru/articles/1070612/?utm_source=habrahabr&utm_medium=rss&utm_campaign=1070612",
+      "imageUrl": "https://habrastorage.org/getpro/habr/upload_files/018/856/5b2/0188565b2d6cf1ba574d810905784ffe.jpg",
+      "images": [
+        "https://habrastorage.org/getpro/habr/upload_files/018/856/5b2/0188565b2d6cf1ba574d810905784ffe.jpg"
+      ],
+      "source": "Хабр",
+      "category": "tekh",
+      "pubDate": "Fri, 14 Aug 2026 14:04:42 GMT",
+      "relativeTime": "Vor 29 Min"
+    },
+    {
+      "id": "Хабр-6-1786718070218",
+      "title": "Мы проверяли, что устройство работает. Оказалось — мы проверяли не то",
+      "summary": "Исправное устройство успешно обновилось, доказало своё здоровье, а через два перезапуска откатилось на старую прошивку. Причина оказалась вообще не в обновлении: в тот раз наш бэкенд отвечал три минут",
+      "url": "https://habr.com/ru/articles/1070610/?utm_source=habrahabr&utm_medium=rss&utm_campaign=1070610",
+      "imageUrl": "https://habrastorage.org/getpro/habr/upload_files/7bb/b7f/fc9/7bbb7ffc92bfbc86eb594df865dca36f.jpg",
+      "images": [
+        "https://habrastorage.org/getpro/habr/upload_files/7bb/b7f/fc9/7bbb7ffc92bfbc86eb594df865dca36f.jpg"
+      ],
+      "source": "Хабр",
+      "category": "tekh",
+      "pubDate": "Fri, 14 Aug 2026 14:02:37 GMT",
+      "relativeTime": "Vor 31 Min"
+    },
+    {
+      "id": "Хабр-7-1786718070218",
+      "title": "Модернизация сложной стеклодувной пушки. Фотоотчёт",
+      "summary": "Настольная горелка — основной инструмент стеклодува, будь то упрощённое изготовление стеклянных сувениров или сложное приборостроение. От конструкции и исполнения стеклодувной горелки зависят возможно",
+      "url": "https://habr.com/ru/companies/ruvds/articles/1067746/?utm_source=habrahabr&utm_medium=rss&utm_campaign=1067746",
+      "imageUrl": "https://habrastorage.org/getpro/habr/upload_files/9a8/e13/dd7/9a8e13dd724fba1c59d830d6e4387b84.jpg",
+      "images": [
+        "https://habrastorage.org/getpro/habr/upload_files/9a8/e13/dd7/9a8e13dd724fba1c59d830d6e4387b84.jpg"
+      ],
+      "source": "Хабр",
+      "category": "tekh",
+      "pubDate": "Fri, 14 Aug 2026 14:00:20 GMT",
+      "relativeTime": "Vor 34 Min"
+    },
+    {
+      "id": "Meduza-1-1786718069079",
+      "title": "ООН: в Украине в июле погибли 437 мирных жителей. Так много не было с первых месяцев войны",
+      "summary": "По меньшей мере 437 мирных жителей Украины погибли и 2610 получили ранения во время российско-украинской войны в июле 2026 года, говорится в отчете Мониторинговой миссии ООН по правам человека.",
+      "url": "https://meduza.io/news/2026/08/14/oon-v-ukraine-v-iyule-pogibli-437-mirnyh-zhiteley-tak-mnogo-ne-bylo-s-pervyh-mesyatsev-voyny",
+      "imageUrl": null,
+      "images": [],
+      "source": "Meduza",
+      "category": "kultura",
+      "pubDate": "Fri, 14 Aug 2026 16:56:07 +0300",
       "relativeTime": "Vor 38 Min"
     },
     {
-      "id": "BBC Русская служба-1-1786690617002",
-      "title": "Найджел Фарадж победил на довыборах в Клактоне, которые бойкотировали основные партии, и возвращается в парламент",
+      "id": "Meduza Новости-1-1786718069381",
+      "title": "ООН: в Украине в июле погибли 437 мирных жителей. Так много не было с первых месяцев войны",
+      "summary": "По меньшей мере 437 мирных жителей Украины погибли и 2610 получили ранения во время российско-украинской войны в июле 2026 года, говорится в отчете Мониторинговой миссии ООН по правам человека.",
+      "url": "https://meduza.io/news/2026/08/14/oon-v-ukraine-v-iyule-pogibli-437-mirnyh-zhiteley-tak-mnogo-ne-bylo-s-pervyh-mesyatsev-voyny",
+      "imageUrl": null,
+      "images": [],
+      "source": "Meduza Новости",
+      "category": "ekonomika",
+      "pubDate": "Fri, 14 Aug 2026 16:56:07 +0300",
+      "relativeTime": "Vor 38 Min"
+    },
+    {
+      "id": "Хабр-8-1786718070218",
+      "title": "Что такое n8n, как установить и собрать первого AI-агента в 2026 году",
+      "summary": "Развернуть n8n просто, а работать с ним — нет. Обновления ломают рабочие сценарии: вчерашний воркфлоу падает, транскрибация из Telegram выдаёт неясную ошибку, модель через российский агрегатор не цепл",
+      "url": "https://habr.com/ru/companies/polzaai/articles/1070604/?utm_source=habrahabr&utm_medium=rss&utm_campaign=1070604",
+      "imageUrl": "https://habrastorage.org/getpro/habr/upload_files/11c/2cf/2ce/11c2cf2cec800b2e2976577647676bd8.png",
+      "images": [
+        "https://habrastorage.org/getpro/habr/upload_files/11c/2cf/2ce/11c2cf2cec800b2e2976577647676bd8.png"
+      ],
+      "source": "Хабр",
+      "category": "tekh",
+      "pubDate": "Fri, 14 Aug 2026 13:42:56 GMT",
+      "relativeTime": "Vor 51 Min"
+    },
+    {
+      "id": "Хабр-9-1786718070219",
+      "title": "Товар сгорел, денег нет, но вы, селлеры, держитесь",
+      "summary": "Вчера вы обсуждали растущие комиссии, цены на логистику и сильно обнаглевшие маркетплейсы, казалось, что хуже не будет… Но, внезапно выяснилось, это была белая полоса… Сегодня ваш товар просто сгорел,",
+      "url": "https://habr.com/ru/companies/moysklad/articles/1070594/?utm_source=habrahabr&utm_medium=rss&utm_campaign=1070594",
+      "imageUrl": null,
+      "images": [],
+      "source": "Хабр",
+      "category": "tekh",
+      "pubDate": "Fri, 14 Aug 2026 13:25:34 GMT",
+      "relativeTime": "Vor 1 Std"
+    },
+    {
+      "id": "Deutsche Welle RU-1-1786718069205",
+      "title": "Politico: Зеленский по-прежнему в поиске кандидата на должность посла Украины в США",
+      "summary": "У президента Украины проблема: \"никто не хочет занимать самую сложную должность в Вашингтоне\", поскольку кандидаты не желают браться за эту задачу в критический момент войны, пишет Politico со ссылкой",
+      "url": "https://www.dw.com/ru/politico-зеленский-по-прежнему-в-поиске-кандидата-на-должность-посла-украины-в-сша/a-78372183?maca=rus-rss-ru-all-1126-rdf",
+      "imageUrl": null,
+      "images": [],
+      "source": "Deutsche Welle RU",
+      "category": "kultura",
+      "pubDate": "2026-08-14T13:23:00.000Z",
+      "relativeTime": "Vor 1 Std"
+    },
+    {
+      "id": "DW Мир-1-1786718069357",
+      "title": "Politico: Зеленский по-прежнему в поиске кандидата на должность посла Украины в США",
+      "summary": "У президента Украины проблема: \"никто не хочет занимать самую сложную должность в Вашингтоне\", поскольку кандидаты не желают браться за эту задачу в критический момент войны, пишет Politico со ссылкой",
+      "url": "https://www.dw.com/ru/politico-зеленский-по-прежнему-в-поиске-кандидата-на-должность-посла-украины-в-сша/a-78372183?maca=rus-rss-ru-all-1126-rdf",
+      "imageUrl": null,
+      "images": [],
+      "source": "DW Мир",
+      "category": "mir",
+      "pubDate": "2026-08-14T13:23:00.000Z",
+      "relativeTime": "Vor 1 Std"
+    },
+    {
+      "id": "DW Украина-0-1786718069595",
+      "title": "Politico: Зеленский по-прежнему в поиске кандидата на должность посла Украины в США",
+      "summary": "У президента Украины проблема: \"никто не хочет занимать самую сложную должность в Вашингтоне\", поскольку кандидаты не желают браться за эту задачу в критический момент войны, пишет Politico со ссылкой",
+      "url": "https://www.dw.com/ru/politico-зеленский-по-прежнему-в-поиске-кандидата-на-должность-посла-украины-в-сша/a-78372183?maca=rus-rss-ru-ukr-4456-rdf",
+      "imageUrl": null,
+      "images": [],
+      "source": "DW Украина",
+      "category": "ukraina",
+      "pubDate": "2026-08-14T13:23:00.000Z",
+      "relativeTime": "Vor 1 Std"
+    },
+    {
+      "id": "Хабр-10-1786718070219",
+      "title": "Как я написал OpenGL 3.3 рендерер с поддержкой Normal Map для Unreal Tournament 2004, не зная C++ и без исходников игры",
+      "summary": "Unreal Tournament 2004 — безусловная классика, но графически она застряла в эпохе Direct3D 8 и Fixed‑Function Pipeline. Три месяца реверс‑инжиниринга, сотни падений с Access Violation и ни строчки C++",
+      "url": "https://habr.com/ru/articles/1070592/?utm_source=habrahabr&utm_medium=rss&utm_campaign=1070592",
+      "imageUrl": "https://habrastorage.org/getpro/habr/upload_files/162/1fe/160/1621fe16086e4282919bdcdc1aa332b2.png",
+      "images": [
+        "https://habrastorage.org/getpro/habr/upload_files/162/1fe/160/1621fe16086e4282919bdcdc1aa332b2.png"
+      ],
+      "source": "Хабр",
+      "category": "tekh",
+      "pubDate": "Fri, 14 Aug 2026 13:21:56 GMT",
+      "relativeTime": "Vor 1 Std"
+    },
+    {
+      "id": "Meduza-2-1786718069079",
+      "title": "Starlink вернул Польшу в европейский регион своей сети спутниковой связи. Глава МИД поблагодарил Илона Маска за признание страны частью ЕС",
+      "summary": "Компания Starlink не будет исключать Польшу из европейского региона своей сети спутниковой связи. Первым об этом сообщил бывший министр цифровизации Польши Януш Цешинский.",
+      "url": "https://meduza.io/news/2026/08/14/starlink-vernul-polshu-v-evropeyskiy-region-svoey-seti-sputnikovoy-svyazi-glava-mid-poblagodaril-ilona-maska-za-priznanie-strany-chastyu-es",
+      "imageUrl": null,
+      "images": [],
+      "source": "Meduza",
+      "category": "kultura",
+      "pubDate": "Fri, 14 Aug 2026 16:18:55 +0300",
+      "relativeTime": "Vor 1 Std"
+    },
+    {
+      "id": "Meduza Новости-2-1786718069381",
+      "title": "Starlink вернул Польшу в европейский регион своей сети спутниковой связи. Глава МИД поблагодарил Илона Маска за признание страны частью ЕС",
+      "summary": "Компания Starlink не будет исключать Польшу из европейского региона своей сети спутниковой связи. Первым об этом сообщил бывший министр цифровизации Польши Януш Цешинский.",
+      "url": "https://meduza.io/news/2026/08/14/starlink-vernul-polshu-v-evropeyskiy-region-svoey-seti-sputnikovoy-svyazi-glava-mid-poblagodaril-ilona-maska-za-priznanie-strany-chastyu-es",
+      "imageUrl": null,
+      "images": [],
+      "source": "Meduza Новости",
+      "category": "ekonomika",
+      "pubDate": "Fri, 14 Aug 2026 16:18:55 +0300",
+      "relativeTime": "Vor 1 Std"
+    },
+    {
+      "id": "Медиазона-2-1786718069139",
+      "title": "На 19‑летнего жителя Кургана составили протокол из‑за поиска и прослушивания «экстремистской» музыки",
+      "summary": "",
+      "url": "https://zona.media/news/2026/08/14/kurgan",
+      "imageUrl": null,
+      "images": [],
+      "source": "Медиазона",
+      "category": "kultura",
+      "pubDate": "Fri, 14 Aug 2026 13:15:32 GMT",
+      "relativeTime": "Vor 1 Std"
+    },
+    {
+      "id": "Meduza-3-1786718069079",
+      "title": "RMF FM: задержанный в Польше россиянин готовил покушение на украинского рэпера Kyivstoner",
+      "summary": "В Польше задержан подозреваемый в подготовке покушения на украинского рэпера Альберта Васильева (Kyivstoner), сообщает польская радиостанция RMF FM со ссылкой на источники.",
+      "url": "https://meduza.io/news/2026/08/14/rmf-fm-zaderzhannyy-v-polshe-rossiyanin-gotovil-pokushenie-na-ukrainskogo-repera-kyivstoner",
+      "imageUrl": null,
+      "images": [],
+      "source": "Meduza",
+      "category": "kultura",
+      "pubDate": "Fri, 14 Aug 2026 16:15:13 +0300",
+      "relativeTime": "Vor 1 Std"
+    },
+    {
+      "id": "Meduza Новости-3-1786718069381",
+      "title": "RMF FM: задержанный в Польше россиянин готовил покушение на украинского рэпера Kyivstoner",
+      "summary": "В Польше задержан подозреваемый в подготовке покушения на украинского рэпера Альберта Васильева (Kyivstoner), сообщает польская радиостанция RMF FM со ссылкой на источники.",
+      "url": "https://meduza.io/news/2026/08/14/rmf-fm-zaderzhannyy-v-polshe-rossiyanin-gotovil-pokushenie-na-ukrainskogo-repera-kyivstoner",
+      "imageUrl": null,
+      "images": [],
+      "source": "Meduza Новости",
+      "category": "ekonomika",
+      "pubDate": "Fri, 14 Aug 2026 16:15:13 +0300",
+      "relativeTime": "Vor 1 Std"
+    },
+    {
+      "id": "Хабр-11-1786718070219",
+      "title": "Предзаказ книги «Предметно-ориентированное проектирование. Модернизация легаси-систем и снижение рисков с помощью DDD»",
+      "summary": "Привет, Хаброжители! «Все счастливые семьи похожи друг на друга, каждая несчастливая семья несчастлива по-своему». Этот принцип, сформулированный в «Анне Карениной», применим не только к семьям, но и ",
+      "url": "https://habr.com/ru/companies/piter/articles/1070426/?utm_source=habrahabr&utm_medium=rss&utm_campaign=1070426",
+      "imageUrl": "https://habrastorage.org/getpro/habr/upload_files/8b0/922/fa4/8b0922fa4341ce85e388bef373e326dd.jpg",
+      "images": [
+        "https://habrastorage.org/getpro/habr/upload_files/8b0/922/fa4/8b0922fa4341ce85e388bef373e326dd.jpg"
+      ],
+      "source": "Хабр",
+      "category": "tekh",
+      "pubDate": "Fri, 14 Aug 2026 13:12:16 GMT",
+      "relativeTime": "Vor 1 Std"
+    },
+    {
+      "id": "Meduza-4-1786718069079",
+      "title": "Путин назвал целью России на 2026 год развал НАТО и ЕС, утверждают источники The New York Times. Добиться этого он хочет через Молдову",
+      "summary": "В конце 2025 года Владимир Путин собрал военачальников на брифинг и поставил цель на 2026-й — «развал НАТО и ЕС изнутри», пишет The New York Times со слов чиновников из двух стран, знакомых с деталями",
+      "url": "https://meduza.io/feature/2026/08/14/putin-nazval-tselyu-rossii-na-2026-god-razval-nato-i-es-utverzhdayut-istochniki-the-new-york-times-dobitsya-etogo-on-hochet-cherez-moldovu",
+      "imageUrl": "https://meduza.io/image/attachments/images/012/650/417/small/ysXMaPm0z4eWOyG-Q9mkNg",
+      "images": [
+        "https://meduza.io/image/attachments/images/012/650/417/small/ysXMaPm0z4eWOyG-Q9mkNg"
+      ],
+      "source": "Meduza",
+      "category": "kultura",
+      "pubDate": "Fri, 14 Aug 2026 16:04:41 +0300",
+      "relativeTime": "Vor 1 Std"
+    },
+    {
+      "id": "Meduza Новости-4-1786718069381",
+      "title": "Путин назвал целью России на 2026 год развал НАТО и ЕС, утверждают источники The New York Times. Добиться этого он хочет через Молдову",
+      "summary": "В конце 2025 года Владимир Путин собрал военачальников на брифинг и поставил цель на 2026-й — «развал НАТО и ЕС изнутри», пишет The New York Times со слов чиновников из двух стран, знакомых с деталями",
+      "url": "https://meduza.io/feature/2026/08/14/putin-nazval-tselyu-rossii-na-2026-god-razval-nato-i-es-utverzhdayut-istochniki-the-new-york-times-dobitsya-etogo-on-hochet-cherez-moldovu",
+      "imageUrl": "https://meduza.io/image/attachments/images/012/650/417/small/ysXMaPm0z4eWOyG-Q9mkNg",
+      "images": [
+        "https://meduza.io/image/attachments/images/012/650/417/small/ysXMaPm0z4eWOyG-Q9mkNg"
+      ],
+      "source": "Meduza Новости",
+      "category": "ekonomika",
+      "pubDate": "Fri, 14 Aug 2026 16:04:41 +0300",
+      "relativeTime": "Vor 1 Std"
+    },
+    {
+      "id": "Хабр-12-1786718070219",
+      "title": "Как семьи планируют летние каникулы: что влияет на выбор и бюджет",
+      "summary": "44 тысячи рублей — столько в среднем российские семьи готовы потратить на организацию летних каникул ребенка. При этом решение о том, как провести лето, принимают не в один момент: кто-то начинает иск",
+      "url": "https://habr.com/ru/companies/avitoads/articles/1070578/?utm_source=habrahabr&utm_medium=rss&utm_campaign=1070578",
+      "imageUrl": "https://habrastorage.org/getpro/habr/upload_files/51a/c0e/14a/51ac0e14a60829e628ba24929daef258.jpg",
+      "images": [
+        "https://habrastorage.org/getpro/habr/upload_files/51a/c0e/14a/51ac0e14a60829e628ba24929daef258.jpg"
+      ],
+      "source": "Хабр",
+      "category": "tekh",
+      "pubDate": "Fri, 14 Aug 2026 13:03:24 GMT",
+      "relativeTime": "Vor 1 Std"
+    },
+    {
+      "id": "Meduza-5-1786718069080",
+      "title": "Путин едет по стране (чтобы порекламировать «Единую Россию» перед выборами). Он уже пнул мяч в Красноярске, восхитился палтусами на Курилах — и нарядился моряком в годовщину «Курска». Максимально коротко о путешествиях президента",
+      "summary": "Президент РФ Владимир Путин в последние недели активно ездит по России — с начала лета он посетил уже семь регионов за пределами Москвы и Санкт-Петербурга. До этого он не выезжал за пределы двух столи",
+      "url": "https://meduza.io/feature/2026/08/14/putin-edet-po-strane-v-preddverii-vyborov-on-uzhe-pnul-myach-v-krasnoyarske-voshitilsya-paltusami-na-kurilah-i-pokazal-besstrashie-pered-ii-v-novosibirske",
+      "imageUrl": "https://meduza.io/image/attachments/images/012/647/025/small/qs2IMDYHFX4BM5S4eIdoFg",
+      "images": [
+        "https://meduza.io/image/attachments/images/012/647/025/small/qs2IMDYHFX4BM5S4eIdoFg"
+      ],
+      "source": "Meduza",
+      "category": "kultura",
+      "pubDate": "Fri, 14 Aug 2026 16:01:26 +0300",
+      "relativeTime": "Vor 1 Std"
+    },
+    {
+      "id": "Meduza Новости-5-1786718069381",
+      "title": "Путин едет по стране (чтобы порекламировать «Единую Россию» перед выборами). Он уже пнул мяч в Красноярске, восхитился палтусами на Курилах — и нарядился моряком в годовщину «Курска». Максимально коротко о путешествиях президента",
+      "summary": "Президент РФ Владимир Путин в последние недели активно ездит по России — с начала лета он посетил уже семь регионов за пределами Москвы и Санкт-Петербурга. До этого он не выезжал за пределы двух столи",
+      "url": "https://meduza.io/feature/2026/08/14/putin-edet-po-strane-v-preddverii-vyborov-on-uzhe-pnul-myach-v-krasnoyarske-voshitilsya-paltusami-na-kurilah-i-pokazal-besstrashie-pered-ii-v-novosibirske",
+      "imageUrl": "https://meduza.io/image/attachments/images/012/647/025/small/qs2IMDYHFX4BM5S4eIdoFg",
+      "images": [
+        "https://meduza.io/image/attachments/images/012/647/025/small/qs2IMDYHFX4BM5S4eIdoFg"
+      ],
+      "source": "Meduza Новости",
+      "category": "ekonomika",
+      "pubDate": "Fri, 14 Aug 2026 16:01:26 +0300",
+      "relativeTime": "Vor 1 Std"
+    },
+    {
+      "id": "Deutsche Welle RU-2-1786718069205",
+      "title": "В России из романа Гюнтера Грасса стерли Гитлера и Сталина. Что говорят в Германии?",
+      "summary": "Впервые по-русски опубликован роман \"Крысиха\" немецкого писателя Гюнтера Грасса. Его наследники в Германии заявили DW, что вынужденно согласились на цензуру в России: в тексте закрасили фразу про Стал",
+      "url": "https://www.dw.com/ru/в-россии-из-романа-гюнтера-грасса-стерли-гитлера-и-сталина-что-говорят-в-германии/a-78358234?maca=rus-rss-ru-all-1126-rdf",
+      "imageUrl": null,
+      "images": [],
+      "source": "Deutsche Welle RU",
+      "category": "kultura",
+      "pubDate": "2026-08-14T13:01:00.000Z",
+      "relativeTime": "Vor 1 Std"
+    },
+    {
+      "id": "DW Мир-2-1786718069357",
+      "title": "В России из романа Гюнтера Грасса стерли Гитлера и Сталина. Что говорят в Германии?",
+      "summary": "Впервые по-русски опубликован роман \"Крысиха\" немецкого писателя Гюнтера Грасса. Его наследники в Германии заявили DW, что вынужденно согласились на цензуру в России: в тексте закрасили фразу про Стал",
+      "url": "https://www.dw.com/ru/в-россии-из-романа-гюнтера-грасса-стерли-гитлера-и-сталина-что-говорят-в-германии/a-78358234?maca=rus-rss-ru-all-1126-rdf",
+      "imageUrl": null,
+      "images": [],
+      "source": "DW Мир",
+      "category": "mir",
+      "pubDate": "2026-08-14T13:01:00.000Z",
+      "relativeTime": "Vor 1 Std"
+    },
+    {
+      "id": "Meduza-6-1786718069080",
+      "title": "Война. 1633-й день. Россия фактически отказалась от перемирия с Украиной в Черном море. Удары по портам уже привели к резкому падению экспорта зерна",
+      "summary": "«Медуза» с 24 февраля 2022 года в прямом эфире рассказывает о российско-украинской войне. Мы ежедневно публикуем ваши письма, потому что уверены: о войне нужно продолжать говорить. Поделитесь с нами м",
+      "url": "https://meduza.io/feature/2026/08/14/voyna",
+      "imageUrl": "https://meduza.io/image/attachments/images/012/649/135/small/BG4MRXRCYwP5LW2xXsSs2w",
+      "images": [
+        "https://meduza.io/image/attachments/images/012/649/135/small/BG4MRXRCYwP5LW2xXsSs2w",
+        "https://meduza.io/image/attachments/images/012/649/860/small/By940GxkPKF5bVqfi5GTvQ",
+        "https://meduza.io/image/attachments/images/012/649/876/small/m6DlDVO0vxFseA1tVFy1Mg",
+        "https://meduza.io/image/attachments/images/012/649/868/small/s9ezb2zOsCNzrtuVmrJaBg",
+        "https://meduza.io/image/attachments/images/012/649/903/small/DRwHabGtwiT4oS53W-7uLg",
+        "https://meduza.io/image/attachments/images/012/649/892/small/IhBO-ZlNl5E1gLGryOqsUA"
+      ],
+      "source": "Meduza",
+      "category": "kultura",
+      "pubDate": "Fri, 14 Aug 2026 15:50:25 +0300",
+      "relativeTime": "Vor 1 Std"
+    },
+    {
+      "id": "Meduza Новости-6-1786718069381",
+      "title": "Война. 1633-й день. Россия фактически отказалась от перемирия с Украиной в Черном море. Удары по портам уже привели к резкому падению экспорта зерна",
+      "summary": "«Медуза» с 24 февраля 2022 года в прямом эфире рассказывает о российско-украинской войне. Мы ежедневно публикуем ваши письма, потому что уверены: о войне нужно продолжать говорить. Поделитесь с нами м",
+      "url": "https://meduza.io/feature/2026/08/14/voyna",
+      "imageUrl": "https://meduza.io/image/attachments/images/012/649/135/small/BG4MRXRCYwP5LW2xXsSs2w",
+      "images": [
+        "https://meduza.io/image/attachments/images/012/649/135/small/BG4MRXRCYwP5LW2xXsSs2w",
+        "https://meduza.io/image/attachments/images/012/649/860/small/By940GxkPKF5bVqfi5GTvQ",
+        "https://meduza.io/image/attachments/images/012/649/876/small/m6DlDVO0vxFseA1tVFy1Mg",
+        "https://meduza.io/image/attachments/images/012/649/868/small/s9ezb2zOsCNzrtuVmrJaBg",
+        "https://meduza.io/image/attachments/images/012/649/903/small/DRwHabGtwiT4oS53W-7uLg",
+        "https://meduza.io/image/attachments/images/012/649/892/small/IhBO-ZlNl5E1gLGryOqsUA"
+      ],
+      "source": "Meduza Новости",
+      "category": "ekonomika",
+      "pubDate": "Fri, 14 Aug 2026 15:50:25 +0300",
+      "relativeTime": "Vor 1 Std"
+    },
+    {
+      "id": "Хабр-13-1786718070219",
+      "title": "Как создать архитектуру B2B-пайплайна, в которой не проверяется лишнее и не теряется нужное",
+      "summary": "На входе у нас вакансия, на выходе — проверенный контакт в одной из трёх кампаний. Между ними: дубли, таймауты, catch-all, неоднозначные SMTP-ответы и окно, в котором процесс может упасть после переда",
+      "url": "https://habr.com/ru/articles/1070562/?utm_source=habrahabr&utm_medium=rss&utm_campaign=1070562",
+      "imageUrl": "https://habrastorage.org/getpro/habr/upload_files/a34/dab/952/a34dab952e43fddfdcc397f8c3395ea1.png",
+      "images": [
+        "https://habrastorage.org/getpro/habr/upload_files/a34/dab/952/a34dab952e43fddfdcc397f8c3395ea1.png"
+      ],
+      "source": "Хабр",
+      "category": "tekh",
+      "pubDate": "Fri, 14 Aug 2026 12:49:35 GMT",
+      "relativeTime": "Vor 1 Std"
+    },
+    {
+      "id": "Хабр-14-1786718070219",
+      "title": "Предиктивное обслуживание в промышленности: три системных условия, без которых технологии не работают",
+      "summary": "Сотни миллиардов вложены в IIoT, предиктивную аналитику и цифровые двойники. Но часто проекты предиктивного ТОиР достигают технологического успеха — и операционного провала: модели верно прогнозируют ",
+      "url": "https://habr.com/ru/companies/severstal/articles/1070560/?utm_source=habrahabr&utm_medium=rss&utm_campaign=1070560",
+      "imageUrl": "https://habrastorage.org/getpro/habr/upload_files/52e/132/d1e/52e132d1e98fd1fd40ba2d5c22ae489b.JPG",
+      "images": [
+        "https://habrastorage.org/getpro/habr/upload_files/52e/132/d1e/52e132d1e98fd1fd40ba2d5c22ae489b.JPG"
+      ],
+      "source": "Хабр",
+      "category": "tekh",
+      "pubDate": "Fri, 14 Aug 2026 12:49:29 GMT",
+      "relativeTime": "Vor 1 Std"
+    },
+    {
+      "id": "Медиазона-3-1786718069139",
+      "title": "«Поверил словам о борьбе с коррупцией». Уральского менеджера, отсидевшего за продажу данных о ракете «Булава», приговорили к 5 годам за донаты ФБК",
+      "summary": "",
+      "url": "https://zona.media/article/2026/08/14/gniteev",
+      "imageUrl": null,
+      "images": [],
+      "source": "Медиазона",
+      "category": "kultura",
+      "pubDate": "Fri, 14 Aug 2026 12:41:56 GMT",
+      "relativeTime": "Vor 1 Std"
+    },
+    {
+      "id": "Deutsche Welle RU-3-1786718069205",
+      "title": "Апелляции по делу о снятии \"Яблока\" рассмотрят 17 августа",
+      "summary": "Верховный суд России 17 августа рассмотрит апелляционные жалобы по делу о снятии партии \"Яблоко\" с выборов в Госдуму. Апелляции подали обе партии -\"Яблоко\" и \"Родина\". У суда задержали 10 человек, пиш",
+      "url": "https://www.dw.com/ru/апелляции-по-делу-о-снятии-яблока-рассмотрят-17-августа/a-78370595?maca=rus-rss-ru-all-1126-rdf",
+      "imageUrl": null,
+      "images": [],
+      "source": "Deutsche Welle RU",
+      "category": "kultura",
+      "pubDate": "2026-08-14T12:37:00.000Z",
+      "relativeTime": "Vor 1 Std"
+    },
+    {
+      "id": "DW Мир-3-1786718069357",
+      "title": "Апелляции по делу о снятии \"Яблока\" рассмотрят 17 августа",
+      "summary": "Верховный суд России 17 августа рассмотрит апелляционные жалобы по делу о снятии партии \"Яблоко\" с выборов в Госдуму. Апелляции подали обе партии -\"Яблоко\" и \"Родина\". У суда задержали 10 человек, пиш",
+      "url": "https://www.dw.com/ru/апелляции-по-делу-о-снятии-яблока-рассмотрят-17-августа/a-78370595?maca=rus-rss-ru-all-1126-rdf",
+      "imageUrl": null,
+      "images": [],
+      "source": "DW Мир",
+      "category": "mir",
+      "pubDate": "2026-08-14T12:37:00.000Z",
+      "relativeTime": "Vor 1 Std"
+    },
+    {
+      "id": "Meduza-7-1786718069080",
+      "title": "Я живу в Москве и переживаю, что попаду в армию. Чего мне стоит ждать этой осенью и как к этому готовиться?",
+      "summary": "Осенью призывников начнут отправлять в армию — а запасникам стоит быть готовыми к возможной новой волне мобилизации, пускай многие эксперты и сомневаются, что власти ее планируют. В Москве призывная с",
+      "url": "https://meduza.io/feature/2026/08/14/ya-zhivu-v-moskve-i-vizhu-mnogo-novostey-o-novoy-mobilizatsii",
+      "imageUrl": "https://meduza.io/image/attachments/images/012/621/698/small/SOPgVEsWqcnJwwDggOSeWg",
+      "images": [
+        "https://meduza.io/image/attachments/images/012/621/698/small/SOPgVEsWqcnJwwDggOSeWg"
+      ],
+      "source": "Meduza",
+      "category": "kultura",
+      "pubDate": "Fri, 14 Aug 2026 15:30:05 +0300",
+      "relativeTime": "Vor 2 Std"
+    },
+    {
+      "id": "Медиазона-4-1786718069139",
+      "title": "На бизнесмена Фиделя Чогина из Петербурга составили протоколы о «дискредитации армии» и демонстрации запрещенной символики из‑за логотипа его сайта",
+      "summary": "",
+      "url": "https://zona.media/news/2026/08/14/chogin",
+      "imageUrl": null,
+      "images": [],
+      "source": "Медиазона",
+      "category": "kultura",
+      "pubDate": "Fri, 14 Aug 2026 12:29:08 GMT",
+      "relativeTime": "Vor 2 Std"
+    },
+    {
+      "id": "Deutsche Welle RU-4-1786718069205",
+      "title": "Борис Надеждин объяснил свой отъезд из России",
+      "summary": "По словам российского оппозиционера, 21 июля ему вручили повестку в СК, а через несколько часов запрет на выезд из РФ пропал с \"Госуслуг\". На следующий день он смог вылететь в Астану. Он выбрал свобод",
+      "url": "https://www.dw.com/ru/борис-надеждин-объяснил-свой-отъезд-из-россии/a-78370440?maca=rus-rss-ru-all-1126-rdf",
+      "imageUrl": null,
+      "images": [],
+      "source": "Deutsche Welle RU",
+      "category": "kultura",
+      "pubDate": "2026-08-14T12:23:00.000Z",
+      "relativeTime": "Vor 2 Std"
+    },
+    {
+      "id": "DW Мир-4-1786718069357",
+      "title": "Борис Надеждин объяснил свой отъезд из России",
+      "summary": "По словам российского оппозиционера, 21 июля ему вручили повестку в СК, а через несколько часов запрет на выезд из РФ пропал с \"Госуслуг\". На следующий день он смог вылететь в Астану. Он выбрал свобод",
+      "url": "https://www.dw.com/ru/борис-надеждин-объяснил-свой-отъезд-из-россии/a-78370440?maca=rus-rss-ru-all-1126-rdf",
+      "imageUrl": null,
+      "images": [],
+      "source": "DW Мир",
+      "category": "mir",
+      "pubDate": "2026-08-14T12:23:00.000Z",
+      "relativeTime": "Vor 2 Std"
+    },
+    {
+      "id": "Медиазона-5-1786718069139",
+      "title": "Уральского менеджера IT‑компании, отсидевшему восемь лет за госизмену, приговорили к 5 годам строгого режима за донаты ФБК",
+      "summary": "",
+      "url": "https://zona.media/news/2026/08/14/gniteev-prigovor",
+      "imageUrl": null,
+      "images": [],
+      "source": "Медиазона",
+      "category": "kultura",
+      "pubDate": "Fri, 14 Aug 2026 12:22:35 GMT",
+      "relativeTime": "Vor 2 Std"
+    },
+    {
+      "id": "Meduza-8-1786718069081",
+      "title": "Сразу в четырех странах Центральной Азии произошел блэкаут",
+      "summary": "Днем 14 августа сразу в четырех странах — Кыргызстане, Казахстане, Таджикистане и Узбекистане — произошло отключение электричества.",
+      "url": "https://meduza.io/news/2026/08/14/srazu-v-chetyreh-stranah-tsentralnoy-azii-proizoshel-blekaut",
+      "imageUrl": null,
+      "images": [],
+      "source": "Meduza",
+      "category": "kultura",
+      "pubDate": "Fri, 14 Aug 2026 15:06:51 +0300",
+      "relativeTime": "Vor 2 Std"
+    },
+    {
+      "id": "Meduza Новости-7-1786718069381",
+      "title": "Сразу в четырех странах Центральной Азии произошел блэкаут",
+      "summary": "Днем 14 августа сразу в четырех странах — Кыргызстане, Казахстане, Таджикистане и Узбекистане — произошло отключение электричества.",
+      "url": "https://meduza.io/news/2026/08/14/srazu-v-chetyreh-stranah-tsentralnoy-azii-proizoshel-blekaut",
+      "imageUrl": null,
+      "images": [],
+      "source": "Meduza Новости",
+      "category": "ekonomika",
+      "pubDate": "Fri, 14 Aug 2026 15:06:51 +0300",
+      "relativeTime": "Vor 2 Std"
+    },
+    {
+      "id": "Медиазона-6-1786718069139",
+      "title": "“Some of us are gone in black bags, and not due to the war”. The farewell letter of Russian soldier Vladimir Podkovyrkin, forced to the front a second time",
+      "summary": "",
+      "url": "https://zona.media/article/2026/08/14/letter",
+      "imageUrl": null,
+      "images": [],
+      "source": "Медиазона",
+      "category": "kultura",
+      "pubDate": "Fri, 14 Aug 2026 11:46:12 GMT",
+      "relativeTime": "Vor 2 Std"
+    },
+    {
+      "id": "BBC Русская служба-4-1786718069476",
+      "title": "Иллюминатор самолета Ryanair, куда затянуло голову пассажира, разбился из-за оторвавшейся лопатки двигателя. Что к этому привело?",
+      "summary": "Предварительное расследование инцидента на борту Ryanair, когда голову и плечо пассажира затянуло в иллюминатор, показало: окно было разбито оторвавшейся лопаткой двигателя.",
+      "url": "https://www.bbc.com/russian/articles/cqjx1qdr5nqo?at_medium=RSS&at_campaign=rss",
+      "imageUrl": null,
+      "images": [],
+      "source": "BBC Русская служба",
+      "category": "politika",
+      "pubDate": "Fri, 14 Aug 2026 11:46:09 GMT",
+      "relativeTime": "Vor 2 Std"
+    },
+    {
+      "id": "Meduza-9-1786718069081",
+      "title": "«Я редко просыпаюсь, мечтая» — бесстрашный фильм о паре, которая не может покинуть Украину: один из партнеров, трансгендерный мужчина, подлежит мобилизации. Редкий случай, когда кинематографисты избегают проторенных путей в разговоре об этой войне",
+      "summary": "На Международном кинофестивале в Локарно показали немецко-украинскую драму «Я редко просыпаюсь, мечтая» Изабель Штевер и Анны Меликовой (язык фильма — украинский). По сюжету молодая пара, Олег и Оля, ",
+      "url": "https://meduza.io/feature/2026/08/14/ya-redko-prosypayus-mechtaya-besstrashnyy-film-o-pare-kotoraya-ne-mozhet-pokinut-ukrainu-odin-iz-partnerov-transgendernyy-muzhchina-podlezhit-mobilizatsii",
+      "imageUrl": "https://meduza.io/image/attachments/images/012/648/882/small/Vtuz48mFiSzbn66XflkhGQ",
+      "images": [
+        "https://meduza.io/image/attachments/images/012/648/882/small/Vtuz48mFiSzbn66XflkhGQ",
+        "https://meduza.io/image/attachments/images/012/649/116/small/R8yeXIUXCHrAp6MpLxxtcw",
+        "https://meduza.io/image/attachments/images/012/649/124/small/oJqThKz31HMAtECMMCWfew",
+        "https://meduza.io/image/attachments/images/012/649/105/small/C8BioLMVGDyhlyTY2CAz5Q"
+      ],
+      "source": "Meduza",
+      "category": "kultura",
+      "pubDate": "Fri, 14 Aug 2026 14:35:55 +0300",
+      "relativeTime": "Vor 2 Std"
+    },
+    {
+      "id": "Deutsche Welle RU-5-1786718069205",
+      "title": "Уроки Сеуты: миграция как оружие гибридной войны и шантажа",
+      "summary": "В последние годы мигранты все чаще используются для гибридной войны и шантажа, считают испанские эксперты, комментируя кризис в Сеуте. По их мнению нелегалы, становятся оружием авторитарных режимов пр",
+      "url": "https://www.dw.com/ru/уроки-сеуты-миграция-как-оружие-гибридной-войны-и-шантажа/a-78366210?maca=rus-rss-ru-all-1126-rdf",
+      "imageUrl": null,
+      "images": [],
+      "source": "Deutsche Welle RU",
+      "category": "kultura",
+      "pubDate": "2026-08-14T11:30:00.000Z",
+      "relativeTime": "Vor 3 Std"
+    },
+    {
+      "id": "Deutsche Welle RU-6-1786718069205",
+      "title": "Зампреду \"Яблока\" Льву Шлосбергу запросили более 12 лет колонии",
+      "summary": "Прокуратура запросила зампредседателю партии \"Яблоко\" Льву Шлосбергу с учетом его предыдущего приговора 12 лет и 1 месяц колонии по статьям о повторной \"дискредитации армии\" и военных \"фейках\", сообщи",
+      "url": "https://www.dw.com/ru/зампреду-яблока-льву-шлосбергу-запросили-более-12-лет-колонии/a-78369503?maca=rus-rss-ru-all-1126-rdf",
+      "imageUrl": null,
+      "images": [],
+      "source": "Deutsche Welle RU",
+      "category": "kultura",
+      "pubDate": "2026-08-14T11:30:00.000Z",
+      "relativeTime": "Vor 3 Std"
+    },
+    {
+      "id": "DW Политика-1-1786718069412",
+      "title": "Уроки Сеуты: миграция как оружие гибридной войны и шантажа",
+      "summary": "В последние годы мигранты все чаще используются для гибридной войны и шантажа, считают испанские эксперты, комментируя кризис в Сеуте. По их мнению нелегалы, становятся оружием авторитарных режимов пр",
+      "url": "https://www.dw.com/ru/уроки-сеуты-миграция-как-оружие-гибридной-войны-и-шантажа/a-78366210?maca=rus-rss-ru-pol-6381-rdf",
+      "imageUrl": null,
+      "images": [],
+      "source": "DW Политика",
+      "category": "politika",
+      "pubDate": "2026-08-14T11:30:00.000Z",
+      "relativeTime": "Vor 3 Std"
+    },
+    {
+      "id": "DW Мир-5-1786718069357",
+      "title": "Уроки Сеуты: миграция как оружие гибридной войны и шантажа",
+      "summary": "В последние годы мигранты все чаще используются для гибридной войны и шантажа, считают испанские эксперты, комментируя кризис в Сеуте. По их мнению нелегалы, становятся оружием авторитарных режимов пр",
+      "url": "https://www.dw.com/ru/уроки-сеуты-миграция-как-оружие-гибридной-войны-и-шантажа/a-78366210?maca=rus-rss-ru-all-1126-rdf",
+      "imageUrl": null,
+      "images": [],
+      "source": "DW Мир",
+      "category": "mir",
+      "pubDate": "2026-08-14T11:30:00.000Z",
+      "relativeTime": "Vor 3 Std"
+    },
+    {
+      "id": "DW Мир-6-1786718069357",
+      "title": "Зампреду \"Яблока\" Льву Шлосбергу запросили более 12 лет колонии",
+      "summary": "Прокуратура запросила зампредседателю партии \"Яблоко\" Льву Шлосбергу с учетом его предыдущего приговора 12 лет и 1 месяц колонии по статьям о повторной \"дискредитации армии\" и военных \"фейках\", сообщи",
+      "url": "https://www.dw.com/ru/зампреду-яблока-льву-шлосбергу-запросили-более-12-лет-колонии/a-78369503?maca=rus-rss-ru-all-1126-rdf",
+      "imageUrl": null,
+      "images": [],
+      "source": "DW Мир",
+      "category": "mir",
+      "pubDate": "2026-08-14T11:30:00.000Z",
+      "relativeTime": "Vor 3 Std"
+    },
+    {
+      "id": "Медиазона-7-1786718069139",
+      "title": "Сторонники Лады‑Русь рассказали о задержании активиста Давуда Адахова, который защищал фермеров, пострадавших от изъятия скота",
+      "summary": "",
+      "url": "https://zona.media/news/2026/08/14/chtoto",
+      "imageUrl": null,
+      "images": [],
+      "source": "Медиазона",
+      "category": "kultura",
+      "pubDate": "Fri, 14 Aug 2026 11:10:00 GMT",
+      "relativeTime": "Vor 3 Std"
+    },
+    {
+      "id": "Meduza-10-1786718069081",
+      "title": "На Сицилии уже больше недели извергается вулкан Этна. Аэропорт Катании закрыт из-за облака пепла. Вот как это выглядит",
+      "summary": "На восточном побережье Сицилии уже больше недели продолжается извержение крупнейшего вулкана Европы — Этны. По словам директора обсерватории при Национальном институте геофизики и вулканологии в Катан",
+      "url": "https://meduza.io/feature/2026/08/14/na-sitsilii-uzhe-bolshe-nedeli-izvergaetsya-vulkan-etna-aeroport-katanii-zakryt-iz-za-oblaka-pepla",
+      "imageUrl": "https://meduza.io/image/attachments/images/012/649/333/small/bEEbHTXtH5clUdME3jQAwA",
+      "images": [
+        "https://meduza.io/image/attachments/images/012/649/333/small/bEEbHTXtH5clUdME3jQAwA",
+        "https://meduza.io/image/attachments/images/012/649/373/small/m0F8OgBnYkUQ76HumKAgJw",
+        "https://meduza.io/image/attachments/images/012/649/383/small/WhGRr5pzt64rkU0rL0lxmw",
+        "https://meduza.io/image/attachments/images/012/649/391/small/IuVntGSgEpUFX5qxzZ5kFw",
+        "https://meduza.io/image/attachments/images/012/649/686/small/VSBXtQ1842eQfNwJfFCUSw",
+        "https://meduza.io/image/attachments/images/012/649/399/small/AyIuJCCZRzW75ygQzTsNwg",
+        "https://meduza.io/image/attachments/images/012/649/341/small/0TDZvECG-PFdLe8fvU46oA",
+        "https://meduza.io/image/attachments/images/012/649/357/small/PfTamKBrwthgM2N5Iru_Ww"
+      ],
+      "source": "Meduza",
+      "category": "kultura",
+      "pubDate": "Fri, 14 Aug 2026 14:07:24 +0300",
+      "relativeTime": "Vor 3 Std"
+    },
+    {
+      "id": "Meduza Новости-8-1786718069381",
+      "title": "На Сицилии уже больше недели извергается вулкан Этна. Аэропорт Катании закрыт из-за облака пепла. Вот как это выглядит",
+      "summary": "На восточном побережье Сицилии уже больше недели продолжается извержение крупнейшего вулкана Европы — Этны. По словам директора обсерватории при Национальном институте геофизики и вулканологии в Катан",
+      "url": "https://meduza.io/feature/2026/08/14/na-sitsilii-uzhe-bolshe-nedeli-izvergaetsya-vulkan-etna-aeroport-katanii-zakryt-iz-za-oblaka-pepla",
+      "imageUrl": "https://meduza.io/image/attachments/images/012/649/333/small/bEEbHTXtH5clUdME3jQAwA",
+      "images": [
+        "https://meduza.io/image/attachments/images/012/649/333/small/bEEbHTXtH5clUdME3jQAwA",
+        "https://meduza.io/image/attachments/images/012/649/373/small/m0F8OgBnYkUQ76HumKAgJw",
+        "https://meduza.io/image/attachments/images/012/649/383/small/WhGRr5pzt64rkU0rL0lxmw",
+        "https://meduza.io/image/attachments/images/012/649/391/small/IuVntGSgEpUFX5qxzZ5kFw",
+        "https://meduza.io/image/attachments/images/012/649/686/small/VSBXtQ1842eQfNwJfFCUSw",
+        "https://meduza.io/image/attachments/images/012/649/399/small/AyIuJCCZRzW75ygQzTsNwg",
+        "https://meduza.io/image/attachments/images/012/649/341/small/0TDZvECG-PFdLe8fvU46oA",
+        "https://meduza.io/image/attachments/images/012/649/357/small/PfTamKBrwthgM2N5Iru_Ww"
+      ],
+      "source": "Meduza Новости",
+      "category": "ekonomika",
+      "pubDate": "Fri, 14 Aug 2026 14:07:24 +0300",
+      "relativeTime": "Vor 3 Std"
+    },
+    {
+      "id": "Медиазона-8-1786718069139",
+      "title": "Суд в Москве заочно приговорил политика из Литвы к семи годам колонии по делу об оскорблении ветеранов и демонтаже мемориальных плит с памятника советским воинам",
+      "summary": "",
+      "url": "https://zona.media/news/2026/08/14/romualdas",
+      "imageUrl": null,
+      "images": [],
+      "source": "Медиазона",
+      "category": "kultura",
+      "pubDate": "Fri, 14 Aug 2026 11:04:57 GMT",
+      "relativeTime": "Vor 3 Std"
+    },
+    {
+      "id": "Deutsche Welle RU-7-1786718069205",
+      "title": "OpenAI планирует открыть офис в Берлине",
+      "summary": "Компания - разработчик ChatGPT в скором времени откроет второй офис в Германии после Мюнхена. Глава OpenAI Альтман в интервью Handelsblatt назвал ФРГ одним из ключевых рынков для компании - одного из ",
+      "url": "https://www.dw.com/ru/openai-планирует-открыть-офис-в-берлине/a-78368963?maca=rus-rss-ru-all-1126-rdf",
+      "imageUrl": null,
+      "images": [],
+      "source": "Deutsche Welle RU",
+      "category": "kultura",
+      "pubDate": "2026-08-14T11:04:00.000Z",
+      "relativeTime": "Vor 3 Std"
+    },
+    {
+      "id": "DW Политика-2-1786718069412",
+      "title": "OpenAI планирует открыть офис в Берлине",
+      "summary": "Компания - разработчик ChatGPT в скором времени откроет второй офис в Германии после Мюнхена. Глава OpenAI Альтман в интервью Handelsblatt назвал ФРГ одним из ключевых рынков для компании - одного из ",
+      "url": "https://www.dw.com/ru/openai-планирует-открыть-офис-в-берлине/a-78368963?maca=rus-rss-ru-pol-6381-rdf",
+      "imageUrl": null,
+      "images": [],
+      "source": "DW Политика",
+      "category": "politika",
+      "pubDate": "2026-08-14T11:04:00.000Z",
+      "relativeTime": "Vor 3 Std"
+    },
+    {
+      "id": "DW Мир-7-1786718069357",
+      "title": "OpenAI планирует открыть офис в Берлине",
+      "summary": "Компания - разработчик ChatGPT в скором времени откроет второй офис в Германии после Мюнхена. Глава OpenAI Альтман в интервью Handelsblatt назвал ФРГ одним из ключевых рынков для компании - одного из ",
+      "url": "https://www.dw.com/ru/openai-планирует-открыть-офис-в-берлине/a-78368963?maca=rus-rss-ru-all-1126-rdf",
+      "imageUrl": null,
+      "images": [],
+      "source": "DW Мир",
+      "category": "mir",
+      "pubDate": "2026-08-14T11:04:00.000Z",
+      "relativeTime": "Vor 3 Std"
+    },
+    {
+      "id": "BBC Русская служба-3-1786718069476",
+      "title": "Американский авианосец более 250 дней находится в море, родственники военных говорят о тяжелых условиях и попытках самоубийства на борту",
+      "summary": "Тысячи американских военнослужащих провели на борту авианосца уже более 250 дней, не сходя на берег. Они сталкиваются с нехваткой продовольствия и неисправной сантехникой, а их близкие опасаются за их",
+      "url": "https://www.bbc.com/russian/articles/c99824302j9o?at_medium=RSS&at_campaign=rss",
+      "imageUrl": null,
+      "images": [],
+      "source": "BBC Русская служба",
+      "category": "politika",
+      "pubDate": "Fri, 14 Aug 2026 10:57:12 GMT",
+      "relativeTime": "Vor 3 Std"
+    },
+    {
+      "id": "Meduza-11-1786718069081",
+      "title": "«Лучше на чужбине на свободе, чем на Родине за решеткой». Борис Надеждин рассказал, как уезжал из России",
+      "summary": "Политик Борис Надеждин опубликовал в своем телеграм-канале пост, в котором рассказал подробности о своем отъезде из России, чтобы не было «вопросов, конспирологии и домыслов».",
+      "url": "https://meduza.io/news/2026/08/14/luchshe-na-chuzhbine-na-svobode-chem-na-rodine-za-reshetkoy-boris-nadezhdin-rasskazal-kak-uezzhal-iz-rossii",
+      "imageUrl": null,
+      "images": [],
+      "source": "Meduza",
+      "category": "kultura",
+      "pubDate": "Fri, 14 Aug 2026 13:57:00 +0300",
+      "relativeTime": "Vor 3 Std"
+    },
+    {
+      "id": "Meduza Новости-9-1786718069381",
+      "title": "«Лучше на чужбине на свободе, чем на Родине за решеткой». Борис Надеждин рассказал, как уезжал из России",
+      "summary": "Политик Борис Надеждин опубликовал в своем телеграм-канале пост, в котором рассказал подробности о своем отъезде из России, чтобы не было «вопросов, конспирологии и домыслов».",
+      "url": "https://meduza.io/news/2026/08/14/luchshe-na-chuzhbine-na-svobode-chem-na-rodine-za-reshetkoy-boris-nadezhdin-rasskazal-kak-uezzhal-iz-rossii",
+      "imageUrl": null,
+      "images": [],
+      "source": "Meduza Новости",
+      "category": "ekonomika",
+      "pubDate": "Fri, 14 Aug 2026 13:57:00 +0300",
+      "relativeTime": "Vor 3 Std"
+    },
+    {
+      "id": "Медиазона-9-1786718069139",
+      "title": "Уральскому менеджеру IT‑компании, отсидевшему восемь лет за госизмену, запросили 6 лет строгого режима за донаты ФБК",
+      "summary": "",
+      "url": "https://zona.media/news/2026/08/14/gniteev",
+      "imageUrl": null,
+      "images": [],
+      "source": "Медиазона",
+      "category": "kultura",
+      "pubDate": "Fri, 14 Aug 2026 10:53:21 GMT",
+      "relativeTime": "Vor 3 Std"
+    },
+    {
+      "id": "Meduza-12-1786718069081",
+      "title": "В России создадут базу «Насильник-Педофил». Пользоваться ей сможет только МВД",
+      "summary": "В России создадут единую электронную базу лиц, совершивших сексуализированное насилие в отношении несовершеннолетних. Об этом телеграм-каналу Ксении Собчак «Кровавая барыня» рассказала депутат Госдумы",
+      "url": "https://meduza.io/news/2026/08/14/v-rossii-sozdadut-bazu-nasilnik-pedofil-polzovatsya-ey-smozhet-tolko-mvd",
+      "imageUrl": null,
+      "images": [],
+      "source": "Meduza",
+      "category": "kultura",
+      "pubDate": "Fri, 14 Aug 2026 13:48:31 +0300",
+      "relativeTime": "Vor 3 Std"
+    },
+    {
+      "id": "Meduza Новости-10-1786718069381",
+      "title": "В России создадут базу «Насильник-Педофил». Пользоваться ей сможет только МВД",
+      "summary": "В России создадут единую электронную базу лиц, совершивших сексуализированное насилие в отношении несовершеннолетних. Об этом телеграм-каналу Ксении Собчак «Кровавая барыня» рассказала депутат Госдумы",
+      "url": "https://meduza.io/news/2026/08/14/v-rossii-sozdadut-bazu-nasilnik-pedofil-polzovatsya-ey-smozhet-tolko-mvd",
+      "imageUrl": null,
+      "images": [],
+      "source": "Meduza Новости",
+      "category": "ekonomika",
+      "pubDate": "Fri, 14 Aug 2026 13:48:31 +0300",
+      "relativeTime": "Vor 3 Std"
+    },
+    {
+      "id": "BBC Русская служба-5-1786718069476",
+      "title": "Наводнения из-за рекордных ливней на востоке Японии: погибли восемь человек, 20 тыс. семей без электричества",
+      "summary": "В результате рекордных ливней в префектуре Тиба на востоке Японии погибли по меньшей мере восемь жителей, более 20 тыс. семей остались без электричества, а около 7 тыс. человек застряли в международно",
+      "url": "https://www.bbc.com/russian/articles/c5ywzgdjw04o?at_medium=RSS&at_campaign=rss",
+      "imageUrl": null,
+      "images": [],
+      "source": "BBC Русская служба",
+      "category": "politika",
+      "pubDate": "Fri, 14 Aug 2026 10:42:54 GMT",
+      "relativeTime": "Vor 3 Std"
+    },
+    {
+      "id": "Meduza-13-1786718069082",
+      "title": "Доля российской нефти в импорте Индии впервые превысила 50%",
+      "summary": "В июле доля российской нефти в индийском импорте впервые достигла рекордных 50,83%, сообщает Reuters, ссылаясь на данные источников в отрасли.",
+      "url": "https://meduza.io/news/2026/08/14/dolya-rossiyskoy-nefti-v-importe-indii-vpervye-prevysila-50",
+      "imageUrl": null,
+      "images": [],
+      "source": "Meduza",
+      "category": "kultura",
+      "pubDate": "Fri, 14 Aug 2026 13:33:00 +0300",
+      "relativeTime": "Vor 4 Std"
+    },
+    {
+      "id": "Meduza Новости-11-1786718069381",
+      "title": "Доля российской нефти в импорте Индии впервые превысила 50%",
+      "summary": "В июле доля российской нефти в индийском импорте впервые достигла рекордных 50,83%, сообщает Reuters, ссылаясь на данные источников в отрасли.",
+      "url": "https://meduza.io/news/2026/08/14/dolya-rossiyskoy-nefti-v-importe-indii-vpervye-prevysila-50",
+      "imageUrl": null,
+      "images": [],
+      "source": "Meduza Новости",
+      "category": "ekonomika",
+      "pubDate": "Fri, 14 Aug 2026 13:33:00 +0300",
+      "relativeTime": "Vor 4 Std"
+    },
+    {
+      "id": "Deutsche Welle RU-8-1786718069205",
+      "title": "РФ отвергла предложение Турции о прекращении ударов в Черном море",
+      "summary": "В России \"не видят предпосылок к улучшению ситуации\" и оснований соглашаться на прекращение ударов в Черном море, заявила представитель МИД РФ Захарова. Ранее Турция попросила отказаться от дальнейших",
+      "url": "https://www.dw.com/ru/рф-отвергла-предложение-турции-о-прекращении-ударов-в-черном-море/a-78367873?maca=rus-rss-ru-all-1126-rdf",
+      "imageUrl": null,
+      "images": [],
+      "source": "Deutsche Welle RU",
+      "category": "kultura",
+      "pubDate": "2026-08-14T10:22:00.000Z",
+      "relativeTime": "Vor 4 Std"
+    },
+    {
+      "id": "DW Мир-8-1786718069357",
+      "title": "РФ отвергла предложение Турции о прекращении ударов в Черном море",
+      "summary": "В России \"не видят предпосылок к улучшению ситуации\" и оснований соглашаться на прекращение ударов в Черном море, заявила представитель МИД РФ Захарова. Ранее Турция попросила отказаться от дальнейших",
+      "url": "https://www.dw.com/ru/рф-отвергла-предложение-турции-о-прекращении-ударов-в-черном-море/a-78367873?maca=rus-rss-ru-all-1126-rdf",
+      "imageUrl": null,
+      "images": [],
+      "source": "DW Мир",
+      "category": "mir",
+      "pubDate": "2026-08-14T10:22:00.000Z",
+      "relativeTime": "Vor 4 Std"
+    },
+    {
+      "id": "DW Украина-1-1786718069595",
+      "title": "РФ отвергла предложение Турции о прекращении ударов в Черном море",
+      "summary": "В России \"не видят предпосылок к улучшению ситуации\" и оснований соглашаться на прекращение ударов в Черном море, заявила представитель МИД РФ Захарова. Ранее Турция попросила отказаться от дальнейших",
+      "url": "https://www.dw.com/ru/рф-отвергла-предложение-турции-о-прекращении-ударов-в-черном-море/a-78367873?maca=rus-rss-ru-ukr-4456-rdf",
+      "imageUrl": null,
+      "images": [],
+      "source": "DW Украина",
+      "category": "ukraina",
+      "pubDate": "2026-08-14T10:22:00.000Z",
+      "relativeTime": "Vor 4 Std"
+    },
+    {
+      "id": "BBC Русская служба-0-1786718069476",
+      "title": "Наступление ВСУ на Александровском направлении: что о нем известно и каковы его перспективы",
+      "summary": "Результаты операции Вооруженных сил Украины на Александровском направлении — крупнейший территориальный успех ВСУ за три года. Но удалось ли украинским военным достичь всех поставленных целей?",
+      "url": "https://www.bbc.com/russian/articles/cdewj2530k1o?at_medium=RSS&at_campaign=rss",
+      "imageUrl": null,
+      "images": [],
+      "source": "BBC Русская служба",
+      "category": "politika",
+      "pubDate": "Fri, 14 Aug 2026 10:20:22 GMT",
+      "relativeTime": "Vor 4 Std"
+    },
+    {
+      "id": "Meduza-14-1786718069082",
+      "title": "Этим летом дроны ВСУ уже трижды ударили по Нижнекамску в Татарстане, где работают сразу два НПЗ. Вот как местные жители реагируют на войну в своем городе — и гибель 13 человек в результате последней атаки",
+      "summary": "Из-за атаки украинских дронов по Нижнекамску 10 августа погибли 13 человек, в том числе граждане Узбекистана и Таджикистана. В городе сразу же возник стихийный мемориал, куда жители несли цветы и свеч",
+      "url": "https://meduza.io/feature/2026/08/14/etim-letom-drony-vsu-uzhe-trizhdy-udarili-po-nizhnekamsku-gorodu-gde-rabotayut-srazu-dva-npz",
+      "imageUrl": "https://meduza.io/image/attachments/images/012/646/706/small/oceVuiyyFUoWrTot3H2jWg",
+      "images": [
+        "https://meduza.io/image/attachments/images/012/646/706/small/oceVuiyyFUoWrTot3H2jWg",
+        "https://meduza.io/image/attachments/images/012/647/304/small/ixjMoszP-_aSc_AHtPpLFg",
+        "https://meduza.io/image/attachments/images/012/647/315/small/dzlhSgqDzT6Bv67vc6ljpQ",
+        "https://meduza.io/image/attachments/images/012/647/255/small/gMJQDt7DBDC9AH22Bv2N9Q"
+      ],
+      "source": "Meduza",
+      "category": "kultura",
+      "pubDate": "Fri, 14 Aug 2026 13:03:36 +0300",
+      "relativeTime": "Vor 4 Std"
+    },
+    {
+      "id": "Meduza Новости-12-1786718069381",
+      "title": "Politico: Зеленский не может найти посла Украины в США — все кандидаты отказываются",
+      "summary": "Владимир Зеленский пытается найти нового посла Украины в США, но кандидаты на эту должность отказываются от назначения, рассказали Politico источники среди высокопоставленных украинских чиновников и н",
+      "url": "https://meduza.io/news/2026/08/14/politico-zelenskiy-ne-mozhet-nayti-posla-ukrainy-v-ssha-vse-kandidaty-otkazyvayutsya",
+      "imageUrl": null,
+      "images": [],
+      "source": "Meduza Новости",
+      "category": "ekonomika",
+      "pubDate": "Fri, 14 Aug 2026 13:01:33 +0300",
+      "relativeTime": "Vor 4 Std"
+    },
+    {
+      "id": "Meduza Новости-13-1786718069381",
+      "title": "На «Горбушку» пришли с обысками. Силовики ищут нелегальные криптообменники",
+      "summary": "Обыски проходят в «Новой Горбушке», расположенной в здании бывшего завода «Рубин», сообщили 14 августа корреспонденту РБК в администрации «Горбушки».",
+      "url": "https://meduza.io/news/2026/08/14/na-gorbushku-prishli-s-obyskami-siloviki-ischut-nelegalnye-kriptoobmenniki",
+      "imageUrl": null,
+      "images": [],
+      "source": "Meduza Новости",
+      "category": "ekonomika",
+      "pubDate": "Fri, 14 Aug 2026 12:50:40 +0300",
+      "relativeTime": "Vor 4 Std"
+    },
+    {
+      "id": "Deutsche Welle RU-9-1786718069205",
+      "title": "ФСБ сообщила о приговоре похищенному в Узбекистане россиянину",
+      "summary": "Покинувший Россию после начала войны Георгий Пирогов был приговорен к 23 годам колонии за работу на спецслужбы Польши, следует из заявления ФСБ. В 2024 году россиянин пропал в Узбекистане и оказался в",
+      "url": "https://www.dw.com/ru/фсб-сообщила-о-приговоре-похищенному-в-узбекистане-россиянину/a-78366162?maca=rus-rss-ru-all-1126-rdf",
+      "imageUrl": null,
+      "images": [],
+      "source": "Deutsche Welle RU",
+      "category": "kultura",
+      "pubDate": "2026-08-14T09:44:00.000Z",
+      "relativeTime": "Vor 4 Std"
+    },
+    {
+      "id": "DW Мир-9-1786718069357",
+      "title": "ФСБ сообщила о приговоре похищенному в Узбекистане россиянину",
+      "summary": "Покинувший Россию после начала войны Георгий Пирогов был приговорен к 23 годам колонии за работу на спецслужбы Польши, следует из заявления ФСБ. В 2024 году россиянин пропал в Узбекистане и оказался в",
+      "url": "https://www.dw.com/ru/фсб-сообщила-о-приговоре-похищенному-в-узбекистане-россиянину/a-78366162?maca=rus-rss-ru-all-1126-rdf",
+      "imageUrl": null,
+      "images": [],
+      "source": "DW Мир",
+      "category": "mir",
+      "pubDate": "2026-08-14T09:44:00.000Z",
+      "relativeTime": "Vor 4 Std"
+    },
+    {
+      "id": "Meduza Новости-14-1786718069381",
+      "title": "В МИД России отказались от перемирия с Украиной в Черном море",
+      "summary": "В МИД России заявили, что «не видят оснований» соглашаться на взаимное с Украиной перемирие в Черном море.",
+      "url": "https://meduza.io/news/2026/08/14/v-mid-rossii-otkazalis-ot-peremiriya-s-ukrainoy-v-chernom-more",
+      "imageUrl": null,
+      "images": [],
+      "source": "Meduza Новости",
+      "category": "ekonomika",
+      "pubDate": "Fri, 14 Aug 2026 12:34:21 +0300",
+      "relativeTime": "Vor 5 Std"
+    },
+    {
+      "id": "Deutsche Welle RU-10-1786718069207",
+      "title": "Ребенок и его мама погибли при ударе реактивным БПЛА в Сумской области",
+      "summary": "По сообщению главы Сумской ОВА, при ударе двумя реактивными дронами РФ по частному жилому дому в области погибли женщина и ребенок, еще четверо ранены. БПЛА попал в многоэтажку в Черкасской области, е",
+      "url": "https://www.dw.com/ru/ребенок-и-его-мама-погибли-при-ударе-реактивным-бпла-в-сумской-области/a-78366043?maca=rus-rss-ru-all-1126-rdf",
+      "imageUrl": null,
+      "images": [],
+      "source": "Deutsche Welle RU",
+      "category": "kultura",
+      "pubDate": "2026-08-14T09:32:00.000Z",
+      "relativeTime": "Vor 5 Std"
+    },
+    {
+      "id": "DW Мир-10-1786718069357",
+      "title": "Ребенок и его мама погибли при ударе реактивным БПЛА в Сумской области",
+      "summary": "По сообщению главы Сумской ОВА, при ударе двумя реактивными дронами РФ по частному жилому дому в области погибли женщина и ребенок, еще четверо ранены. БПЛА попал в многоэтажку в Черкасской области, е",
+      "url": "https://www.dw.com/ru/ребенок-и-его-мама-погибли-при-ударе-реактивным-бпла-в-сумской-области/a-78366043?maca=rus-rss-ru-all-1126-rdf",
+      "imageUrl": null,
+      "images": [],
+      "source": "DW Мир",
+      "category": "mir",
+      "pubDate": "2026-08-14T09:32:00.000Z",
+      "relativeTime": "Vor 5 Std"
+    },
+    {
+      "id": "DW Украина-2-1786718069595",
+      "title": "Ребенок и его мама погибли при ударе реактивным БПЛА в Сумской области",
+      "summary": "По сообщению главы Сумской ОВА, при ударе двумя реактивными дронами РФ по частному жилому дому в области погибли женщина и ребенок, еще четверо ранены. БПЛА попал в многоэтажку в Черкасской области, е",
+      "url": "https://www.dw.com/ru/ребенок-и-его-мама-погибли-при-ударе-реактивным-бпла-в-сумской-области/a-78366043?maca=rus-rss-ru-ukr-4456-rdf",
+      "imageUrl": null,
+      "images": [],
+      "source": "DW Украина",
+      "category": "ukraina",
+      "pubDate": "2026-08-14T09:32:00.000Z",
+      "relativeTime": "Vor 5 Std"
+    },
+    {
+      "id": "Медиазона-10-1786718069140",
+      "title": "Суд в Севастополе отправил в СИЗО 32‑летнюю россиянку по делу о подрыве офицера‑подводника",
+      "summary": "",
+      "url": "https://zona.media/news/2026/08/14/reutt",
+      "imageUrl": null,
+      "images": [],
+      "source": "Медиазона",
+      "category": "kultura",
+      "pubDate": "Fri, 14 Aug 2026 09:29:58 GMT",
+      "relativeTime": "Vor 5 Std"
+    },
+    {
+      "id": "Медиазона-11-1786718069140",
+      "title": "Зампреду «Яблока» Льву Шлосбергу запросили 12 лет и 1 месяц колонии за участие в дебатах о войне и репост «Эха Москвы» с обложкой Daily Mirror",
+      "summary": "",
+      "url": "https://zona.media/news/2026/08/14/lev",
+      "imageUrl": null,
+      "images": [],
+      "source": "Медиазона",
+      "category": "kultura",
+      "pubDate": "Fri, 14 Aug 2026 09:10:14 GMT",
+      "relativeTime": "Vor 5 Std"
+    },
+    {
+      "id": "Deutsche Welle RU-11-1786718069207",
+      "title": "Глава Еврокомиссии Урсула фон дер Ляйен ищет имена для цыплят",
+      "summary": "Председатель Еврокомиссии предложила подписчикам в Instagram подобрать имена двум цыплятам, появившимся на ее ферме в Нижней Саксонии.",
+      "url": "https://www.dw.com/ru/глава-еврокомиссии-урсула-фон-дер-ляйен-ищет-имена-для-цыплят/a-78357082?maca=rus-rss-ru-all-1126-rdf",
+      "imageUrl": null,
+      "images": [],
+      "source": "Deutsche Welle RU",
+      "category": "kultura",
+      "pubDate": "2026-08-14T09:02:00.000Z",
+      "relativeTime": "Vor 5 Std"
+    },
+    {
+      "id": "DW Мир-11-1786718069357",
+      "title": "Глава Еврокомиссии Урсула фон дер Ляйен ищет имена для цыплят",
+      "summary": "Председатель Еврокомиссии предложила подписчикам в Instagram подобрать имена двум цыплятам, появившимся на ее ферме в Нижней Саксонии.",
+      "url": "https://www.dw.com/ru/глава-еврокомиссии-урсула-фон-дер-ляйен-ищет-имена-для-цыплят/a-78357082?maca=rus-rss-ru-all-1126-rdf",
+      "imageUrl": null,
+      "images": [],
+      "source": "DW Мир",
+      "category": "mir",
+      "pubDate": "2026-08-14T09:02:00.000Z",
+      "relativeTime": "Vor 5 Std"
+    },
+    {
+      "id": "Deutsche Welle RU-12-1786718069207",
+      "title": "На западе ФРГ из-за лесного пожара эвакуировали 2000 человек",
+      "summary": "В горном массиве Айфель на западе Германии быстро распространяется лесной пожар, эвакуированы почти 2 тысячи жителей деревни Гай. Власти надеются ликвидировать возгорание в ближайшие часы.",
+      "url": "https://www.dw.com/ru/на-западе-фрг-из-за-лесного-пожара-эвакуировали-2000-человек/a-78364161?maca=rus-rss-ru-all-1126-rdf",
+      "imageUrl": null,
+      "images": [],
+      "source": "Deutsche Welle RU",
+      "category": "kultura",
+      "pubDate": "2026-08-14T08:42:00.000Z",
+      "relativeTime": "Vor 5 Std"
+    },
+    {
+      "id": "DW Мир-12-1786718069357",
+      "title": "На западе ФРГ из-за лесного пожара эвакуировали 2000 человек",
+      "summary": "В горном массиве Айфель на западе Германии быстро распространяется лесной пожар, эвакуированы почти 2 тысячи жителей деревни Гай. Власти надеются ликвидировать возгорание в ближайшие часы.",
+      "url": "https://www.dw.com/ru/на-западе-фрг-из-за-лесного-пожара-эвакуировали-2000-человек/a-78364161?maca=rus-rss-ru-all-1126-rdf",
+      "imageUrl": null,
+      "images": [],
+      "source": "DW Мир",
+      "category": "mir",
+      "pubDate": "2026-08-14T08:42:00.000Z",
+      "relativeTime": "Vor 5 Std"
+    },
+    {
+      "id": "Медиазона-12-1786718069140",
+      "title": "ФСБ: похищенному в Узбекистане россиянину Георгию Пирогову вменяли шпионаж в пользу Польши и переводы денег ВСУ",
+      "summary": "",
+      "url": "https://zona.media/news/2026/08/14/pirogov",
+      "imageUrl": null,
+      "images": [],
+      "source": "Медиазона",
+      "category": "kultura",
+      "pubDate": "Fri, 14 Aug 2026 08:28:27 GMT",
+      "relativeTime": "Vor 6 Std"
+    },
+    {
+      "id": "Deutsche Welle RU-13-1786718069207",
+      "title": "Осужденному критику Путина Жаку Тилли обеспечили будущее в Германии",
+      "summary": "Созданные немецким скульптором Жаком Тилли повозки на острые политические темы за долгие годы стали одним из символов карнавала в Дюссельдорфе. Что будет с ними, когда мастер решит отойти от дел?",
+      "url": "https://www.dw.com/ru/осужденному-критику-путина-жаку-тилли-обеспечили-будущее-в-германии/a-78355310?maca=rus-rss-ru-all-1126-rdf",
+      "imageUrl": null,
+      "images": [],
+      "source": "Deutsche Welle RU",
+      "category": "kultura",
+      "pubDate": "2026-08-14T07:47:00.000Z",
+      "relativeTime": "Vor 6 Std"
+    },
+    {
+      "id": "DW Мир-13-1786718069357",
+      "title": "Осужденному критику Путина Жаку Тилли обеспечили будущее в Германии",
+      "summary": "Созданные немецким скульптором Жаком Тилли повозки на острые политические темы за долгие годы стали одним из символов карнавала в Дюссельдорфе. Что будет с ними, когда мастер решит отойти от дел?",
+      "url": "https://www.dw.com/ru/осужденному-критику-путина-жаку-тилли-обеспечили-будущее-в-германии/a-78355310?maca=rus-rss-ru-all-1126-rdf",
+      "imageUrl": null,
+      "images": [],
+      "source": "DW Мир",
+      "category": "mir",
+      "pubDate": "2026-08-14T07:47:00.000Z",
+      "relativeTime": "Vor 6 Std"
+    },
+    {
+      "id": "Deutsche Welle RU-14-1786718069207",
+      "title": "В России удвоят количество запретных для полетов зон",
+      "summary": "В приказ Минтранса РФ включены 818 запретных для полета зон, пишет \"Коммерсант\". Сейчас в этом списке 374 зоны. Эксперт указывает на риск непредумышленного нарушения запретов и попадания лайнеров в зо",
+      "url": "https://www.dw.com/ru/в-россии-удвоят-количество-запретных-для-полетов-зон/a-78362879?maca=rus-rss-ru-all-1126-rdf",
+      "imageUrl": null,
+      "images": [],
+      "source": "Deutsche Welle RU",
+      "category": "kultura",
+      "pubDate": "2026-08-14T07:29:00.000Z",
+      "relativeTime": "Vor 7 Std"
+    },
+    {
+      "id": "DW Мир-14-1786718069358",
+      "title": "В России удвоят количество запретных для полетов зон",
+      "summary": "В приказ Минтранса РФ включены 818 запретных для полета зон, пишет \"Коммерсант\". Сейчас в этом списке 374 зоны. Эксперт указывает на риск непредумышленного нарушения запретов и попадания лайнеров в зо",
+      "url": "https://www.dw.com/ru/в-россии-удвоят-количество-запретных-для-полетов-зон/a-78362879?maca=rus-rss-ru-all-1126-rdf",
+      "imageUrl": null,
+      "images": [],
+      "source": "DW Мир",
+      "category": "mir",
+      "pubDate": "2026-08-14T07:29:00.000Z",
+      "relativeTime": "Vor 7 Std"
+    },
+    {
+      "id": "BBC Русская служба-6-1786718069476",
+      "title": "Фарадж победил Графа Урнолицего. Лидер Reform UK вернется в парламент после довыборов, которые бойкотировали основные партии",
       "summary": "Лидер правопопулистской британской партии Reform UK Найджел Фарадж победил на дополнительных выборах в избирательном округе Клактон на востоке Англии. Главным конкурентом Фараджа был Граф Урнолицый (C",
       "url": "https://www.bbc.com/russian/articles/cy0748qqe1wo?at_medium=RSS&at_campaign=rss",
       "imageUrl": null,
@@ -97,124 +1279,34 @@
       "source": "BBC Русская служба",
       "category": "politika",
       "pubDate": "Fri, 14 Aug 2026 06:12:37 GMT",
-      "relativeTime": "Vor 44 Min"
+      "relativeTime": "Vor 8 Std"
     },
     {
-      "id": "Meduza-1-1786690616007",
-      "title": "Трамп ввел пошлины в 100% на ввоз в США иностранных беспилотников и комплектующих",
-      "summary": "Дональд Трамп подписал прокламацию, которая вводит 100-процентные пошлины на беспилотники определенного размера, представляющие особую важность для национальной безопасности, сообщил Белый дом.",
-      "url": "https://meduza.io/news/2026/08/14/tramp-vvel-poshliny-v-100-na-vvoz-v-ssha-inostrannyh-bespilotnikov-i-komplektuyuschih",
+      "id": "Медиазона-13-1786718069140",
+      "title": "由Mediazona统计的俄乌战争俄军阵亡数据",
+      "summary": "截至7月31日，已确认23.9万人阵亡",
+      "url": "https://zona.media/article/2026/08/14/zhenwang",
       "imageUrl": null,
       "images": [],
-      "source": "Meduza",
+      "source": "Медиазона",
       "category": "kultura",
-      "pubDate": "Fri, 14 Aug 2026 09:06:38 +0300",
-      "relativeTime": "Vor 50 Min"
+      "pubDate": "Fri, 14 Aug 2026 06:00:00 GMT",
+      "relativeTime": "Vor 8 Std"
     },
     {
-      "id": "Meduza Новости-1-1786690616676",
-      "title": "Трамп ввел пошлины в 100% на ввоз в США иностранных беспилотников и комплектующих",
-      "summary": "Дональд Трамп подписал прокламацию, которая вводит 100-процентные пошлины на беспилотники определенного размера, представляющие особую важность для национальной безопасности, сообщил Белый дом.",
-      "url": "https://meduza.io/news/2026/08/14/tramp-vvel-poshliny-v-100-na-vvoz-v-ssha-inostrannyh-bespilotnikov-i-komplektuyuschih",
+      "id": "Медиазона-14-1786718069140",
+      "title": "Russian losses in the war with Ukraine. Mediazona count, updated",
+      "summary": "239,350 deaths confirmed by August 14",
+      "url": "https://zona.media/article/2026/08/14/casualties_eng-trl",
       "imageUrl": null,
       "images": [],
-      "source": "Meduza Новости",
-      "category": "ekonomika",
-      "pubDate": "Fri, 14 Aug 2026 09:06:38 +0300",
-      "relativeTime": "Vor 50 Min"
-    },
-    {
-      "id": "Хабр-2-1786690617396",
-      "title": "Ускоряем drop in replace Next.js в 100 раз. Часть 1",
-      "summary": "Как говорил классик: в 100 раз за Rust. Кажется, что название является кликбейтом. И такого быть в принципе не может. Но я запланировал цикл из трёх статей, в которых постараюсь рассказать, как достич",
-      "url": "https://habr.com/ru/companies/t2/articles/1066044/?utm_source=habrahabr&utm_medium=rss&utm_campaign=1066044",
-      "imageUrl": "https://habrastorage.org/getpro/habr/upload_files/523/dc9/e99/523dc9e99001fab029056cc20e0c67d1.webp",
-      "images": [
-        "https://habrastorage.org/getpro/habr/upload_files/523/dc9/e99/523dc9e99001fab029056cc20e0c67d1.webp"
-      ],
-      "source": "Хабр",
-      "category": "tekh",
-      "pubDate": "Fri, 14 Aug 2026 06:03:56 GMT",
-      "relativeTime": "Vor 53 Min"
-    },
-    {
-      "id": "Meduza-2-1786690616007",
-      "title": "В России планируют расширить ограничения на полеты. Запретных зон станет вдвое больше",
-      "summary": "Минтранс планирует расширить в список запретных зон для полета, включив в него зоны над объектами топливно-энергетического и оборонно-промышленного комплекса, а также транспортной инфраструктуры. С пр",
-      "url": "https://meduza.io/news/2026/08/14/v-rossii-planiruyut-rasshirit-ogranicheniya-na-polety-zapretnyh-zon-stanet-vdvoe-bolshe",
-      "imageUrl": null,
-      "images": [],
-      "source": "Meduza",
+      "source": "Медиазона",
       "category": "kultura",
-      "pubDate": "Fri, 14 Aug 2026 08:55:45 +0300",
-      "relativeTime": "Vor 1 Std"
+      "pubDate": "Fri, 14 Aug 2026 06:00:00 GMT",
+      "relativeTime": "Vor 8 Std"
     },
     {
-      "id": "Meduza Новости-2-1786690616676",
-      "title": "В России планируют расширить ограничения на полеты. Запретных зон станет вдвое больше",
-      "summary": "Минтранс планирует расширить в список запретных зон для полета, включив в него зоны над объектами топливно-энергетического и оборонно-промышленного комплекса, а также транспортной инфраструктуры. С пр",
-      "url": "https://meduza.io/news/2026/08/14/v-rossii-planiruyut-rasshirit-ogranicheniya-na-polety-zapretnyh-zon-stanet-vdvoe-bolshe",
-      "imageUrl": null,
-      "images": [],
-      "source": "Meduza Новости",
-      "category": "ekonomika",
-      "pubDate": "Fri, 14 Aug 2026 08:55:45 +0300",
-      "relativeTime": "Vor 1 Std"
-    },
-    {
-      "id": "Хабр-3-1786690617396",
-      "title": "Наш ответ Гогену. Часть девятая: от проблемы 2000 года до LLM",
-      "summary": "Рубеж 20 и 21 веков ознаменовался ожиданием наступления так называемой проблемы 2000 года, которая активно раскручивалась журналистами. Суть ее заключалась в том, что в некоторых ранних компьютерах и ",
-      "url": "https://habr.com/ru/articles/1037964/?utm_source=habrahabr&utm_medium=rss&utm_campaign=1037964",
-      "imageUrl": "https://habrastorage.org/getpro/habr/upload_files/745/97e/600/74597e6008569bb7458badf2280d614f.jpg",
-      "images": [
-        "https://habrastorage.org/getpro/habr/upload_files/745/97e/600/74597e6008569bb7458badf2280d614f.jpg"
-      ],
-      "source": "Хабр",
-      "category": "tekh",
-      "pubDate": "Fri, 14 Aug 2026 05:55:04 GMT",
-      "relativeTime": "Vor 1 Std"
-    },
-    {
-      "id": "Хабр-4-1786690617396",
-      "title": "Разработка через «ИИ» отбирает у программистов состояние потока?",
-      "summary": "Хочу обсудить с коллегами разработчиками один вопрос, чтобы понять — это лично моя проблема или нет, и если да — нашёл ли кто-то для неё решение? Эти руки пишут код...",
-      "url": "https://habr.com/ru/articles/1070358/?utm_source=habrahabr&utm_medium=rss&utm_campaign=1070358",
-      "imageUrl": "https://habrastorage.org/getpro/habr/upload_files/572/d39/cbd/572d39cbd99efe2a07e02efaa50c39ed.jpg",
-      "images": [
-        "https://habrastorage.org/getpro/habr/upload_files/572/d39/cbd/572d39cbd99efe2a07e02efaa50c39ed.jpg"
-      ],
-      "source": "Хабр",
-      "category": "tekh",
-      "pubDate": "Fri, 14 Aug 2026 05:47:09 GMT",
-      "relativeTime": "Vor 1 Std"
-    },
-    {
-      "id": "Deutsche Welle RU-1-1786690616214",
-      "title": "В порту Усть-Луга начался пожар после атаки дронов",
-      "summary": "Губернатор Ленинградской области Дрозденко сообщил об уничтожении над регионом 54 БПЛА и пожаре в балтийском порту Усть-Луга, через который РФ экспортирует нефть. Кроме того, атакован склад Wildberrie",
-      "url": "https://www.dw.com/ru/в-порту-усть-луга-начался-пожар-после-атаки-дронов/a-78361446?maca=rus-rss-ru-all-1126-rdf",
-      "imageUrl": null,
-      "images": [],
-      "source": "Deutsche Welle RU",
-      "category": "kultura",
-      "pubDate": "2026-08-14T05:40:00.000Z",
-      "relativeTime": "Vor 1 Std"
-    },
-    {
-      "id": "DW Мир-1-1786690616595",
-      "title": "В порту Усть-Луга начался пожар после атаки дронов",
-      "summary": "Губернатор Ленинградской области Дрозденко сообщил об уничтожении над регионом 54 БПЛА и пожаре в балтийском порту Усть-Луга, через который РФ экспортирует нефть. Кроме того, атакован склад Wildberrie",
-      "url": "https://www.dw.com/ru/в-порту-усть-луга-начался-пожар-после-атаки-дронов/a-78361446?maca=rus-rss-ru-all-1126-rdf",
-      "imageUrl": null,
-      "images": [],
-      "source": "DW Мир",
-      "category": "mir",
-      "pubDate": "2026-08-14T05:40:00.000Z",
-      "relativeTime": "Vor 1 Std"
-    },
-    {
-      "id": "DW Украина-0-1786690616847",
+      "id": "DW Украина-3-1786718069595",
       "title": "В порту Усть-Луга начался пожар после атаки дронов",
       "summary": "Губернатор Ленинградской области Дрозденко сообщил об уничтожении над регионом 54 БПЛА и пожаре в балтийском порту Усть-Луга, через который РФ экспортирует нефть. Кроме того, атакован склад Wildberrie",
       "url": "https://www.dw.com/ru/в-порту-усть-луга-начался-пожар-после-атаки-дронов/a-78361446?maca=rus-rss-ru-ukr-4456-rdf",
@@ -223,124 +1315,22 @@
       "source": "DW Украина",
       "category": "ukraina",
       "pubDate": "2026-08-14T05:40:00.000Z",
-      "relativeTime": "Vor 1 Std"
+      "relativeTime": "Vor 8 Std"
     },
     {
-      "id": "Хабр-5-1786690617396",
-      "title": "Чтение на выходные: книга про успех Pop Mart",
-      "summary": "Сегодня в рубрике — книга о том, как можно создать плюшевое золото. Да такое, что о нём, словно о поп-звезде, услышит весь мир. Даже если вы не знаете, как выглядит Лабубу, Molly или Skullpanda, инфор",
-      "url": "https://habr.com/ru/companies/onlinepatent/articles/1069638/?utm_source=habrahabr&utm_medium=rss&utm_campaign=1069638",
-      "imageUrl": "https://habrastorage.org/getpro/habr/upload_files/afc/3e6/b50/afc3e6b50fd2921f667e6d69dde96139.png",
-      "images": [
-        "https://habrastorage.org/getpro/habr/upload_files/afc/3e6/b50/afc3e6b50fd2921f667e6d69dde96139.png"
-      ],
-      "source": "Хабр",
-      "category": "tekh",
-      "pubDate": "Fri, 14 Aug 2026 05:30:29 GMT",
-      "relativeTime": "Vor 1 Std"
-    },
-    {
-      "id": "Meduza-3-1786690616008",
-      "title": "Ленинградскую область атаковали более 50 украинских беспилотников, загорелся порт Усть-Луга. Один из дронов залетел в Латвию, его сбили истребители НАТО",
-      "summary": "В Ленинградской области после атаки украинских беспилотников начался пожар в порту Усть-Луга, сообщил глава региона Александр Дрозденко.",
-      "url": "https://meduza.io/news/2026/08/14/leningradskuyu-oblast-atakovali-bolee-50-ukrainskih-bespilotnikov-zagorelsya-port-ust-luga-odin-iz-dronov-zaletel-v-latviyu-ego-sbili-istrebiteli-nato",
-      "imageUrl": null,
-      "images": [],
-      "source": "Meduza",
-      "category": "kultura",
-      "pubDate": "Fri, 14 Aug 2026 08:27:46 +0300",
-      "relativeTime": "Vor 1 Std"
-    },
-    {
-      "id": "Meduza Новости-3-1786690616676",
-      "title": "Ленинградскую область атаковали более 50 украинских беспилотников, загорелся порт Усть-Луга. Один из дронов залетел в Латвию, его сбили истребители НАТО",
-      "summary": "В Ленинградской области после атаки украинских беспилотников начался пожар в порту Усть-Луга, сообщил глава региона Александр Дрозденко.",
-      "url": "https://meduza.io/news/2026/08/14/leningradskuyu-oblast-atakovali-bolee-50-ukrainskih-bespilotnikov-zagorelsya-port-ust-luga-odin-iz-dronov-zaletel-v-latviyu-ego-sbili-istrebiteli-nato",
-      "imageUrl": null,
-      "images": [],
-      "source": "Meduza Новости",
-      "category": "ekonomika",
-      "pubDate": "Fri, 14 Aug 2026 08:27:46 +0300",
-      "relativeTime": "Vor 1 Std"
-    },
-    {
-      "id": "Хабр-6-1786690617396",
-      "title": "SEO трафик на сайте есть, а заявок нет. Я полез в серверные логи и посмотрел, кто на самом деле «ходит» на сайт",
-      "summary": "У сайта рос органический трафик, позиции были в порядке, а заявок всё равно не хватало. Клиент задал простой вопрос: «Если людей стало больше, где заявки?» Я полез не только в Метрику, но и в access.l",
-      "url": "https://habr.com/ru/articles/1070350/?utm_source=habrahabr&utm_medium=rss&utm_campaign=1070350",
-      "imageUrl": "https://habrastorage.org/getpro/habr/upload_files/452/39e/6f8/45239e6f86d9046d6ef9f5f41abc208d.png",
-      "images": [
-        "https://habrastorage.org/getpro/habr/upload_files/452/39e/6f8/45239e6f86d9046d6ef9f5f41abc208d.png"
-      ],
-      "source": "Хабр",
-      "category": "tekh",
-      "pubDate": "Fri, 14 Aug 2026 05:10:28 GMT",
-      "relativeTime": "Vor 1 Std"
-    },
-    {
-      "id": "Deutsche Welle RU-2-1786690616214",
-      "title": "Что может означать для войны в Украине отправка войск из КНДР",
-      "summary": "Киев утверждает, что Северная Корея готовится перебросить в Россию до 50 тысяч своих военных для поддержки Москвы в войне с Украиной. Эксперты считают это возможным, призывая быть острожными в оценках",
-      "url": "https://www.dw.com/ru/что-может-означать-для-войны-в-украине-отправка-войск-из-кндр/a-78357680?maca=rus-rss-ru-all-1126-rdf",
-      "imageUrl": null,
-      "images": [],
-      "source": "Deutsche Welle RU",
-      "category": "kultura",
-      "pubDate": "2026-08-14T05:05:00.000Z",
-      "relativeTime": "Vor 1 Std"
-    },
-    {
-      "id": "DW Политика-0-1786690616321",
-      "title": "Что может означать для войны в Украине отправка войск из КНДР",
-      "summary": "Киев утверждает, что Северная Корея готовится перебросить в Россию до 50 тысяч своих военных для поддержки Москвы в войне с Украиной. Эксперты считают это возможным, призывая быть острожными в оценках",
-      "url": "https://www.dw.com/ru/что-может-означать-для-войны-в-украине-отправка-войск-из-кндр/a-78357680?maca=rus-rss-ru-pol-6381-rdf",
+      "id": "DW Политика-3-1786718069412",
+      "title": "50 тысяч солдат для войны РФ в Украине: что это даст КНДР?",
+      "summary": "Киев утверждает, что Северная Корея готовится перебросить в Россию до 50 тысяч своих военных для поддержки Москвы в войне против Украины. Эксперты считают это возможным, призывая быть осторожными в оц",
+      "url": "https://www.dw.com/ru/50-тысяч-солдат-для-войны-рф-в-украине-что-это-даст-кндр/a-78357680?maca=rus-rss-ru-pol-6381-rdf",
       "imageUrl": null,
       "images": [],
       "source": "DW Политика",
       "category": "politika",
       "pubDate": "2026-08-14T05:05:00.000Z",
-      "relativeTime": "Vor 1 Std"
+      "relativeTime": "Vor 9 Std"
     },
     {
-      "id": "DW Мир-2-1786690616595",
-      "title": "Что может означать для войны в Украине отправка войск из КНДР",
-      "summary": "Киев утверждает, что Северная Корея готовится перебросить в Россию до 50 тысяч своих военных для поддержки Москвы в войне с Украиной. Эксперты считают это возможным, призывая быть острожными в оценках",
-      "url": "https://www.dw.com/ru/что-может-означать-для-войны-в-украине-отправка-войск-из-кндр/a-78357680?maca=rus-rss-ru-all-1126-rdf",
-      "imageUrl": null,
-      "images": [],
-      "source": "DW Мир",
-      "category": "mir",
-      "pubDate": "2026-08-14T05:05:00.000Z",
-      "relativeTime": "Vor 1 Std"
-    },
-    {
-      "id": "Meduza-4-1786690616008",
-      "title": "России грозят «адские» санкции — такой законопроект уже принял Сенат. Что в нем написано? И почему критики считают, что инициатива ударит по самим США?",
-      "summary": "7 августа Сенат США принял законопроект о новых санкциях против России. Эту инициативу на протяжении последнего года жизни активно лоббировал республиканец Линдси Грэм. Сенатор от Южной Каролины был и",
-      "url": "https://meduza.io/cards/rossii-grozyat-adskie-sanktsii-takoy-zakonoproekt-uzhe-prinyal-senat",
-      "imageUrl": null,
-      "images": [],
-      "source": "Meduza",
-      "category": "kultura",
-      "pubDate": "Fri, 14 Aug 2026 07:59:33 +0300",
-      "relativeTime": "Vor 1 Std"
-    },
-    {
-      "id": "Meduza-5-1786690616009",
-      "title": "Как в России убивают книжную индустрию. Объясняет литературный критик Галина Юзефович (Carnegie Politika)",
-      "summary": "Книжная индустрия во всем мире переживает не лучшие времена. Продажи падают, цены растут, люди все чаще предпочитают бумажной книге электронную, а электронной — видео в инстаграме или тиктоке. При это",
-      "url": "https://meduza.io/feature/2026/08/14/kak-v-rossii-ubivayut-knizhnuyu-industriyu",
-      "imageUrl": "https://meduza.io/image/attachments/images/012/645/336/small/N26FCGioZhI0kYUwnGG9OQ",
-      "images": [
-        "https://meduza.io/image/attachments/images/012/645/336/small/N26FCGioZhI0kYUwnGG9OQ"
-      ],
-      "source": "Meduza",
-      "category": "kultura",
-      "pubDate": "Fri, 14 Aug 2026 07:58:42 +0300",
-      "relativeTime": "Vor 1 Std"
-    },
-    {
-      "id": "BBC Русская служба-0-1786690617001",
+      "id": "BBC Русская служба-2-1786718069476",
       "title": "Битва за прошлое. В Тбилиси сносят символ эпохи Саакашвили",
       "summary": "В центре Тбилиси, в парке Рике, разбирают один из самых заметных и противоречивых объектов грузинской столицы: Музыкальный театр и выставочный зал, более известные как «трубы» или «кувшины Рике». Поче",
       "url": "https://www.bbc.com/russian/articles/c9356k4vlrpo?at_medium=RSS&at_campaign=rss",
@@ -349,60 +1339,10 @@
       "source": "BBC Русская служба",
       "category": "politika",
       "pubDate": "Fri, 14 Aug 2026 03:49:43 GMT",
-      "relativeTime": "Vor 3 Std"
+      "relativeTime": "Vor 10 Std"
     },
     {
-      "id": "Deutsche Welle RU-3-1786690616214",
-      "title": "RKI: Уже около 12 500 человек умерли от жары в Германии в 2026 году",
-      "summary": "Число преждевременных смертей в Германии, связанных с жарой, в 2026 году ко 2 августа составило как минимум 12 500 - такие данные опубликовал Институт имени Роберта Коха. Это рекордный показатель за п",
-      "url": "https://www.dw.com/ru/rki-уже-около-12-500-человек-умерли-от-жары-в-германии-в-2026-году/a-78361201?maca=rus-rss-ru-all-1126-rdf",
-      "imageUrl": null,
-      "images": [],
-      "source": "Deutsche Welle RU",
-      "category": "kultura",
-      "pubDate": "2026-08-14T03:35:00.000Z",
-      "relativeTime": "Vor 3 Std"
-    },
-    {
-      "id": "DW Мир-3-1786690616595",
-      "title": "RKI: Уже около 12 500 человек умерли от жары в Германии в 2026 году",
-      "summary": "Число преждевременных смертей в Германии, связанных с жарой, в 2026 году ко 2 августа составило как минимум 12 500 - такие данные опубликовал Институт имени Роберта Коха. Это рекордный показатель за п",
-      "url": "https://www.dw.com/ru/rki-уже-около-12-500-человек-умерли-от-жары-в-германии-в-2026-году/a-78361201?maca=rus-rss-ru-all-1126-rdf",
-      "imageUrl": null,
-      "images": [],
-      "source": "DW Мир",
-      "category": "mir",
-      "pubDate": "2026-08-14T03:35:00.000Z",
-      "relativeTime": "Vor 3 Std"
-    },
-    {
-      "id": "Хабр-7-1786690617396",
-      "title": "Зачем нужен ещё один инструмент обхода блокировок, если уже есть VPN",
-      "summary": "День выдался долгий и по-настоящему безрадостный. Сегодня произошло то, чего мы больше всего не любим: Туннельный Котик перестал помогать многим людям, и мы, вероятно, потеряли изрядную долю доверия.Б",
-      "url": "https://habr.com/ru/articles/1070352/?utm_source=habrahabr&utm_medium=rss&utm_campaign=1070352",
-      "imageUrl": "https://habrastorage.org/getpro/habr/upload_files/4cf/b85/947/4cfb859478d7f50edd2abd56e2cdb260.png",
-      "images": [
-        "https://habrastorage.org/getpro/habr/upload_files/4cf/b85/947/4cfb859478d7f50edd2abd56e2cdb260.png"
-      ],
-      "source": "Хабр",
-      "category": "tekh",
-      "pubDate": "Fri, 14 Aug 2026 03:28:14 GMT",
-      "relativeTime": "Vor 3 Std"
-    },
-    {
-      "id": "Deutsche Welle RU-4-1786690616214",
-      "title": "Хакеры, которых связывают с Россией, заявили о взломе 50 западных компаний",
-      "summary": "Хакерская группировка Cl0p, которую СМИ связывают с Россией, заявила о похищении информации почти у 50 мировых компаний, включая Philips, Shell, Fiserv и General Electric.",
-      "url": "https://www.dw.com/ru/хакеры-которых-связывают-с-россией-заявили-о-взломе-50-западных-компаний/a-78361106?maca=rus-rss-ru-all-1126-rdf",
-      "imageUrl": null,
-      "images": [],
-      "source": "Deutsche Welle RU",
-      "category": "kultura",
-      "pubDate": "2026-08-14T02:27:00.000Z",
-      "relativeTime": "Vor 4 Std"
-    },
-    {
-      "id": "DW Политика-1-1786690616321",
+      "id": "DW Политика-4-1786718069412",
       "title": "Хакеры, которых связывают с Россией, заявили о взломе 50 западных компаний",
       "summary": "Хакерская группировка Cl0p, которую СМИ связывают с Россией, заявила о похищении информации почти у 50 мировых компаний, включая Philips, Shell, Fiserv и General Electric.",
       "url": "https://www.dw.com/ru/хакеры-которых-связывают-с-россией-заявили-о-взломе-50-западных-компаний/a-78361106?maca=rus-rss-ru-pol-6381-rdf",
@@ -411,34 +1351,10 @@
       "source": "DW Политика",
       "category": "politika",
       "pubDate": "2026-08-14T02:27:00.000Z",
-      "relativeTime": "Vor 4 Std"
+      "relativeTime": "Vor 12 Std"
     },
     {
-      "id": "DW Мир-4-1786690616595",
-      "title": "Хакеры, которых связывают с Россией, заявили о взломе 50 западных компаний",
-      "summary": "Хакерская группировка Cl0p, которую СМИ связывают с Россией, заявила о похищении информации почти у 50 мировых компаний, включая Philips, Shell, Fiserv и General Electric.",
-      "url": "https://www.dw.com/ru/хакеры-которых-связывают-с-россией-заявили-о-взломе-50-западных-компаний/a-78361106?maca=rus-rss-ru-all-1126-rdf",
-      "imageUrl": null,
-      "images": [],
-      "source": "DW Мир",
-      "category": "mir",
-      "pubDate": "2026-08-14T02:27:00.000Z",
-      "relativeTime": "Vor 4 Std"
-    },
-    {
-      "id": "Deutsche Welle RU-5-1786690616214",
-      "title": "Трамп вводит тарифы до 100% на импорт дронов и их компонентов",
-      "summary": "Президент США Трамп распорядился ввести пошлины на импорт беспилотников и комплектующих к ним. Для БПЛА с максимальной взлетной массой более 25 кг и оснащенных тепловизорами тариф будет составлять 100",
-      "url": "https://www.dw.com/ru/трамп-вводит-тарифы-до-100-на-импорт-дронов-и-их-компонентов/a-78360626?maca=rus-rss-ru-all-1126-rdf",
-      "imageUrl": null,
-      "images": [],
-      "source": "Deutsche Welle RU",
-      "category": "kultura",
-      "pubDate": "2026-08-14T00:59:00.000Z",
-      "relativeTime": "Vor 5 Std"
-    },
-    {
-      "id": "DW Политика-2-1786690616321",
+      "id": "DW Политика-5-1786718069412",
       "title": "Трамп вводит тарифы до 100% на импорт дронов и их компонентов",
       "summary": "Президент США Трамп распорядился ввести пошлины на импорт беспилотников и комплектующих к ним. Для БПЛА с максимальной взлетной массой более 25 кг и оснащенных тепловизорами тариф будет составлять 100",
       "url": "https://www.dw.com/ru/трамп-вводит-тарифы-до-100-на-импорт-дронов-и-их-компонентов/a-78360626?maca=rus-rss-ru-pol-6381-rdf",
@@ -447,46 +1363,22 @@
       "source": "DW Политика",
       "category": "politika",
       "pubDate": "2026-08-14T00:59:00.000Z",
-      "relativeTime": "Vor 5 Std"
+      "relativeTime": "Vor 13 Std"
     },
     {
-      "id": "DW Мир-5-1786690616595",
-      "title": "Трамп вводит тарифы до 100% на импорт дронов и их компонентов",
-      "summary": "Президент США Трамп распорядился ввести пошлины на импорт беспилотников и комплектующих к ним. Для БПЛА с максимальной взлетной массой более 25 кг и оснащенных тепловизорами тариф будет составлять 100",
-      "url": "https://www.dw.com/ru/трамп-вводит-тарифы-до-100-на-импорт-дронов-и-их-компонентов/a-78360626?maca=rus-rss-ru-all-1126-rdf",
+      "id": "BBC Русская служба-12-1786718069476",
+      "title": "Как меняется Афганистан под властью талибов? Рассказывает Руслан Сулейманов из Кабула",
+      "summary": "И почему талибов признала Россия?",
+      "url": "https://www.bbc.com/russian/podcasts/p076qqzl/p0p4jpf7?at_medium=RSS&at_campaign=rss",
       "imageUrl": null,
       "images": [],
-      "source": "DW Мир",
-      "category": "mir",
-      "pubDate": "2026-08-14T00:59:00.000Z",
-      "relativeTime": "Vor 5 Std"
+      "source": "BBC Русская служба",
+      "category": "politika",
+      "pubDate": "Fri, 14 Aug 2026 00:00:00 GMT",
+      "relativeTime": "Vor 14 Std"
     },
     {
-      "id": "Deutsche Welle RU-6-1786690616214",
-      "title": "Россия ударила по Краматорску, есть погибший и раненые",
-      "summary": "ВС РФ вечером 13 августа нанесли серию ударов по городу Краматорск и близлежащему поселку Беленькое Донецкой области Украины. Предварительно, использовались авиабомбы. Известно об одном погибшем и 15 ",
-      "url": "https://www.dw.com/ru/россия-ударила-по-краматорску-есть-погибший-и-раненые/a-78360559?maca=rus-rss-ru-all-1126-rdf",
-      "imageUrl": null,
-      "images": [],
-      "source": "Deutsche Welle RU",
-      "category": "kultura",
-      "pubDate": "2026-08-13T23:45:00.000Z",
-      "relativeTime": "Vor 7 Std"
-    },
-    {
-      "id": "DW Мир-6-1786690616595",
-      "title": "Россия ударила по Краматорску, есть погибший и раненые",
-      "summary": "ВС РФ вечером 13 августа нанесли серию ударов по городу Краматорск и близлежащему поселку Беленькое Донецкой области Украины. Предварительно, использовались авиабомбы. Известно об одном погибшем и 15 ",
-      "url": "https://www.dw.com/ru/россия-ударила-по-краматорску-есть-погибший-и-раненые/a-78360559?maca=rus-rss-ru-all-1126-rdf",
-      "imageUrl": null,
-      "images": [],
-      "source": "DW Мир",
-      "category": "mir",
-      "pubDate": "2026-08-13T23:45:00.000Z",
-      "relativeTime": "Vor 7 Std"
-    },
-    {
-      "id": "DW Украина-1-1786690616848",
+      "id": "DW Украина-4-1786718069596",
       "title": "Россия ударила по Краматорску, есть погибший и раненые",
       "summary": "ВС РФ вечером 13 августа нанесли серию ударов по городу Краматорск и близлежащему поселку Беленькое Донецкой области Украины. Предварительно, использовались авиабомбы. Известно об одном погибшем и 15 ",
       "url": "https://www.dw.com/ru/россия-ударила-по-краматорску-есть-погибший-и-раненые/a-78360559?maca=rus-rss-ru-ukr-4456-rdf",
@@ -495,276 +1387,10 @@
       "source": "DW Украина",
       "category": "ukraina",
       "pubDate": "2026-08-13T23:45:00.000Z",
-      "relativeTime": "Vor 7 Std"
+      "relativeTime": "Vor 14 Std"
     },
     {
-      "id": "Хабр-8-1786690617396",
-      "title": "Pulsar. eBPF-based programmable networking dataplane (Статус: MVP)",
-      "summary": "Технология eBPF (extended Berkeley Packet Filter) берет свое начало от классического BPF, разработанного в начале 1990-х годов как механизма фильтрации сетевых пакетов, который впоследствии был реализ",
-      "url": "https://habr.com/ru/articles/1070346/?utm_source=habrahabr&utm_medium=rss&utm_campaign=1070346",
-      "imageUrl": "https://habrastorage.org/getpro/habr/upload_files/c8a/b3a/425/c8ab3a4250cc2df35bfb1a1189ab465e.png",
-      "images": [
-        "https://habrastorage.org/getpro/habr/upload_files/c8a/b3a/425/c8ab3a4250cc2df35bfb1a1189ab465e.png"
-      ],
-      "source": "Хабр",
-      "category": "tekh",
-      "pubDate": "Thu, 13 Aug 2026 23:14:06 GMT",
-      "relativeTime": "Vor 7 Std"
-    },
-    {
-      "id": "Deutsche Welle RU-7-1786690616214",
-      "title": "Эстония продлила ограничения работы КПП на границе с Россией",
-      "summary": "Правительство Эстонии бессрочно продлило 12-часовой режим работы автомобильных переходов на эстонско-российской границе и распространило его также на ж/д переходы. В Таллине объяснили это соображениям",
-      "url": "https://www.dw.com/ru/эстония-продлила-ограничения-работы-кпп-на-границе-с-россией/a-78360428?maca=rus-rss-ru-all-1126-rdf",
-      "imageUrl": null,
-      "images": [],
-      "source": "Deutsche Welle RU",
-      "category": "kultura",
-      "pubDate": "2026-08-13T22:49:00.000Z",
-      "relativeTime": "Vor 8 Std"
-    },
-    {
-      "id": "DW Мир-7-1786690616595",
-      "title": "Эстония продлила ограничения работы КПП на границе с Россией",
-      "summary": "Правительство Эстонии бессрочно продлило 12-часовой режим работы автомобильных переходов на эстонско-российской границе и распространило его также на ж/д переходы. В Таллине объяснили это соображениям",
-      "url": "https://www.dw.com/ru/эстония-продлила-ограничения-работы-кпп-на-границе-с-россией/a-78360428?maca=rus-rss-ru-all-1126-rdf",
-      "imageUrl": null,
-      "images": [],
-      "source": "DW Мир",
-      "category": "mir",
-      "pubDate": "2026-08-13T22:49:00.000Z",
-      "relativeTime": "Vor 8 Std"
-    },
-    {
-      "id": "Хабр-9-1786690617396",
-      "title": "Вышел Duskfade: стимпанк и платформинг",
-      "summary": "В стиме релизнулась игра Duskfade. Разработчиками выступила студия Weird Beluga, это их дебютный проект. Издает игру Fireshine Games, они же недавно выпустили получившую громкую огласку и множество по",
-      "url": "https://habr.com/ru/articles/1070344/?utm_source=habrahabr&utm_medium=rss&utm_campaign=1070344",
-      "imageUrl": "https://habrastorage.org/getpro/habr/upload_files/1a6/288/8bc/1a62888bcb1db14293a9c66309a64527.jpeg",
-      "images": [
-        "https://habrastorage.org/getpro/habr/upload_files/1a6/288/8bc/1a62888bcb1db14293a9c66309a64527.jpeg"
-      ],
-      "source": "Хабр",
-      "category": "tekh",
-      "pubDate": "Thu, 13 Aug 2026 22:12:01 GMT",
-      "relativeTime": "Vor 8 Std"
-    },
-    {
-      "id": "Deutsche Welle RU-8-1786690616214",
-      "title": "В Польше задержан россиянин, который мог готовить убийство гражданина США",
-      "summary": "Польские власти сообщили о задержании россиянина, который готовил покушение на человека с гражданством Украины и США. По словам премьера Туска, преступление удалось предотвратить в последний момент.",
-      "url": "https://www.dw.com/ru/в-польше-задержан-россиянин-который-мог-готовить-убийство-гражданина-сша/a-78360181?maca=rus-rss-ru-all-1126-rdf",
-      "imageUrl": null,
-      "images": [],
-      "source": "Deutsche Welle RU",
-      "category": "kultura",
-      "pubDate": "2026-08-13T21:34:00.000Z",
-      "relativeTime": "Vor 9 Std"
-    },
-    {
-      "id": "DW Мир-8-1786690616595",
-      "title": "В Польше задержан россиянин, который мог готовить убийство гражданина США",
-      "summary": "Польские власти сообщили о задержании россиянина, который готовил покушение на человека с гражданством Украины и США. По словам премьера Туска, преступление удалось предотвратить в последний момент.",
-      "url": "https://www.dw.com/ru/в-польше-задержан-россиянин-который-мог-готовить-убийство-гражданина-сша/a-78360181?maca=rus-rss-ru-all-1126-rdf",
-      "imageUrl": null,
-      "images": [],
-      "source": "DW Мир",
-      "category": "mir",
-      "pubDate": "2026-08-13T21:34:00.000Z",
-      "relativeTime": "Vor 9 Std"
-    },
-    {
-      "id": "Медиазона-0-1786690616241",
-      "title": "Московские нацболы провели акцию «Свободу узникам РКН» у здания Администрации президента; задержан один из активистов",
-      "summary": "",
-      "url": "https://zona.media/news/2026/08/13/banner",
-      "imageUrl": null,
-      "images": [],
-      "source": "Медиазона",
-      "category": "kultura",
-      "pubDate": "Thu, 13 Aug 2026 20:53:43 GMT",
-      "relativeTime": "Vor 10 Std"
-    },
-    {
-      "id": "Meduza-6-1786690616009",
-      "title": "Российские военные нанесли удар по Краматорску. Частично разрушен жилой дом",
-      "summary": "Войска России вечером 13 августа нанесли несколько ударов авиабомбами по городу Краматорску и селу Беленькое Донецкой области, сообщил глава региона Вадим Филашкин.",
-      "url": "https://meduza.io/news/2026/08/13/rossiyskie-voennye-nanesli-udar-po-kramatorsku-chastichno-razrushen-zhiloy-dom",
-      "imageUrl": null,
-      "images": [],
-      "source": "Meduza",
-      "category": "kultura",
-      "pubDate": "Thu, 13 Aug 2026 23:53:40 +0300",
-      "relativeTime": "Vor 10 Std"
-    },
-    {
-      "id": "Meduza Новости-4-1786690616676",
-      "title": "Российские военные нанесли удар по Краматорску. Частично разрушен жилой дом",
-      "summary": "Войска России вечером 13 августа нанесли несколько ударов авиабомбами по городу Краматорску и селу Беленькое Донецкой области, сообщил глава региона Вадим Филашкин.",
-      "url": "https://meduza.io/news/2026/08/13/rossiyskie-voennye-nanesli-udar-po-kramatorsku-chastichno-razrushen-zhiloy-dom",
-      "imageUrl": null,
-      "images": [],
-      "source": "Meduza Новости",
-      "category": "ekonomika",
-      "pubDate": "Thu, 13 Aug 2026 23:53:40 +0300",
-      "relativeTime": "Vor 10 Std"
-    },
-    {
-      "id": "Хабр-10-1786690617396",
-      "title": "[Перевод] Технооптимизм vs технопессимизм: два памфлета про эффективность LLM в кодинге",
-      "summary": "Как совсем недавно по историческим меркам мир разделился на сторонников социализма и капитализма, позднее на консерваторов/традиционалистов против сторонников глобализма и размывания границ. А теперь ",
-      "url": "https://habr.com/ru/articles/1069458/?utm_source=habrahabr&utm_medium=rss&utm_campaign=1069458",
-      "imageUrl": "https://habrastorage.org/getpro/habr/upload_files/280/5a8/a47/2805a8a47f51889f3ae4ba5e1c8ee23d.jpg",
-      "images": [
-        "https://habrastorage.org/getpro/habr/upload_files/280/5a8/a47/2805a8a47f51889f3ae4ba5e1c8ee23d.jpg"
-      ],
-      "source": "Хабр",
-      "category": "tekh",
-      "pubDate": "Thu, 13 Aug 2026 20:40:02 GMT",
-      "relativeTime": "Vor 10 Std"
-    },
-    {
-      "id": "Хабр-11-1786690617397",
-      "title": "Написал валидатор llms.txt на 64 тестах — и проверил, читают ли этот файл боты",
-      "summary": "Файл llms.txt предлагают класть в корень сайта с 2024 года: считается, что языковые модели прочитают его вместо того, чтобы разбирать вёрстку. Я написал для него генератор и валидатор, проделал 64 тес",
-      "url": "https://habr.com/ru/articles/1070334/?utm_source=habrahabr&utm_medium=rss&utm_campaign=1070334",
-      "imageUrl": "https://habrastorage.org/getpro/habr/upload_files/963/9e6/bd2/9639e6bd26e37d2b40020ee7e811d6ff.jpg",
-      "images": [
-        "https://habrastorage.org/getpro/habr/upload_files/963/9e6/bd2/9639e6bd26e37d2b40020ee7e811d6ff.jpg"
-      ],
-      "source": "Хабр",
-      "category": "tekh",
-      "pubDate": "Thu, 13 Aug 2026 20:36:41 GMT",
-      "relativeTime": "Vor 10 Std"
-    },
-    {
-      "id": "Хабр-12-1786690617397",
-      "title": "Когда уже ИИ дойдёт до менеджмента?",
-      "summary": "На Хабре в последнее время вышло две статьи про результаты, так сказать, \"внедрения\" ИИ в практики ИТ-отрасли: про сломанный найм (не очередная порция эмоций, а вполне законченное исследование вопроса",
-      "url": "https://habr.com/ru/articles/1069876/?utm_source=habrahabr&utm_medium=rss&utm_campaign=1069876",
-      "imageUrl": "https://habrastorage.org/getpro/habr/upload_files/10e/0bc/873/10e0bc8737bc79ef544e03d1a043b764.jpg",
-      "images": [
-        "https://habrastorage.org/getpro/habr/upload_files/10e/0bc/873/10e0bc8737bc79ef544e03d1a043b764.jpg"
-      ],
-      "source": "Хабр",
-      "category": "tekh",
-      "pubDate": "Thu, 13 Aug 2026 20:33:30 GMT",
-      "relativeTime": "Vor 10 Std"
-    },
-    {
-      "id": "Meduza-7-1786690616009",
-      "title": "Ангелина Мельникова стала чемпионкой Европы по спортивной гимнастике. Россияне выступили на этом турнире впервые за пять лет",
-      "summary": "Российская гимнастка Ангелина Мельникова стала чемпионкой Европы-2026 в личном многоборье. Она набрала 55,932 балла на турнире по спортивной гимнастике в Хорватии.",
-      "url": "https://meduza.io/news/2026/08/13/angelina-melnikova-stala-chempionkoy-evropy-po-sportivnoy-gimnastike-rossiyane-vystupili-na-etom-turnire-vpervye-za-pyat-let",
-      "imageUrl": null,
-      "images": [],
-      "source": "Meduza",
-      "category": "kultura",
-      "pubDate": "Thu, 13 Aug 2026 23:29:08 +0300",
-      "relativeTime": "Vor 10 Std"
-    },
-    {
-      "id": "Meduza Новости-5-1786690616676",
-      "title": "Ангелина Мельникова стала чемпионкой Европы по спортивной гимнастике. Россияне выступили на этом турнире впервые за пять лет",
-      "summary": "Российская гимнастка Ангелина Мельникова стала чемпионкой Европы-2026 в личном многоборье. Она набрала 55,932 балла на турнире по спортивной гимнастике в Хорватии.",
-      "url": "https://meduza.io/news/2026/08/13/angelina-melnikova-stala-chempionkoy-evropy-po-sportivnoy-gimnastike-rossiyane-vystupili-na-etom-turnire-vpervye-za-pyat-let",
-      "imageUrl": null,
-      "images": [],
-      "source": "Meduza Новости",
-      "category": "ekonomika",
-      "pubDate": "Thu, 13 Aug 2026 23:29:08 +0300",
-      "relativeTime": "Vor 10 Std"
-    },
-    {
-      "id": "Хабр-13-1786690617397",
-      "title": "Нейрохирург доказал гипотезу, над которой математики бились 22 года. Ему помог 16-часовой ран GPT-5.6",
-      "summary": "Математик Алекс Таунсенд весь последний год регулярно просил ChatGPT доказать гипотезу Крузе — открытую задачу матричного анализа, которой он занимается профессионально. И почти год получал одно и то ",
-      "url": "https://habr.com/ru/articles/1070328/?utm_source=habrahabr&utm_medium=rss&utm_campaign=1070328",
-      "imageUrl": "https://habrastorage.org/getpro/habr/upload_files/883/4d5/1bc/8834d51bca0b84398d1367287f208a70.jpg",
-      "images": [
-        "https://habrastorage.org/getpro/habr/upload_files/883/4d5/1bc/8834d51bca0b84398d1367287f208a70.jpg"
-      ],
-      "source": "Хабр",
-      "category": "tekh",
-      "pubDate": "Thu, 13 Aug 2026 19:45:52 GMT",
-      "relativeTime": "Vor 11 Std"
-    },
-    {
-      "id": "Meduza-8-1786690616009",
-      "title": "Финляндия отказала в убежище семье россиянина, который донатил ФБК и участвовал в протестах",
-      "summary": "Суд в Финляндии отклонил жалобу семьи россиянина Валентина Сергиенко на решение миграционной службы (Migri) страны, которая отказала им в политическом убежище. Об этом случае «Медиазоне» рассказала бы",
-      "url": "https://meduza.io/news/2026/08/13/finlyandiya-otkazala-v-ubezhische-semie-rossiyanina-kotoryy-donatil-fbk-i-uchastvoval-v-protestah",
-      "imageUrl": null,
-      "images": [],
-      "source": "Meduza",
-      "category": "kultura",
-      "pubDate": "Thu, 13 Aug 2026 22:41:03 +0300",
-      "relativeTime": "Vor 11 Std"
-    },
-    {
-      "id": "Meduza Новости-6-1786690616676",
-      "title": "Финляндия отказала в убежище семье россиянина, который донатил ФБК и участвовал в протестах",
-      "summary": "Суд в Финляндии отклонил жалобу семьи россиянина Валентина Сергиенко на решение миграционной службы (Migri) страны, которая отказала им в политическом убежище. Об этом случае «Медиазоне» рассказала бы",
-      "url": "https://meduza.io/news/2026/08/13/finlyandiya-otkazala-v-ubezhische-semie-rossiyanina-kotoryy-donatil-fbk-i-uchastvoval-v-protestah",
-      "imageUrl": null,
-      "images": [],
-      "source": "Meduza Новости",
-      "category": "ekonomika",
-      "pubDate": "Thu, 13 Aug 2026 22:41:03 +0300",
-      "relativeTime": "Vor 11 Std"
-    },
-    {
-      "id": "Хабр-14-1786690617397",
-      "title": "Структурированные логи в FastAPI: практический гайд от request_id до trace_id",
-      "summary": "Самая неприятная часть расследования инцидента начинается, когда нужные данные в логах вроде бы есть, но связать их между собой невозможно. Один запрос оставляет десятки строк, пользовательский контек",
-      "url": "https://habr.com/ru/companies/otus/articles/1067632/?utm_source=habrahabr&utm_medium=rss&utm_campaign=1067632",
-      "imageUrl": "https://habrastorage.org/getpro/habr/upload_files/764/3df/1d1/7643df1d14abae1dbcc1e7e07c57e27e.png",
-      "images": [
-        "https://habrastorage.org/getpro/habr/upload_files/764/3df/1d1/7643df1d14abae1dbcc1e7e07c57e27e.png"
-      ],
-      "source": "Хабр",
-      "category": "tekh",
-      "pubDate": "Thu, 13 Aug 2026 19:35:53 GMT",
-      "relativeTime": "Vor 11 Std"
-    },
-    {
-      "id": "Медиазона-1-1786690616241",
-      "title": "16‑летнего подростка из Ейска отправили в СИЗО за поджоги четырех машин с иностранными номерами и символикой 9 мая",
-      "summary": "",
-      "url": "https://zona.media/news/2026/08/13/auto",
-      "imageUrl": null,
-      "images": [],
-      "source": "Медиазона",
-      "category": "kultura",
-      "pubDate": "Thu, 13 Aug 2026 19:29:40 GMT",
-      "relativeTime": "Vor 11 Std"
-    },
-    {
-      "id": "Deutsche Welle RU-9-1786690616214",
-      "title": "ФРГ не исключает депортации новоприбывших украинцев призывного возраста",
-      "summary": "В соответствии с решением Совета ЕС Германия перестанет давать новоприбывшим украинцам призывного возраста без освобождения от службы временную защиту. В МВД ФРГ не исключают депортацию таких мужчин.",
-      "url": "https://www.dw.com/ru/фрг-не-исключает-депортации-новоприбывших-украинцев-призывного-возраста/a-78359578?maca=rus-rss-ru-all-1126-rdf",
-      "imageUrl": null,
-      "images": [],
-      "source": "Deutsche Welle RU",
-      "category": "kultura",
-      "pubDate": "2026-08-13T19:22:00.000Z",
-      "relativeTime": "Vor 11 Std"
-    },
-    {
-      "id": "DW Мир-9-1786690616595",
-      "title": "ФРГ не исключает депортации новоприбывших украинцев призывного возраста",
-      "summary": "В соответствии с решением Совета ЕС Германия перестанет давать новоприбывшим украинцам призывного возраста без освобождения от службы временную защиту. В МВД ФРГ не исключают депортацию таких мужчин.",
-      "url": "https://www.dw.com/ru/фрг-не-исключает-депортации-новоприбывших-украинцев-призывного-возраста/a-78359578?maca=rus-rss-ru-all-1126-rdf",
-      "imageUrl": null,
-      "images": [],
-      "source": "DW Мир",
-      "category": "mir",
-      "pubDate": "2026-08-13T19:22:00.000Z",
-      "relativeTime": "Vor 11 Std"
-    },
-    {
-      "id": "DW Украина-2-1786690616848",
+      "id": "DW Украина-5-1786718069596",
       "title": "ФРГ не исключает депортации новоприбывших украинцев призывного возраста",
       "summary": "В соответствии с решением Совета ЕС Германия перестанет давать новоприбывшим украинцам призывного возраста без освобождения от службы временную защиту. В МВД ФРГ не исключают депортацию таких мужчин.",
       "url": "https://www.dw.com/ru/фрг-не-исключает-депортации-новоприбывших-украинцев-призывного-возраста/a-78359578?maca=rus-rss-ru-ukr-4456-rdf",
@@ -773,34 +1399,10 @@
       "source": "DW Украина",
       "category": "ukraina",
       "pubDate": "2026-08-13T19:22:00.000Z",
-      "relativeTime": "Vor 11 Std"
+      "relativeTime": "Vor 19 Std"
     },
     {
-      "id": "Deutsche Welle RU-10-1786690616214",
-      "title": "В Италии произошел взрыв на поставляющем оружие в Украину заводе",
-      "summary": "На заводе оружейного конгломерата KNDS в Италии произошел мощный взрыв. Предприятие поставляет оружие в ВСУ и имеет представительство в Украине. Тремя днями ранее в Болгарии загорелся склад оружейного",
-      "url": "https://www.dw.com/ru/в-италии-произошел-взрыв-на-поставляющем-оружие-в-украину-заводе/a-78359540?maca=rus-rss-ru-all-1126-rdf",
-      "imageUrl": null,
-      "images": [],
-      "source": "Deutsche Welle RU",
-      "category": "kultura",
-      "pubDate": "2026-08-13T18:56:00.000Z",
-      "relativeTime": "Vor 12 Std"
-    },
-    {
-      "id": "DW Мир-10-1786690616595",
-      "title": "В Италии произошел взрыв на поставляющем оружие в Украину заводе",
-      "summary": "На заводе оружейного конгломерата KNDS в Италии произошел мощный взрыв. Предприятие поставляет оружие в ВСУ и имеет представительство в Украине. Тремя днями ранее в Болгарии загорелся склад оружейного",
-      "url": "https://www.dw.com/ru/в-италии-произошел-взрыв-на-поставляющем-оружие-в-украину-заводе/a-78359540?maca=rus-rss-ru-all-1126-rdf",
-      "imageUrl": null,
-      "images": [],
-      "source": "DW Мир",
-      "category": "mir",
-      "pubDate": "2026-08-13T18:56:00.000Z",
-      "relativeTime": "Vor 12 Std"
-    },
-    {
-      "id": "DW Украина-3-1786690616848",
+      "id": "DW Украина-6-1786718069596",
       "title": "В Италии произошел взрыв на поставляющем оружие в Украину заводе",
       "summary": "На заводе оружейного конгломерата KNDS в Италии произошел мощный взрыв. Предприятие поставляет оружие в ВСУ и имеет представительство в Украине. Тремя днями ранее в Болгарии загорелся склад оружейного",
       "url": "https://www.dw.com/ru/в-италии-произошел-взрыв-на-поставляющем-оружие-в-украину-заводе/a-78359540?maca=rus-rss-ru-ukr-4456-rdf",
@@ -809,106 +1411,10 @@
       "source": "DW Украина",
       "category": "ukraina",
       "pubDate": "2026-08-13T18:56:00.000Z",
-      "relativeTime": "Vor 12 Std"
+      "relativeTime": "Vor 19 Std"
     },
     {
-      "id": "BBC Русская служба-8-1786690617002",
-      "title": "Израильская армия обязала несколько палестинских семей покинуть свои дома. Ранее их осаждали поселенцы",
-      "summary": "Чуть более десятка палестинских семей получили предписание израильской армии покинуть свои дома на оккупированном Западном берегу реки Иордан на время военной операции, цель которой, по словам военных",
-      "url": "https://www.bbc.com/russian/articles/cgmkpky1pz0o?at_medium=RSS&at_campaign=rss",
-      "imageUrl": null,
-      "images": [],
-      "source": "BBC Русская служба",
-      "category": "politika",
-      "pubDate": "Thu, 13 Aug 2026 18:54:41 GMT",
-      "relativeTime": "Vor 12 Std"
-    },
-    {
-      "id": "Meduza-9-1786690616009",
-      "title": "«Все, ушла эпоха». Ютьюб-канал «This is Хорошо» закрывается",
-      "summary": "Юмористический ютьюб-канал «This is Хорошо» с обзорами вирусных видео закрывается, объявил блогер Стас Давыдов. Создатели решили закрыть канал после разбирательств из-за авторских прав на ролики, кото",
-      "url": "https://meduza.io/news/2026/08/13/vse-ushla-epoha-yutyub-kanal-this-is-horosho-zakryvaetsya",
-      "imageUrl": null,
-      "images": [],
-      "source": "Meduza",
-      "category": "kultura",
-      "pubDate": "Thu, 13 Aug 2026 21:43:14 +0300",
-      "relativeTime": "Vor 12 Std"
-    },
-    {
-      "id": "Meduza Новости-7-1786690616676",
-      "title": "«Все, ушла эпоха». Ютьюб-канал «This is Хорошо» закрывается",
-      "summary": "Юмористический ютьюб-канал «This is Хорошо» с обзорами вирусных видео закрывается, объявил блогер Стас Давыдов. Создатели решили закрыть канал после разбирательств из-за авторских прав на ролики, кото",
-      "url": "https://meduza.io/news/2026/08/13/vse-ushla-epoha-yutyub-kanal-this-is-horosho-zakryvaetsya",
-      "imageUrl": null,
-      "images": [],
-      "source": "Meduza Новости",
-      "category": "ekonomika",
-      "pubDate": "Thu, 13 Aug 2026 21:43:14 +0300",
-      "relativeTime": "Vor 12 Std"
-    },
-    {
-      "id": "Meduza-10-1786690616010",
-      "title": "Reuters: Украина предложила России перемирие в Черном море",
-      "summary": "Украина направила России предложение о взаимном прекращении ударов по гражданским целям в Черном море, сообщил источник Reuters, знакомый с ситуацией.",
-      "url": "https://meduza.io/news/2026/08/13/reuters-ukraina-predlozhila-rossii-peremirie-v-chernom-more",
-      "imageUrl": null,
-      "images": [],
-      "source": "Meduza",
-      "category": "kultura",
-      "pubDate": "Thu, 13 Aug 2026 20:40:10 +0300",
-      "relativeTime": "Vor 13 Std"
-    },
-    {
-      "id": "Meduza Новости-8-1786690616676",
-      "title": "Reuters: Украина предложила России перемирие в Черном море",
-      "summary": "Украина направила России предложение о взаимном прекращении ударов по гражданским целям в Черном море, сообщил источник Reuters, знакомый с ситуацией.",
-      "url": "https://meduza.io/news/2026/08/13/reuters-ukraina-predlozhila-rossii-peremirie-v-chernom-more",
-      "imageUrl": null,
-      "images": [],
-      "source": "Meduza Новости",
-      "category": "ekonomika",
-      "pubDate": "Thu, 13 Aug 2026 20:40:10 +0300",
-      "relativeTime": "Vor 13 Std"
-    },
-    {
-      "id": "Meduza-11-1786690616010",
-      "title": "ФСБ ликвидирует границу между Россией и аннексированными территориями Украины",
-      "summary": "ФСБ ликвидирует границу с оккупированными РФ территориями Украины в Ростовской и Воронежской областях, а также в аннексированном Крыму. На приказы ведомства обратило внимание издание «Агентство».",
-      "url": "https://meduza.io/news/2026/08/13/fsb-likvidiruet-granitsu-mezhdu-rossiey-i-anneksirovannymi-territoriyami-ukrainy",
-      "imageUrl": null,
-      "images": [],
-      "source": "Meduza",
-      "category": "kultura",
-      "pubDate": "Thu, 13 Aug 2026 20:32:07 +0300",
-      "relativeTime": "Vor 13 Std"
-    },
-    {
-      "id": "Meduza Новости-9-1786690616676",
-      "title": "ФСБ ликвидирует границу между Россией и аннексированными территориями Украины",
-      "summary": "ФСБ ликвидирует границу с оккупированными РФ территориями Украины в Ростовской и Воронежской областях, а также в аннексированном Крыму. На приказы ведомства обратило внимание издание «Агентство».",
-      "url": "https://meduza.io/news/2026/08/13/fsb-likvidiruet-granitsu-mezhdu-rossiey-i-anneksirovannymi-territoriyami-ukrainy",
-      "imageUrl": null,
-      "images": [],
-      "source": "Meduza Новости",
-      "category": "ekonomika",
-      "pubDate": "Thu, 13 Aug 2026 20:32:07 +0300",
-      "relativeTime": "Vor 13 Std"
-    },
-    {
-      "id": "Deutsche Welle RU-11-1786690616214",
-      "title": "Британская компания поднимет севший на мель танкер \"теневого флота\" РФ",
-      "summary": "Британская компания Ambrey Maritime Security объявила, что поднимет севший на мель у берегов Омана танкер \"теневого флота\" РФ. Нефть из его пробоины уже достигла побережья страны и нанесла ущерб экоси",
-      "url": "https://www.dw.com/ru/британская-компания-поднимет-севший-на-мель-танкер-теневого-флота-рф/a-78358968?maca=rus-rss-ru-all-1126-rdf",
-      "imageUrl": null,
-      "images": [],
-      "source": "Deutsche Welle RU",
-      "category": "kultura",
-      "pubDate": "2026-08-13T17:31:00.000Z",
-      "relativeTime": "Vor 13 Std"
-    },
-    {
-      "id": "DW Политика-3-1786690616321",
+      "id": "DW Политика-6-1786718069412",
       "title": "Британская компания поднимет севший на мель танкер \"теневого флота\" РФ",
       "summary": "Британская компания Ambrey Maritime Security объявила, что поднимет севший на мель у берегов Омана танкер \"теневого флота\" РФ. Нефть из его пробоины уже достигла побережья страны и нанесла ущерб экоси",
       "url": "https://www.dw.com/ru/британская-компания-поднимет-севший-на-мель-танкер-теневого-флота-рф/a-78358968?maca=rus-rss-ru-pol-6381-rdf",
@@ -917,74 +1423,10 @@
       "source": "DW Политика",
       "category": "politika",
       "pubDate": "2026-08-13T17:31:00.000Z",
-      "relativeTime": "Vor 13 Std"
+      "relativeTime": "Vor 21 Std"
     },
     {
-      "id": "DW Мир-11-1786690616595",
-      "title": "Британская компания поднимет севший на мель танкер \"теневого флота\" РФ",
-      "summary": "Британская компания Ambrey Maritime Security объявила, что поднимет севший на мель у берегов Омана танкер \"теневого флота\" РФ. Нефть из его пробоины уже достигла побережья страны и нанесла ущерб экоси",
-      "url": "https://www.dw.com/ru/британская-компания-поднимет-севший-на-мель-танкер-теневого-флота-рф/a-78358968?maca=rus-rss-ru-all-1126-rdf",
-      "imageUrl": null,
-      "images": [],
-      "source": "DW Мир",
-      "category": "mir",
-      "pubDate": "2026-08-13T17:31:00.000Z",
-      "relativeTime": "Vor 13 Std"
-    },
-    {
-      "id": "Медиазона-2-1786690616241",
-      "title": "Жителя Орехово‑Зуево отправили в СИЗО за перевод «звездами» телеграм‑каналу РДК",
-      "summary": "",
-      "url": "https://zona.media/news/2026/08/13/stars",
-      "imageUrl": null,
-      "images": [],
-      "source": "Медиазона",
-      "category": "kultura",
-      "pubDate": "Thu, 13 Aug 2026 17:22:55 GMT",
-      "relativeTime": "Vor 13 Std"
-    },
-    {
-      "id": "Meduza-12-1786690616010",
-      "title": "«Я и есть пруф». Игорь Волобуев — бывший пиарщик Газпромбанка, ставший бойцом ВСУ, — продвигает движение «Черная искра». Это якобы новая группа российских подпольщиков, помогающая украинским войскам бить по НПЗ. Вот что о ней известно",
-      "summary": "«Русская служба Би-би-си» взяла интервью у Игоря Волобуева — бывшего топ-менеджера «Газпрома» и Газпромбанка, который теперь воюет в рядах ВСУ. Волобуев родился в Украине, больше 30 лет прожил в Росси",
-      "url": "https://meduza.io/feature/2026/08/13/ya-i-est-pruf-igor-volobuev-byvshiy-piarschik-gazprombanka-stavshiy-boytsom-vsu-prodvigaet-dvizhenie-chernaya-iskra",
-      "imageUrl": "https://meduza.io/image/attachments/images/012/645/960/small/YPN4bN3ZKOyob7VXhhfpMw",
-      "images": [
-        "https://meduza.io/image/attachments/images/012/645/960/small/YPN4bN3ZKOyob7VXhhfpMw",
-        "https://meduza.io/image/attachments/images/012/646/898/small/1y3kQTDaBnobeCS4q1H-bg",
-        "https://meduza.io/image/attachments/images/012/647/094/small/C-rBGUpjFGzHobJGWJz70w"
-      ],
-      "source": "Meduza",
-      "category": "kultura",
-      "pubDate": "Thu, 13 Aug 2026 20:20:07 +0300",
-      "relativeTime": "Vor 13 Std"
-    },
-    {
-      "id": "Meduza-13-1786690616010",
-      "title": "Instagram впервые за 10 лет сменил логотип",
-      "summary": "Соцсеть Instagram впервые с 2016 года изменила логотип в верхней части интерфейса, сообщил глава компании Адам Моссери.",
-      "url": "https://meduza.io/news/2026/08/13/instagram-vpervye-za-10-let-smenil-logotip",
-      "imageUrl": null,
-      "images": [],
-      "source": "Meduza",
-      "category": "kultura",
-      "pubDate": "Thu, 13 Aug 2026 19:47:15 +0300",
-      "relativeTime": "Vor 14 Std"
-    },
-    {
-      "id": "Meduza Новости-10-1786690616676",
-      "title": "Instagram впервые за 10 лет сменил логотип",
-      "summary": "Соцсеть Instagram впервые с 2016 года изменила логотип в верхней части интерфейса, сообщил глава компании Адам Моссери.",
-      "url": "https://meduza.io/news/2026/08/13/instagram-vpervye-za-10-let-smenil-logotip",
-      "imageUrl": null,
-      "images": [],
-      "source": "Meduza Новости",
-      "category": "ekonomika",
-      "pubDate": "Thu, 13 Aug 2026 19:47:15 +0300",
-      "relativeTime": "Vor 14 Std"
-    },
-    {
-      "id": "BBC Русская служба-3-1786690617002",
+      "id": "BBC Русская служба-7-1786718069476",
       "title": "На заводе боеприпасов под Римом произошел взрыв",
       "summary": "В пригороде Рима Коллеферро произошел взрыв на заводе боеприпасов. Данных о пострадавших нет: все сотрудники, которые были в тот момент на предприятии, находятся в безопасности. Причина взрыва неизвес",
       "url": "https://www.bbc.com/russian/articles/cjd4p7p8mnvo?at_medium=RSS&at_campaign=rss",
@@ -993,58 +1435,10 @@
       "source": "BBC Русская служба",
       "category": "politika",
       "pubDate": "Thu, 13 Aug 2026 16:39:26 GMT",
-      "relativeTime": "Vor 14 Std"
+      "relativeTime": "Vor 21 Std"
     },
     {
-      "id": "Meduza-14-1786690616010",
-      "title": "Партии «Родина» отказали в регистрации на выборах в Свердловской области. «Яблоко» допустили",
-      "summary": "Избирательная комиссия Свердловской области отклонила список кандидатов от провоенной партии «Родина» на выборах в депутаты законодательного собрания региона.",
-      "url": "https://meduza.io/news/2026/08/13/partii-rodina-otkazali-v-registratsii-na-vyborah-v-sverdlovskoy-oblasti-yabloko-dopustili",
-      "imageUrl": null,
-      "images": [],
-      "source": "Meduza",
-      "category": "kultura",
-      "pubDate": "Thu, 13 Aug 2026 19:23:02 +0300",
-      "relativeTime": "Vor 14 Std"
-    },
-    {
-      "id": "Meduza Новости-11-1786690616676",
-      "title": "Партии «Родина» отказали в регистрации на выборах в Свердловской области. «Яблоко» допустили",
-      "summary": "Избирательная комиссия Свердловской области отклонила список кандидатов от провоенной партии «Родина» на выборах в депутаты законодательного собрания региона.",
-      "url": "https://meduza.io/news/2026/08/13/partii-rodina-otkazali-v-registratsii-na-vyborah-v-sverdlovskoy-oblasti-yabloko-dopustili",
-      "imageUrl": null,
-      "images": [],
-      "source": "Meduza Новости",
-      "category": "ekonomika",
-      "pubDate": "Thu, 13 Aug 2026 19:23:02 +0300",
-      "relativeTime": "Vor 14 Std"
-    },
-    {
-      "id": "Deutsche Welle RU-12-1786690616214",
-      "title": "Forbes: Общие потери Wildberries и продавцов могут достичь 800 млрд рублей",
-      "summary": "Общие потери Wildberries и продавцов маркетплейса от ударов украинских дронов за последний месяц могут достигнуть 800 млрд рублей, считают аналитики. Правительство РФ готовит меры поддержки для компан",
-      "url": "https://www.dw.com/ru/forbes-общие-потери-wildberries-и-продавцов-могут-достичь-800-млрд-рублей/a-78358259?maca=rus-rss-ru-all-1126-rdf",
-      "imageUrl": null,
-      "images": [],
-      "source": "Deutsche Welle RU",
-      "category": "kultura",
-      "pubDate": "2026-08-13T16:17:00.000Z",
-      "relativeTime": "Vor 14 Std"
-    },
-    {
-      "id": "DW Мир-12-1786690616595",
-      "title": "Forbes: Общие потери Wildberries и продавцов могут достичь 800 млрд рублей",
-      "summary": "Общие потери Wildberries и продавцов маркетплейса от ударов украинских дронов за последний месяц могут достигнуть 800 млрд рублей, считают аналитики. Правительство РФ готовит меры поддержки для компан",
-      "url": "https://www.dw.com/ru/forbes-общие-потери-wildberries-и-продавцов-могут-достичь-800-млрд-рублей/a-78358259?maca=rus-rss-ru-all-1126-rdf",
-      "imageUrl": null,
-      "images": [],
-      "source": "DW Мир",
-      "category": "mir",
-      "pubDate": "2026-08-13T16:17:00.000Z",
-      "relativeTime": "Vor 14 Std"
-    },
-    {
-      "id": "DW Украина-4-1786690616848",
+      "id": "DW Украина-7-1786718069596",
       "title": "Forbes: Общие потери Wildberries и продавцов могут достичь 800 млрд рублей",
       "summary": "Общие потери Wildberries и продавцов маркетплейса от ударов украинских дронов за последний месяц могут достигнуть 800 млрд рублей, считают аналитики. Правительство РФ готовит меры поддержки для компан",
       "url": "https://www.dw.com/ru/forbes-общие-потери-wildberries-и-продавцов-могут-достичь-800-млрд-рублей/a-78358259?maca=rus-rss-ru-ukr-4456-rdf",
@@ -1053,34 +1447,10 @@
       "source": "DW Украина",
       "category": "ukraina",
       "pubDate": "2026-08-13T16:17:00.000Z",
-      "relativeTime": "Vor 14 Std"
+      "relativeTime": "Vor 22 Std"
     },
     {
-      "id": "Meduza Новости-12-1786690616676",
-      "title": "В России появится полноценный маркетплейс для военных — «Рой.Маркет»",
-      "summary": "Сервис «Рой.Маркет», на котором предлагаются товары двойного назначения, перезапускается как полноценный маркетплейс для военных. Об этом пишет «Коммерсант».",
-      "url": "https://meduza.io/news/2026/08/13/v-rossii-poyavitsya-polnotsennyy-marketpleys-dlya-voennyh-roy-market",
-      "imageUrl": null,
-      "images": [],
-      "source": "Meduza Новости",
-      "category": "ekonomika",
-      "pubDate": "Thu, 13 Aug 2026 19:08:42 +0300",
-      "relativeTime": "Vor 14 Std"
-    },
-    {
-      "id": "Deutsche Welle RU-13-1786690616214",
-      "title": "50 тысяч солдат КНДР? Действительно ли России не хватает ресурсов?",
-      "summary": "Украинские власти заявляют, что Россия намерена разместить на своей территории до 50 тысяч северокорейских военнослужащих и наращивает использование ракет из КНДР. Насколько это правдоподобно и на что",
-      "url": "https://www.dw.com/ru/50-тысяч-солдат-кндр-действительно-ли-россии-не-хватает-ресурсов/a-78356714?maca=rus-rss-ru-all-1126-rdf",
-      "imageUrl": null,
-      "images": [],
-      "source": "Deutsche Welle RU",
-      "category": "kultura",
-      "pubDate": "2026-08-13T15:55:00.000Z",
-      "relativeTime": "Vor 15 Std"
-    },
-    {
-      "id": "DW Политика-4-1786690616321",
+      "id": "DW Политика-7-1786718069412",
       "title": "50 тысяч солдат КНДР? Действительно ли России не хватает ресурсов?",
       "summary": "Украинские власти заявляют, что Россия намерена разместить на своей территории до 50 тысяч северокорейских военнослужащих и наращивает использование ракет из КНДР. Насколько это правдоподобно и на что",
       "url": "https://www.dw.com/ru/50-тысяч-солдат-кндр-действительно-ли-россии-не-хватает-ресурсов/a-78356714?maca=rus-rss-ru-pol-6381-rdf",
@@ -1089,22 +1459,10 @@
       "source": "DW Политика",
       "category": "politika",
       "pubDate": "2026-08-13T15:55:00.000Z",
-      "relativeTime": "Vor 15 Std"
+      "relativeTime": "Vor 22 Std"
     },
     {
-      "id": "DW Мир-13-1786690616595",
-      "title": "50 тысяч солдат КНДР? Действительно ли России не хватает ресурсов?",
-      "summary": "Украинские власти заявляют, что Россия намерена разместить на своей территории до 50 тысяч северокорейских военнослужащих и наращивает использование ракет из КНДР. Насколько это правдоподобно и на что",
-      "url": "https://www.dw.com/ru/50-тысяч-солдат-кндр-действительно-ли-россии-не-хватает-ресурсов/a-78356714?maca=rus-rss-ru-all-1126-rdf",
-      "imageUrl": null,
-      "images": [],
-      "source": "DW Мир",
-      "category": "mir",
-      "pubDate": "2026-08-13T15:55:00.000Z",
-      "relativeTime": "Vor 15 Std"
-    },
-    {
-      "id": "DW Украина-5-1786690616848",
+      "id": "DW Украина-8-1786718069596",
       "title": "50 тысяч солдат КНДР? Действительно ли России не хватает ресурсов?",
       "summary": "Украинские власти заявляют, что Россия намерена разместить на своей территории до 50 тысяч северокорейских военнослужащих и наращивает использование ракет из КНДР. Насколько это правдоподобно и на что",
       "url": "https://www.dw.com/ru/50-тысяч-солдат-кндр-действительно-ли-россии-не-хватает-ресурсов/a-78356714?maca=rus-rss-ru-ukr-4456-rdf",
@@ -1113,34 +1471,10 @@
       "source": "DW Украина",
       "category": "ukraina",
       "pubDate": "2026-08-13T15:55:00.000Z",
-      "relativeTime": "Vor 15 Std"
+      "relativeTime": "Vor 22 Std"
     },
     {
-      "id": "Deutsche Welle RU-14-1786690616214",
-      "title": "Последний из трех зерновых терминалов Новороссийска приостановил работу",
-      "summary": "Зерновой терминал КСК сообщил о временном прекращении операций \"в целях обеспечения безопасности работников и инфраструктуры\". Ранее из-за атак БПЛА приостановили работу ООО \"НЗТ\" и ПАО \"НКХП\".",
-      "url": "https://www.dw.com/ru/последний-из-трех-зерновых-терминалов-новороссийска-приостановил-работу/a-78358173?maca=rus-rss-ru-all-1126-rdf",
-      "imageUrl": null,
-      "images": [],
-      "source": "Deutsche Welle RU",
-      "category": "kultura",
-      "pubDate": "2026-08-13T15:46:00.000Z",
-      "relativeTime": "Vor 15 Std"
-    },
-    {
-      "id": "DW Мир-14-1786690616595",
-      "title": "Последний из трех зерновых терминалов Новороссийска приостановил работу",
-      "summary": "Зерновой терминал КСК сообщил о временном прекращении операций \"в целях обеспечения безопасности работников и инфраструктуры\". Ранее из-за атак БПЛА приостановили работу ООО \"НЗТ\" и ПАО \"НКХП\".",
-      "url": "https://www.dw.com/ru/последний-из-трех-зерновых-терминалов-новороссийска-приостановил-работу/a-78358173?maca=rus-rss-ru-all-1126-rdf",
-      "imageUrl": null,
-      "images": [],
-      "source": "DW Мир",
-      "category": "mir",
-      "pubDate": "2026-08-13T15:46:00.000Z",
-      "relativeTime": "Vor 15 Std"
-    },
-    {
-      "id": "DW Украина-6-1786690616875",
+      "id": "DW Украина-9-1786718069596",
       "title": "Последний из трех зерновых терминалов Новороссийска приостановил работу",
       "summary": "Зерновой терминал КСК сообщил о временном прекращении операций \"в целях обеспечения безопасности работников и инфраструктуры\". Ранее из-за атак БПЛА приостановили работу ООО \"НЗТ\" и ПАО \"НКХП\".",
       "url": "https://www.dw.com/ru/последний-из-трех-зерновых-терминалов-новороссийска-приостановил-работу/a-78358173?maca=rus-rss-ru-ukr-4456-rdf",
@@ -1149,72 +1483,10 @@
       "source": "DW Украина",
       "category": "ukraina",
       "pubDate": "2026-08-13T15:46:00.000Z",
-      "relativeTime": "Vor 15 Std"
+      "relativeTime": "Vor 22 Std"
     },
     {
-      "id": "Meduza Новости-13-1786690616676",
-      "title": "До сегодняшнего дня Путин ни разу не ездил на Курилы. Потому что хотел заключить мирный договор с Японией — но все изменила война с Украиной. Как менялась позиция президента РФ по Южным Курилам. Максимально коротко",
-      "summary": "С момента прихода к власти Путин искал пути для заключения мирного договора с Японией. Он одновременно подчеркивал суверенитет России над островами и заявлял, что готов договариваться на основе деклар",
-      "url": "https://meduza.io/feature/2026/08/13/do-segodnyashnego-dnya-putin-ni-razu-ne-ezdil-na-kurily-potomu-chto-hotel-zaklyuchit-mirnyy-dogovor-s-yaponiey-no-vse-izmenila-voyna-s-ukrainoy",
-      "imageUrl": "https://meduza.io/image/attachments/images/012/646/221/small/5GWvdhqjdRJ7UdrkMdqz-Q",
-      "images": [
-        "https://meduza.io/image/attachments/images/012/646/221/small/5GWvdhqjdRJ7UdrkMdqz-Q"
-      ],
-      "source": "Meduza Новости",
-      "category": "ekonomika",
-      "pubDate": "Thu, 13 Aug 2026 18:42:22 +0300",
-      "relativeTime": "Vor 15 Std"
-    },
-    {
-      "id": "Meduza Новости-14-1786690616677",
-      "title": "В Казахстане заблокировали чат-бот для знакомств «Дайвинчик». В России это сообщество стало поводом для объявления Павла Дурова «террористом»",
-      "summary": "Суд в Казахстане запретил чат-бот для знакомств в телеграме «Дайвинчик». Об этом сообщает Tengri News.",
-      "url": "https://meduza.io/news/2026/08/13/v-kazahstane-zablokirovali-chat-bot-dlya-znakomstv-dayvinchik-v-rossii-eto-soobschestvo-stalo-povodom-dlya-ob-yavleniya-pavla-durova-terroristom",
-      "imageUrl": null,
-      "images": [],
-      "source": "Meduza Новости",
-      "category": "ekonomika",
-      "pubDate": "Thu, 13 Aug 2026 18:37:29 +0300",
-      "relativeTime": "Vor 15 Std"
-    },
-    {
-      "id": "Медиазона-3-1786690616241",
-      "title": "В Петербурге преподавателя философии отправили в СИЗО по делу о донатах ФБК",
-      "summary": "",
-      "url": "https://zona.media/news/2026/08/13/zaitsev",
-      "imageUrl": null,
-      "images": [],
-      "source": "Медиазона",
-      "category": "kultura",
-      "pubDate": "Thu, 13 Aug 2026 15:04:39 GMT",
-      "relativeTime": "Vor 15 Std"
-    },
-    {
-      "id": "Медиазона-4-1786690616242",
-      "title": "Стендапера Сашу Долгополова заочно арестовали по делу о реабилитации нацизма",
-      "summary": "",
-      "url": "https://zona.media/news/2026/08/13/dlgplv",
-      "imageUrl": null,
-      "images": [],
-      "source": "Медиазона",
-      "category": "kultura",
-      "pubDate": "Thu, 13 Aug 2026 14:51:07 GMT",
-      "relativeTime": "Vor 16 Std"
-    },
-    {
-      "id": "Медиазона-5-1786690616242",
-      "title": "Против ведущего «Дождя» Михаила Фишмана возбудили дело об участии в «нежелательной организации»; следствие требует его заочного ареста",
-      "summary": "",
-      "url": "https://zona.media/news/2026/08/13/fshmn",
-      "imageUrl": null,
-      "images": [],
-      "source": "Медиазона",
-      "category": "kultura",
-      "pubDate": "Thu, 13 Aug 2026 14:33:51 GMT",
-      "relativeTime": "Vor 16 Std"
-    },
-    {
-      "id": "BBC Русская служба-6-1786690617002",
+      "id": "BBC Русская служба-10-1786718069476",
       "title": "Следующее «Евровидение» пройдет в болгарском Бургасе",
       "summary": "Песенный конкурс «Евровидение-2027» пройдет 12-15 мая 2027 года на черноморском побережье Болгарии, в городе Бургас, подтвердили Европейский вещательный союз и Болгарское национальное телевидение.",
       "url": "https://www.bbc.com/russian/articles/cy5d26k6kypo?at_medium=RSS&at_campaign=rss",
@@ -1223,34 +1495,10 @@
       "source": "BBC Русская служба",
       "category": "politika",
       "pubDate": "Thu, 13 Aug 2026 14:15:05 GMT",
-      "relativeTime": "Vor 16 Std"
+      "relativeTime": "Vor 1 Tag"
     },
     {
-      "id": "BBC Русская служба-9-1786690617002",
-      "title": "«Оскорбляет чувства японского народа». Путин впервые побывал на Курилах, вызвав резкую реакцию Токио",
-      "summary": "Президент России Владимир Путин впервые совершил поездку на Курилы. Япония, которая оспаривает принадлежность островов, выразила протест. Премьер-министр страны Санаэ Такаити заявила, что визит Путина",
-      "url": "https://www.bbc.com/russian/articles/c07r2249xv8o?at_medium=RSS&at_campaign=rss",
-      "imageUrl": null,
-      "images": [],
-      "source": "BBC Русская служба",
-      "category": "politika",
-      "pubDate": "Thu, 13 Aug 2026 14:13:27 GMT",
-      "relativeTime": "Vor 16 Std"
-    },
-    {
-      "id": "Медиазона-6-1786690616242",
-      "title": "«Нескольких из нас безо всякой войны уже унесли в черных пакетах». Прощальное письмо Владимира Подковыркина, которого второй раз насильно отправили на фронт",
-      "summary": "",
-      "url": "https://zona.media/article/2026/08/13/letter",
-      "imageUrl": null,
-      "images": [],
-      "source": "Медиазона",
-      "category": "kultura",
-      "pubDate": "Thu, 13 Aug 2026 13:52:47 GMT",
-      "relativeTime": "Vor 17 Std"
-    },
-    {
-      "id": "BBC Русская служба-4-1786690617002",
+      "id": "BBC Русская служба-8-1786718069476",
       "title": "Из-за обмелевшего Дуная Румыния остановила свою единственную АЭС",
       "summary": "Продолжающаяся засуха и жара в Европе привели к резкому падению уровня воды в Дунае, в результате чего в Румынии прекратила работу единственная атомная электростанция «Чернаводэ». В Венгрии власти пыт",
       "url": "https://www.bbc.com/russian/articles/cpq8p8qxvx9o?at_medium=RSS&at_campaign=rss",
@@ -1259,10 +1507,10 @@
       "source": "BBC Русская служба",
       "category": "politika",
       "pubDate": "Thu, 13 Aug 2026 13:36:23 GMT",
-      "relativeTime": "Vor 17 Std"
+      "relativeTime": "Vor 1 Tag"
     },
     {
-      "id": "DW Экономика-0-1786690616745",
+      "id": "DW Экономика-0-1786718069423",
       "title": "Почему Россия распродает свой золотой запас",
       "summary": "Россия наращивает продажи золота, чтобы компенсировать дефицит бюджета. Означает ли это, что у Москвы заканчиваются деньги? Что происходит с российскими финансами, DW объяснили эксперты.",
       "url": "https://www.dw.com/ru/почему-россия-распродает-свой-золотой-запас/a-78352043?maca=rus-rss-ru-eco-6382-rdf",
@@ -1271,82 +1519,10 @@
       "source": "DW Экономика",
       "category": "ekonomika",
       "pubDate": "2026-08-13T12:54:00.000Z",
-      "relativeTime": "Vor 18 Std"
+      "relativeTime": "Vor 1 Tag"
     },
     {
-      "id": "Медиазона-7-1786690616242",
-      "title": "Из Казахстана выслали российскую стримершу, назвавшую страну «штрафостаном»; ей также запретили приезжать туда в течение пяти лет",
-      "summary": "",
-      "url": "https://zona.media/news/2026/08/13/fasoollka",
-      "imageUrl": null,
-      "images": [],
-      "source": "Медиазона",
-      "category": "kultura",
-      "pubDate": "Thu, 13 Aug 2026 12:52:31 GMT",
-      "relativeTime": "Vor 18 Std"
-    },
-    {
-      "id": "DW Украина-7-1786690616875",
-      "title": "ООН: Число жертв среди мирного населения Украины - на пике с мая 2022 года",
-      "summary": "В июле 2026 года Мониторинговая миссия ООН по правам человека в Украине зафиксировала гибель 437 и ранение 2610 мирных жителей в стране. Это - максимум с весны 2022 года.",
-      "url": "https://www.dw.com/ru/оон-число-жертв-среди-мирного-населения-украины-на-пике-с-мая-2022-года/a-78351467?maca=rus-rss-ru-ukr-4456-rdf",
-      "imageUrl": null,
-      "images": [],
-      "source": "DW Украина",
-      "category": "ukraina",
-      "pubDate": "2026-08-13T12:52:00.000Z",
-      "relativeTime": "Vor 18 Std"
-    },
-    {
-      "id": "Медиазона-8-1786690616242",
-      "title": "В Москве сотрудника «Золотого яблока» обвинили в госизмене после 97 дней карусельных арестов",
-      "summary": "",
-      "url": "https://zona.media/news/2026/08/13/kolodii",
-      "imageUrl": null,
-      "images": [],
-      "source": "Медиазона",
-      "category": "kultura",
-      "pubDate": "Thu, 13 Aug 2026 12:49:13 GMT",
-      "relativeTime": "Vor 18 Std"
-    },
-    {
-      "id": "DW Украина-8-1786690616876",
-      "title": "В Севастополе взрывами убиты российский военный и сотрудники МЧС РФ",
-      "summary": "В аннексированном Севастополе в результате взрыва погиб российский военнослужащий, заявила ФСБ РФ. В свою очередь \"губернатор\" крымского города Развожаев сообщил о гибели четырех пиротехников МЧС и ох",
-      "url": "https://www.dw.com/ru/в-севастополе-взрывами-убиты-российский-военный-и-сотрудники-мчс-рф/a-78353191?maca=rus-rss-ru-ukr-4456-rdf",
-      "imageUrl": null,
-      "images": [],
-      "source": "DW Украина",
-      "category": "ukraina",
-      "pubDate": "2026-08-13T12:31:00.000Z",
-      "relativeTime": "Vor 18 Std"
-    },
-    {
-      "id": "Медиазона-9-1786690616242",
-      "title": "В Новосибирске отправили в СИЗО сторонницу Светланы Лады‑Русь, освещавшую протесты из‑за изъятия скота у фермеров",
-      "summary": "",
-      "url": "https://zona.media/news/2026/08/13/agrarian",
-      "imageUrl": null,
-      "images": [],
-      "source": "Медиазона",
-      "category": "kultura",
-      "pubDate": "Thu, 13 Aug 2026 12:08:32 GMT",
-      "relativeTime": "Vor 18 Std"
-    },
-    {
-      "id": "Медиазона-10-1786690616242",
-      "title": "Финляндия отказала в убежище семье россиянина, который донатил ФБК",
-      "summary": "",
-      "url": "https://zona.media/news/2026/08/13/sergienko",
-      "imageUrl": null,
-      "images": [],
-      "source": "Медиазона",
-      "category": "kultura",
-      "pubDate": "Thu, 13 Aug 2026 11:21:07 GMT",
-      "relativeTime": "Vor 19 Std"
-    },
-    {
-      "id": "BBC Русская служба-7-1786690617002",
+      "id": "BBC Русская служба-11-1786718069476",
       "title": "Иммиграционным агентам ICE в США закупили электрошоковые перчатки",
       "summary": "Иммиграционная и таможенная служба США (ICE) планирует закупить перчатки, способные бить током. Министерство внутренней безопасности на своем сайте называет их «средством деэскалации» (de-escalation d",
       "url": "https://www.bbc.com/russian/articles/ckg3p78ervko?at_medium=RSS&at_campaign=rss",
@@ -1355,34 +1531,10 @@
       "source": "BBC Русская служба",
       "category": "politika",
       "pubDate": "Thu, 13 Aug 2026 11:12:49 GMT",
-      "relativeTime": "Vor 19 Std"
+      "relativeTime": "Vor 1 Tag"
     },
     {
-      "id": "DW Украина-9-1786690616876",
-      "title": "РФ и Украина обменялись телами погибших военных",
-      "summary": "По данным российских СМИ, Украина передала тела 24 погибших военных, Россия - 261. Киев подтвердил обмен телами с Москвой.",
-      "url": "https://www.dw.com/ru/рф-и-украина-обменялись-телами-погибших-военных/a-78351311?maca=rus-rss-ru-ukr-4456-rdf",
-      "imageUrl": null,
-      "images": [],
-      "source": "DW Украина",
-      "category": "ukraina",
-      "pubDate": "2026-08-13T10:57:00.000Z",
-      "relativeTime": "Vor 19 Std"
-    },
-    {
-      "id": "Медиазона-11-1786690616242",
-      "title": "В Москве начали судить девушку, которую мошенники убедили напасть на женщину в рамках работы «по изобличению иностранных агентов»",
-      "summary": "",
-      "url": "https://zona.media/news/2026/08/13/mzrv",
-      "imageUrl": null,
-      "images": [],
-      "source": "Медиазона",
-      "category": "kultura",
-      "pubDate": "Thu, 13 Aug 2026 10:48:49 GMT",
-      "relativeTime": "Vor 20 Std"
-    },
-    {
-      "id": "DW Политика-5-1786690616321",
+      "id": "DW Политика-8-1786718069412",
       "title": "Украинцев отправят домой? Будет ли Испания высылать мужчин",
       "summary": "В соответствии с недавним решением Евросоюза, военнообязанным украинцам в Испании будет труднее получить статус беженцев. Речь идет о мужчинах мобилизационного возраста. DW о том, станет ли Мадрид выс",
       "url": "https://www.dw.com/ru/украинцев-отправят-домой-будет-ли-испания-высылать-мужчин/a-78350623?maca=rus-rss-ru-pol-6381-rdf",
@@ -1391,22 +1543,10 @@
       "source": "DW Политика",
       "category": "politika",
       "pubDate": "2026-08-13T10:23:00.000Z",
-      "relativeTime": "Vor 20 Std"
+      "relativeTime": "Vor 1 Tag"
     },
     {
-      "id": "Медиазона-12-1786690616242",
-      "title": "В Севастополе подорвали военного; «ВЧК‑ОГПУ» и блогер Шарий утверждают, что это перешедший на сторону России командир подлодки",
-      "summary": "",
-      "url": "https://zona.media/news/2026/08/13/sevas",
-      "imageUrl": null,
-      "images": [],
-      "source": "Медиазона",
-      "category": "kultura",
-      "pubDate": "Thu, 13 Aug 2026 09:22:43 GMT",
-      "relativeTime": "Vor 21 Std"
-    },
-    {
-      "id": "DW Политика-6-1786690616321",
+      "id": "DW Политика-9-1786718069412",
       "title": "Новые правила в ЕС. Какой должна быть упаковка?",
       "summary": "Евросоюз ввел новые правила, касающиеся упаковки товаров и \"вечных химикатов\". Изменения будут внедряться постепенно. Но некоторые продавцы приостановили отправку заказов из-за возросшей бюрократии.",
       "url": "https://www.dw.com/ru/новые-правила-в-ес-какой-должна-быть-упаковка/a-78341960?maca=rus-rss-ru-pol-6381-rdf",
@@ -1415,10 +1555,10 @@
       "source": "DW Политика",
       "category": "politika",
       "pubDate": "2026-08-13T09:09:00.000Z",
-      "relativeTime": "Vor 21 Std"
+      "relativeTime": "Vor 1 Tag"
     },
     {
-      "id": "DW Экономика-1-1786690616745",
+      "id": "DW Экономика-1-1786718069424",
       "title": "Новые правила в ЕС. Какой должна быть упаковка?",
       "summary": "Евросоюз ввел новые правила, касающиеся упаковки товаров и \"вечных химикатов\". Изменения будут внедряться постепенно. Но некоторые продавцы приостановили отправку заказов из-за возросшей бюрократии.",
       "url": "https://www.dw.com/ru/новые-правила-в-ес-какой-должна-быть-упаковка/a-78341960?maca=rus-rss-ru-eco-6382-rdf",
@@ -1427,46 +1567,10 @@
       "source": "DW Экономика",
       "category": "ekonomika",
       "pubDate": "2026-08-13T09:09:00.000Z",
-      "relativeTime": "Vor 21 Std"
-    },
-    {
-      "id": "Медиазона-13-1786690616242",
-      "title": "Администратора пермского телеграм‑канала оштрафовали за посты с кадрами атаки беспилотников",
-      "summary": "",
-      "url": "https://zona.media/news/2026/08/13/perm",
-      "imageUrl": null,
-      "images": [],
-      "source": "Медиазона",
-      "category": "kultura",
-      "pubDate": "Thu, 13 Aug 2026 08:55:14 GMT",
-      "relativeTime": "Vor 22 Std"
-    },
-    {
-      "id": "DW Политика-7-1786690616321",
-      "title": "МИД Японии резко раскритиковал визит Путина на Курильские острова",
-      "summary": "Курильские острова являются \"как исторически, так и в соответствии с международным правом неотъемлемой частью японской территории\", заявил глава МИД Японии Мотэги. Токио \"решительно протестует против ",
-      "url": "https://www.dw.com/ru/мид-японии-резко-раскритиковал-визит-путина-на-курильские-острова/a-78346131?maca=rus-rss-ru-pol-6381-rdf",
-      "imageUrl": null,
-      "images": [],
-      "source": "DW Политика",
-      "category": "politika",
-      "pubDate": "2026-08-13T07:26:00.000Z",
-      "relativeTime": "Vor 23 Std"
-    },
-    {
-      "id": "DW Политика-8-1786690616321",
-      "title": "Зеленский: Киеву нужны 5% ракет Patriot из запасов США для следующей зимы",
-      "summary": "Чтобы пережить зиму и спасти жизни людей, Украине необходимо 5% американских запасов ракет-перехватчиков для Patriot, заявил президент Владимир Зеленский в интервью CNN.",
-      "url": "https://www.dw.com/ru/зеленский-киеву-нужны-5-ракет-patriot-из-запасов-сша-для-следующей-зимы/a-78345792?maca=rus-rss-ru-pol-6381-rdf",
-      "imageUrl": null,
-      "images": [],
-      "source": "DW Политика",
-      "category": "politika",
-      "pubDate": "2026-08-13T06:23:00.000Z",
       "relativeTime": "Vor 1 Tag"
     },
     {
-      "id": "BBC Русская служба-5-1786690617002",
+      "id": "BBC Русская служба-9-1786718069476",
       "title": "Младший сержант ВСУ и бывший вице-президент Газпромбанка Игорь Волобуев: «Не жалею о том, что сделал»",
       "summary": "«Черная искра» называет себя подпольным российским движением, участники которого заявляют об атаках на НПЗ и другие объекты российской инфраструктуры. Его публичным представителем стал бывший топ-мене",
       "url": "https://www.bbc.com/russian/articles/c934x8lqly7o?at_medium=RSS&at_campaign=rss",
@@ -1478,31 +1582,7 @@
       "relativeTime": "Vor 1 Tag"
     },
     {
-      "id": "DW Политика-9-1786690616321",
-      "title": "Рост экономики КНДР: Ким Чен Ын меняет страну при помощи РФ",
-      "summary": "Высокие доходы от поддержки России в войне с Украиной укрепляют власть автократа Ким Чен Ына и способствуют экономическому подъему КНДР. Но его плодами пользуется лишь небольшая часть населения, указы",
-      "url": "https://www.dw.com/ru/рост-экономики-кндр-ким-чен-ын-меняет-страну-при-помощи-рф/a-78339990?maca=rus-rss-ru-pol-6381-rdf",
-      "imageUrl": null,
-      "images": [],
-      "source": "DW Политика",
-      "category": "politika",
-      "pubDate": "2026-08-13T05:01:00.000Z",
-      "relativeTime": "Vor 1 Tag"
-    },
-    {
-      "id": "BBC Русская служба-10-1786690617002",
-      "title": "Солнечное затмение. Фотографии",
-      "summary": "В среду, 12 августа, можно было наблюдать редкое астрономическое явление — полное солнечное затмение.",
-      "url": "https://www.bbc.com/russian/articles/c70g7n62880o?at_medium=RSS&at_campaign=rss",
-      "imageUrl": null,
-      "images": [],
-      "source": "BBC Русская служба",
-      "category": "politika",
-      "pubDate": "Thu, 13 Aug 2026 03:14:00 GMT",
-      "relativeTime": "Vor 1 Tag"
-    },
-    {
-      "id": "BBC Русская служба-12-1786690617002",
+      "id": "BBC Русская служба-13-1786718069476",
       "title": "Россияне снимают больше наличных: чем это грозит?",
       "summary": "И что отток бумажных денег значит для экономики?",
       "url": "https://www.bbc.com/russian/podcasts/p076qqzl/p0p48h1p?at_medium=RSS&at_campaign=rss",
@@ -1514,31 +1594,7 @@
       "relativeTime": "Vor 1 Tag"
     },
     {
-      "id": "BBC Русская служба-11-1786690617002",
-      "title": "«Дело, наверное, в нашей национальности». Как пару россиян приняли за шпионов в Швеции",
-      "summary": "Палаточный отдых двух россиян в живописном шведском городке Фурувик закончился арестом и выдворением из страны — из-за «русского акцента» и пары раций. Их история демонстрирует настроения в Швеции, ко",
-      "url": "https://www.bbc.com/russian/articles/cx2d1envy42o?at_medium=RSS&at_campaign=rss",
-      "imageUrl": null,
-      "images": [],
-      "source": "BBC Русская служба",
-      "category": "politika",
-      "pubDate": "Wed, 12 Aug 2026 19:05:01 GMT",
-      "relativeTime": "Vor 1 Tag"
-    },
-    {
-      "id": "Медиазона-14-1786690616242",
-      "title": "Аналитика «ОВД‑Инфо» Дениса Шедова объявили в розыск",
-      "summary": "",
-      "url": "https://zona.media/news/2026/08/12/shedov",
-      "imageUrl": null,
-      "images": [],
-      "source": "Медиазона",
-      "category": "kultura",
-      "pubDate": "Wed, 12 Aug 2026 15:48:04 GMT",
-      "relativeTime": "Vor 1 Tag"
-    },
-    {
-      "id": "DW Экономика-2-1786690616745",
+      "id": "DW Экономика-2-1786718069424",
       "title": "Рейн обмелел: чем это грозит экономике Германии",
       "summary": "На внутренние водные пути в Германии приходится около пяти процентов грузоперевозок. Из-за засухи в Европе многие реки обмелели, уровень воды в Рейне опустился ниже критического. К чему это может прив",
       "url": "https://www.dw.com/ru/рейн-обмелел-чем-это-грозит-экономике-германии/a-78334240?maca=rus-rss-ru-eco-6382-rdf",
@@ -1547,10 +1603,10 @@
       "source": "DW Экономика",
       "category": "ekonomika",
       "pubDate": "2026-08-12T13:46:00.000Z",
-      "relativeTime": "Vor 1 Tag"
+      "relativeTime": "Vor 2 Tagen"
     },
     {
-      "id": "BBC Русская служба-13-1786690617002",
+      "id": "BBC Русская служба-14-1786718069476",
       "title": "Реактивные дроны и больше баллистики: чем Россия теперь бьет по Украине",
       "summary": "И что Украина может противопоставить этому оружию?",
       "url": "https://www.bbc.com/russian/podcasts/p076qqzl/p0p4177x?at_medium=RSS&at_campaign=rss",
@@ -1562,19 +1618,7 @@
       "relativeTime": "Vor 2 Tagen"
     },
     {
-      "id": "BBC Русская служба-14-1786690617002",
-      "title": "Почему «Яблоко» сняли с выборов?",
-      "summary": "И что предлагает делать оппозиция в изгнании?",
-      "url": "https://www.bbc.com/russian/podcasts/p076qqzl/p0p3x2k3?at_medium=RSS&at_campaign=rss",
-      "imageUrl": null,
-      "images": [],
-      "source": "BBC Русская служба",
-      "category": "politika",
-      "pubDate": "Tue, 11 Aug 2026 00:00:00 GMT",
-      "relativeTime": "Vor 3 Tagen"
-    },
-    {
-      "id": "DW Экономика-3-1786690616745",
+      "id": "DW Экономика-3-1786718069424",
       "title": "В ФРГ все больше банкротств: все так плохо или есть надежда?",
       "summary": "В Германии банкротятся все больше компаний. Это проявление структурной слабости экономики или следствие необходимой перестройки рынка? Эксперты считают, что оба процесса могут идти параллельно.",
       "url": "https://www.dw.com/ru/в-фрг-все-больше-банкротств-все-так-плохо-или-есть-надежда/a-78248934?maca=rus-rss-ru-eco-6382-rdf",
@@ -1586,7 +1630,7 @@
       "relativeTime": "Vor 8 Tagen"
     },
     {
-      "id": "DW Экономика-4-1786690616745",
+      "id": "DW Экономика-4-1786718069424",
       "title": "Автопроизводители в ФРГ увольняют сотрудников. Спасет ли это отрасль?",
       "summary": "Автопроизводители Германии проигрывают китайским конкурентам, теряют рынки и вынуждены сокращать тысячи рабочих мест. DW анализирует положение дел в немецком автопроме.",
       "url": "https://www.dw.com/ru/автопроизводители-в-фрг-увольняют-сотрудников-спасет-ли-это-отрасль/a-78242540?maca=rus-rss-ru-eco-6382-rdf",
@@ -1595,10 +1639,10 @@
       "source": "DW Экономика",
       "category": "ekonomika",
       "pubDate": "2026-08-05T11:27:00.000Z",
-      "relativeTime": "Vor 8 Tagen"
+      "relativeTime": "Vor 9 Tagen"
     },
     {
-      "id": "DW Экономика-5-1786690616745",
+      "id": "DW Экономика-5-1786718069424",
       "title": "Как российские власти манипулируют экономической статистикой",
       "summary": "Чем хуже ситуация в российской экономике, тем труднее властям рапортовать о своих достижениях. Но они продолжают это делать, используя набор хитрых приемов.",
       "url": "https://www.dw.com/ru/как-российские-власти-манипулируют-экономической-статистикой/a-78234769?maca=rus-rss-ru-eco-6382-rdf",
@@ -1610,7 +1654,7 @@
       "relativeTime": "Vor 9 Tagen"
     },
     {
-      "id": "DW Экономика-6-1786690616745",
+      "id": "DW Экономика-6-1786718069424",
       "title": "Bloomberg: Нефтепереработка в РФ упала до минимума с 2002 года",
       "summary": "Среднесуточная переработка нефти в России в июле составила 3,6 млн баррелей, что примерно на треть ниже сезонной нормы, пишет Bloomberg. Нефтяные объекты в стране подвергалиь ударам не менее 30 раз.",
       "url": "https://www.dw.com/ru/bloomberg-нефтепереработка-в-рф-упала-до-минимума-с-2002-года/a-78224022?maca=rus-rss-ru-eco-6382-rdf",
@@ -1622,7 +1666,7 @@
       "relativeTime": "Vor 10 Tagen"
     },
     {
-      "id": "DW Экономика-7-1786690616745",
+      "id": "DW Экономика-7-1786718069424",
       "title": "Страны ОПЕК+ договорились вновь нарастить добычу нефти в сентябре",
       "summary": "Семь стран ОПЕК+, включая Россию и Саудовскую Аравию, договорились увеличить квоты на добычу нефти в сентябре на 188 тысяч баррелей в сутки - так же, как в июне, июле и августе.",
       "url": "https://www.dw.com/ru/страны-опек-договорились-вновь-нарастить-добычу-нефти-в-сентябре/a-78208648?maca=rus-rss-ru-eco-6382-rdf",
@@ -1634,7 +1678,7 @@
       "relativeTime": "Vor 11 Tagen"
     },
     {
-      "id": "DW Экономика-8-1786690616745",
+      "id": "DW Экономика-8-1786718069424",
       "title": "Жара плавит автобаны: почему дороги в ФРГ не готовы к изменению климата",
       "summary": "Изменение климата все сильнее влияет на дорожную инфраструктуру ФРГ, многие автобаны не рассчитаны на нагрузки из-за экстремальной жары. Новые технологии уже есть, но внедрение инноваций в Германии ид",
       "url": "https://www.dw.com/ru/жара-плавит-автобаны-почему-дороги-в-фрг-не-готовы-к-изменению-климата/a-78164309?maca=rus-rss-ru-eco-6382-rdf",
@@ -1646,7 +1690,7 @@
       "relativeTime": "Vor 12 Tagen"
     },
     {
-      "id": "DW Экономика-9-1786690616745",
+      "id": "DW Экономика-9-1786718069424",
       "title": "Почему Казахстан может оказаться не лучшим решением для логистики Wildberries",
       "summary": "Атаки ВСУ на склады Wildberries в России вынудили маркетплейс искать площади в соседних странах. Однако в Казахстане прочат российскому гиганту логистический тупик. Подробности - у DW.",
       "url": "https://www.dw.com/ru/почему-казахстан-может-оказаться-не-лучшим-решением-для-логистики-wildberries/a-78195351?maca=rus-rss-ru-eco-6382-rdf",
