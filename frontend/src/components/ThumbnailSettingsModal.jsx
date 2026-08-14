@@ -1,39 +1,82 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import LiveThumbnailPreview from './thumbnail/LiveThumbnailPreview'
+import BackgroundPhotoSelector from './thumbnail/BackgroundPhotoSelector'
 import FontPicker, { BUILTIN_FONTS } from './thumbnail/FontPicker'
 import TypographyStyleControls, { COLORS, STROKE_COLORS } from './thumbnail/TypographyStyleControls'
 
 export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose, onUpdated }) {
   if (!pkg) return null
 
-  const [text, setText] = useState(pkg.title || pkg.original_title || '')
-  const [font, setFont] = useState('impact')
-  const [fontFamilyName, setFontFamilyName] = useState('Impact, sans-serif')
+  const cfg = pkg?.thumbnailStyle || pkg?.headlineConfig || {}
+  const [text, setText] = useState(cfg.text || pkg?.title || pkg?.original_title || '')
+  const [font, setFont] = useState(cfg.font || 'impact')
+  const [fontFamilyName, setFontFamilyName] = useState(cfg.fontFamilyName || 'Impact, sans-serif')
   const [customFonts, setCustomFonts] = useState([])
   const [uploadingFont, setUploadingFont] = useState(false)
 
-  const [fontSize, setFontSize] = useState('auto')
-  const [customSizeNum, setCustomSizeNum] = useState(78)
-  const [fontColor, setFontColor] = useState('yellow')
-  const [borderColor, setBorderColor] = useState('black')
-  const [borderWidth, setBorderWidth] = useState(9)
-  const [shadowDistance, setShadowDistance] = useState(4)
-  const [position, setPosition] = useState('center')
-  const [hasBox, setHasBox] = useState(false)
+  const [fontSize, setFontSize] = useState(cfg.fontSize || 'auto')
+  const [customSizeNum, setCustomSizeNum] = useState(cfg.fontSize && cfg.fontSize !== 'auto' ? Number(cfg.fontSize) : 82)
+  const [isItalic, setIsItalic] = useState(!!cfg.isItalic)
+  const [tiltAngle, setTiltAngle] = useState(Number(cfg.tiltAngle) || 0)
+
+  const [fontColor, setFontColor] = useState(cfg.fontColor || 'yellow')
+  const [borderColor, setBorderColor] = useState(cfg.borderColor || 'black')
+  const [borderWidth, setBorderWidth] = useState(cfg.borderWidth !== undefined ? Number(cfg.borderWidth) : 9)
+  const [shadowDistance, setShadowDistance] = useState(cfg.shadowDistance !== undefined ? Number(cfg.shadowDistance) : 4)
+  const [position, setPosition] = useState(cfg.position || 'center')
+  const [hasBox, setHasBox] = useState(!!cfg.hasBox)
+  const [selectedBgPhoto, setSelectedBgPhoto] = useState(null)
 
   const [saving, setSaving] = useState(false)
   const [generatingTitle, setGeneratingTitle] = useState(false)
 
   useEffect(() => {
     fetchCustomFonts()
-  }, [])
-
-  useEffect(() => {
-    if (pkg) {
-      setText(pkg.title || pkg.original_title || '')
+    if (pkg?.folderName) {
+      fetchThumbnailStyle()
     }
-  }, [pkg])
+  }, [pkg?.folderName])
+
+  const resolveFontFamily = (fontId, customList = []) => {
+    const builtin = BUILTIN_FONTS.find(f => f.id === fontId)
+    if (builtin) return builtin.family
+    const custom = customList.find(c => c.id === fontId)
+    if (custom) return `"${custom.name}", sans-serif`
+    return 'Impact, sans-serif'
+  }
+
+  const fetchThumbnailStyle = async () => {
+    if (!pkg?.folderName) return
+    try {
+      const res = await fetch(`/api/thumbnail-style?folderName=${encodeURIComponent(pkg.folderName)}`)
+      const data = await res.json()
+      if (data.success && data.style) {
+        const c = data.style
+        if (c.text !== undefined && c.text !== '') setText(c.text)
+        if (c.font !== undefined) {
+          setFont(c.font)
+          setFontFamilyName(c.fontFamilyName || resolveFontFamily(c.font, customFonts))
+        }
+        if (c.fontSize !== undefined) {
+          setFontSize(c.fontSize)
+          if (c.fontSize !== 'auto') setCustomSizeNum(Number(c.fontSize))
+        }
+        if (c.customSizeNum !== undefined && c.fontSize !== 'auto') {
+          setCustomSizeNum(Number(c.customSizeNum))
+        }
+        if (c.fontColor !== undefined) setFontColor(c.fontColor)
+        if (c.borderColor !== undefined) setBorderColor(c.borderColor)
+        if (c.borderWidth !== undefined) setBorderWidth(Number(c.borderWidth))
+        if (c.shadowDistance !== undefined) setShadowDistance(Number(c.shadowDistance))
+        if (c.isItalic !== undefined) setIsItalic(Boolean(c.isItalic))
+        if (c.tiltAngle !== undefined) setTiltAngle(Number(c.tiltAngle))
+        if (c.position !== undefined) setPosition(c.position)
+        if (c.hasBox !== undefined) setHasBox(Boolean(c.hasBox))
+        if (c.photoUrl !== undefined) setSelectedBgPhoto(c.photoUrl)
+      }
+    } catch {}
+  }
 
   const fetchCustomFonts = async () => {
     try {
@@ -122,31 +165,36 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
       setSaving(true)
       const toastId = toast.loading(generateNewAi ? '🤖 Генерация нового AI фото и заголовка...' : '🎨 Применение настроек шрифта...')
       
+      const payload = {
+        mode: generateNewAi ? 'generate_ai' : 'apply_headline',
+        bundleDir: pkg.bundleDir,
+        folderName: pkg.folderName,
+        photoUrl: selectedBgPhoto ? (selectedBgPhoto.startsWith('/news-static/') ? selectedBgPhoto : `/news-static/${pkg.folderName}/${selectedBgPhoto}`) : null,
+        headlineConfig: {
+          text,
+          font,
+          fontFamilyName,
+          fontSize: fontSize === 'auto' ? 'auto' : Number(customSizeNum),
+          isItalic,
+          tiltAngle: Number(tiltAngle) || 0,
+          fontColor,
+          borderColor,
+          borderWidth: Number(borderWidth),
+          shadowDistance: Number(shadowDistance),
+          position,
+          hasBox,
+        }
+      }
+
       const res = await fetch('/api/set-thumbnail', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mode: generateNewAi ? 'generate_ai' : 'apply_headline',
-          bundleDir: pkg.bundleDir,
-          folderName: pkg.folderName,
-          headlineConfig: {
-            text,
-            font,
-            fontSize: fontSize === 'auto' ? 'auto' : Number(customSizeNum),
-            fontColor,
-            borderColor,
-            borderWidth: Number(borderWidth),
-            shadowDistance: Number(shadowDistance),
-            position,
-            hasBox,
-          }
-        }),
+        body: JSON.stringify(payload),
       })
       const data = await res.json()
       if (data.success) {
-        toast.success('✨ Обложка успешно обновлена!', { id: toastId })
+        toast.success('✨ Обложка и стиль успешно сохранены!', { id: toastId })
         if (onUpdated) onUpdated(`${data.thumbnailUrl}&t=${Date.now()}`)
-        onClose()
       } else {
         toast.error('Ошибка: ' + (data.error || 'Не удалось обновить'), { id: toastId })
       }
@@ -184,10 +232,20 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
     if (fontSize !== 'auto') return (Number(customSizeNum) * 0.46) + 'px'
     const longest = Math.max(...previewLines.map(l => l.length), 10)
     const rawPx = Math.floor(1200 / (longest * 0.62))
-    return (Math.min(Math.max(rawPx, 50), 86) * 0.46) + 'px'
+    return (Math.min(Math.max(rawPx, 50), 92) * 0.46) + 'px'
   }
 
-  const previewSrc = currentThumbnail || `/news-static/${pkg.folderName}/thumbnail/thumbnail.jpg?t=${Date.now()}`
+  const rawBackgroundSrc = pkg?.folderName
+    ? `/news-static/${pkg.folderName}/thumbnail/raw_background.jpg?t=${Date.now()}`
+    : null
+  const fallbackSrc = currentThumbnail || (pkg?.folderName ? `/news-static/${pkg.folderName}/thumbnail/thumbnail.jpg` : '')
+  const currentBgSrc = selectedBgPhoto
+    ? (selectedBgPhoto.startsWith('/news-static/') ? selectedBgPhoto : `/news-static/${pkg.folderName}/${selectedBgPhoto}`)
+    : (rawBackgroundSrc || fallbackSrc)
+
+  const photoList = Array.isArray(pkg.photoUrls) && pkg.photoUrls.length > 0
+    ? pkg.photoUrls
+    : (Array.isArray(pkg.photos) ? pkg.photos : [])
 
   return (
     <div className="modal-overlay" onClick={onClose} style={{ zIndex: 99999 }}>
@@ -195,10 +253,10 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
         <div className="modal-header">
           <div>
             <h2 className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem' }}>
-              🎨 Настройка заголовка, шрифта, контура и тени
+              🎨 Настройка заголовка, шрифта, контура и фона
             </h2>
             <p style={{ fontSize: '0.8rem', color: '#9ca3af', margin: '0.25rem 0 0 0' }}>
-              Живая визуализация 16:9 • Выбор шрифта с диска • Настройка контура и тени
+              Живая визуализация 16:9 • Выбор любого фото для фона • Настройка шрифта
             </p>
           </div>
           <button className="modal-close" onClick={onClose}>✕</button>
@@ -217,7 +275,7 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
 
           {/* 👁️ Живой предпросмотр */}
           <LiveThumbnailPreview
-            previewSrc={previewSrc}
+            previewSrc={currentBgSrc}
             position={position}
             fontFamilyName={fontFamilyName}
             calcLiveFontSize={calcLiveFontSize}
@@ -226,7 +284,18 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
             activeStrokeHex={activeStrokeHex}
             shadowDistance={shadowDistance}
             hasBox={hasBox}
+            isItalic={isItalic}
+            tiltAngle={tiltAngle}
             previewLines={previewLines}
+          />
+
+          {/* 🖼️ Выбор фона из фото пакета */}
+          <BackgroundPhotoSelector
+            photoList={photoList}
+            folderName={pkg.folderName}
+            selectedBgPhoto={selectedBgPhoto}
+            onSelectPhoto={(p) => setSelectedBgPhoto(p)}
+            onResetToDefault={() => setSelectedBgPhoto(null)}
           />
 
           {/* 📝 Текст заголовка */}
@@ -265,7 +334,7 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
             />
           </div>
 
-          {/* Настройки шрифта, размеров, цветов, контура и тени */}
+          {/* Настройки шрифта, размеров, начертания, наклона, цветов, контура и тени */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
             <FontPicker
               font={font}
@@ -280,6 +349,10 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
               setFontSize={setFontSize}
               customSizeNum={customSizeNum}
               setCustomSizeNum={setCustomSizeNum}
+              isItalic={isItalic}
+              setIsItalic={setIsItalic}
+              tiltAngle={tiltAngle}
+              setTiltAngle={setTiltAngle}
               fontColor={fontColor}
               setFontColor={setFontColor}
               borderColor={borderColor}
@@ -315,8 +388,8 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
               🤖 Новый AI-фон с этим стилем
             </button>
 
-            <button className="copy-btn" style={{ background: '#3f3f46', padding: '0.75rem 1.2rem' }} onClick={onClose}>
-              Отмена
+            <button className="copy-btn" style={{ background: '#3f3f46', padding: '0.75rem 1.2rem', fontWeight: 600 }} onClick={onClose}>
+              ✕ Закрыть
             </button>
           </div>
         </div>

@@ -19,6 +19,10 @@ export default function TypographyStyleControls({
   setFontSize,
   customSizeNum,
   setCustomSizeNum,
+  isItalic,
+  setIsItalic,
+  tiltAngle,
+  setTiltAngle,
   fontColor,
   setFontColor,
   borderColor,
@@ -34,9 +38,9 @@ export default function TypographyStyleControls({
 }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
-      {/* КОЛОНКА 1: РАЗМЕР И ПОЗИЦИЯ */}
+      {/* КОЛОНКА 1: РАЗМЕР, КУРСИВ, НАКЛОН И ПОЗИЦИЯ */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        {/* Размер шрифта */}
+        {/* Размер шрифта (до 160px) */}
         <div>
           <label style={{ display: 'block', fontSize: '0.85rem', color: '#9ca3af', marginBottom: '0.4rem', fontWeight: 600 }}>
             📏 Размер шрифта: {fontSize === 'auto' ? 'Авто (Адаптивный)' : `${customSizeNum}px`}
@@ -61,7 +65,7 @@ export default function TypographyStyleControls({
             <input
               type="range"
               min="45"
-              max="115"
+              max="160"
               value={customSizeNum}
               onChange={e => {
                 setCustomSizeNum(Number(e.target.value))
@@ -69,9 +73,65 @@ export default function TypographyStyleControls({
               }}
               style={{ flex: 1, accentColor: '#3b82f6', cursor: 'pointer' }}
             />
-            <span style={{ fontSize: '0.85rem', color: '#fff', minWidth: '40px', textAlign: 'right', fontWeight: 700 }}>
+            <span style={{ fontSize: '0.85rem', color: '#fff', minWidth: '45px', textAlign: 'right', fontWeight: 700 }}>
               {fontSize === 'auto' ? 'Auto' : `${customSizeNum}px`}
             </span>
+          </div>
+        </div>
+
+        {/* ✍️ КУРСИВ И 📐 НАКЛОН / ДИНАМИКА (BEUGEN) */}
+        <div style={{ background: '#18181b', padding: '0.75rem', borderRadius: '8px', border: '1px solid #27272a', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <label style={{ fontSize: '0.85rem', color: '#f4f4f5', fontWeight: 700 }}>
+              ✍️ Начертание:
+            </label>
+            <button
+              type="button"
+              onClick={() => setIsItalic(!isItalic)}
+              style={{
+                padding: '0.35rem 0.85rem',
+                borderRadius: '6px',
+                background: isItalic ? 'linear-gradient(135deg, #ec4899, #8b5cf6)' : '#27272a',
+                color: '#fff',
+                border: isItalic ? '1px solid #f472b6' : '1px solid #3f3f46',
+                cursor: 'pointer',
+                fontSize: '0.85rem',
+                fontWeight: 700,
+                fontStyle: 'italic',
+              }}
+            >
+              {isItalic ? '✓ Курсив (Italic) ВКЛ' : 'Курсив (Italic)'}
+            </button>
+          </div>
+
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
+              <label style={{ fontSize: '0.82rem', color: '#d4d4d8', fontWeight: 600 }}>
+                📐 Угол наклона / динамика: {tiltAngle}°
+              </label>
+              {tiltAngle !== 0 && (
+                <button
+                  type="button"
+                  onClick={() => setTiltAngle(0)}
+                  style={{ background: 'none', border: 'none', color: '#ec4899', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline' }}
+                >
+                  Сброс (0°)
+                </button>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.72rem', color: '#71717a' }}>-15°</span>
+              <input
+                type="range"
+                min="-15"
+                max="15"
+                step="1"
+                value={tiltAngle}
+                onChange={e => setTiltAngle(Number(e.target.value))}
+                style={{ flex: 1, accentColor: '#ec4899', cursor: 'pointer' }}
+              />
+              <span style={{ fontSize: '0.72rem', color: '#71717a' }}>+15°</span>
+            </div>
           </div>
         </div>
 

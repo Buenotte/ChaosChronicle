@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
+import { fileURLToPath } from 'url';
 import { generateGolubuzkiTitle } from '../routes/feuilleton.js';
 import { generate4CornerAiPrompt, generateGeminiImage } from './aiImageService.js';
 import { overlayRussianHeadlineOnThumbnail } from './thumbnailOverlayService.js';
@@ -31,9 +31,9 @@ export async function processSetThumbnail({
   }
 
   const destSub = path.join(thumbnailDir, 'thumbnail.jpg');
-  const destRoot = path.join(targetFolder, 'thumbnail.jpg');
   const rawBackgroundPath = path.join(thumbnailDir, 'raw_background.jpg');
   const tempRaw = path.join(thumbnailDir, 'raw_temp.png');
+  const styleJsonPath = path.join(thumbnailDir, 'style.json');
 
   let fullNewsTitle = '';
   const jsonPath = path.join(targetFolder, 'project.json');
@@ -66,20 +66,70 @@ export async function processSetThumbnail({
     }
   }
 
-  // A) Nur Headline neu formatieren
+  // Funktion zum Speichern von style.json und project.json
+  const saveStyleAndManifest = () => {
+    const styleData = {
+      text: titleToRender,
+      font: headlineConfig.font || 'impact',
+      fontFamilyName: headlineConfig.fontFamilyName || 'Impact, sans-serif',
+      fontSize: headlineConfig.fontSize || 'auto',
+      customSizeNum: headlineConfig.fontSize !== 'auto' && headlineConfig.fontSize ? Number(headlineConfig.fontSize) : 82,
+      fontColor: headlineConfig.fontColor || 'yellow',
+      borderColor: headlineConfig.borderColor || 'black',
+      borderWidth: headlineConfig.borderWidth !== undefined ? Number(headlineConfig.borderWidth) : 9,
+      shadowDistance: headlineConfig.shadowDistance !== undefined ? Number(headlineConfig.shadowDistance) : 4,
+      isItalic: !!headlineConfig.isItalic,
+      tiltAngle: Number(headlineConfig.tiltAngle) || 0,
+      position: headlineConfig.position || 'center',
+      hasBox: !!headlineConfig.hasBox,
+      photoUrl: photoUrl || null,
+      updatedAt: new Date().toISOString(),
+    };
+    fs.writeFileSync(styleJsonPath, JSON.stringify(styleData, null, 2), 'utf-8');
+
+    if (fs.existsSync(jsonPath)) {
+      try {
+        const manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+        manifest.thumbnail = 'thumbnail/thumbnail.jpg';
+        manifest.title = titleToRender;
+        manifest.headlineConfig = styleData;
+        manifest.thumbnail_updated_at = styleData.updatedAt;
+        fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
+      } catch {}
+    }
+    return styleData;
+  };
+
+  // A) Nur Headline neu formatieren oder gewähltes Foto als Hintergrund verwenden
   if (mode === 'apply_headline') {
-    if (fs.existsSync(rawBackgroundPath)) {
+    let sourceFile = null;
+    if (photoUrl && photoUrl.startsWith('/news-static/')) {
+      const subPath = photoUrl.replace('/news-static/', '');
+      sourceFile = path.join(newsDir, decodeURIComponent(subPath));
+    }
+
+    if (sourceFile && fs.existsSync(sourceFile)) {
+      const scaleCmd = `ffmpeg -y -i "${sourceFile}" -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720[v]" -map "[v]" -q:v 2 "${destSub}"`;
+      try {
+        execSync(scaleCmd, { timeout: 10000 });
+      } catch {
+        fs.copyFileSync(sourceFile, destSub);
+      }
+      fs.copyFileSync(destSub, rawBackgroundPath);
+    } else if (fs.existsSync(rawBackgroundPath)) {
       fs.copyFileSync(rawBackgroundPath, destSub);
     } else if (fs.existsSync(destSub)) {
       fs.copyFileSync(destSub, rawBackgroundPath);
     }
     overlayRussianHeadlineOnThumbnail(destSub, titleToRender, headlineConfig);
-    fs.copyFileSync(destSub, destRoot);
+
+    const savedStyle = saveStyleAndManifest();
 
     return {
       success: true,
       thumbnailUrl: `/news-static/${path.basename(targetFolder)}/thumbnail/thumbnail.jpg?t=${Date.now()}`,
       folderName: path.basename(targetFolder),
+      style: savedStyle,
     };
   }
 
@@ -133,7 +183,6 @@ export async function processSetThumbnail({
 
     fs.copyFileSync(destSub, rawBackgroundPath);
     overlayRussianHeadlineOnThumbnail(destSub, titleToRender, headlineConfig);
-    fs.copyFileSync(destSub, destRoot);
   } else {
     let sourceFile = null;
     if (photoUrl && photoUrl.startsWith('/news-static/')) {
@@ -153,20 +202,14 @@ export async function processSetThumbnail({
 
     fs.copyFileSync(destSub, rawBackgroundPath);
     overlayRussianHeadlineOnThumbnail(destSub, titleToRender, headlineConfig);
-    fs.copyFileSync(destSub, destRoot);
   }
 
-  if (fs.existsSync(jsonPath)) {
-    try {
-      const manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
-      manifest.thumbnail = 'thumbnail/thumbnail.jpg';
-      fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
-    } catch {}
-  }
+  const savedStyle = saveStyleAndManifest();
 
   return {
     success: true,
     thumbnailUrl: `/news-static/${path.basename(targetFolder)}/thumbnail/thumbnail.jpg?t=${Date.now()}`,
     folderName: path.basename(targetFolder),
+    style: savedStyle,
   };
 }

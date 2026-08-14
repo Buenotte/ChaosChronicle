@@ -1,5 +1,15 @@
 # 📜 Custom Project Rules for ChaosChronicle
 
-## Git Rule
+## 1. Git Rule
 - **STRICT REQUIREMENT**: Never execute `git commit` or `git push` automatically.
 - **EXPLICIT COMMAND ONLY**: Commits and pushes must ONLY be done when explicitly ordered by the user.
+
+## 2. Test Execution Rule
+- **STRICT REQUIREMENT**: Never run tests (e.g. `npm test`, `run_all_tests.js`, test scripts) automatically in the background.
+- **EXPLICIT MANUAL REQUEST ONLY**: Automated test suites must ONLY be executed when the user explicitly instructs to run tests (e.g. "teste das Programm", "führe Tests aus").
+
+## 3. Code Modularization Rule
+- **STRICT REQUIREMENT**: All files in the codebase must remain strictly under 400 lines of code.
+
+## 4. Build Rule
+- **STRICT REQUIREMENT**: Do not run `vite build` or production bundling unless explicitly ordered. Keep Vite in development server mode.

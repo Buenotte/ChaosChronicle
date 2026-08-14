@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { CATEGORIES, CATEGORY_COLOR, timeAgo } from '../lib/utils'
 
 export default function NewsCard({ article, index, onGenerate, onOpenPhotos, isGenerating, isSavedPkg, savedPkg, onViewSavedPackage }) {
@@ -15,7 +15,14 @@ export default function NewsCard({ article, index, onGenerate, onOpenPhotos, isG
     (savedPkg?.photosCount > 0)
   )
 
-  const displayImage = article.imageUrl || (hasAnyArtifact && savedPkg?.thumbnailUrl ? savedPkg.thumbnailUrl : null)
+  // Wenn ein benutzerdefiniertes Thumbnail im Paket existiert, nimm DAS Thumbnail mit Priorität
+  const displayImage = (hasAnyArtifact && savedPkg?.thumbnailUrl)
+    ? savedPkg.thumbnailUrl
+    : (article.imageUrl || null)
+
+  useEffect(() => {
+    setImgError(false)
+  }, [displayImage])
 
   return (
     <article

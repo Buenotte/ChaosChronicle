@@ -1,6 +1,13 @@
 import assert from 'assert';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 console.log('🧪 [TEST] Running Photos Search & Storage Tests...');
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const newsDir = path.resolve(__dirname, '../news');
 
 async function runPhotosTests() {
   const query = 'Украина дроны атака';
@@ -14,13 +21,13 @@ async function runPhotosTests() {
   assert.ok(searchData.photos.length > 0, 'Must find at least 1 photo');
   console.log(`  ✅ Live Photo Search passed (${searchData.photos.length} photos found)`);
 
-  // 2. Save Photos to Disk Test
-  const sampleFolder = '2026-08-13T12-35_В_Башкортостане_после_атаки_БПЛА_горят_Н';
+  // 2. Save Photos to dedicated test folder
+  const testFolderName = `test_auto_photos_${Date.now()}`;
   const saveRes = await fetch('http://localhost:3001/api/save-news-photos', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      folderName: sampleFolder,
+      folderName: testFolderName,
       photos: searchData.photos.slice(0, 2).map(p => p.url),
     }),
   });
@@ -28,6 +35,13 @@ async function runPhotosTests() {
   const saveData = await saveRes.json();
   assert.ok(saveData.success, 'Save photos must succeed');
   console.log(`  ✅ Save Photos passed (${saveData.savedPhotosCount} photos saved)`);
+
+  // 3. Clean up test folder
+  const testFolder = path.join(newsDir, testFolderName);
+  if (fs.existsSync(testFolder)) {
+    fs.rmSync(testFolder, { recursive: true, force: true });
+    console.log('  🧹 Cleaned up temporary test folder');
+  }
 }
 
 runPhotosTests()

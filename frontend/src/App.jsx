@@ -102,6 +102,24 @@ export default function App() {
     }
   }, [])
 
+  const updateUrlState = (pkgFolder, modalName) => {
+    try {
+      const url = new URL(window.location.href)
+      if (pkgFolder) {
+        url.searchParams.set('pkg', pkgFolder)
+        if (modalName) {
+          url.searchParams.set('modal', modalName)
+        } else {
+          url.searchParams.delete('modal')
+        }
+      } else {
+        url.searchParams.delete('pkg')
+        url.searchParams.delete('modal')
+      }
+      window.history.replaceState({}, '', url.toString())
+    } catch {}
+  }
+
   const fetchSavedPackages = useCallback(async () => {
     try {
       const res = await fetch('/api/saved-packages')
@@ -109,16 +127,33 @@ export default function App() {
       if (data.success) {
         const pkgs = data.packages || []
         setSavedPackages(pkgs)
+
+        const params = new URLSearchParams(window.location.search)
+        const pkgParam = params.get('pkg')
+
         setActiveSavedPackage(current => {
-          if (!current) return null
-          const updated = pkgs.find(p => p.folderName === current.folderName)
-          return updated ? { ...current, ...updated } : current
+          const targetFolder = current?.folderName || pkgParam
+          if (!targetFolder) return null
+          const found = pkgs.find(p => p.folderName === targetFolder)
+          return found ? { ...(current || {}), ...found } : current
         })
       }
     } catch (err) {
       console.error('Fetch saved packages error:', err.message)
     }
   }, [])
+
+  const handleOpenSavedPackage = (pkg) => {
+    setActiveSavedPackage(pkg)
+    if (pkg?.folderName) {
+      updateUrlState(pkg.folderName)
+    }
+  }
+
+  const handleCloseSavedPackage = () => {
+    setActiveSavedPackage(null)
+    updateUrlState(null)
+  }
 
   useEffect(() => {
     checkStatus()
@@ -257,7 +292,7 @@ export default function App() {
                   isGenerating={generatingId === article.id}
                   isSavedPkg={!!matchingSavedPkg}
                   savedPkg={matchingSavedPkg}
-                  onViewSavedPackage={pkg => setActiveSavedPackage(pkg)}
+                  onViewSavedPackage={pkg => handleOpenSavedPackage(pkg)}
                 />
               )
             })}
@@ -281,7 +316,7 @@ export default function App() {
         onOpenScriptText={pkg => setScriptTextPackage(pkg)}
         onOpenAudio={pkg => setAudioPackage(pkg)}
         onOpenVideo={pkg => setVideoPackage(pkg)}
-        onClose={() => setActiveSavedPackage(null)}
+        onClose={handleCloseSavedPackage}
         onRefresh={fetchSavedPackages}
       />
 

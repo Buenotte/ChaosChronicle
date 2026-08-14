@@ -13,12 +13,25 @@ if (!fs.existsSync(customFontsDir)) {
 
 export const AVAILABLE_FONTS = {
   'arialbd': 'C\\:/Windows/Fonts/arialbd.ttf',
+  'arialbi': 'C\\:/Windows/Fonts/arialbi.ttf',
   'impact': 'C\\:/Windows/Fonts/impact.ttf',
   'segoeuib': 'C\\:/Windows/Fonts/segoeuib.ttf',
+  'segoeuiib': 'C\\:/Windows/Fonts/segoeuiz.ttf',
   'tahomabd': 'C\\:/Windows/Fonts/tahomabd.ttf',
   'trebucbd': 'C\\:/Windows/Fonts/trebucbd.ttf',
+  'trebucbi': 'C\\:/Windows/Fonts/trebucbi.ttf',
   'verdanab': 'C\\:/Windows/Fonts/verdanab.ttf',
+  'verdanabi': 'C\\:/Windows/Fonts/verdanaz.ttf',
   'georgiab': 'C\\:/Windows/Fonts/georgiab.ttf',
+  'georgiaz': 'C\\:/Windows/Fonts/georgiaz.ttf',
+};
+
+const ITALIC_FONT_MAP = {
+  'arialbd': 'arialbi',
+  'segoeuib': 'segoeuiib',
+  'trebucbd': 'trebucbi',
+  'verdanab': 'verdanabi',
+  'georgiab': 'georgiaz',
 };
 
 export function formatTitleLines(russianTitle, inputLines = null) {
@@ -76,25 +89,32 @@ export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, optio
       shadowDistance = 4,
       position = 'center',
       hasBox = false,
+      isItalic = false,
+      tiltAngle = 0,
       customLines: inputLines = null,
     } = options;
 
     const cleanLines = formatTitleLines(russianTitle, inputLines);
     if (cleanLines.length === 0) return;
 
-    // Font size computation
+    // Font size computation (allowing up to 160px)
     let finalFontSize = 78;
     if (fontSize && fontSize !== 'auto' && !isNaN(Number(fontSize))) {
-      finalFontSize = Math.min(Math.max(Number(fontSize), 32), 130);
+      finalFontSize = Math.min(Math.max(Number(fontSize), 32), 160);
     } else {
       const longestLineLen = Math.max(...cleanLines.map(l => l.length), 10);
       finalFontSize = Math.floor(1200 / (longestLineLen * 0.62));
-      if (finalFontSize > 86) finalFontSize = 86;
+      if (finalFontSize > 92) finalFontSize = 92;
       if (finalFontSize < 50) finalFontSize = 50;
     }
 
-    // Resolving font path (Built-in or Uploaded custom font)
-    let safeFontPath = AVAILABLE_FONTS[font];
+    // Resolving font path (considering italic mapping)
+    let resolvedFontKey = font;
+    if (isItalic && ITALIC_FONT_MAP[font]) {
+      resolvedFontKey = ITALIC_FONT_MAP[font];
+    }
+
+    let safeFontPath = AVAILABLE_FONTS[resolvedFontKey] || AVAILABLE_FONTS[font];
     if (!safeFontPath && font) {
       const customPath = path.join(customFontsDir, font);
       if (fs.existsSync(customPath)) {
@@ -121,6 +141,7 @@ export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, optio
     const sDist = Number(shadowDistance) >= 0 ? Number(shadowDistance) : 4;
     const sColor = shadowColor || 'black@0.92';
     const boxParam = hasBox ? ':box=1:boxcolor=black@0.72:boxborderw=20' : ':box=0';
+    const numAngle = Number(tiltAngle) || 0;
 
     const drawtextFilters = cleanLines.map((line, idx) => {
       const safeText = line
@@ -132,17 +153,27 @@ export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, optio
       return `drawtext=fontfile='${safeFontPath}':text='${safeText}':fontsize=${finalFontSize}:fontcolor=${colorVal}:bordercolor=${bColor}:borderw=${bWidth}:shadowcolor=${sColor}:shadowx=${sDist}:shadowy=${sDist}${boxParam}:x=(w-text_w)/2:y=${yPos}`;
     });
 
-    const fullFilter = `scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720,${drawtextFilters.join(',')}`;
     const tempOut = path.join(path.dirname(imagePath), 'temp_rendered_thumb.jpg');
 
-    execFileSync('ffmpeg', ['-y', '-i', imagePath, '-vf', fullFilter, '-q:v', '2', tempOut]);
+    if (numAngle !== 0) {
+      // Rotated text overlay pipeline
+      const rad = (numAngle * Math.PI / 180).toFixed(6);
+      const textFiltersStr = drawtextFilters.join(',');
+      const filterComplex = `[0:v]scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720[base];color=c=black@0.0:s=1280x720:d=1,format=rgba,${textFiltersStr},rotate=${rad}:c=none:ow='rotw(${rad})':oh='roth(${rad})'[txt];[base][txt]overlay=(W-w)/2:(H-h)/2`;
+
+      execFileSync('ffmpeg', ['-y', '-i', imagePath, '-filter_complex', filterComplex, '-frames:v', '1', '-q:v', '2', tempOut]);
+    } else {
+      // Direct text overlay pipeline
+      const fullFilter = `scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720,${drawtextFilters.join(',')}`;
+      execFileSync('ffmpeg', ['-y', '-i', imagePath, '-vf', fullFilter, '-q:v', '2', tempOut]);
+    }
 
     if (fs.existsSync(tempOut) && fs.statSync(tempOut).size > 5000) {
       fs.copyFileSync(tempOut, imagePath);
       try { fs.unlinkSync(tempOut); } catch {}
     }
 
-    console.log(`🏷️ Headline (${font}, ${finalFontSize}px, border: ${bWidth}px ${bColor}, shadow: ${sDist}px, pos: ${position}, color: ${colorVal}) gerendert:\n${cleanLines.join('\n')}`);
+    console.log(`🏷️ Headline (${font}, ${finalFontSize}px, italic: ${isItalic}, angle: ${numAngle}°, border: ${bWidth}px ${bColor}, shadow: ${sDist}px, pos: ${position}) gerendert:\n${cleanLines.join('\n')}`);
   } catch (err) {
     console.warn('Fehler beim Rendern der russischen Headline auf Thumbnail:', err.message);
   }

@@ -162,14 +162,30 @@ router.post('/api/generate-feuilleton', async (req, res) => {
       fs.mkdirSync(newsDir, { recursive: true });
     }
 
-    const now = new Date();
-    const dateStr = now.toISOString().replace(/[:.]/g, '-').slice(0, 16);
-    const safeTitle = (title || 'Feuilleton')
-      .replace(/[^a-zA-Z0-9а-яА-ЯёЁ]/g, '_')
-      .replace(/_+/g, '_')
-      .slice(0, 80);
+    const safeTitlePart = (title || '').replace(/[^a-zA-Z0-9а-яА-ЯёЁ]/g, '_').replace(/_+/g, '_').slice(0, 25);
+    let bundleDir = null;
 
-    const bundleDir = path.join(newsDir, `${dateStr}_${safeTitle}`);
+    if (safeTitlePart.length >= 6) {
+      const existingDirs = fs.readdirSync(newsDir, { withFileTypes: true });
+      for (const d of existingDirs) {
+        if (d.isDirectory() && d.name.includes(safeTitlePart)) {
+          bundleDir = path.join(newsDir, d.name);
+          console.log(`♻️ Bestehenden Ordner für Nachricht wiederverwendet: news/${d.name}`);
+          break;
+        }
+      }
+    }
+
+    if (!bundleDir) {
+      const now = new Date();
+      const dateStr = now.toISOString().replace(/[:.]/g, '-').slice(0, 16);
+      const safeTitle = (title || 'Feuilleton')
+        .replace(/[^a-zA-Z0-9а-яА-ЯёЁ]/g, '_')
+        .replace(/_+/g, '_')
+        .slice(0, 80);
+      bundleDir = path.join(newsDir, `${dateStr}_${safeTitle}`);
+    }
+
     const photosDir = path.join(bundleDir, 'photos');
     fs.mkdirSync(photosDir, { recursive: true });
 

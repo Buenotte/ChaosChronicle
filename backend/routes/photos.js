@@ -225,6 +225,32 @@ router.post('/api/generate-punchy-title', async (req, res) => {
   }
 });
 
+// GET /api/thumbnail-style
+router.get('/api/thumbnail-style', (req, res) => {
+  try {
+    const { folderName } = req.query;
+    if (!folderName) {
+      return res.status(400).json({ success: false, error: 'folderName required' });
+    }
+    const newsDir = path.resolve(__dirname, '../../news');
+    const stylePath = path.join(newsDir, folderName, 'thumbnail', 'style.json');
+    if (fs.existsSync(stylePath)) {
+      const style = JSON.parse(fs.readFileSync(stylePath, 'utf-8'));
+      return res.json({ success: true, style });
+    }
+    const projectPath = path.join(newsDir, folderName, 'project.json');
+    if (fs.existsSync(projectPath)) {
+      const manifest = JSON.parse(fs.readFileSync(projectPath, 'utf-8'));
+      if (manifest.headlineConfig) {
+        return res.json({ success: true, style: manifest.headlineConfig });
+      }
+    }
+    res.json({ success: false, style: null });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // POST /api/set-thumbnail
 router.post('/api/set-thumbnail', async (req, res) => {
   try {

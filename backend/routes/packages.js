@@ -171,8 +171,15 @@ router.get('/api/saved-packages', async (req, res) => {
         const thumbSub = path.join(bundleDir, 'thumbnail', 'thumbnail.jpg');
         const thumbRoot = path.join(bundleDir, 'thumbnail.jpg');
         const hasThumbnail = fs.existsSync(thumbSub) || fs.existsSync(thumbRoot);
+        let thumbnailUpdatedAt = manifest.thumbnail_updated_at || null;
+        if (hasThumbnail && !thumbnailUpdatedAt) {
+          try {
+            const actualThumb = fs.existsSync(thumbSub) ? thumbSub : thumbRoot;
+            thumbnailUpdatedAt = fs.statSync(actualThumb).mtime.toISOString();
+          } catch {}
+        }
         const thumbnailUrl = hasThumbnail
-          ? `/news-static/${entry.name}/thumbnail/thumbnail.jpg`
+          ? `/news-static/${entry.name}/thumbnail/thumbnail.jpg?t=${thumbnailUpdatedAt ? new Date(thumbnailUpdatedAt).getTime() : Date.now()}`
           : null;
 
         const hasScriptTxt = fs.existsSync(txtPath);
@@ -186,6 +193,17 @@ router.get('/api/saved-packages', async (req, res) => {
           (hasVideo ? 1 : 0) +
           (photosCount > 0 ? 1 : 0) +
           (hasThumbnail ? 1 : 0);
+
+        const styleJsonPath = path.join(bundleDir, 'thumbnail', 'style.json');
+        let thumbnailStyle = null;
+        if (fs.existsSync(styleJsonPath)) {
+          try {
+            thumbnailStyle = JSON.parse(fs.readFileSync(styleJsonPath, 'utf-8'));
+          } catch {}
+        }
+        if (!thumbnailStyle && manifest.headlineConfig) {
+          thumbnailStyle = manifest.headlineConfig;
+        }
 
         packages.push({
           folderName: entry.name,
@@ -203,8 +221,11 @@ router.get('/api/saved-packages', async (req, res) => {
           photoUrls: photoFiles,
           hasThumbnail,
           thumbnailUrl,
+          thumbnail_updated_at: thumbnailUpdatedAt,
           artifactCount,
           hasAnyArtifact: artifactCount > 0,
+          headlineConfig: thumbnailStyle,
+          thumbnailStyle: thumbnailStyle,
           audioUrl: hasAudio ? `/news-static/${entry.name}/audio.mp3` : null,
           videoUrl,
           scriptTxt: hasScriptTxt ? fs.readFileSync(txtPath, 'utf-8') : '',

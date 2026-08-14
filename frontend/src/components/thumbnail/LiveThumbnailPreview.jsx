@@ -8,8 +8,12 @@ export default function LiveThumbnailPreview({
   activeStrokeHex,
   shadowDistance,
   hasBox,
+  isItalic,
+  tiltAngle,
   previewLines,
 }) {
+  const angle = Number(tiltAngle) || 0
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
@@ -17,7 +21,7 @@ export default function LiveThumbnailPreview({
           👁️ ЖИВОЙ ПРЕДПРОСМОТР ОБЛОЖКИ (16:9):
         </label>
         <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
-          Обновляется мгновенно при любых изменениях
+          {isItalic ? '✍️ Курсив ' : ''}{angle !== 0 ? `📐 Угол: ${angle}° ` : ''}• Обновляется мгновенно
         </span>
       </div>
 
@@ -38,7 +42,7 @@ export default function LiveThumbnailPreview({
           padding: position === 'top' ? '20px 16px' : position === 'bottom' ? '20px 16px' : '0 16px',
         }}
       >
-        {/* Фоновое изображение */}
+        {/* Фоновое чистое изображение */}
         <img
           src={previewSrc}
           alt="Thumbnail Preview"
@@ -50,21 +54,29 @@ export default function LiveThumbnailPreview({
             objectFit: 'cover',
             filter: 'brightness(0.85)',
           }}
-          onError={(e) => { e.target.style.display = 'none' }}
+          onError={(e) => {
+            if (e.target.src.includes('raw_background.jpg')) {
+              e.target.src = previewSrc.replace('raw_background.jpg', 'thumbnail.jpg');
+            }
+          }}
         />
 
-        {/* Накладываемый живой текст с точной имитацией FFmpeg */}
+        {/* Накладываемый живой текст с точной имитацией FFmpeg (наклон, курсив, обводка, тень) */}
         <div
           style={{
             position: 'relative',
             zIndex: 2,
             textAlign: 'center',
             fontFamily: fontFamilyName,
+            fontStyle: isItalic ? 'italic' : 'normal',
             fontSize: calcLiveFontSize(),
             fontWeight: 900,
             lineHeight: 1.16,
             color: activeColorHex,
             letterSpacing: '0.5px',
+            transform: `rotate(${angle}deg) ${isItalic && !fontFamilyName.includes('Georgia') ? 'skewX(-8deg)' : ''}`,
+            transformOrigin: 'center center',
+            transition: 'transform 0.15s ease',
             WebkitTextStroke: `${Math.round(borderWidth * 0.45)}px ${activeStrokeHex}`,
             textShadow: `${Math.round(shadowDistance * 0.45)}px ${Math.round(shadowDistance * 0.45)}px ${Math.round(shadowDistance * 0.45)}px rgba(0,0,0,0.92)`,
             background: hasBox ? 'rgba(0, 0, 0, 0.72)' : 'transparent',

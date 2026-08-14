@@ -49,11 +49,12 @@
 }
 
 .modal-title {
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   font-size: 1.25rem;
-  font-weight: 700;
+  font-weight: 800;
   margin-top: 0.2rem;
   color: var(--text);
+  letter-spacing: -0.01em;
 }
 
 .modal-stats {

@@ -233,6 +233,33 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
   const [showSettingsModal, setShowSettingsModal] = useState(false)
   const [showTitleVariantsModal, setShowTitleVariantsModal] = useState(false)
 
+  useEffect(() => {
+    try {
+      const modalParam = new URLSearchParams(window.location.search).get('modal')
+      if (modalParam === 'thumbnail') {
+        setShowSettingsModal(true)
+      }
+    } catch {}
+  }, [])
+
+  const handleOpenSettings = () => {
+    setShowSettingsModal(true)
+    try {
+      const url = new URL(window.location.href)
+      url.searchParams.set('modal', 'thumbnail')
+      window.history.replaceState({}, '', url.toString())
+    } catch {}
+  }
+
+  const handleCloseSettings = () => {
+    setShowSettingsModal(false)
+    try {
+      const url = new URL(window.location.href)
+      url.searchParams.delete('modal')
+      window.history.replaceState({}, '', url.toString())
+    } catch {}
+  }
+
   const hasTxt = pkg.hasScriptTxt || pkg.hasScriptMd || (pkg.scriptTxt && pkg.scriptTxt.length > 10)
   const actualPhotoCount = pkg.photosCount || (pkg.photoUrls ? pkg.photoUrls.length : 0)
 
@@ -244,8 +271,11 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
         <ThumbnailSettingsModal
           pkg={pkg}
           currentThumbnail={currentThumbnail}
-          onClose={() => setShowSettingsModal(false)}
-          onUpdated={(newUrl) => setCurrentThumbnail(newUrl)}
+          onClose={handleCloseSettings}
+          onUpdated={(newUrl) => {
+            setCurrentThumbnail(newUrl)
+            if (onRefresh) onRefresh()
+          }}
         />
       )}
 
@@ -304,7 +334,7 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
             actualPhotoCount={actualPhotoCount}
             currentThumbnail={currentThumbnail}
             onGenerateAiThumbnail={handleGenerateAiThumbnail}
-            onOpenSettingsModal={() => setShowSettingsModal(true)}
+            onOpenSettingsModal={handleOpenSettings}
             onOpenLightbox={() => setLightboxUrl(currentThumbnail)}
             onSaveAsNative={handleSaveAsNative}
           />

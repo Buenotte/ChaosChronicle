@@ -6,8 +6,11 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const newsDir = path.resolve(__dirname, '../../news');
 
-export async function saveNewsPhotos({ title = 'News', bundleDir: inputBundleDir, photos = [] }) {
+export async function saveNewsPhotos({ title = 'News', bundleDir: inputBundleDir, folderName, photos = [] }) {
   let bundleDir = inputBundleDir;
+  if (!bundleDir && folderName) {
+    bundleDir = path.join(newsDir, folderName);
+  }
   if (!bundleDir) {
     const now = new Date();
     const dateStr = now.toISOString().replace(/[:.]/g, '-').slice(0, 16);
