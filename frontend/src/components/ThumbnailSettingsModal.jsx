@@ -23,7 +23,7 @@ const COLORS = [
 export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose, onUpdated }) {
   if (!pkg) return null
 
-  const [text, setText] = useState(pkg.title || '')
+  const [text, setText] = useState(pkg.title || pkg.original_title || '')
   const [font, setFont] = useState('arialbd')
   const [fontSize, setFontSize] = useState('auto')
   const [fontColor, setFontColor] = useState('yellow')
@@ -31,6 +31,36 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
   const [borderWidth, setBorderWidth] = useState(9)
   const [hasBox, setHasBox] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [generatingTitle, setGeneratingTitle] = useState(false)
+
+  useEffect(() => {
+    if (pkg) {
+      setText(pkg.title || pkg.original_title || '')
+    }
+  }, [pkg])
+
+  const handleGeneratePunchyTitle = async () => {
+    try {
+      setGeneratingTitle(true)
+      const res = await fetch('/api/generate-punchy-title', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: pkg.original_title || pkg.title || text,
+          summary: pkg.summary || ''
+        }),
+      })
+      const data = await res.json()
+      if (data.success && data.title) {
+        setText(data.title)
+        toast.success(`⚡ Заголовок в стиле Голобуцкого создан: "${data.title}"`)
+      }
+    } catch (e) {
+      toast.error('Ошибка генерации заголовка: ' + e.message)
+    } finally {
+      setGeneratingTitle(false)
+    }
+  }
 
   const handleApply = async (generateNewAi = false) => {
     try {
@@ -85,11 +115,33 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
         </div>
 
         <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
+          {/* Исходная новость */}
+          <div style={{ background: '#18181b', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px solid #27272a' }}>
+            <span style={{ fontSize: '0.75rem', color: '#a1a1aa', display: 'block', fontWeight: 600, marginBottom: '0.2rem' }}>
+              📰 ПОЛНАЯ ТЕМА НОВОСТИ:
+            </span>
+            <span style={{ fontSize: '0.9rem', color: '#f4f4f5', fontWeight: 600 }}>
+              {pkg.original_title || pkg.title}
+            </span>
+          </div>
+
           {/* Текст заголовка */}
           <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', color: '#9ca3af', marginBottom: '0.35rem', fontWeight: 600 }}>
-              📝 Текст заголовка на обложке:
-            </label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+              <label style={{ fontSize: '0.85rem', color: '#9ca3af', fontWeight: 600 }}>
+                📝 Текст заголовка на обложке:
+              </label>
+              <button
+                type="button"
+                className="copy-btn"
+                disabled={generatingTitle}
+                onClick={handleGeneratePunchyTitle}
+                style={{ background: '#ec4899', fontSize: '0.75rem', padding: '0.25rem 0.6rem' }}
+                title="Сгенерировать короткий сатирический заголовок из 4-5 слов"
+              >
+                {generatingTitle ? '⏳ Создание...' : '⚡ Сгенерировать в стиле Голобуцкого (4-5 слов)'}
+              </button>
+            </div>
             <textarea
               value={text}
               onChange={e => setText(e.target.value)}

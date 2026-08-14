@@ -44,6 +44,64 @@ export function buildHybridPrompt(newsTitle, newsSummary = '') {
   return fullPrompt;
 }
 
+// ── Генератор заголовков в стиле Голобуцкого (4-5 слов, сатира & деконструкция) ──
+export async function generateGolubuzkiTitle(newsTitle, newsSummary = '') {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey || apiKey.includes('HIER')) {
+    return (newsTitle || 'ГЛАВНАЯ НОВОСТЬ ДНЯ').split(/\s+/).slice(0, 5).join(' ').toUpperCase();
+  }
+
+  try {
+    const scriptsDir = path.resolve(__dirname, '../../scripts');
+    const golubuzkiPath = path.join(scriptsDir, 'golubuzki_style.txt');
+    const golubuzkiGuide = fs.existsSync(golubuzkiPath) ? fs.readFileSync(golubuzkiPath, 'utf-8').slice(0, 1500) : '';
+
+    const systemPrompt = `Ты — мастер убойных, вирусных и сатирических заголовков для YouTube в авторском стиле «Алексей Голобуцкий» (деконструкция пропаганды, едкая ирония, короткие хлесткие фразы).
+Твоя задача: на основе новости создать сатирический, броский заголовок для обложки и видео.
+СТРОГИЕ ТРЕБОВАНИЯ:
+1. ДЛИНА: СТРОГО 4-5 СЛОВ (не больше и не меньше).
+2. СТИЛЬ: Едкий сарказм, деконструкция официальной лжи врага, мемы и триггеры («по плану», «бункерный дед», «высокоточный террор», «аналоговнет», «отрицательный рост»).
+3. БЕЗ кавычек, БЕЗ точки на конце.
+4. Выведи ТОЛЬКО заголовок из 4-5 слов на русском языке капсом (UPPERCASE). Никаких лишних слов.`;
+
+    const userPrompt = `Новость: ${newsTitle}\nКонтекст: ${newsSummary?.slice(0, 350) || ''}`;
+
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        max_tokens: 40,
+        temperature: 0.85,
+      }),
+      signal: AbortSignal.timeout(7000),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      let text = data.choices?.[0]?.message?.content?.trim();
+      if (text) {
+        text = text.replace(/["'«»`]/g, '').replace(/\.$/, '').trim();
+        const words = text.split(/\s+/).filter(Boolean);
+        if (words.length >= 3 && words.length <= 6) {
+          return text.toUpperCase();
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Golubuzki title generation fallback:', err.message);
+  }
+
+  return (newsTitle || 'ГЛАВНАЯ НОВОСТЬ ДНЯ').split(/\s+/).slice(0, 5).join(' ').toUpperCase();
+}
+
 export function cleanSpeechTextForAudio(rawText = '') {
   return rawText
     .replace(/\[Название_канала\]/g, 'ChaosChronicle')
@@ -108,7 +166,8 @@ router.post('/api/generate-feuilleton', async (req, res) => {
     const dateStr = now.toISOString().replace(/[:.]/g, '-').slice(0, 16);
     const safeTitle = (title || 'Feuilleton')
       .replace(/[^a-zA-Z0-9а-яА-ЯёЁ]/g, '_')
-      .slice(0, 40);
+      .replace(/_+/g, '_')
+      .slice(0, 80);
 
     const bundleDir = path.join(newsDir, `${dateStr}_${safeTitle}`);
     const photosDir = path.join(bundleDir, 'photos');
@@ -118,7 +177,10 @@ router.post('/api/generate-feuilleton', async (req, res) => {
       ? req.body.images
       : (req.body.imageUrl ? [req.body.imageUrl] : []);
 
-    const mdContent = `# 🎭 ${title}\n\n- **Дата**: ${now.toLocaleString('ru-RU')}\n- **Модель ИИ**: ${modelId}\n- **Хронометраж**: ~${minutes} мин.\n- **Количество слов**: ${words}\n- **Источник**: ${source || 'RSS Feed'}\n\n---\n\n${text}\n`;
+    // 4-5 слов заголовок в стиле Голобуцкого
+    const punchyTitle = await generateGolubuzkiTitle(title, summary);
+
+    const mdContent = `# 🎭 ${punchyTitle || title}\n\n- **Оригинальная тема**: ${title}\n- **Дата**: ${now.toLocaleString('ru-RU')}\n- **Модель ИИ**: ${modelId}\n- **Хронометраж**: ~${minutes} мин.\n- **Количество слов**: ${words}\n- **Источник**: ${source || 'RSS Feed'}\n\n---\n\n${text}\n`;
     const mdPath = path.join(bundleDir, 'script.md');
     fs.writeFileSync(mdPath, mdContent, 'utf-8');
 
@@ -145,7 +207,8 @@ router.post('/api/generate-feuilleton', async (req, res) => {
     }
 
     const projectManifest = {
-      title,
+      title: punchyTitle || title,
+      original_title: title,
       source,
       model: modelId,
       date: now.toISOString(),
@@ -160,7 +223,8 @@ router.post('/api/generate-feuilleton', async (req, res) => {
 
     res.json({
       success: true,
-      title,
+      title: punchyTitle || title,
+      originalTitle: title,
       text,
       model: modelId,
       words,

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 import ImageLightboxModal from './ImageLightboxModal'
 import ThumbnailSettingsModal from './ThumbnailSettingsModal'
+import TitleVariantsModal from './TitleVariantsModal'
 
 export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText, onOpenAudio, onOpenVideo, onClose, onRefresh }) {
   if (!pkg) return null
@@ -207,6 +208,9 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
           photoUrl,
           bundleDir: pkg.bundleDir,
           folderName: pkg.folderName,
+          headlineConfig: {
+            text: pkg.title,
+          },
         }),
       })
       const data = await res.json()
@@ -231,6 +235,9 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
           mode: 'generate_ai',
           bundleDir: pkg.bundleDir,
           folderName: pkg.folderName,
+          headlineConfig: {
+            text: pkg.title,
+          },
         }),
       })
       const data = await res.json()
@@ -247,6 +254,7 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
 
   const [lightboxUrl, setLightboxUrl] = useState(null)
   const [showSettingsModal, setShowSettingsModal] = useState(false)
+  const [showTitleVariantsModal, setShowTitleVariantsModal] = useState(false)
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -262,6 +270,18 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
           currentThumbnail={currentThumbnail}
           onClose={() => setShowSettingsModal(false)}
           onUpdated={(newUrl) => setCurrentThumbnail(newUrl)}
+        />
+      )}
+
+      {showTitleVariantsModal && (
+        <TitleVariantsModal
+          pkg={pkg}
+          onClose={() => setShowTitleVariantsModal(false)}
+          onTitleSaved={(newTitle, newThumb) => {
+            pkg.title = newTitle
+            if (newThumb) setCurrentThumbnail(newThumb)
+            if (onRefresh) onRefresh()
+          }}
         />
       )}
       <div
@@ -280,7 +300,17 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
             <span className="modal-badge saved-badge">
               📂 Видео-пакет в news/{pkg.folderName || ''}
             </span>
-            <h2 className="modal-title">{pkg.title}</h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
+              <h2 className="modal-title" style={{ margin: 0 }}>{pkg.title}</h2>
+              <button
+                className="copy-btn"
+                style={{ background: '#ec4899', fontSize: '0.75rem', padding: '0.25rem 0.6rem' }}
+                onClick={() => setShowTitleVariantsModal(true)}
+                title="Сгенерировать 10 вариантов заголовков в стиле Голобуцкого и выбрать лучший"
+              >
+                ⚡ 10 вариантов заголовков
+              </button>
+            </div>
             <div className="modal-stats" style={{ marginTop: '0.5rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
               <span className="saved-status-badge">📜 script.txt {hasTxt ? '✅' : '❌'}</span>
               <span className="saved-status-badge">📸 photos/ ({actualPhotoCount})</span>
@@ -302,16 +332,26 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
         </div>
 
         <div className="modal-body">
-          {/* Секция 1: Текст */}
+          {/* Секция 1: Текст и Заголовок */}
           <div style={{ marginBottom: '1.25rem' }}>
-            <h3 style={{ fontSize: '0.95rem', color: '#9ca3af', marginBottom: '0.5rem' }}>1. Скрипт текста:</h3>
-            <button
-              className="copy-btn"
-              style={{ background: '#3b82f6' }}
-              onClick={() => onOpenScriptText(pkg)}
-            >
-              📜 Открыть и редактировать текст
-            </button>
+            <h3 style={{ fontSize: '0.95rem', color: '#9ca3af', marginBottom: '0.5rem' }}>1. Заголовок и сценарий текста:</h3>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <button
+                className="copy-btn"
+                style={{ background: '#3b82f6' }}
+                onClick={() => onOpenScriptText(pkg)}
+              >
+                📜 Открыть и редактировать текст
+              </button>
+
+              <button
+                className="copy-btn"
+                style={{ background: '#ec4899' }}
+                onClick={() => setShowTitleVariantsModal(true)}
+              >
+                ⚡ Выбрать из 10 заголовков (Голобуцкий)
+              </button>
+            </div>
           </div>
 
           {/* Секция 1.5: Обложка (Thumbnail) */}

@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { execSync, execFileSync } from 'child_process';
+import { generateGolubuzkiTitle } from './feuilleton.js';
 import { newsCache, cleanText } from './news.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -415,6 +416,11 @@ router.post('/api/save-news-photos', async (req, res) => {
     if (fs.existsSync(jsonPath)) {
       try { manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8')); } catch {}
     }
+    const topicTitle = req.body.title || req.body.newsTitle;
+    if (topicTitle && !manifest.title) {
+      manifest.title = topicTitle;
+      manifest.original_title = topicTitle;
+    }
     manifest.photos = savedPhotos;
     manifest.photos_saved_at = new Date().toISOString();
     fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
@@ -476,7 +482,7 @@ router.post('/api/delete-photo', async (req, res) => {
   }
 });
 
-// ── 4-Corner AI Prompt Generator & Photo Analyzer ────────────────────────────
+// ── Single Dark Cinematic AI Prompt Generator & Photo Analyzer ───────────────
 async function generate4CornerAiPrompt(title, textExcerpt, photosList = []) {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (apiKey && !apiKey.includes('HIER')) {
@@ -484,10 +490,11 @@ async function generate4CornerAiPrompt(title, textExcerpt, photosList = []) {
       const systemPrompt = `You are an elite visual art director for 16:9 cinematic news editorial thumbnails.
 Your task: Create a detailed English image prompt for Google Gemini / FLUX image generation.
 KEY REQUIREMENTS:
-1. The image must be a unified 16:9 cinematic photo where FOUR distinct perspectives/elements from the news story originate from the four corners (top-left, top-right, bottom-left, bottom-right) and seamlessly merge, dissolve, and blend into a powerful, dramatic center focal point.
-2. ABSOLUTELY NO TEXT, NO LETTERS, NO NUMBERS, NO WORDS, NO HEADLINES, NO CAPTIONS, NO WATERMARKS, NO LOGOS.
-3. ABSOLUTELY NO WHITE SPACES, NO EMPTY GAPS, NO BORDERS, NO MARGINS, NO FRAMES, NO GRID LINES, NO WHITE DIVIDERS. The entire 16:9 canvas must be 100% filled edge-to-edge with continuous rich cinematic photography, smoke, lighting, and environmental atmosphere.
-Output ONLY the raw prompt in English, with dramatic lighting, 8k resolution, photorealistic news reportage style. No quotes or explanations.`;
+1. The image must be ONE single, unified, ultra-dramatic dark cinematic scene that powerfully captures the core event of the news story. Strictly NO collages, NO split screens, NO multi-scene grids, NO 4-corner divisions.
+2. The visual mood MUST be dark, moody, atmospheric twilight or night with deep shadows, high-contrast lighting, illuminated by intense glowing focal points, fire, volumetric smoke, or distant emergency lights.
+3. ABSOLUTELY NO TEXT, NO LETTERS, NO NUMBERS, NO WORDS, NO HEADLINES, NO CAPTIONS, NO WATERMARKS, NO LOGOS.
+4. ABSOLUTELY NO WHITE SPACES, NO EMPTY GAPS, NO BORDERS, NO MARGINS, NO FRAMES. The entire 16:9 widescreen canvas must be 100% filled edge-to-edge with continuous dark cinematic photography.
+Output ONLY the raw prompt in English, with dramatic cinematic lighting, 8k resolution, photorealistic editorial news style. No quotes or explanations.`;
 
       const userMsg = `News Story: ${title}\nContext: ${textExcerpt.slice(0, 450)}\nPhotos available: ${photosList.length} items (${photosList.slice(0, 5).join(', ')})`;
 
@@ -504,7 +511,7 @@ Output ONLY the raw prompt in English, with dramatic lighting, 8k resolution, ph
             { role: 'user', content: userMsg }
           ],
           max_tokens: 220,
-          temperature: 0.85,
+          temperature: 0.8,
         }),
         signal: AbortSignal.timeout(9000),
       });
@@ -513,9 +520,9 @@ Output ONLY the raw prompt in English, with dramatic lighting, 8k resolution, ph
         const data = await aiRes.json();
         const text = data.choices?.[0]?.message?.content?.trim();
         if (text && text.length > 25) {
-          const cleanPrompt = text.replace(/text|letters|words|typography|border|frame/gi, '').trim();
-          console.log(`🧠 AI 4-Corner Prompt generiert: ${cleanPrompt.slice(0, 100)}...`);
-          return `${cleanPrompt}, full bleed edge-to-edge cinematic composition, zero white spaces, zero borders, zero grid lines, no text, no watermark, seamless atmospheric blending, rich cinematic color palette`;
+          const cleanPrompt = text.replace(/text|letters|words|typography|border|frame|split screen|collage/gi, '').trim();
+          console.log(`🧠 AI Dark Cinematic Prompt generiert: ${cleanPrompt.slice(0, 100)}...`);
+          return `${cleanPrompt}, single unified shot, dark moody atmospheric cinematic lighting, full bleed edge-to-edge widescreen, zero white spaces, zero borders, no collage, no text, no watermark`;
         }
       }
     } catch (e) {
@@ -524,7 +531,7 @@ Output ONLY the raw prompt in English, with dramatic lighting, 8k resolution, ph
   }
 
   const cleanTitle = (title || 'Breaking News').replace(/[^a-zA-Z0-9а-яА-ЯёЁ\s]/g, '').slice(0, 90);
-  return `16:9 cinematic photojournalism composite, ${cleanTitle}, four distinct dramatic perspectives from top-left, top-right, bottom-left, and bottom-right corners seamlessly blending and melting towards a central focal point, smoke and emergency lighting, intense atmospheric depth, hyper-detailed, 8k resolution, full bleed edge-to-edge, no white spaces, no borders, no grid lines, no text, no letters, no words, no watermark`;
+  return `16:9 dark cinematic photojournalism editorial scene, ${cleanTitle}, single powerful dramatic perspective, moody dark atmospheric lighting with intense glowing highlights, deep twilight shadows, volumetric smoke and emergency illumination, hyper-detailed, 8k resolution, full bleed edge-to-edge, no white spaces, no borders, no split screen, no collage, no text, no letters, no words, no watermark`;
 }
 
 // ── Google Gemini Image Generator ────────────────────────────────────────────
@@ -599,7 +606,7 @@ const AVAILABLE_FONTS = {
   'georgiab': 'C\\:/Windows/Fonts/georgiab.ttf',
 };
 
-function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, options = {}) {
+export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, options = {}) {
   if (!imagePath || !fs.existsSync(imagePath) || !russianTitle) return;
 
   try {
@@ -709,6 +716,17 @@ function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, options = {}
   }
 }
 
+// POST /api/generate-punchy-title (4-5 слов в стиле Голобуцкого)
+router.post('/api/generate-punchy-title', async (req, res) => {
+  try {
+    const { title, summary } = req.body;
+    const punchyTitle = await generateGolubuzkiTitle(title, summary);
+    res.json({ success: true, title: punchyTitle });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // POST /api/set-thumbnail
 router.post('/api/set-thumbnail', async (req, res) => {
   try {
@@ -769,7 +787,15 @@ router.post('/api/set-thumbnail', async (req, res) => {
       fullNewsTitle = path.basename(targetFolder).replace(/^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}_/, '').replace(/_/g, ' ');
     }
 
-    const titleToRender = headlineConfig?.text || fullNewsTitle;
+    let titleToRender = headlineConfig?.text;
+    if (!titleToRender) {
+      const wordCount = fullNewsTitle.split(/\s+/).filter(Boolean).length;
+      if (wordCount > 6) {
+        titleToRender = await generateGolubuzkiTitle(fullNewsTitle);
+      } else {
+        titleToRender = fullNewsTitle;
+      }
+    }
 
     // A) Nur Headline neu formatieren auf bestehendem Raw-Hintergrund
     if (mode === 'apply_headline') {
