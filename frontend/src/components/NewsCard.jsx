@@ -5,15 +5,27 @@ export default function NewsCard({ article, index, onGenerate, onOpenPhotos, isG
   const [imgError, setImgError] = useState(false)
   const catColor = CATEGORY_COLOR[article.category] || '#6b7280'
 
+  const hasAnyArtifact = isSavedPkg && (
+    savedPkg?.hasAnyArtifact ||
+    savedPkg?.hasScriptTxt ||
+    savedPkg?.hasScriptMd ||
+    savedPkg?.hasAudio ||
+    savedPkg?.hasVideo ||
+    savedPkg?.hasThumbnail ||
+    (savedPkg?.photosCount > 0)
+  )
+
+  const displayImage = article.imageUrl || (hasAnyArtifact && savedPkg?.thumbnailUrl ? savedPkg.thumbnailUrl : null)
+
   return (
     <article
-      className={`news-card ${isSavedPkg ? 'saved-news-card' : ''}`}
+      className={`news-card ${hasAnyArtifact ? 'saved-news-card' : ''}`}
       style={{ '--cat-color': catColor, animationDelay: `${index * 30}ms` }}
     >
-      {article.imageUrl && !imgError && (
+      {displayImage && !imgError && (
         <div className="card-image">
           <img
-            src={article.imageUrl}
+            src={displayImage}
             alt={article.title}
             onError={() => setImgError(true)}
             loading="lazy"
@@ -27,12 +39,13 @@ export default function NewsCard({ article, index, onGenerate, onOpenPhotos, isG
           </span>
           <span className="card-source">{article.source}</span>
           <span className="card-time">{timeAgo(article.pubDate)}</span>
-          {isSavedPkg && (
+          {hasAnyArtifact && (
             <span className="saved-status-badge">
-              🟢 📦 Сохранено в news/
+              🟢 📦 В news/
             </span>
           )}
         </div>
+
         <h2 className="card-title">
           <a href={article.url} target="_blank" rel="noopener noreferrer">
             {article.title}
@@ -40,6 +53,37 @@ export default function NewsCard({ article, index, onGenerate, onOpenPhotos, isG
         </h2>
         {article.summary && (
           <p className="card-summary">{article.summary}</p>
+        )}
+
+        {/* 📦 СПИСОК ГОТОВЫХ АРТЕФАКТОВ В ПАКЕТЕ */}
+        {hasAnyArtifact && (
+          <div className="artifact-badges-row">
+            {(savedPkg.hasScriptTxt || savedPkg.hasScriptMd) && (
+              <span className="artifact-pill script" title="Сценарий готов (script.txt / script.md)">
+                📜 Скрипт ✅
+              </span>
+            )}
+            {savedPkg.photosCount > 0 && (
+              <span className="artifact-pill photos" title={`${savedPkg.photosCount} фото скачано в news/photos/`}>
+                📸 {savedPkg.photosCount} фото ✅
+              </span>
+            )}
+            {savedPkg.hasThumbnail && (
+              <span className="artifact-pill thumbnail" title="16:9 YouTube Обложка создана (thumbnail.jpg)">
+                ✨ 16:9 Обложка ✅
+              </span>
+            )}
+            {savedPkg.hasAudio && (
+              <span className="artifact-pill audio" title="Аудио озвучка сгенерирована (audio.mp3)">
+                🎙️ Аудио ✅
+              </span>
+            )}
+            {savedPkg.hasVideo && (
+              <span className="artifact-pill video" title="Финальное видео срендерено (video.mp4)">
+                🎬 Видео ✅
+              </span>
+            )}
+          </div>
         )}
 
         <div className="card-actions-grid">
@@ -55,11 +99,11 @@ export default function NewsCard({ article, index, onGenerate, onOpenPhotos, isG
             onClick={() => onOpenPhotos(article)}
             title="Посмотреть фото к этой новости"
           >
-            🖼️ Фото
+            🖼️ Фото {hasAnyArtifact && savedPkg?.photosCount ? `(${savedPkg.photosCount})` : ''}
           </button>
 
           <button
-            className="view-saved-btn"
+            className={`view-saved-btn ${hasAnyArtifact ? 'has-artifacts' : ''}`}
             onClick={() => {
               const pkgToView = savedPkg || {
                 title: article.title,
@@ -76,7 +120,7 @@ export default function NewsCard({ article, index, onGenerate, onOpenPhotos, isG
             }}
             title="Открыть готовый видео-пакет (Аудио, Фото, Сценарий)"
           >
-            📂 Видео-пакет
+            {hasAnyArtifact ? '📂 Видео-пакет ✅' : '📂 Видео-пакет'}
           </button>
         </div>
       </div>

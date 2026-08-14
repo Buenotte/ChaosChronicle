@@ -163,6 +163,25 @@ router.get('/api/saved-packages', async (req, res) => {
           packageTitle = entry.name.replace(/^[0-9T-]{16}_/, '').replace(/_/g, ' ');
         }
 
+        const thumbSub = path.join(bundleDir, 'thumbnail', 'thumbnail.jpg');
+        const thumbRoot = path.join(bundleDir, 'thumbnail.jpg');
+        const hasThumbnail = fs.existsSync(thumbSub) || fs.existsSync(thumbRoot);
+        const thumbnailUrl = hasThumbnail
+          ? `/news-static/${entry.name}/thumbnail/thumbnail.jpg`
+          : null;
+
+        const hasScriptTxt = fs.existsSync(txtPath);
+        const hasScriptMd = fs.existsSync(mdPath);
+        const hasAudio = fs.existsSync(audioPath);
+        const photosCount = photoFiles.length;
+
+        const artifactCount = (hasScriptTxt ? 1 : 0) +
+          (hasScriptMd ? 1 : 0) +
+          (hasAudio ? 1 : 0) +
+          (hasVideo ? 1 : 0) +
+          (photosCount > 0 ? 1 : 0) +
+          (hasThumbnail ? 1 : 0);
+
         packages.push({
           folderName: entry.name,
           bundleDir,
@@ -171,16 +190,20 @@ router.get('/api/saved-packages', async (req, res) => {
           date: manifest.date || null,
           model: manifest.model || 'gemini',
           source: manifest.source || '',
-          hasAudio: fs.existsSync(audioPath),
+          hasAudio,
           hasVideo,
-          hasScriptTxt: fs.existsSync(txtPath),
-          hasScriptMd: fs.existsSync(mdPath),
-          photosCount: photoFiles.length,
+          hasScriptTxt,
+          hasScriptMd,
+          photosCount,
           photoUrls: photoFiles,
-          audioUrl: fs.existsSync(audioPath) ? `/news-static/${entry.name}/audio.mp3` : null,
+          hasThumbnail,
+          thumbnailUrl,
+          artifactCount,
+          hasAnyArtifact: artifactCount > 0,
+          audioUrl: hasAudio ? `/news-static/${entry.name}/audio.mp3` : null,
           videoUrl,
-          scriptTxt: fs.existsSync(txtPath) ? fs.readFileSync(txtPath, 'utf-8') : '',
-          scriptMd: fs.existsSync(mdPath) ? fs.readFileSync(mdPath, 'utf-8') : '',
+          scriptTxt: hasScriptTxt ? fs.readFileSync(txtPath, 'utf-8') : '',
+          scriptMd: hasScriptMd ? fs.readFileSync(mdPath, 'utf-8') : '',
         });
       }
     }

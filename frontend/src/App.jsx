@@ -325,13 +325,17 @@ export default function App() {
         {filtered.length > 0 && (
           <div className="news-grid">
             {filtered.map((article, i) => {
-              const articleClean = cleanMatchTitle(article?.title)
+              const artClean = cleanMatchTitle(article?.title)
               const matchingSavedPkg = (savedPackages || []).find(p => {
-                const pClean = cleanMatchTitle(p?.title || p?.folderName)
-                if (!pClean || !articleClean) return false
-                const subArt = articleClean.slice(0, 12)
-                const subPkg = pClean.slice(0, 12)
-                return pClean.includes(subArt) || articleClean.includes(subPkg)
+                if (!artClean) return false
+                const pkgTitleClean = cleanMatchTitle(p?.title)
+                const pkgOrigClean = cleanMatchTitle(p?.original_title)
+                const pkgFolderClean = cleanMatchTitle(p?.folderName?.replace(/^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}_/, ''))
+
+                if (pkgOrigClean && (artClean.includes(pkgOrigClean.slice(0, 14)) || pkgOrigClean.includes(artClean.slice(0, 14)))) return true
+                if (pkgTitleClean && (artClean.includes(pkgTitleClean.slice(0, 14)) || pkgTitleClean.includes(artClean.slice(0, 14)))) return true
+                if (pkgFolderClean && (artClean.includes(pkgFolderClean.slice(0, 14)) || pkgFolderClean.includes(artClean.slice(0, 14)))) return true
+                return false
               })
 
               return (

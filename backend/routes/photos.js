@@ -595,7 +595,12 @@ async function generateGeminiImage(prompt) {
   return null;
 }
 
-// ── Russian Headline Overlay with Custom Font, Size, Color & Position ─────────
+// ── Russian Headline Overlay with Custom Font, Size, Color, Contour & Shadow ─
+const customFontsDir = path.resolve(__dirname, '../custom_fonts');
+if (!fs.existsSync(customFontsDir)) {
+  fs.mkdirSync(customFontsDir, { recursive: true });
+}
+
 const AVAILABLE_FONTS = {
   'arialbd': 'C\\:/Windows/Fonts/arialbd.ttf',
   'impact': 'C\\:/Windows/Fonts/impact.ttf',
@@ -606,6 +611,63 @@ const AVAILABLE_FONTS = {
   'georgiab': 'C\\:/Windows/Fonts/georgiab.ttf',
 };
 
+// GET /api/custom-fonts/:filename
+router.get('/api/custom-fonts/:filename', (req, res) => {
+  const filePath = path.join(customFontsDir, req.params.filename);
+  if (fs.existsSync(filePath)) {
+    res.sendFile(filePath);
+  } else {
+    res.status(404).send('Font not found');
+  }
+});
+
+// GET /api/custom-fonts
+router.get('/api/custom-fonts', (req, res) => {
+  try {
+    const files = fs.readdirSync(customFontsDir)
+      .filter(f => /\.(ttf|otf|woff|woff2)$/i.test(f))
+      .map(f => ({
+        id: f,
+        name: f.replace(/\.[^.]+$/, ''),
+        filename: f,
+        url: `/api/custom-fonts/${f}`,
+      }));
+    res.json({ success: true, fonts: files });
+  } catch (err) {
+    res.json({ success: true, fonts: [] });
+  }
+});
+
+// POST /api/upload-font (Загрузка пользовательского шрифта с диска)
+router.post('/api/upload-font', async (req, res) => {
+  try {
+    const { filename, base64Data, fontName } = req.body;
+    if (!filename || !base64Data) {
+      return res.status(400).json({ success: false, error: 'Файл шрифта не передан' });
+    }
+
+    const safeFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const targetPath = path.join(customFontsDir, safeFilename);
+    const buffer = Buffer.from(base64Data, 'base64');
+    fs.writeFileSync(targetPath, buffer);
+
+    console.log(`🔤 Пользовательский шрифт сохранен: ${targetPath} (${buffer.length} байт)`);
+
+    res.json({
+      success: true,
+      font: {
+        id: safeFilename,
+        name: fontName || safeFilename.replace(/\.[^.]+$/, ''),
+        filename: safeFilename,
+        url: `/api/custom-fonts/${safeFilename}`,
+      }
+    });
+  } catch (err) {
+    console.error('Upload font error:', err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, options = {}) {
   if (!imagePath || !fs.existsSync(imagePath) || !russianTitle) return;
 
@@ -614,8 +676,13 @@ export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, optio
       font = 'arialbd',
       fontSize = 'auto',
       fontColor = 'yellow',
-      position = 'center',
+      borderColor = 'black',
       borderWidth = 9,
+      shadowColor = 'black@0.92',
+      shadowDistance = 4,
+      shadowX = 4,
+      shadowY = 4,
+      position = 'center',
       hasBox = false,
       customLines: inputLines = null,
     } = options;
@@ -665,7 +732,7 @@ export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, optio
     // Font size computation
     let finalFontSize = 78;
     if (fontSize && fontSize !== 'auto' && !isNaN(Number(fontSize))) {
-      finalFontSize = Math.min(Math.max(Number(fontSize), 32), 120);
+      finalFontSize = Math.min(Math.max(Number(fontSize), 32), 130);
     } else {
       const longestLineLen = Math.max(...cleanLines.map(l => l.length), 10);
       finalFontSize = Math.floor(1200 / (longestLineLen * 0.62));
@@ -673,7 +740,16 @@ export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, optio
       if (finalFontSize < 50) finalFontSize = 50;
     }
 
-    const safeFontPath = AVAILABLE_FONTS[font] || AVAILABLE_FONTS['arialbd'];
+    // Resolving font path (Built-in or Uploaded custom font)
+    let safeFontPath = AVAILABLE_FONTS[font];
+    if (!safeFontPath && font) {
+      const customPath = path.join(customFontsDir, font);
+      if (fs.existsSync(customPath)) {
+        safeFontPath = customPath.replace(/\\/g, '/').replace(/:/g, '\\:');
+      }
+    }
+    if (!safeFontPath) safeFontPath = AVAILABLE_FONTS['arialbd'];
+
     const lineHeight = Math.round(finalFontSize * 1.16);
     const totalTextHeight = cleanLines.length * lineHeight;
 
@@ -687,7 +763,10 @@ export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, optio
     }
 
     const colorVal = fontColor || 'yellow';
+    const bColor = borderColor || 'black';
     const bWidth = Number(borderWidth) >= 0 ? Number(borderWidth) : 9;
+    const sDist = Number(shadowDistance) >= 0 ? Number(shadowDistance) : 4;
+    const sColor = shadowColor || 'black@0.92';
     const boxParam = hasBox ? ':box=1:boxcolor=black@0.72:boxborderw=20' : ':box=0';
 
     const drawtextFilters = cleanLines.map((line, idx) => {
@@ -697,7 +776,7 @@ export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, optio
         .replace(/:/g, '\\:')
         .replace(/%/g, '\\%');
       const yPos = startY + (idx * lineHeight);
-      return `drawtext=fontfile='${safeFontPath}':text='${safeText}':fontsize=${finalFontSize}:fontcolor=${colorVal}:bordercolor=black:borderw=${bWidth}:shadowcolor=black@0.92:shadowx=4:shadowy=4${boxParam}:x=(w-text_w)/2:y=${yPos}`;
+      return `drawtext=fontfile='${safeFontPath}':text='${safeText}':fontsize=${finalFontSize}:fontcolor=${colorVal}:bordercolor=${bColor}:borderw=${bWidth}:shadowcolor=${sColor}:shadowx=${sDist}:shadowy=${sDist}${boxParam}:x=(w-text_w)/2:y=${yPos}`;
     });
 
     const fullFilter = `scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720,${drawtextFilters.join(',')}`;
@@ -710,7 +789,7 @@ export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, optio
       try { fs.unlinkSync(tempOut); } catch {}
     }
 
-    console.log(`🏷️ Headline (${font}, ${finalFontSize}px, pos: ${position}, color: ${colorVal}) gerendert:\n${cleanLines.join('\n')}`);
+    console.log(`🏷️ Headline (${font}, ${finalFontSize}px, border: ${bWidth}px ${bColor}, shadow: ${sDist}px, pos: ${position}, color: ${colorVal}) gerendert:\n${cleanLines.join('\n')}`);
   } catch (err) {
     console.warn('Fehler beim Rendern der russischen Headline auf Thumbnail:', err.message);
   }
