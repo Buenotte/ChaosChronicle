@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { generateTitleVariants, updatePackageTitle } from '../services/packageTitleService.js';
+import { generateYouTubeMetadata } from '../services/youtubeMetadataService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -325,6 +326,17 @@ router.post('/api/update-package-title', async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error('Update package title error:', err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/youtube-metadata
+router.post('/api/youtube-metadata', async (req, res) => {
+  try {
+    const result = await generateYouTubeMetadata(req.body);
+    res.json(result);
+  } catch (err) {
+    console.error('YouTube metadata error:', err.message);
     res.status(500).json({ success: false, error: err.message });
   }
 });

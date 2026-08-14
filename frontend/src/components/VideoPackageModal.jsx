@@ -3,10 +3,12 @@ import { toast } from 'sonner'
 import ImageLightboxModal from './ImageLightboxModal'
 import ThumbnailSettingsModal from './ThumbnailSettingsModal'
 import TitleVariantsModal from './TitleVariantsModal'
+import YouTubeMetadataModal from './YouTubeMetadataModal'
 import PackageHeader from './videoPackage/PackageHeader'
 import PackageThumbnailSection from './videoPackage/PackageThumbnailSection'
 import PackageAudioSection from './videoPackage/PackageAudioSection'
 import PackageVideoSection from './videoPackage/PackageVideoSection'
+import PackageYouTubeSection from './videoPackage/PackageYouTubeSection'
 
 export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText, onOpenAudio, onOpenVideo, onClose, onRefresh }) {
   if (!pkg) return null
@@ -134,11 +136,7 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
       const res = await fetch('/api/generate-audio', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          bundleDir: pkg.bundleDir,
-          folderName: pkg.folderName,
-          voice: selectedVoice,
-        }),
+        body: JSON.stringify({ bundleDir: pkg.bundleDir, folderName: pkg.folderName, voice: selectedVoice }),
       })
       const data = await res.json()
       if (data.success) {
@@ -156,28 +154,33 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
   }
 
   const handleGenerateVideo = async () => {
+    if (!audioState.hasAudio) {
+      toast.error('❌ Сначала создайте аудио-озвучку (audio.mp3) в разделе 3!')
+      return
+    }
+    if (actualPhotoCount === 0) {
+      toast.error('❌ В пакете нет фотографий. Сначала откройте раздел 2 и сохраните фото!')
+      return
+    }
     try {
       setGeneratingVideo(true)
-      setVideoProgress(10)
-      setProgressLog('Сборка параметров видео...')
+      setVideoProgress(20)
+      setProgressLog('Сборка параметров видео и монтаж слайд-шоу (FFmpeg)...')
+      const toastId = toast.loading('🎬 Монтаж видео 16:9 через FFmpeg...')
 
       const res = await fetch('/api/render-video', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          bundleDir: pkg.bundleDir,
-          folderName: pkg.folderName,
-          transition: selectedTransition,
-        }),
+        body: JSON.stringify({ bundleDir: pkg.bundleDir, folderName: pkg.folderName, transition: selectedTransition }),
       })
       const data = await res.json()
       if (data.success) {
         setVideoProgress(100)
         setVideoState({ hasVideo: true, videoUrl: data.videoUrl })
-        toast.success('🎬 Финальное видео 16:9 готово!')
+        toast.success('🎬 Финальное видео 16:9 готово!', { id: toastId })
         if (onRefresh) onRefresh()
       } else {
-        toast.error('Ошибка рендеринга видео', { description: data.error })
+        toast.error('Ошибка рендеринга видео', { id: toastId, description: data.error })
       }
     } catch (err) {
       toast.error('Ошибка рендеринга видео', { description: err.message })
@@ -191,12 +194,7 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
       const res = await fetch('/api/set-thumbnail', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          photoUrl,
-          bundleDir: pkg.bundleDir,
-          folderName: pkg.folderName,
-          headlineConfig: { text: pkg.title },
-        }),
+        body: JSON.stringify({ photoUrl, bundleDir: pkg.bundleDir, folderName: pkg.folderName, headlineConfig: { text: pkg.title } }),
       })
       const data = await res.json()
       if (data.success) {
@@ -214,12 +212,7 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
       const res = await fetch('/api/set-thumbnail', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mode: 'generate_ai',
-          bundleDir: pkg.bundleDir,
-          folderName: pkg.folderName,
-          headlineConfig: { text: pkg.title },
-        }),
+        body: JSON.stringify({ mode: 'generate_ai', bundleDir: pkg.bundleDir, folderName: pkg.folderName, headlineConfig: { text: pkg.title } }),
       })
       const data = await res.json()
       if (data.success) {
@@ -236,6 +229,7 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
   const [lightboxUrl, setLightboxUrl] = useState(null)
   const [showSettingsModal, setShowSettingsModal] = useState(false)
   const [showTitleVariantsModal, setShowTitleVariantsModal] = useState(false)
+  const [showYouTubeModal, setShowYouTubeModal] = useState(false)
 
   useEffect(() => {
     try {
@@ -385,8 +379,18 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
             onTimeUpdate={handleTimeUpdate}
             onLoadedMetadata={handleLoadedMetadata}
           />
+
+          {/* 5. YouTube Метаданные */}
+          <PackageYouTubeSection onOpenYouTubeModal={() => setShowYouTubeModal(true)} />
         </div>
       </div>
+
+      {showYouTubeModal && (
+        <YouTubeMetadataModal
+          pkg={pkg}
+          onClose={() => setShowYouTubeModal(false)}
+        />
+      )}
     </div>
   )
 }

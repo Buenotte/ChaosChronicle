@@ -145,7 +145,7 @@ export default function PackageVideoSection({
                 className="copy-btn"
                 style={{ background: '#10b981', fontWeight: 700 }}
                 onClick={onGenerateVideo}
-                disabled={generatingVideo || actualPhotoCount === 0 || !audioState.hasAudio}
+                disabled={generatingVideo}
               >
                 🎬 Создать видео (FFmpeg)
               </button>

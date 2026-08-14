@@ -37,8 +37,8 @@ router.get('/api/video-progress/:jobId', (req, res) => {
   });
 });
 
-// POST /api/generate-video
-router.post('/api/generate-video', async (req, res) => {
+// POST /api/generate-video & /api/render-video
+const handleGenerateVideo = async (req, res) => {
   try {
     const { bundleDir: inputBundleDir, folderName, transition = 'concat', jobId } = req.body;
 
@@ -208,12 +208,17 @@ router.post('/api/generate-video', async (req, res) => {
         }
 
         const resFolderName = path.basename(bundleDir);
-        console.log(`🎬 video.mp4 erfolgreich generiert: news/${resFolderName}/video/${videoFileName} (${transition})`);
+        try {
+          fs.copyFileSync(videoPath, path.join(bundleDir, 'video.mp4'));
+        } catch {}
+
+        console.log(`🎬 video.mp4 erfolgreich generiert: news/${resFolderName}/video.mp4 (${transition})`);
 
         res.json({
           success: true,
           videoPath,
           videoFileName: `video/${videoFileName}`,
+          videoUrl: `/news-static/${resFolderName}/video.mp4?t=${Date.now()}`,
           folderName: resFolderName,
           duration: audioDuration,
           photosCount: photoFiles.length,
@@ -225,6 +230,9 @@ router.post('/api/generate-video', async (req, res) => {
     console.error('Generate video error:', err.message);
     res.status(500).json({ success: false, error: err.message });
   }
-});
+};
+
+router.post('/api/generate-video', handleGenerateVideo);
+router.post('/api/render-video', handleGenerateVideo);
 
 export default router;
