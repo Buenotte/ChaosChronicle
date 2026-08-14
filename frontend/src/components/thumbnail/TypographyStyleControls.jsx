@@ -1,0 +1,221 @@
+export const COLORS = [
+  { id: 'yellow', hex: '#FFE600', label: 'Желтый' },
+  { id: 'white', hex: '#FFFFFF', label: 'Белый' },
+  { id: 'red', hex: '#FF2A2A', label: 'Красный' },
+  { id: 'cyan', hex: '#00F0FF', label: 'Голубой' },
+  { id: 'orange', hex: '#FF8C00', label: 'Оранжевый' },
+  { id: 'green', hex: '#00FF66', label: 'Зеленый' },
+]
+
+export const STROKE_COLORS = [
+  { id: 'black', hex: '#000000', label: 'Черный' },
+  { id: 'darkred', hex: '#5b0606', label: 'Темно-красный' },
+  { id: 'darkblue', hex: '#0a1931', label: 'Темно-синий' },
+  { id: 'white', hex: '#ffffff', label: 'Белый' },
+]
+
+export default function TypographyStyleControls({
+  fontSize,
+  setFontSize,
+  customSizeNum,
+  setCustomSizeNum,
+  fontColor,
+  setFontColor,
+  borderColor,
+  setBorderColor,
+  borderWidth,
+  setBorderWidth,
+  shadowDistance,
+  setShadowDistance,
+  position,
+  setPosition,
+  hasBox,
+  setHasBox,
+}) {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+      {/* КОЛОНКА 1: РАЗМЕР И ПОЗИЦИЯ */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        {/* Размер шрифта */}
+        <div>
+          <label style={{ display: 'block', fontSize: '0.85rem', color: '#9ca3af', marginBottom: '0.4rem', fontWeight: 600 }}>
+            📏 Размер шрифта: {fontSize === 'auto' ? 'Авто (Адаптивный)' : `${customSizeNum}px`}
+          </label>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <button
+              type="button"
+              onClick={() => setFontSize('auto')}
+              style={{
+                padding: '0.4rem 0.75rem',
+                borderRadius: '6px',
+                background: fontSize === 'auto' ? '#3b82f6' : '#27272a',
+                color: '#fff',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+              }}
+            >
+              Авто
+            </button>
+            <input
+              type="range"
+              min="45"
+              max="115"
+              value={customSizeNum}
+              onChange={e => {
+                setCustomSizeNum(Number(e.target.value))
+                setFontSize(e.target.value)
+              }}
+              style={{ flex: 1, accentColor: '#3b82f6', cursor: 'pointer' }}
+            />
+            <span style={{ fontSize: '0.85rem', color: '#fff', minWidth: '40px', textAlign: 'right', fontWeight: 700 }}>
+              {fontSize === 'auto' ? 'Auto' : `${customSizeNum}px`}
+            </span>
+          </div>
+        </div>
+
+        {/* Позиция заголовка */}
+        <div>
+          <label style={{ display: 'block', fontSize: '0.85rem', color: '#9ca3af', marginBottom: '0.4rem', fontWeight: 600 }}>
+            📍 Расположение по вертикали:
+          </label>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
+            {[
+              { id: 'top', label: '⬆️ Вверху' },
+              { id: 'center', label: '🎯 По центру' },
+              { id: 'bottom', label: '⬇️ Внизу' },
+            ].map(p => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => setPosition(p.id)}
+                style={{
+                  padding: '0.45rem',
+                  borderRadius: '6px',
+                  background: position === p.id ? '#3b82f6' : '#18181b',
+                  border: position === p.id ? '1px solid #60a5fa' : '1px solid #27272a',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                }}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* КОЛОНКА 2: ЦВЕТА, КОНТУР И ТЕНЬ */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        {/* Цвет текста */}
+        <div>
+          <label style={{ display: 'block', fontSize: '0.85rem', color: '#9ca3af', marginBottom: '0.4rem', fontWeight: 600 }}>
+            🎨 Цвет текста:
+          </label>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.4rem' }}>
+            {COLORS.map(c => {
+              const isSelected = fontColor === c.id
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setFontColor(c.id)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    padding: '0.4rem 0.6rem',
+                    borderRadius: '6px',
+                    background: isSelected ? 'rgba(255,255,255,0.1)' : '#18181b',
+                    border: isSelected ? `2px solid ${c.hex}` : '1px solid #27272a',
+                    color: '#fff',
+                    cursor: 'pointer',
+                    fontSize: '0.8rem',
+                  }}
+                >
+                  <span style={{ width: '14px', height: '14px', borderRadius: '50%', background: c.hex, display: 'inline-block', border: '1px solid #000' }} />
+                  <span style={{ fontWeight: isSelected ? 700 : 400 }}>{c.label}</span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* 🔲 КОНТУР / ОБВОДКА (STROKE) */}
+        <div style={{ background: '#18181b', padding: '0.75rem', borderRadius: '8px', border: '1px solid #27272a' }}>
+          <label style={{ display: 'block', fontSize: '0.85rem', color: '#f4f4f5', marginBottom: '0.4rem', fontWeight: 700 }}>
+            🔲 Контур (Обводка букв): {borderWidth}px
+          </label>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.5rem' }}>
+            <input
+              type="range"
+              min="0"
+              max="18"
+              value={borderWidth}
+              onChange={e => setBorderWidth(Number(e.target.value))}
+              style={{ flex: 1, accentColor: '#10b981', cursor: 'pointer' }}
+            />
+            <span style={{ fontSize: '0.85rem', color: '#fff', minWidth: '35px', textAlign: 'right', fontWeight: 700 }}>
+              {borderWidth}px
+            </span>
+          </div>
+          <div style={{ display: 'flex', gap: '0.35rem' }}>
+            {STROKE_COLORS.map(sc => (
+              <button
+                key={sc.id}
+                type="button"
+                onClick={() => setBorderColor(sc.id)}
+                style={{
+                  flex: 1,
+                  padding: '0.3rem',
+                  borderRadius: '4px',
+                  fontSize: '0.72rem',
+                  background: borderColor === sc.id ? '#27272a' : '#09090b',
+                  border: borderColor === sc.id ? '2px solid #10b981' : '1px solid #27272a',
+                  color: '#fff',
+                  cursor: 'pointer',
+                }}
+              >
+                {sc.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 👥 ТЕНЬ (SHADOW) */}
+        <div style={{ background: '#18181b', padding: '0.75rem', borderRadius: '8px', border: '1px solid #27272a' }}>
+          <label style={{ display: 'block', fontSize: '0.85rem', color: '#f4f4f5', marginBottom: '0.4rem', fontWeight: 700 }}>
+            👥 Тень текста: {shadowDistance}px
+          </label>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <input
+              type="range"
+              min="0"
+              max="14"
+              value={shadowDistance}
+              onChange={e => setShadowDistance(Number(e.target.value))}
+              style={{ flex: 1, accentColor: '#ec4899', cursor: 'pointer' }}
+            />
+            <span style={{ fontSize: '0.85rem', color: '#fff', minWidth: '35px', textAlign: 'right', fontWeight: 700 }}>
+              {shadowDistance}px
+            </span>
+          </div>
+        </div>
+
+        {/* Полупрозрачная подложка */}
+        <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', cursor: 'pointer', fontSize: '0.85rem', color: '#d4d4d8' }}>
+          <input
+            type="checkbox"
+            checked={hasBox}
+            onChange={e => setHasBox(e.target.checked)}
+            style={{ width: '16px', height: '16px', accentColor: '#3b82f6' }}
+          />
+          ⬛ Темная контрастная плашка под текстом
+        </label>
+      </div>
+    </div>
+  )
+}

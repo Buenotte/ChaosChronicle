@@ -1,16 +1,26 @@
 import express from 'express';
-import path from 'path';
 import fs from 'fs';
+import path from 'path';
 import { fileURLToPath } from 'url';
-import { overlayRussianHeadlineOnThumbnail } from './photos.js';
+import { generateTitleVariants, updatePackageTitle } from '../services/packageTitleService.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const router = express.Router();
 
-// POST /api/save-news-package
-router.post('/api/save-news-package', async (req, res) => {
+// POST /api/save-package
+router.post('/api/save-package', async (req, res) => {
   try {
-    const { title = '', text = '', model = 'gemini', source = '', images = [], imageUrl = '' } = req.body;
+    const {
+      title,
+      text,
+      summary = '',
+      date,
+      model = 'gemini',
+      source = '',
+      photos = [],
+      folderName: requestedFolderName,
+    } = req.body;
 
     const newsDir = path.resolve(__dirname, '../../news');
     if (!fs.existsSync(newsDir)) {
@@ -24,75 +34,70 @@ router.post('/api/save-news-package', async (req, res) => {
       .replace(/_+/g, '_')
       .slice(0, 80);
 
-    const bundleDir = path.join(newsDir, `${dateStr}_${safeTitle}`);
+    const bundleDir = requestedFolderName
+      ? path.join(newsDir, requestedFolderName)
+      : path.join(newsDir, `${dateStr}_${safeTitle}`);
+
     const photosDir = path.join(bundleDir, 'photos');
     fs.mkdirSync(photosDir, { recursive: true });
 
-    const words = text.split(/\s+/).filter(Boolean).length;
-    const minutes = Math.round((words / 140) * 10) / 10;
+    const words = text ? text.split(/\s+/).filter(Boolean).length : 0;
+    const manifest = {
+      title: title || 'Ohne Titel',
+      original_title: title || 'Ohne Titel',
+      date: date || now.toISOString(),
+      model,
+      source,
+      word_count: words,
+      created_at: now.toISOString(),
+      photos: [],
+      audio: 'audio.mp3',
+      video: 'video.mp4',
+    };
 
-    let imagesList = Array.isArray(images) && images.length > 0
-      ? [...images]
-      : (imageUrl ? [imageUrl] : []);
-
-    let imageIdx = 0;
-    const textWithEmbeddedImages = text.split('\n\n').map(p => {
-      if (p.startsWith('[B-Roll:')) {
-        const currentImg = imagesList[imageIdx % (imagesList.length || 1)];
-        imageIdx++;
-        return `${p}\n${currentImg ? `![Иллюстрация к новости](${currentImg})` : ''}`;
-      }
-      return p;
-    }).join('\n\n');
-
-    const mdContent = `# 🎭 ${title}\n\n- **Дата**: ${now.toLocaleString('ru-RU')}\n- **Модель ИИ**: ${model}\n- **Хронометраж**: ~${minutes} мин.\n- **Количество слов**: ${words}\n- **Источник**: ${source || 'RSS Feed'}\n\n---\n\n${textWithEmbeddedImages}\n`;
-    fs.writeFileSync(path.join(bundleDir, 'script.md'), mdContent, 'utf-8');
-
-    const cleanSpeechText = text
-      .split('\n\n')
-      .filter(p => !p.startsWith('[B-Roll:'))
-      .join('\n\n');
-    fs.writeFileSync(path.join(bundleDir, 'script.txt'), cleanSpeechText, 'utf-8');
+    if (text) {
+      fs.writeFileSync(path.join(bundleDir, 'script.txt'), text, 'utf-8');
+      const mdContent = `# 🎭 ${title}\n\n**Quelle:** ${source} | **Datum:** ${date || now.toLocaleDateString()}\n**Modell:** ${model} | **Wortanzahl:** ${words}\n\n---\n\n${text}\n`;
+      fs.writeFileSync(path.join(bundleDir, 'script.md'), mdContent, 'utf-8');
+    }
 
     const savedPhotos = [];
-    for (let i = 0; i < Math.min(imagesList.length, 30); i++) {
-      const imgUrl = typeof imagesList[i] === 'string' ? imagesList[i] : imagesList[i]?.url;
-      if (!imgUrl) continue;
+    if (Array.isArray(photos) && photos.length > 0) {
+      for (let i = 0; i < photos.length; i++) {
+        const imgUrl = typeof photos[i] === 'string' ? photos[i] : photos[i]?.url;
+        if (!imgUrl) continue;
 
-      try {
-        const imgRes = await fetch(imgUrl, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-          },
-          signal: AbortSignal.timeout(6000),
-        });
+        try {
+          if (imgUrl.startsWith('/news-static/')) {
+            const rel = imgUrl.replace(/^\/news-static\//, '');
+            const localSrc = path.resolve(__dirname, '../../news', rel);
+            if (fs.existsSync(localSrc)) {
+              const ext = imgUrl.match(/\.(jpg|jpeg|png|webp)/i)?.[1] || 'jpg';
+              const imgFileName = `photo_${String(i + 1).padStart(2, '0')}.${ext}`;
+              const target = path.join(photosDir, imgFileName);
+              if (localSrc !== target) fs.copyFileSync(localSrc, target);
+              savedPhotos.push(`photos/${imgFileName}`);
+              continue;
+            }
+          }
 
-        if (imgRes.ok) {
-          const buffer = Buffer.from(await imgRes.arrayBuffer());
-          const ext = imgUrl.match(/\.(jpg|jpeg|png|webp)/i)?.[1] || 'jpg';
-          const imgFileName = `photo_${String(i + 1).padStart(2, '0')}.${ext}`;
-          fs.writeFileSync(path.join(photosDir, imgFileName), buffer);
-          savedPhotos.push(`photos/${imgFileName}`);
-        }
-      } catch (err) {
-        console.error(`Fehler beim Laden von ${imgUrl}:`, err.message);
+          const imgRes = await fetch(imgUrl, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+            signal: AbortSignal.timeout(6000),
+          });
+          if (imgRes.ok) {
+            const buffer = Buffer.from(await imgRes.arrayBuffer());
+            const ext = imgUrl.match(/\.(jpg|jpeg|png|webp)/i)?.[1] || 'jpg';
+            const imgFileName = `photo_${String(i + 1).padStart(2, '0')}.${ext}`;
+            fs.writeFileSync(path.join(photosDir, imgFileName), buffer);
+            savedPhotos.push(`photos/${imgFileName}`);
+          }
+        } catch {}
       }
     }
 
-    const projectManifest = {
-      title,
-      source,
-      model,
-      date: now.toISOString(),
-      duration_target_seconds: Math.round(minutes * 60),
-      word_count: words,
-      speech_text_file: 'script.txt',
-      markdown_file: 'script.md',
-      photos: savedPhotos,
-    };
-    fs.writeFileSync(path.join(bundleDir, 'project.json'), JSON.stringify(projectManifest, null, 2), 'utf-8');
-
-    console.log(`💾 Пакет сохранен в news/: ${bundleDir}`);
+    manifest.photos = savedPhotos;
+    fs.writeFileSync(path.join(bundleDir, 'project.json'), JSON.stringify(manifest, null, 2), 'utf-8');
 
     res.json({
       success: true,
@@ -218,34 +223,41 @@ router.get('/api/saved-packages', async (req, res) => {
 // POST /api/save-script-text
 router.post('/api/save-script-text', async (req, res) => {
   try {
-    const { bundleDir: inputBundleDir, folderName, text = '' } = req.body;
-
-    const newsDir = path.resolve(__dirname, '../../news');
-    let bundleDir = inputBundleDir;
-
-    if (!bundleDir && folderName) {
-      bundleDir = path.join(newsDir, folderName);
-    }
-
+    const { bundleDir, text } = req.body;
     if (!bundleDir || !fs.existsSync(bundleDir)) {
-      return res.status(404).json({ success: false, error: 'Ordner existiert nicht' });
+      return res.status(404).json({ success: false, error: 'Paketordner existiert nicht' });
     }
 
     const txtPath = path.join(bundleDir, 'script.txt');
+    const mdPath = path.join(bundleDir, 'script.md');
+
     fs.writeFileSync(txtPath, text, 'utf-8');
+
+    if (fs.existsSync(mdPath)) {
+      try {
+        const lines = fs.readFileSync(mdPath, 'utf-8').split('\n');
+        const headerLines = [];
+        let inHeader = true;
+        for (const line of lines) {
+          if (inHeader) {
+            headerLines.push(line);
+            if (line.trim() === '---') inHeader = false;
+          }
+        }
+        const newMd = inHeader ? `# 🎭 Manuelles Update\n\n---\n\n${text}\n` : `${headerLines.join('\n')}\n\n${text}\n`;
+        fs.writeFileSync(mdPath, newMd, 'utf-8');
+      } catch {}
+    }
 
     const jsonPath = path.join(bundleDir, 'project.json');
     if (fs.existsSync(jsonPath)) {
       try {
         const manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
-        const words = text.split(/\s+/).filter(Boolean).length;
-        manifest.word_count = words;
+        manifest.word_count = text.split(/\s+/).filter(Boolean).length;
         manifest.text_updated_at = new Date().toISOString();
         fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
       } catch {}
     }
-
-    console.log(`📜 script.txt in ${bundleDir} erfolgreich aktualisiert.`);
 
     res.json({
       success: true,
@@ -259,96 +271,19 @@ router.post('/api/save-script-text', async (req, res) => {
   }
 });
 
-// POST /api/generate-title-variants (10 вариантов заголовков в стиле Голобуцкого)
+// POST /api/generate-title-variants
 router.post('/api/generate-title-variants', async (req, res) => {
   try {
-    const { title = '', summary = '', bundleDir: inputBundleDir, folderName } = req.body;
-    const newsDir = path.resolve(__dirname, '../../news');
-    let effectiveTitle = title;
-
-    let targetFolder = inputBundleDir;
-    if (!targetFolder && folderName) {
-      targetFolder = path.join(newsDir, folderName);
-    }
-    if (targetFolder && fs.existsSync(targetFolder)) {
-      const jsonPath = path.join(targetFolder, 'project.json');
-      if (fs.existsSync(jsonPath)) {
-        try {
-          const manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
-          if (manifest.original_title) effectiveTitle = manifest.original_title;
-          else if (manifest.title && manifest.title.length > effectiveTitle.length) effectiveTitle = manifest.title;
-        } catch {}
-      }
-    }
-
-    const apiKey = process.env.OPENROUTER_API_KEY;
-
-    if (!apiKey || apiKey.includes('HIER')) {
-      return res.json({
-        success: true,
-        resolvedTitle: effectiveTitle,
-        variants: [
-          effectiveTitle.slice(0, 30),
-          `УДАР ПО ${effectiveTitle.slice(0, 20)}`,
-          `САМОЛИКВИДАЦИЯ: ${effectiveTitle.slice(0, 15)}`,
-        ]
-      });
-    }
-
-    const systemPrompt = `Ты — мастер убойных, вирусных и сатирических заголовков для YouTube в авторском стиле «Алексей Голобуцкий» (деконструкция российской пропаганды, едкая ирония, короткие хлесткие фразы, смех как оружие).
-Твоя задача: на основе новости создать РОВНО 10 РАЗНЫХ убойных вариантов заголовков.
-СТРОГИЕ ТРЕБОВАНИЯ:
-1. ДЛИНА КАЖДОГО ЗАГОЛОВКА: СТРОГО 4-5 СЛОВ (не больше и не меньше).
-2. СТИЛЬ: Едкий сарказм, трибун, высмеивание официальной версии врага, слова-маркеры («по плану», «бункерный дед», «аналоговнет», «отрицательный рост», «скрепы», «высокоточный террор», «хлопок и задымление»).
-3. БЕЗ кавычек, БЕЗ нумерации, БЕЗ точек на конце.
-4. Выведи ТОЛЬКО 10 строк, по одному заголовку на строку (капсом UPPERCASE). Никаких вводных слов или пояснений.`;
-
-    const userPrompt = `Новость: ${effectiveTitle}\nКонтекст: ${summary?.slice(0, 400) || ''}`;
-
-    const aiRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        max_tokens: 350,
-        temperature: 0.9,
-      }),
-      signal: AbortSignal.timeout(10000),
-    });
-
-    if (!aiRes.ok) {
-      throw new Error(`AI API error: ${aiRes.status}`);
-    }
-
-    const data = await aiRes.json();
-    const rawContent = data.choices?.[0]?.message?.content || '';
-    const rawLines = rawContent
-      .split('\n')
-      .map(l => l.replace(/^[\d\s.\-•*]+/, '').replace(/["'«»`]/g, '').trim().toUpperCase())
-      .filter(l => l.length > 5 && l.split(/\s+/).length >= 3 && l.split(/\s+/).length <= 7);
-
-    // Filter unique up to 10
-    const uniqueVariants = Array.from(new Set(rawLines)).slice(0, 10);
-
-    res.json({
-      success: true,
-      resolvedTitle: effectiveTitle,
-      variants: uniqueVariants.length > 0 ? uniqueVariants : [effectiveTitle],
-    });
+    const { title = '', summary = '', bundleDir, folderName } = req.body;
+    const result = await generateTitleVariants(title, summary, bundleDir, folderName);
+    res.json({ success: true, ...result });
   } catch (err) {
     console.error('Error generating title variants:', err.message);
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-// POST /api/update-package-title (сохранение выбранного заголовка в пакет)
+// POST /api/update-package-title
 router.post('/api/update-package-title', async (req, res) => {
   try {
     const { bundleDir: inputBundleDir, folderName, newTitle, updateThumbnail = true } = req.body;
@@ -361,65 +296,12 @@ router.post('/api/update-package-title', async (req, res) => {
     if (!targetFolder || !fs.existsSync(targetFolder)) {
       return res.status(404).json({ success: false, error: 'Папка пакета не найдена' });
     }
-
     if (!newTitle || !newTitle.trim()) {
       return res.status(400).json({ success: false, error: 'Заголовок не может быть пустым' });
     }
 
-    const cleanTitle = newTitle.trim();
-
-    // 1. Обновляем project.json
-    const jsonPath = path.join(targetFolder, 'project.json');
-    if (fs.existsSync(jsonPath)) {
-      try {
-        const manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
-        if (!manifest.original_title) manifest.original_title = manifest.title;
-        manifest.title = cleanTitle;
-        manifest.title_updated_at = new Date().toISOString();
-        fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
-      } catch (e) {
-        console.warn('project.json update warning:', e.message);
-      }
-    }
-
-    // 2. Обновляем script.md (первую строку с заголовком)
-    const mdPath = path.join(targetFolder, 'script.md');
-    if (fs.existsSync(mdPath)) {
-      try {
-        const mdContent = fs.readFileSync(mdPath, 'utf-8');
-        const lines = mdContent.split('\n');
-        lines[0] = `# 🎭 ${cleanTitle}`;
-        fs.writeFileSync(mdPath, lines.join('\n'), 'utf-8');
-      } catch (e) {
-        console.warn('script.md update warning:', e.message);
-      }
-    }
-
-    // 3. Обновляем thumbnail.jpg с новым заголовком
-    const thumbnailDir = path.join(targetFolder, 'thumbnail');
-    const destSub = path.join(thumbnailDir, 'thumbnail.jpg');
-    const destRoot = path.join(targetFolder, 'thumbnail.jpg');
-    const rawBackgroundPath = path.join(thumbnailDir, 'raw_background.jpg');
-
-    if (updateThumbnail) {
-      if (fs.existsSync(rawBackgroundPath)) {
-        fs.copyFileSync(rawBackgroundPath, destSub);
-        overlayRussianHeadlineOnThumbnail(destSub, cleanTitle, { position: 'center', fontColor: 'yellow' });
-        fs.copyFileSync(destSub, destRoot);
-      } else if (fs.existsSync(destSub)) {
-        overlayRussianHeadlineOnThumbnail(destSub, cleanTitle, { position: 'center', fontColor: 'yellow' });
-        fs.copyFileSync(destSub, destRoot);
-      }
-    }
-
-    console.log(`✅ Заголовок пакета ${path.basename(targetFolder)} изменен на: "${cleanTitle}"`);
-
-    res.json({
-      success: true,
-      newTitle: cleanTitle,
-      folderName: path.basename(targetFolder),
-      thumbnailUrl: `/news-static/${path.basename(targetFolder)}/thumbnail/thumbnail.jpg?t=${Date.now()}`,
-    });
+    const result = updatePackageTitle(targetFolder, newTitle, updateThumbnail);
+    res.json(result);
   } catch (err) {
     console.error('Update package title error:', err.message);
     res.status(500).json({ success: false, error: err.message });

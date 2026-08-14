@@ -3,6 +3,11 @@ import path from 'path';
 import fs from 'fs';
 import { exec } from 'child_process';
 
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const router = express.Router();
 
 export const TTS_VOICES = {
@@ -15,7 +20,14 @@ export const TTS_VOICES = {
 // POST /api/generate-audio
 router.post('/api/generate-audio', async (req, res) => {
   try {
-    const { bundleDir, text = '', voiceKey = 'nikolay' } = req.body;
+    const { bundleDir: inputBundleDir, folderName, text = '', voiceKey = 'nikolay', voice } = req.body;
+    const effectiveVoiceKey = voiceKey || voice || 'nikolay';
+    const newsDir = path.resolve(__dirname, '../../news');
+
+    let bundleDir = inputBundleDir;
+    if (!bundleDir && folderName) {
+      bundleDir = path.join(newsDir, folderName);
+    }
 
     if (!bundleDir || !fs.existsSync(bundleDir)) {
       return res.status(400).json({ success: false, error: 'Папка проекта не найдена' });
@@ -36,8 +48,8 @@ router.post('/api/generate-audio', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Файл с текстом script.txt не найден' });
     }
 
-    const voiceCfg = TTS_VOICES[voiceKey] || TTS_VOICES.nikolay;
-    const cmd = `edge-tts --file "${txtPath}" --voice ${voiceCfg.voice} --rate=${voiceCfg.rate} --pitch=${voiceCfg.pitch} --write-media "${audioPath}"`;
+    const voiceCfg = TTS_VOICES[effectiveVoiceKey] || TTS_VOICES.nikolay;
+    const cmd = `edge-tts -f "${txtPath}" -v ${voiceCfg.voice} --rate=${voiceCfg.rate} --pitch=${voiceCfg.pitch} --write-media "${audioPath}"`;
 
     exec(cmd, (error, stdout, stderr) => {
       if (error) {
@@ -61,9 +73,10 @@ router.post('/api/generate-audio', async (req, res) => {
         success: true,
         audioPath,
         audioFileName: 'audio.mp3',
+        audioUrl: `/news-static/${path.basename(bundleDir)}/audio.mp3`,
         folderName: path.basename(bundleDir),
         voice: `${voiceCfg.label} (${voiceCfg.voice})`,
-        voiceKey,
+        voiceKey: effectiveVoiceKey,
         rate: voiceCfg.rate,
         pitch: voiceCfg.pitch,
       });

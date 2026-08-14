@@ -1,13 +1,14 @@
-import { useState, useEffect, useCallback } from 'react'
-import { Toaster, toast } from 'sonner'
-
-import { CATEGORIES, AI_MODELS, cleanMatchTitle } from './lib/utils'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { toast } from 'sonner'
 import NewsCard from './components/NewsCard'
 import FeuilletonModal from './components/FeuilletonModal'
+import NewsPhotosModal from './components/NewsPhotosModal'
 import VideoPackageModal from './components/VideoPackageModal'
 import NewsScriptModal from './components/NewsScriptModal'
 import NewsAudioModal from './components/NewsAudioModal'
-import NewsPhotosModal from './components/NewsPhotosModal'
+import AppHeader from './components/layout/AppHeader'
+import AppStatusBar from './components/layout/AppStatusBar'
+import { cleanMatchTitle } from './lib/utils'
 
 export default function App() {
   const [articles, setArticles] = useState([])
@@ -43,20 +44,25 @@ export default function App() {
 
     const toastId = forceLive
       ? toast.loading('🔎 Поиск 30 фото в мировых агентствах...', { description: article.title })
-      : null
+      : toast.loading('📸 Поиск фото...', { description: article.title })
 
     try {
-      const url = `/api/news-photos?title=${encodeURIComponent(article.title)}&articleId=${encodeURIComponent(article.id || '')}&url=${encodeURIComponent(article.url || '')}&category=${encodeURIComponent(article.category || 'alle')}${forceLive ? '&forceLive=true' : ''}`
-      const res = await fetch(url)
+      const params = new URLSearchParams({
+        title: article.title,
+        articleId: article.id || '',
+        url: article.url || '',
+        forceLive: forceLive ? 'true' : 'false',
+      })
+      const res = await fetch(`/api/news-photos?${params}`)
       const data = await res.json()
       if (data.success) {
         setNewsPhotos(data.photos || [])
-        if (toastId) {
-          toast.success(`📸 Найдено ${data.count} фото из агентств!`, { id: toastId })
-        }
+        toast.success(`Найдено ${data.count} фото!`, { id: toastId })
+      } else {
+        toast.error('Не удалось загрузить фото', { id: toastId, description: data.error })
       }
     } catch (err) {
-      if (toastId) toast.error('Ошибка поиска фото', { id: toastId, description: err.message })
+      if (err.name === 'AbortError') toast.info('Поиск фото отменен', { id: toastId })
       else toast.error('Ошибка поиска фото', { description: err.message })
     } finally {
       setLoadingPhotos(false)
@@ -141,34 +147,14 @@ export default function App() {
       })
 
       const data = await res.json()
-      if (!res.ok || !data.success) throw new Error(data.error || 'Ошибка генерации')
-
-      const modelObj = AI_MODELS.find(m => m.id === selectedModel)
-      const feuObj = {
-        title: article.title,
-        text: data.text,
-        words: data.words,
-        minutes: data.minutes,
-        modelName: modelObj ? modelObj.name : data.model,
-        savedFile: data.savedFile,
-        fileName: data.fileName,
-        savedPhotosCount: data.savedPhotosCount,
-        imageUrl: article.imageUrl,
-        images: article.images || (article.imageUrl ? [article.imageUrl] : []),
-        id: article.id,
-        url: article.url,
-        source: article.source,
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || `HTTP ${res.status}`)
       }
-      setCurrentFeuilleton(feuObj)
 
-      toast.success('🎭 Фельетон успешно создан!', {
+      setCurrentFeuilleton(data.feuilleton)
+      toast.success('Фельетон успешно создан!', {
         id: toastId,
-        description: `📜 Текст: ✅ Готов (${data.words} слов) | 📦 Пакет: ⚠️ Не сохранен в news/ | 🎙️ Аудио: ⚠️ Не создано`,
-        action: {
-          label: '📂 Открыть и сохранить',
-          onClick: () => setCurrentFeuilleton(feuObj),
-        },
-        duration: 12000,
+        description: `Слов: ${data.feuilleton.words} | Чтение: ~${data.feuilleton.readTimeMin} мин.`,
       })
     } catch (err) {
       toast.error('Ошибка генерации фельетона', {
@@ -180,118 +166,41 @@ export default function App() {
     }
   }
 
-  const filtered = search.trim()
-    ? articles.filter(a =>
-        a.title?.toLowerCase().includes(search.toLowerCase()) ||
-        a.summary?.toLowerCase().includes(search.toLowerCase())
-      )
-    : articles
+  const filtered = useMemo(() => {
+    if (!search.trim()) return articles
+    const q = search.toLowerCase()
+    return articles.filter(
+      a =>
+        a.title?.toLowerCase().includes(q) ||
+        a.summary?.toLowerCase().includes(q) ||
+        a.source?.toLowerCase().includes(q)
+    )
+  }, [articles, search])
 
   return (
-    <div className="app">
-      {/* Sonner Toast Container */}
-      <Toaster position="top-right" theme="dark" richColors closeButton />
+    <div className="app-layout">
+      {/* Верхняя панель */}
+      <AppHeader
+        selectedModel={selectedModel}
+        setSelectedModel={setSelectedModel}
+        search={search}
+        setSearch={setSearch}
+        category={category}
+        setCategory={setCategory}
+        onRefresh={() => fetchNews(category, true)}
+        loading={loading}
+      />
 
-      {/* Header */}
-      <header className="app-header">
-        <div className="header-inner">
-          <div className="header-brand">
-            <h1 className="brand-title">ChaosChronicle</h1>
-            <p className="brand-sub">Новости · Сатирический Фельетон (3 мин)</p>
-          </div>
+      {/* Информационная строка статуса */}
+      <AppStatusBar
+        backendStatus={backendStatus}
+        filteredCount={filtered.length}
+        selectedModel={selectedModel}
+        lastRefresh={lastRefresh}
+        loading={loading}
+      />
 
-          <div className="header-actions">
-            {/* KI Modell Selectbox */}
-            <div className="model-select-wrap">
-              <label htmlFor="ai-model-select" className="model-label">🤖 ИИ Модель:</label>
-              <select
-                id="ai-model-select"
-                className="model-select"
-                value={selectedModel}
-                onChange={e => {
-                  setSelectedModel(e.target.value)
-                  const m = AI_MODELS.find(x => x.id === e.target.value)
-                  if (m) toast.info(`Модель изменена: ${m.name}`)
-                }}
-              >
-                {AI_MODELS.map(m => (
-                  <option key={m.id} value={m.id}>
-                    {m.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="search-wrap">
-              <input
-                id="news-search"
-                type="text"
-                className="search-input"
-                placeholder="Поиск новостей..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-              />
-              {search && (
-                <button className="search-clear" onClick={() => setSearch('')}>✕</button>
-              )}
-            </div>
-
-            <button
-              id="refresh-btn"
-              className="refresh-btn"
-              onClick={() => {
-                fetchNews(category, true)
-                toast.info('Обновление свежих новостей из RSS...')
-              }}
-              disabled={loading}
-              title="Обновить свежие новости"
-            >
-              <span className={loading ? 'spin' : ''}>↻</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Kategorie-Tabs */}
-        <nav className="category-tabs" role="tablist" aria-label="Категории новостей">
-          {CATEGORIES.map(cat => (
-            <button
-              key={cat.key}
-              id={`tab-${cat.key}`}
-              role="tab"
-              aria-selected={category === cat.key}
-              className={`tab-btn ${category === cat.key ? 'active' : ''}`}
-              style={{ '--tab-color': cat.color }}
-              onClick={() => setCategory(cat.key)}
-            >
-              {cat.label}
-            </button>
-          ))}
-        </nav>
-      </header>
-
-      {/* Status Bar */}
-      <div className="status-bar">
-        <div className="status-indicator">
-          <span className={`status-dot ${backendStatus === 'online' ? 'online' : 'offline'}`} />
-          <span className="status-text">
-            Сервер {backendStatus === 'online' ? 'онлайн' : 'недоступен'}
-          </span>
-        </div>
-        {filtered.length > 0 && (
-          <span className="status-count">{filtered.length} статей загружено</span>
-        )}
-        <span className="status-active-model">
-          Выбрана модель: <strong>{AI_MODELS.find(m => m.id === selectedModel)?.name}</strong>
-        </span>
-        {lastRefresh && (
-          <span className="status-refresh">
-            Обновлено: {lastRefresh}
-          </span>
-        )}
-        {loading && <span className="status-loading">⟳ Загрузка...</span>}
-      </div>
-
-      {/* Hauptinhalt */}
+      {/* Основной контент */}
       <main className="app-main">
         {error && (
           <div className="error-banner">
@@ -356,7 +265,7 @@ export default function App() {
         )}
       </main>
 
-      {/* Feuilleton Modal */}
+      {/* Модальные окна */}
       <FeuilletonModal
         feuilleton={currentFeuilleton}
         onOpenPhotos={handleFetchNewsPhotos}
@@ -366,7 +275,6 @@ export default function App() {
         }}
       />
 
-      {/* Video Package Viewer Modal */}
       <VideoPackageModal
         pkg={activeSavedPackage}
         onOpenPhotos={handleFetchNewsPhotos}
@@ -377,21 +285,18 @@ export default function App() {
         onRefresh={fetchSavedPackages}
       />
 
-      {/* Script Text Editor Modal */}
       <NewsScriptModal
         pkg={scriptTextPackage}
         onClose={() => setScriptTextPackage(null)}
         onSaved={fetchSavedPackages}
       />
 
-      {/* News Audio Player Modal */}
       <NewsAudioModal
         pkg={audioPackage}
         onClose={() => setAudioPackage(null)}
         onRefresh={fetchSavedPackages}
       />
 
-      {/* Multi-Source News Photos Modal */}
       <NewsPhotosModal
         newsTopic={photoTopic}
         photos={newsPhotos}
