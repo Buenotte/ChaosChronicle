@@ -37,7 +37,7 @@ export default function PackageThumbnailSection({
           </div>
 
           {currentThumbnail ? (
-            <div style={{ position: 'relative', width: '100%', maxWidth: '520px', borderRadius: '10px', overflow: 'hidden', border: '2px solid #ec4899', background: '#000', boxShadow: '0 4px 16px rgba(236,72,153,0.2)' }}>
+            <div style={{ position: 'relative', width: '100%', maxWidth: '640px', borderRadius: '10px', overflow: 'hidden', border: '2px solid #ec4899', background: '#000', boxShadow: '0 4px 16px rgba(236,72,153,0.2)' }}>
               <img
                 src={currentThumbnail}
                 alt="Current YouTube Thumbnail"

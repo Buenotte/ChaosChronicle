@@ -6,11 +6,11 @@ export default function TitleVariantsModal({ pkg, onClose, onTitleSaved }) {
 
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [variants, setVariants] = useState([])
+  const [variants, setVariants] = useState(pkg.title_variants || [])
   const [selectedTitle, setSelectedTitle] = useState(pkg.title || '')
   const [originalNewsTitle, setOriginalNewsTitle] = useState(pkg.original_title || pkg.title || '')
 
-  const fetchVariants = async () => {
+  const fetchVariants = async (force = false) => {
     try {
       setLoading(true)
       const res = await fetch('/api/generate-title-variants', {
@@ -21,6 +21,7 @@ export default function TitleVariantsModal({ pkg, onClose, onTitleSaved }) {
           summary: pkg.summary || '',
           bundleDir: pkg.bundleDir,
           folderName: pkg.folderName,
+          forceRegenerate: force,
         }),
       })
       const data = await res.json()
@@ -31,6 +32,9 @@ export default function TitleVariantsModal({ pkg, onClose, onTitleSaved }) {
         }
         if (!selectedTitle || selectedTitle === pkg.title) {
           setSelectedTitle(data.variants[0])
+        }
+        if (force) {
+          toast.success('✨ Сгенерировано 10 новых вариантов заголовков!')
         }
       } else {
         toast.error('Не удалось получить варианты: ' + (data.error || 'Ошибка ИИ'))
@@ -44,8 +48,12 @@ export default function TitleVariantsModal({ pkg, onClose, onTitleSaved }) {
 
   useEffect(() => {
     setOriginalNewsTitle(pkg.original_title || pkg.title || '')
-    fetchVariants()
-  }, [pkg])
+    if (pkg.title_variants && pkg.title_variants.length > 0) {
+      setVariants(pkg.title_variants)
+    } else {
+      fetchVariants(false)
+    }
+  }, [pkg?.folderName])
 
   const handleSave = async () => {
     if (!selectedTitle.trim()) {
@@ -123,10 +131,10 @@ export default function TitleVariantsModal({ pkg, onClose, onTitleSaved }) {
                 type="button"
                 className="copy-btn"
                 disabled={loading}
-                onClick={fetchVariants}
-                style={{ background: '#3b82f6', fontSize: '0.75rem', padding: '0.25rem 0.6rem' }}
+                onClick={() => fetchVariants(true)}
+                style={{ background: '#3b82f6', fontSize: '0.75rem', padding: '0.25rem 0.6rem', fontWeight: 600 }}
               >
-                {loading ? '⏳ Генерация...' : '🔄 Сгенерировать еще 10'}
+                {loading ? '⏳ Генерация...' : '🔄 Сгенерировать новые 10 вариантов'}
               </button>
             </div>
 

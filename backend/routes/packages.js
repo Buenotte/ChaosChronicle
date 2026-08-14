@@ -225,7 +225,7 @@ router.get('/api/saved-packages', async (req, res) => {
           artifactCount,
           hasAnyArtifact: artifactCount > 0,
           headlineConfig: thumbnailStyle,
-          thumbnailStyle: thumbnailStyle,
+          title_variants: manifest.title_variants || [],
           audioUrl: hasAudio ? `/news-static/${entry.name}/audio.mp3` : null,
           videoUrl,
           scriptTxt: hasScriptTxt ? fs.readFileSync(txtPath, 'utf-8') : '',
@@ -295,8 +295,8 @@ router.post('/api/save-script-text', async (req, res) => {
 // POST /api/generate-title-variants
 router.post('/api/generate-title-variants', async (req, res) => {
   try {
-    const { title = '', summary = '', bundleDir, folderName } = req.body;
-    const result = await generateTitleVariants(title, summary, bundleDir, folderName);
+    const { title = '', summary = '', bundleDir, folderName, forceRegenerate = false } = req.body;
+    const result = await generateTitleVariants(title, summary, bundleDir, folderName, forceRegenerate);
     res.json({ success: true, ...result });
   } catch (err) {
     console.error('Error generating title variants:', err.message);

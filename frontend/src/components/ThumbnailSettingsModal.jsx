@@ -101,34 +101,40 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
 
     try {
       setUploadingFont(true)
+      const toastId = toast.loading(`🔤 Загрузка шрифта "${file.name}"...`)
       const reader = new FileReader()
       reader.onload = async () => {
-        const base64Data = reader.result.split(',')[1]
-        const res = await fetch('/api/upload-font', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            filename: file.name,
-            fontName: file.name.replace(/\.[^.]+$/, ''),
-            base64Data,
-          }),
-        })
-        const data = await res.json()
-        if (data.success && data.font) {
-          try {
-            const fontFace = new FontFace(data.font.name, `url(${data.font.url})`)
-            await fontFace.load()
-            document.fonts.add(fontFace)
-          } catch {}
+        try {
+          const base64Data = reader.result.split(',')[1]
+          const res = await fetch('/api/upload-font', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              filename: file.name,
+              fontName: file.name.replace(/\.[^.]+$/, ''),
+              base64Data,
+            }),
+          })
+          const data = await res.json()
+          if (data.success && data.font) {
+            try {
+              const fontFace = new FontFace(data.font.name, `url(${data.font.url})`)
+              await fontFace.load()
+              document.fonts.add(fontFace)
+            } catch {}
 
-          setCustomFonts(prev => [data.font, ...prev.filter(f => f.id !== data.font.id)])
-          setFont(data.font.id)
-          setFontFamilyName(`"${data.font.name}", sans-serif`)
-          toast.success(`🔤 Шрифт "${data.font.name}" успешно загружен и применен!`)
-        } else {
-          toast.error('Ошибка загрузки шрифта: ' + (data.error || 'Неизвестная ошибка'))
+            setCustomFonts(prev => [data.font, ...prev.filter(f => f.id !== data.font.id)])
+            setFont(data.font.id)
+            setFontFamilyName(`"${data.font.name}", sans-serif`)
+            toast.success(`🔤 Шрифт "${data.font.name}" успешно загружен и применен!`, { id: toastId })
+          } else {
+            toast.error('Ошибка загрузки шрифта: ' + (data.error || 'Неизвестная ошибка'), { id: toastId })
+          }
+        } catch (postErr) {
+          toast.error('Ошибка отправки шрифта: ' + postErr.message, { id: toastId })
+        } finally {
+          setUploadingFont(false)
         }
-        setUploadingFont(false)
       }
       reader.readAsDataURL(file)
     } catch (err) {
@@ -160,13 +166,13 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
     }
   }
 
-  const handleApply = async (generateNewAi = false) => {
+  const handleApply = async () => {
     try {
       setSaving(true)
-      const toastId = toast.loading(generateNewAi ? '🤖 Генерация нового AI фото и заголовка...' : '🎨 Применение настроек шрифта...')
+      const toastId = toast.loading('🎨 Сохранение обложки и стиля...')
       
       const payload = {
-        mode: generateNewAi ? 'generate_ai' : 'apply_headline',
+        mode: 'apply_headline',
         bundleDir: pkg.bundleDir,
         folderName: pkg.folderName,
         photoUrl: selectedBgPhoto ? (selectedBgPhoto.startsWith('/news-static/') ? selectedBgPhoto : `/news-static/${pkg.folderName}/${selectedBgPhoto}`) : null,
@@ -206,19 +212,16 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
   }
 
   const formatPreviewLines = (raw) => {
-    const clean = String(raw || '').replace(/[\r\n\t]/g, ' ').replace(/["'«»`]/g, '').trim()
-    if (!clean) return ['ЗАГОЛОВОК ОБЛОЖКИ']
-    const words = clean.split(/\s+/)
-    let lines = []
-    let curLine = ''
+    if (typeof raw === 'string' && raw.includes('\n')) {
+      const manual = raw.split('\n').map(l => l.trim().toUpperCase()).filter(Boolean)
+      if (manual.length > 0) return manual
+    }
+    const words = String(raw || '').replace(/[\r\n\t]/g, ' ').replace(/["'«»`]/g, '').trim().split(/\s+/).filter(Boolean)
+    if (!words.length) return ['ЗАГОЛОВОК ОБЛОЖКИ']
+    let lines = [], curLine = ''
     for (const w of words) {
-      if ((curLine + ' ' + w).trim().length <= 22) {
-        curLine = (curLine + ' ' + w).trim()
-      } else {
-        if (curLine) lines.push(curLine)
-        curLine = w
-        if (lines.length >= 3) break
-      }
+      if ((curLine + ' ' + w).trim().length <= 15) curLine = (curLine + ' ' + w).trim()
+      else { if (curLine) lines.push(curLine); curLine = w; if (lines.length >= 3) break }
     }
     if (curLine && lines.length < 3) lines.push(curLine)
     return lines.map(l => l.toUpperCase())
@@ -227,12 +230,14 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
   const previewLines = formatPreviewLines(text)
   const activeColorHex = COLORS.find(c => c.id === fontColor)?.hex || '#FFE600'
   const activeStrokeHex = STROKE_COLORS.find(c => c.id === borderColor)?.hex || '#000000'
-
   const calcLiveFontSize = () => {
-    if (fontSize !== 'auto') return (Number(customSizeNum) * 0.46) + 'px'
-    const longest = Math.max(...previewLines.map(l => l.length), 10)
-    const rawPx = Math.floor(1200 / (longest * 0.62))
-    return (Math.min(Math.max(rawPx, 50), 92) * 0.46) + 'px'
+    const longest = Math.max(...previewLines.map(l => l.length), 8)
+    const maxFit = Math.floor(1160 / (longest * 0.65))
+    if (fontSize !== 'auto') {
+      const clamped = Math.min(Math.max(Number(customSizeNum), 32), maxFit)
+      return (clamped * 0.52) + 'px'
+    }
+    return (Math.min(Math.max(maxFit, 48), 92) * 0.52) + 'px'
   }
 
   const rawBackgroundSrc = pkg?.folderName
@@ -373,22 +378,13 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
             <button
               className="copy-btn"
               disabled={saving}
-              style={{ background: '#10b981', flex: 2, minWidth: '220px', padding: '0.75rem', fontSize: '0.95rem', fontWeight: 700 }}
-              onClick={() => handleApply(false)}
+              style={{ background: '#10b981', flex: 1, minWidth: '240px', padding: '0.75rem', fontSize: '0.95rem', fontWeight: 700 }}
+              onClick={handleApply}
             >
               {saving ? '⏳ Сохранение...' : '💾 Применить стиль и сохранить обложку'}
             </button>
 
-            <button
-              className="copy-btn"
-              disabled={saving}
-              style={{ background: '#8b5cf6', flex: 1, minWidth: '180px', padding: '0.75rem', fontSize: '0.88rem', fontWeight: 600 }}
-              onClick={() => handleApply(true)}
-            >
-              🤖 Новый AI-фон с этим стилем
-            </button>
-
-            <button className="copy-btn" style={{ background: '#3f3f46', padding: '0.75rem 1.2rem', fontWeight: 600 }} onClick={onClose}>
+            <button className="copy-btn" style={{ background: '#3f3f46', padding: '0.75rem 1.4rem', fontWeight: 600 }} onClick={onClose}>
               ✕ Закрыть
             </button>
           </div>

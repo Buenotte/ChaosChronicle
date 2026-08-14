@@ -18,14 +18,6 @@ export default function PackageHeader({
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
           <h2 className="modal-title" style={{ margin: 0 }}>{pkg.title}</h2>
-          <button
-            className="copy-btn"
-            style={{ background: '#ec4899', fontSize: '0.75rem', padding: '0.25rem 0.6rem' }}
-            onClick={onOpenTitleVariants}
-            title="Сгенерировать 10 вариантов заголовков в стиле Голобуцкого и выбрать лучший"
-          >
-            ⚡ 10 вариантов заголовков
-          </button>
         </div>
         <div className="modal-stats" style={{ marginTop: '0.5rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
           <span className="saved-status-badge">📜 script.txt {hasTxt ? '✅' : '❌'}</span>

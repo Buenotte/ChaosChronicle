@@ -41,10 +41,11 @@ export function formatTitleLines(russianTitle, inputLines = null) {
       .filter(Boolean);
   }
   if (typeof russianTitle === 'string' && russianTitle.includes('\n')) {
-    return russianTitle
+    const manualLines = russianTitle
       .split('\n')
-      .map(l => String(l).replace(/\r/g, '').trim().toUpperCase())
+      .map(l => String(l).replace(/\r/g, '').replace(/["'«»`]/g, '').trim().toUpperCase())
       .filter(Boolean);
+    if (manualLines.length > 0) return manualLines;
   }
 
   const clean = String(russianTitle || '')
@@ -60,7 +61,7 @@ export function formatTitleLines(russianTitle, inputLines = null) {
   const words = clean.split(' ');
   let lines = [];
   let curLine = '';
-  const targetCharsPerLine = 22;
+  const targetCharsPerLine = 15;
 
   for (const w of words) {
     if ((curLine + ' ' + w).trim().length <= targetCharsPerLine) {
@@ -97,15 +98,15 @@ export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, optio
     const cleanLines = formatTitleLines(russianTitle, inputLines);
     if (cleanLines.length === 0) return;
 
-    // Font size computation (allowing up to 160px)
+    // Auto-Fit Bounds: Berechne maximale Schriftgröße, damit Text NIEMALS über 1160px (1280px Canvas) hinausragt
+    const longestLineLen = Math.max(...cleanLines.map(l => l.length), 8);
+    const maxFitSize = Math.floor(1160 / (longestLineLen * 0.65));
+
     let finalFontSize = 78;
     if (fontSize && fontSize !== 'auto' && !isNaN(Number(fontSize))) {
-      finalFontSize = Math.min(Math.max(Number(fontSize), 32), 160);
+      finalFontSize = Math.min(Math.max(Number(fontSize), 32), maxFitSize);
     } else {
-      const longestLineLen = Math.max(...cleanLines.map(l => l.length), 10);
-      finalFontSize = Math.floor(1200 / (longestLineLen * 0.62));
-      if (finalFontSize > 92) finalFontSize = 92;
-      if (finalFontSize < 50) finalFontSize = 50;
+      finalFontSize = Math.min(Math.max(maxFitSize, 48), 92);
     }
 
     // Resolving font path (considering italic mapping)

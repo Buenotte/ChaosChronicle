@@ -7,29 +7,43 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const newsDir = path.resolve(__dirname, '../../news');
 
-export async function generateTitleVariants(title = '', summary = '', bundleDir = null, folderName = null) {
+export async function generateTitleVariants(title = '', summary = '', bundleDir = null, folderName = null, forceRegenerate = false) {
   let effectiveTitle = title;
+  let existingVariants = [];
 
   let targetFolder = bundleDir;
   if (!targetFolder && folderName) {
     targetFolder = path.join(newsDir, folderName);
   }
+  let jsonPath = null;
   if (targetFolder && fs.existsSync(targetFolder)) {
-    const jsonPath = path.join(targetFolder, 'project.json');
+    jsonPath = path.join(targetFolder, 'project.json');
     if (fs.existsSync(jsonPath)) {
       try {
         const manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
         if (manifest.original_title) effectiveTitle = manifest.original_title;
         else if (manifest.title && manifest.title.length > effectiveTitle.length) effectiveTitle = manifest.title;
+        if (Array.isArray(manifest.title_variants) && manifest.title_variants.length > 0) {
+          existingVariants = manifest.title_variants;
+        }
       } catch {}
     }
+  }
+
+  // Wenn forceRegenerate = false und bereits Varianten existieren, nimm die gespeicherten Varianten ohne KI-Aufruf
+  if (!forceRegenerate && existingVariants.length > 0) {
+    return {
+      resolvedTitle: effectiveTitle,
+      variants: existingVariants,
+      fromCache: true,
+    };
   }
 
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey || apiKey.includes('HIER')) {
     return {
       resolvedTitle: effectiveTitle,
-      variants: [
+      variants: existingVariants.length > 0 ? existingVariants : [
         effectiveTitle.slice(0, 30),
         `УДАР ПО ${effectiveTitle.slice(0, 20)}`,
         `САМОЛИКВИДАЦИЯ: ${effectiveTitle.slice(0, 15)}`,
@@ -77,9 +91,20 @@ export async function generateTitleVariants(title = '', summary = '', bundleDir 
     .filter(l => l.length > 5 && l.split(/\s+/).length >= 3 && l.split(/\s+/).length <= 7);
 
   const uniqueVariants = Array.from(new Set(rawLines)).slice(0, 10);
+  const finalVariants = uniqueVariants.length > 0 ? uniqueVariants : (existingVariants.length > 0 ? existingVariants : [effectiveTitle]);
+
+  if (jsonPath && fs.existsSync(jsonPath) && finalVariants.length > 0) {
+    try {
+      const manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+      manifest.title_variants = finalVariants;
+      manifest.title_variants_updated_at = new Date().toISOString();
+      fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
+    } catch {}
+  }
+
   return {
     resolvedTitle: effectiveTitle,
-    variants: uniqueVariants.length > 0 ? uniqueVariants : [effectiveTitle],
+    variants: finalVariants,
   };
 }
 
@@ -113,20 +138,60 @@ export function updatePackageTitle(targetFolder, newTitle, updateThumbnail = tru
     } catch {}
   }
 
-  // 3. Update thumbnail.jpg
+  // 3. Update thumbnail and style.json
   const thumbnailDir = path.join(targetFolder, 'thumbnail');
+  if (!fs.existsSync(thumbnailDir)) {
+    fs.mkdirSync(thumbnailDir, { recursive: true });
+  }
+
+  const styleJsonPath = path.join(thumbnailDir, 'style.json');
+  let currentStyle = {};
+  if (fs.existsSync(styleJsonPath)) {
+    try {
+      currentStyle = JSON.parse(fs.readFileSync(styleJsonPath, 'utf-8'));
+    } catch {}
+  }
+
+  const updatedStyle = {
+    text: cleanTitle,
+    font: currentStyle.font || 'impact',
+    fontFamilyName: currentStyle.fontFamilyName || 'Impact, sans-serif',
+    fontSize: currentStyle.fontSize || 'auto',
+    customSizeNum: currentStyle.customSizeNum || 82,
+    fontColor: currentStyle.fontColor || 'yellow',
+    borderColor: currentStyle.borderColor || 'black',
+    borderWidth: currentStyle.borderWidth !== undefined ? Number(currentStyle.borderWidth) : 9,
+    shadowDistance: currentStyle.shadowDistance !== undefined ? Number(currentStyle.shadowDistance) : 4,
+    isItalic: !!currentStyle.isItalic,
+    tiltAngle: Number(currentStyle.tiltAngle) || 0,
+    position: currentStyle.position || 'center',
+    hasBox: !!currentStyle.hasBox,
+    photoUrl: currentStyle.photoUrl || null,
+    updatedAt: new Date().toISOString(),
+  };
+
+  fs.writeFileSync(styleJsonPath, JSON.stringify(updatedStyle, null, 2), 'utf-8');
+
+  // Update manifest headlineConfig
+  if (fs.existsSync(jsonPath)) {
+    try {
+      const manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+      manifest.headlineConfig = updatedStyle;
+      manifest.thumbnail_updated_at = updatedStyle.updatedAt;
+      fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
+    } catch {}
+  }
+
   const destSub = path.join(thumbnailDir, 'thumbnail.jpg');
-  const destRoot = path.join(targetFolder, 'thumbnail.jpg');
   const rawBackgroundPath = path.join(thumbnailDir, 'raw_background.jpg');
 
   if (updateThumbnail) {
     if (fs.existsSync(rawBackgroundPath)) {
       fs.copyFileSync(rawBackgroundPath, destSub);
-      overlayRussianHeadlineOnThumbnail(destSub, cleanTitle, { position: 'center', fontColor: 'yellow' });
-      fs.copyFileSync(destSub, destRoot);
+      overlayRussianHeadlineOnThumbnail(destSub, cleanTitle, updatedStyle);
     } else if (fs.existsSync(destSub)) {
-      overlayRussianHeadlineOnThumbnail(destSub, cleanTitle, { position: 'center', fontColor: 'yellow' });
-      fs.copyFileSync(destSub, destRoot);
+      fs.copyFileSync(destSub, rawBackgroundPath);
+      overlayRussianHeadlineOnThumbnail(destSub, cleanTitle, updatedStyle);
     }
   }
 
@@ -134,6 +199,7 @@ export function updatePackageTitle(targetFolder, newTitle, updateThumbnail = tru
     success: true,
     newTitle: cleanTitle,
     folderName: path.basename(targetFolder),
+    style: updatedStyle,
     thumbnailUrl: `/news-static/${path.basename(targetFolder)}/thumbnail/thumbnail.jpg?t=${Date.now()}`,
   };
 }

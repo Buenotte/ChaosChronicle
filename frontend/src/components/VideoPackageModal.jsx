@@ -323,7 +323,7 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
               <button className="copy-btn" style={{ background: '#3b82f6' }} onClick={() => onOpenScriptText(pkg)}>
                 📜 Открыть и редактировать текст
               </button>
-              <button className="copy-btn" style={{ background: '#ec4899' }} onClick={() => setShowTitleVariantsModal(true)}>
+              <button className="copy-btn" style={{ background: '#ec4899', fontWeight: 600 }} onClick={() => setShowTitleVariantsModal(true)}>
                 ⚡ Выбрать из 10 заголовков (Голобуцкий)
               </button>
             </div>
