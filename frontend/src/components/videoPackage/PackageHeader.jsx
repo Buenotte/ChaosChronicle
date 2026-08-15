@@ -8,8 +8,16 @@ export default function PackageHeader({
   isMaximized,
   setIsMaximized,
   onOpenTitleVariants,
+  onOpenScript,
+  onOpenPhotos,
   onClose,
 }) {
+  const hasTitle = Boolean(
+    (pkg?.title_variants && pkg.title_variants.length > 0) ||
+    pkg?.title_updated_at ||
+    (pkg?.title && pkg.title !== 'Ohne Titel' && pkg.title !== (pkg?.original_title || ''))
+  )
+
   return (
     <div className="modal-header">
       <div>
@@ -19,17 +27,51 @@ export default function PackageHeader({
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
           <h2 className="modal-title" style={{ margin: 0 }}>{pkg.title}</h2>
         </div>
-        <div className="modal-stats" style={{ marginTop: '0.5rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <span className="saved-status-badge">📜 script.txt {hasTxt ? '✅' : '❌'}</span>
-          <span className="saved-status-badge">📸 photos/ ({actualPhotoCount})</span>
-          <span className="saved-status-badge">🎙️ audio.mp3 {audioState.hasAudio ? '✅' : '❌'}</span>
+        <div className="modal-stats" style={{ marginTop: '0.65rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          <button
+            type="button"
+            className={`saved-status-badge ${hasTitle ? 'active' : 'inactive'} clickable`}
+            onClick={onOpenTitleVariants}
+            title="Нажмите, чтобы открыть генератор 10 заголовков"
+          >
+            ⚡ title {hasTitle ? '✅' : '❌'}
+          </button>
+
+          <button
+            type="button"
+            className={`saved-status-badge ${hasTxt ? 'active' : 'inactive'} ${onOpenScript ? 'clickable' : ''}`}
+            onClick={onOpenScript}
+            title="Сценарий монолога (script.txt)"
+          >
+            📜 script.txt {hasTxt ? '✅' : '❌'}
+          </button>
+
+          <button
+            type="button"
+            className={`saved-status-badge ${actualPhotoCount > 0 ? 'active' : 'inactive'} ${onOpenPhotos ? 'clickable' : ''}`}
+            onClick={onOpenPhotos}
+            title="Фотографии к новости (photos/)"
+          >
+            📸 photos/ ({actualPhotoCount}) {actualPhotoCount > 0 ? '✅' : '❌'}
+          </button>
+
           <span
-            className="saved-status-badge"
-            style={{
-              background: currentThumbnail ? 'rgba(236,72,153,0.2)' : 'rgba(255,255,255,0.05)',
-              border: currentThumbnail ? '1px solid #ec4899' : '1px solid #3f3f46',
-              color: currentThumbnail ? '#f472b6' : '#9ca3af',
-            }}
+            className={`saved-status-badge ${audioState.hasAudio ? 'active' : 'inactive'}`}
+            title="Аудио-озвучка (audio.mp3)"
+          >
+            🎙️ audio.mp3 {audioState.hasAudio ? '✅' : '❌'}
+          </span>
+
+          <span
+            className={`saved-status-badge ${videoState.hasVideo ? 'active' : 'inactive'}`}
+            title="1080p Видео-ролик (video.mp4)"
+          >
+            🎬 video.mp4 {videoState.hasVideo ? '✅' : '❌'}
+          </span>
+
+          <span
+            className={`saved-status-badge ${currentThumbnail ? 'active' : 'inactive'}`}
+            title="16:9 YouTube Обложка (thumbnail.jpg)"
           >
             ✨ thumbnail.jpg {currentThumbnail ? '✅' : '❌'}
           </span>

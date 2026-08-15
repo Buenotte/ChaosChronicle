@@ -75,35 +75,65 @@ router.post('/api/upload-font', async (req, res) => {
 // GET /api/news-photos
 router.get('/api/news-photos', async (req, res) => {
   try {
-    const { title = '', articleId = '', url = '', query = '', searchQuery = '', forceLive = 'false' } = req.query;
+    const { title = '', articleId = '', url = '', query = '', searchQuery = '', folderName = '', bundleDir: inputBundleDir = '', forceLive = 'false' } = req.query;
     const effectiveQuery = query || searchQuery || '';
     const isForceLive = forceLive === 'true' || forceLive === '1' || !!effectiveQuery;
 
     const newsDir = path.resolve(__dirname, '../../news');
-    if (!isForceLive && fs.existsSync(newsDir) && title) {
-      const safeTitlePart = title.replace(/[^a-zA-Z0-9а-яА-ЯёЁ]/g, '_').slice(0, 20);
-      const dirs = fs.readdirSync(newsDir, { withFileTypes: true });
-      for (const d of dirs) {
-        if (d.isDirectory() && d.name.includes(safeTitlePart)) {
-          const existingPhotosDir = path.join(newsDir, d.name, 'photos');
-          if (fs.existsSync(existingPhotosDir)) {
-            const existingFiles = fs.readdirSync(existingPhotosDir).filter(f => /\.(jpg|jpeg|png|webp)/i.test(f));
-            if (existingFiles.length > 0) {
-              const localPhotos = existingFiles.map((f) => ({
-                url: `/news-static/${d.name}/photos/${f}`,
-                source: `Сохранено: ${d.name}/photos/${f}`,
-                articleTitle: title,
-                isSavedLocal: true,
-                quality: 'local',
-              }));
-              return res.json({
-                success: true,
-                count: localPhotos.length,
-                isLocal: true,
-                bundleDir: path.join(newsDir, d.name),
-                photos: localPhotos,
-              });
-            }
+    if (!isForceLive && fs.existsSync(newsDir)) {
+      let targetFolder = inputBundleDir;
+      if (!targetFolder && folderName) {
+        targetFolder = path.join(newsDir, folderName);
+      }
+      if (!targetFolder && title) {
+        const cleanQuery = title.toLowerCase().replace(/[^a-z0-9а-яё]/gi, '');
+        const dirs = fs.readdirSync(newsDir, { withFileTypes: true });
+        for (const d of dirs) {
+          if (!d.isDirectory()) continue;
+          const pDir = path.join(newsDir, d.name);
+          const jsonPath = path.join(pDir, 'project.json');
+          let mTitle = '';
+          let mOrig = '';
+          if (fs.existsSync(jsonPath)) {
+            try {
+              const m = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+              mTitle = (m.title || '').toLowerCase().replace(/[^a-z0-9а-яё]/gi, '');
+              mOrig = (m.original_title || '').toLowerCase().replace(/[^a-z0-9а-яё]/gi, '');
+            } catch {}
+          }
+          const fClean = d.name.replace(/^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}_/, '').toLowerCase().replace(/[^a-z0-9а-яё]/gi, '');
+          if (
+            (mOrig && (cleanQuery.includes(mOrig.slice(0, 12)) || mOrig.includes(cleanQuery.slice(0, 12)))) ||
+            (mTitle && (cleanQuery.includes(mTitle.slice(0, 12)) || mTitle.includes(cleanQuery.slice(0, 12)))) ||
+            (fClean && (cleanQuery.includes(fClean.slice(0, 12)) || fClean.includes(cleanQuery.slice(0, 12))))
+          ) {
+            targetFolder = pDir;
+            break;
+          }
+        }
+      }
+
+      if (targetFolder && fs.existsSync(targetFolder)) {
+        const existingPhotosDir = path.join(targetFolder, 'photos');
+        if (fs.existsSync(existingPhotosDir)) {
+          const existingFiles = fs.readdirSync(existingPhotosDir).filter(f => /\.(jpg|jpeg|png|webp)/i.test(f));
+          if (existingFiles.length > 0) {
+            const folderBase = path.basename(targetFolder);
+            const localPhotos = existingFiles.map((f) => ({
+              url: `/news-static/${folderBase}/photos/${f}`,
+              source: `Сохранено: ${folderBase}/photos/${f}`,
+              articleTitle: title,
+              isSavedLocal: true,
+              quality: 'local',
+            }));
+            return res.json({
+              success: true,
+              count: localPhotos.length,
+              isLocal: true,
+              bundleDir: targetFolder,
+              folderName: folderBase,
+              photos: localPhotos,
+            });
           }
         }
       }

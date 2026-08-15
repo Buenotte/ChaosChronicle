@@ -66,14 +66,15 @@ ${styleGuide ? `\nПОДРОБНОЕ РУКОВОДСТВО ПО СТИЛЮ:\n${
   return { systemInstruction, userInstruction };
 }
 
-// ── Генератор заголовков в стиле Голобуцкого (4-5 слов) ──
-export async function generateGolubuzkiTitle(newsTitle, newsSummary = '') {
+// ── Генератор заголовков в стиле Голобуцкого (4-5 слов) СТРОГО ИЗ ТЕКСТА ──
+export async function generateGolubuzkiTitle(newsTitle, newsSummary = '', monologueText = '') {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey || apiKey.includes('HIER')) {
     return (newsTitle || 'ГЛАВНАЯ НОВОСТЬ ДНЯ').split(/\s+/).slice(0, 5).join(' ').toUpperCase();
   }
 
   try {
+    const textContext = monologueText && monologueText.trim() ? monologueText.slice(0, 1200) : (newsSummary || newsTitle);
     const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -83,8 +84,8 @@ export async function generateGolubuzkiTitle(newsTitle, newsSummary = '') {
       body: JSON.stringify({
         model: 'google/gemini-2.5-flash',
         messages: [
-          { role: 'system', content: 'Создай убойный сатирический YouTube-заголовок для обложки. СТРОГО 4-5 СЛОВ (капсом UPPERCASE). БЕЗ кавычек и точек.' },
-          { role: 'user', content: `Новость: ${newsTitle}\nКонтекст: ${newsSummary?.slice(0, 300) || ''}` }
+          { role: 'system', content: 'Создай убойный сатирический YouTube-заголовок СТРОГО НА ОСНОВЕ ПРИВЕДЕННОГО ТЕКСТА ФЕЛЬЕТОНА. Требования: СТРОГО 4-5 СЛОВ (капсом UPPERCASE). БЕЗ кавычек и точек.' },
+          { role: 'user', content: `Текст фельетона:\n"""\n${textContext}\n"""\n\nСоздай 1 заголовок из 4-5 слов капсом:` }
         ],
         max_tokens: 40,
         temperature: 0.85,
@@ -177,7 +178,7 @@ router.post('/api/generate-feuilleton', async (req, res) => {
     const words = text.split(/\s+/).filter(Boolean).length;
     const minutes = Math.round((words / 140) * 10) / 10;
 
-    const punchyTitle = await generateGolubuzkiTitle(title, summary);
+    const punchyTitle = await generateGolubuzkiTitle(title, summary, text);
 
     const feuilletonObj = {
       title: punchyTitle || title,

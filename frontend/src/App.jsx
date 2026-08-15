@@ -48,10 +48,14 @@ export default function App() {
       : toast.loading('📸 Поиск фото...', { description: article.title })
 
     try {
+      const folderName = article.matchingPkg?.folderName || article.folderName || ''
+      const bundleDir = article.matchingPkg?.bundleDir || article.bundleDir || ''
       const params = new URLSearchParams({
-        title: article.title,
+        title: article.title || '',
         articleId: article.id || '',
         url: article.url || '',
+        folderName,
+        bundleDir,
         forceLive: forceLive ? 'true' : 'false',
       })
       const res = await fetch(`/api/news-photos?${params}`)

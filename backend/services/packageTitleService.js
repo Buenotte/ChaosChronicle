@@ -7,9 +7,29 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const newsDir = path.resolve(__dirname, '../../news');
 
-export async function generateTitleVariants(title = '', summary = '', bundleDir = null, folderName = null, forceRegenerate = false) {
+const TITLE_STYLES = {
+  golubuzki: {
+    name: '🎭 Алексей Голобуцкий (Сатира & Сарказм)',
+    desc: 'Едкий сарказм, деконструкция официальной лжи, мемы («по плану», «бункерный дед», «аналоговнет», «отрицательный рост», «скрепы»).',
+  },
+  kasjanov: {
+    name: '🪖 Юрий Касьянов (Военный реализм)',
+    desc: 'Военно-технический реализм, акцент на ТТХ, дроны, логистику, цену ошибок, «без иллюзий».',
+  },
+  klimovski: {
+    name: '🔬 Юрий Климовский (Клиническая геополитика)',
+    desc: 'Клинический диагноз, геополитический цинизм, снятие имперских брендов, кулуарные кураторы.',
+  },
+  gibrid: {
+    name: '⚡ Гибридный стиль (3 в 1)',
+    desc: 'Синтез едкой сатиры, военного реализма и геополитического анализа.',
+  },
+};
+
+export async function generateTitleVariants(title = '', summary = '', bundleDir = null, folderName = null, forceRegenerate = false, style = 'golubuzki', text = '') {
   let effectiveTitle = title;
   let existingVariants = [];
+  let scriptContent = text || '';
 
   let targetFolder = bundleDir;
   if (!targetFolder && folderName) {
@@ -18,23 +38,27 @@ export async function generateTitleVariants(title = '', summary = '', bundleDir 
   let jsonPath = null;
   if (targetFolder && fs.existsSync(targetFolder)) {
     jsonPath = path.join(targetFolder, 'project.json');
+    const txtPath = path.join(targetFolder, 'script.txt');
+    if (!scriptContent && fs.existsSync(txtPath)) {
+      try { scriptContent = fs.readFileSync(txtPath, 'utf-8'); } catch {}
+    }
     if (fs.existsSync(jsonPath)) {
       try {
         const manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
         if (manifest.original_title) effectiveTitle = manifest.original_title;
         else if (manifest.title && manifest.title.length > effectiveTitle.length) effectiveTitle = manifest.title;
-        if (Array.isArray(manifest.title_variants) && manifest.title_variants.length > 0) {
+        if (!forceRegenerate && Array.isArray(manifest.title_variants) && manifest.title_variants.length > 0) {
           existingVariants = manifest.title_variants;
         }
       } catch {}
     }
   }
 
-  // Wenn forceRegenerate = false und bereits Varianten existieren, nimm die gespeicherten Varianten ohne KI-Aufruf
   if (!forceRegenerate && existingVariants.length > 0) {
     return {
       resolvedTitle: effectiveTitle,
       variants: existingVariants,
+      style,
       fromCache: true,
     };
   }
@@ -47,159 +71,123 @@ export async function generateTitleVariants(title = '', summary = '', bundleDir 
         effectiveTitle.slice(0, 30),
         `УДАР ПО ${effectiveTitle.slice(0, 20)}`,
         `САМОЛИКВИДАЦИЯ: ${effectiveTitle.slice(0, 15)}`,
-      ]
+      ],
+      style,
     };
   }
 
-  const systemPrompt = `Ты — мастер убойных, вирусных и сатирических заголовков для YouTube в авторском стиле «Алексей Голобуцкий» (деконструкция российской пропаганды, едкая ирония, короткие хлесткие фразы, смех как оружие).
-Твоя задача: на основе новости создать РОВНО 10 РАЗНЫХ убойных вариантов заголовков.
+  const selectedStyleConfig = TITLE_STYLES[style] || TITLE_STYLES.golubuzki;
+  const systemPrompt = `Ты — мастер убойных, вирусных и кликабельных заголовков для YouTube в авторском стиле: ${selectedStyleConfig.name}.
+ОСОБЕННОСТИ СТИЛЯ: ${selectedStyleConfig.desc}
+
+Твоя задача: СТРОГО НА ОСНОВЕ ПРИВЕДЕННОГО ТЕКСТА ФЕЛЬЕТОНА/МОНОЛОГА создать РОВНО 10 РАЗНЫХ убойных вариантов заголовков.
 СТРОГИЕ ТРЕБОВАНИЯ:
 1. ДЛИНА КАЖДОГО ЗАГОЛОВКА: СТРОГО 4-5 СЛОВ (не больше и не меньше).
-2. СТИЛЬ: Едкий сарказм, трибун, высмеивание официальной версии врага, слова-маркеры («по плану», «бункерный дед», «аналоговнет», «отрицательный рост», «скрепы», «высокоточный террор», «хлопок и задымление»).
+2. СТИЛЬ: В точности соответствуй стилю ${selectedStyleConfig.name}.
 3. БЕЗ кавычек, БЕЗ нумерации, БЕЗ точек на конце.
 4. Выведи ТОЛЬКО 10 строк, по одному заголовку на строку (капсом UPPERCASE). Никаких вводных слов или пояснений.`;
 
-  const userPrompt = `Новость: ${effectiveTitle}\nКонтекст: ${summary?.slice(0, 400) || ''}`;
+  const contextText = (scriptContent || summary || effectiveTitle).trim();
+  const userPrompt = `ПОЛНЫЙ ТЕКСТ ФЕЛЬЕТОНА/МОНОЛОГА:\n"""\n${contextText.slice(0, 1500)}\n"""\n\nСоздай 10 убойных заголовков из 4-5 слов строго на основе содержания этого текста:`;
 
-  const aiRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
-      ],
-      max_tokens: 350,
-      temperature: 0.9,
-    }),
-    signal: AbortSignal.timeout(10000),
-  });
+  try {
+    const aiRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        max_tokens: 350,
+        temperature: 0.9,
+      }),
+      signal: AbortSignal.timeout(10000),
+    });
 
-  if (!aiRes.ok) {
-    throw new Error(`AI API error: ${aiRes.status}`);
+    if (!aiRes.ok) throw new Error(`AI API error: ${aiRes.status}`);
+
+    const data = await aiRes.json();
+    const rawContent = data.choices?.[0]?.message?.content || '';
+    const rawLines = rawContent
+      .split('\n')
+      .map(l => l.replace(/^[\d\s.\-•*]+/, '').replace(/["'«»`]/g, '').trim().toUpperCase())
+      .filter(l => l.length > 5 && l.split(/\s+/).length >= 3 && l.split(/\s+/).length <= 7);
+
+    const uniqueVariants = Array.from(new Set(rawLines)).slice(0, 10);
+    const finalVariants = uniqueVariants.length > 0 ? uniqueVariants : (existingVariants.length > 0 ? existingVariants : [effectiveTitle]);
+
+    if (jsonPath && fs.existsSync(jsonPath) && finalVariants.length > 0) {
+      try {
+        const manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+        manifest.title_variants = finalVariants;
+        manifest.title_variants_style = style;
+        manifest.title_variants_updated_at = new Date().toISOString();
+        fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
+      } catch {}
+    }
+
+    return {
+      resolvedTitle: effectiveTitle,
+      variants: finalVariants,
+      style,
+    };
+  } catch (err) {
+    return {
+      resolvedTitle: effectiveTitle,
+      variants: existingVariants.length > 0 ? existingVariants : [effectiveTitle],
+      style,
+    };
   }
-
-  const data = await aiRes.json();
-  const rawContent = data.choices?.[0]?.message?.content || '';
-  const rawLines = rawContent
-    .split('\n')
-    .map(l => l.replace(/^[\d\s.\-•*]+/, '').replace(/["'«»`]/g, '').trim().toUpperCase())
-    .filter(l => l.length > 5 && l.split(/\s+/).length >= 3 && l.split(/\s+/).length <= 7);
-
-  const uniqueVariants = Array.from(new Set(rawLines)).slice(0, 10);
-  const finalVariants = uniqueVariants.length > 0 ? uniqueVariants : (existingVariants.length > 0 ? existingVariants : [effectiveTitle]);
-
-  if (jsonPath && fs.existsSync(jsonPath) && finalVariants.length > 0) {
-    try {
-      const manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
-      manifest.title_variants = finalVariants;
-      manifest.title_variants_updated_at = new Date().toISOString();
-      fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
-    } catch {}
-  }
-
-  return {
-    resolvedTitle: effectiveTitle,
-    variants: finalVariants,
-  };
 }
 
-export function updatePackageTitle(targetFolder, newTitle, updateThumbnail = true) {
-  if (!targetFolder || !fs.existsSync(targetFolder)) {
-    throw new Error('Папка пакета не найдена');
+export function updatePackageTitle(bundleDir, newTitle, updateThumbnail = true) {
+  if (!bundleDir || !fs.existsSync(bundleDir)) {
+    return { success: false, error: 'Папка пакета не найдена' };
   }
 
   const cleanTitle = newTitle.trim();
-
-  // 1. Update project.json
-  const jsonPath = path.join(targetFolder, 'project.json');
+  const jsonPath = path.join(bundleDir, 'project.json');
+  let manifest = {};
   if (fs.existsSync(jsonPath)) {
+    try { manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8')); } catch {}
+  }
+
+  manifest.title = cleanTitle;
+  manifest.title_updated_at = new Date().toISOString();
+  fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
+
+  let thumbUpdated = false;
+  let thumbnailUrl = null;
+  const thumbDir = path.join(bundleDir, 'thumbnail');
+  const thumbPath = path.join(thumbDir, 'thumbnail.jpg');
+
+  if (updateThumbnail && fs.existsSync(thumbPath)) {
     try {
-      const manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
-      if (!manifest.original_title) manifest.original_title = manifest.title;
-      manifest.title = cleanTitle;
-      manifest.title_updated_at = new Date().toISOString();
-      fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
-    } catch {}
-  }
+      const styleConfig = fs.existsSync(path.join(thumbDir, 'style.json'))
+        ? JSON.parse(fs.readFileSync(path.join(thumbDir, 'style.json'), 'utf-8'))
+        : (manifest.headlineConfig || {});
 
-  // 2. Update script.md
-  const mdPath = path.join(targetFolder, 'script.md');
-  if (fs.existsSync(mdPath)) {
-    try {
-      const mdContent = fs.readFileSync(mdPath, 'utf-8');
-      const lines = mdContent.split('\n');
-      lines[0] = `# 🎭 ${cleanTitle}`;
-      fs.writeFileSync(mdPath, lines.join('\n'), 'utf-8');
-    } catch {}
-  }
-
-  // 3. Update thumbnail and style.json
-  const thumbnailDir = path.join(targetFolder, 'thumbnail');
-  if (!fs.existsSync(thumbnailDir)) {
-    fs.mkdirSync(thumbnailDir, { recursive: true });
-  }
-
-  const styleJsonPath = path.join(thumbnailDir, 'style.json');
-  let currentStyle = {};
-  if (fs.existsSync(styleJsonPath)) {
-    try {
-      currentStyle = JSON.parse(fs.readFileSync(styleJsonPath, 'utf-8'));
-    } catch {}
-  }
-
-  const updatedStyle = {
-    text: cleanTitle,
-    font: currentStyle.font || 'impact',
-    fontFamilyName: currentStyle.fontFamilyName || 'Impact, sans-serif',
-    fontSize: currentStyle.fontSize || 'auto',
-    customSizeNum: currentStyle.customSizeNum || 82,
-    fontColor: currentStyle.fontColor || 'yellow',
-    borderColor: currentStyle.borderColor || 'black',
-    borderWidth: currentStyle.borderWidth !== undefined ? Number(currentStyle.borderWidth) : 9,
-    shadowDistance: currentStyle.shadowDistance !== undefined ? Number(currentStyle.shadowDistance) : 4,
-    isItalic: !!currentStyle.isItalic,
-    tiltAngle: Number(currentStyle.tiltAngle) || 0,
-    position: currentStyle.position || 'center',
-    hasBox: !!currentStyle.hasBox,
-    photoUrl: currentStyle.photoUrl || null,
-    updatedAt: new Date().toISOString(),
-  };
-
-  fs.writeFileSync(styleJsonPath, JSON.stringify(updatedStyle, null, 2), 'utf-8');
-
-  // Update manifest headlineConfig
-  if (fs.existsSync(jsonPath)) {
-    try {
-      const manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
-      manifest.headlineConfig = updatedStyle;
-      manifest.thumbnail_updated_at = updatedStyle.updatedAt;
-      fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
-    } catch {}
-  }
-
-  const destSub = path.join(thumbnailDir, 'thumbnail.jpg');
-  const rawBackgroundPath = path.join(thumbnailDir, 'raw_background.jpg');
-
-  if (updateThumbnail) {
-    if (fs.existsSync(rawBackgroundPath)) {
-      fs.copyFileSync(rawBackgroundPath, destSub);
-      overlayRussianHeadlineOnThumbnail(destSub, cleanTitle, updatedStyle);
-    } else if (fs.existsSync(destSub)) {
-      fs.copyFileSync(destSub, rawBackgroundPath);
-      overlayRussianHeadlineOnThumbnail(destSub, cleanTitle, updatedStyle);
+      overlayRussianHeadlineOnThumbnail({
+        bundleDir,
+        headlineText: cleanTitle,
+        ...styleConfig,
+      });
+      thumbUpdated = true;
+      thumbnailUrl = `/news-static/${path.basename(bundleDir)}/thumbnail/thumbnail.jpg?t=${Date.now()}`;
+    } catch (err) {
+      console.warn('Thumbnail overlay update on title save failed:', err.message);
     }
   }
 
   return {
     success: true,
     newTitle: cleanTitle,
-    folderName: path.basename(targetFolder),
-    style: updatedStyle,
-    thumbnailUrl: `/news-static/${path.basename(targetFolder)}/thumbnail/thumbnail.jpg?t=${Date.now()}`,
+    thumbnailUpdated: thumbUpdated,
+    thumbnailUrl,
   };
 }

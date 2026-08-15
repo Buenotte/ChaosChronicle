@@ -26,24 +26,12 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
   const [selectedVoice, setSelectedVoice] = useState('nikolay')
   const [selectedTransition, setSelectedTransition] = useState('concat')
 
-  const [audioState, setAudioState] = useState({
-    hasAudio: !!pkg.hasAudio,
-    audioUrl: pkg.audioUrl,
-  })
-  const [videoState, setVideoState] = useState({
-    hasVideo: !!pkg.hasVideo,
-    videoUrl: pkg.videoUrl,
-  })
+  const [audioState, setAudioState] = useState({ hasAudio: !!pkg.hasAudio, audioUrl: pkg.audioUrl })
+  const [videoState, setVideoState] = useState({ hasVideo: !!pkg.hasVideo, videoUrl: pkg.videoUrl })
 
   useEffect(() => {
-    setAudioState({
-      hasAudio: !!pkg.hasAudio,
-      audioUrl: pkg.audioUrl,
-    })
-    setVideoState({
-      hasVideo: !!pkg.hasVideo,
-      videoUrl: pkg.videoUrl,
-    })
+    setAudioState({ hasAudio: !!pkg.hasAudio, audioUrl: pkg.audioUrl })
+    setVideoState({ hasVideo: !!pkg.hasVideo, videoUrl: pkg.videoUrl })
     setIsPlaying(false)
     setCurrentTime(0)
   }, [pkg])
@@ -312,6 +300,8 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
           isMaximized={isMaximized}
           setIsMaximized={setIsMaximized}
           onOpenTitleVariants={() => setShowTitleVariantsModal(true)}
+          onOpenScript={() => onOpenScriptText && onOpenScriptText(pkg)}
+          onOpenPhotos={() => onOpenPhotos && onOpenPhotos(pkg)}
           onClose={onClose}
         />
 

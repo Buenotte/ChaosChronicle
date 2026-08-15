@@ -13,3 +13,6 @@
 
 ## 4. Build Rule
 - **STRICT REQUIREMENT**: Do not run `vite build` or production bundling unless explicitly ordered. Keep Vite in development server mode.
+
+## 5. Code Editing Rule
+- **STRICT REQUIREMENT**: When making code changes, NEVER overwrite or rewrite entire files. ALWAYS make targeted edits (diffs / surgical modifications or insertions) using `replace_file_content` or `multi_replace_file_content` targeting only the specific lines.
