@@ -14,6 +14,7 @@ export default function App() {
   const [articles, setArticles] = useState([])
   const [category, setCategory] = useState('vse')
   const [selectedModel, setSelectedModel] = useState('gemini')
+  const [selectedStyle, setSelectedStyle] = useState('golubuzki')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [backendStatus, setBackendStatus] = useState('checking')
@@ -161,8 +162,9 @@ export default function App() {
     fetchSavedPackages()
   }, [category, fetchNews, checkStatus, fetchSavedPackages])
 
-  const handleGenerate = async (article) => {
+  const handleGenerate = async (article, customStyle = null) => {
     setGeneratingId(article.id)
+    const effectiveStyle = customStyle || selectedStyle
     const toastId = toast.loading('ИИ пишет 3-минутный фельетон...', {
       description: `Тема: ${article.title.slice(0, 45)}...`,
     })
@@ -175,6 +177,7 @@ export default function App() {
           title: article.title,
           summary: article.summary,
           model: selectedModel,
+          style: effectiveStyle,
           source: article.source,
           imageUrl: article.imageUrl,
           images: article.images || (article.imageUrl ? [article.imageUrl] : []),
@@ -188,7 +191,6 @@ export default function App() {
 
       const fData = data.feuilleton || data
       setCurrentFeuilleton(fData)
-      fetchSavedPackages()
       toast.success('Фельетон успешно создан!', {
         id: toastId,
         description: `Слов: ${fData.words || ''} | Чтение: ~${fData.readTimeMin || fData.minutes || 3} мин.`,
@@ -204,15 +206,56 @@ export default function App() {
   }
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return articles
-    const q = search.toLowerCase()
-    return articles.filter(
+    const q = search.trim().toLowerCase()
+    const matchedFolderNames = new Set()
+    const articlesWithPkg = []
+    const regularArticles = []
+
+    for (const a of articles) {
+      const artClean = cleanMatchTitle(a?.title)
+      const matchingPkg = (savedPackages || []).find(p => {
+        if (!artClean) return false
+        const pkgTitleClean = cleanMatchTitle(p?.title)
+        const pkgOrigClean = cleanMatchTitle(p?.original_title)
+        const pkgFolderClean = cleanMatchTitle(p?.folderName?.replace(/^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}_/, ''))
+
+        if (pkgOrigClean && (artClean.includes(pkgOrigClean.slice(0, 14)) || pkgOrigClean.includes(artClean.slice(0, 14)))) return true
+        if (pkgTitleClean && (artClean.includes(pkgTitleClean.slice(0, 14)) || pkgTitleClean.includes(artClean.slice(0, 14)))) return true
+        if (pkgFolderClean && (artClean.includes(pkgFolderClean.slice(0, 14)) || pkgFolderClean.includes(artClean.slice(0, 14)))) return true
+        return false
+      })
+
+      if (matchingPkg) {
+        matchedFolderNames.add(matchingPkg.folderName)
+        articlesWithPkg.push({ ...a, matchingPkg })
+      } else {
+        regularArticles.push(a)
+      }
+    }
+
+    const standaloneSaved = (savedPackages || [])
+      .filter(p => !matchedFolderNames.has(p.folderName))
+      .map(p => ({
+        id: `pkg-${p.folderName}`,
+        title: p.title || p.original_title || p.folderName,
+        summary: p.summary || p.scriptTxt?.slice(0, 200) || 'Готовый сохраненный видео-пакет в news/',
+        source: p.source || 'ChaosChronicle',
+        pubDate: p.date || p.created_at,
+        imageUrl: p.coverUrl || (p.photoUrls && p.photoUrls[0]) || null,
+        images: p.photoUrls || [],
+        matchingPkg: p,
+      }))
+
+    const combined = [...articlesWithPkg, ...standaloneSaved, ...regularArticles]
+
+    if (!q) return combined
+    return combined.filter(
       a =>
         a.title?.toLowerCase().includes(q) ||
         a.summary?.toLowerCase().includes(q) ||
         a.source?.toLowerCase().includes(q)
     )
-  }, [articles, search])
+  }, [articles, savedPackages, search])
 
   return (
     <div className="app-layout">
@@ -220,6 +263,8 @@ export default function App() {
       <AppHeader
         selectedModel={selectedModel}
         setSelectedModel={setSelectedModel}
+        selectedStyle={selectedStyle}
+        setSelectedStyle={setSelectedStyle}
         search={search}
         setSearch={setSearch}
         category={category}
@@ -271,19 +316,7 @@ export default function App() {
         {filtered.length > 0 && (
           <div className="news-grid">
             {filtered.map((article, i) => {
-              const artClean = cleanMatchTitle(article?.title)
-              const matchingSavedPkg = (savedPackages || []).find(p => {
-                if (!artClean) return false
-                const pkgTitleClean = cleanMatchTitle(p?.title)
-                const pkgOrigClean = cleanMatchTitle(p?.original_title)
-                const pkgFolderClean = cleanMatchTitle(p?.folderName?.replace(/^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}_/, ''))
-
-                if (pkgOrigClean && (artClean.includes(pkgOrigClean.slice(0, 14)) || pkgOrigClean.includes(artClean.slice(0, 14)))) return true
-                if (pkgTitleClean && (artClean.includes(pkgTitleClean.slice(0, 14)) || pkgTitleClean.includes(artClean.slice(0, 14)))) return true
-                if (pkgFolderClean && (artClean.includes(pkgFolderClean.slice(0, 14)) || pkgFolderClean.includes(artClean.slice(0, 14)))) return true
-                return false
-              })
-
+              const matchingSavedPkg = article.matchingPkg
               return (
                 <NewsCard
                   key={article.id || i}
@@ -306,6 +339,7 @@ export default function App() {
       <FeuilletonModal
         feuilleton={currentFeuilleton}
         onOpenPhotos={handleFetchNewsPhotos}
+        onRefreshPackages={fetchSavedPackages}
         onClose={() => {
           setCurrentFeuilleton(null)
           fetchSavedPackages()

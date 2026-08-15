@@ -1,18 +1,61 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { FEUILLETON_STYLES } from '../lib/utils'
 
-export default function FeuilletonModal({ feuilleton, onOpenPhotos, onClose }) {
+export default function FeuilletonModal({ feuilleton, onOpenPhotos, onClose, onRefreshPackages }) {
   if (!feuilleton) return null
 
+  const [currentText, setCurrentText] = useState(feuilleton.text || '')
+  const [currentTitle, setCurrentTitle] = useState(feuilleton.title || '')
+  const [selectedStyle, setSelectedStyle] = useState(feuilleton.style || 'golubuzki')
+  const [regenerating, setRegenerating] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [savedInfo, setSavedInfo] = useState(null)
-  const [generatingAudio, setGeneratingAudio] = useState(false)
-  const [audioInfo, setAudioInfo] = useState(null)
+  const [savedInfo, setSavedInfo] = useState(feuilleton.bundleDir ? feuilleton : null)
+
+  const words = currentText.split(/\s+/).filter(Boolean).length
+  const minutes = Math.round((words / 140) * 10) / 10
+
+  const handleRegenerateStyle = async (newStyle) => {
+    setSelectedStyle(newStyle)
+    setRegenerating(true)
+    const toastId = toast.loading('🔄 Переписывание фельетона...', {
+      description: `Стиль: ${FEUILLETON_STYLES.find(s => s.id === newStyle)?.name || newStyle}`,
+    })
+
+    try {
+      const res = await fetch('/api/generate-feuilleton', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: feuilleton.originalTitle || feuilleton.title,
+          summary: feuilleton.summary,
+          model: feuilleton.modelName || 'gemini',
+          style: newStyle,
+          source: feuilleton.source,
+          imageUrl: feuilleton.imageUrl,
+          images: feuilleton.images || [],
+        }),
+      })
+
+      const data = await res.json()
+      if (!res.ok || !data.success) throw new Error(data.error || 'Ошибка генерации')
+
+      const fData = data.feuilleton || data
+      setCurrentText(fData.text || '')
+      setCurrentTitle(fData.title || currentTitle)
+      setSavedInfo(null)
+      toast.success('✨ Новый вариант фельетона готов!', { id: toastId })
+    } catch (err) {
+      toast.error('Ошибка перегенерации', { id: toastId, description: err.message })
+    } finally {
+      setRegenerating(false)
+    }
+  }
 
   const handleSavePackage = async () => {
     setSaving(true)
-    const toastId = toast.loading('Сохранение видео-пакета в news/...', {
-      description: 'Скачивание 20 фото, файла script.txt и project.json...',
+    const toastId = toast.loading('💾 Сохранение видео-пакета в news/...', {
+      description: 'Создание папки, сохранение фото, script.txt и project.json...',
     })
 
     try {
@@ -20,9 +63,9 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onClose }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: feuilleton.title,
-          text: feuilleton.text,
-          model: feuilleton.modelName,
+          title: currentTitle,
+          text: currentText,
+          model: feuilleton.modelName || 'gemini',
           source: feuilleton.source,
           imageUrl: feuilleton.imageUrl,
           images: feuilleton.images || [],
@@ -33,178 +76,148 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onClose }) {
       if (!res.ok || !data.success) throw new Error(data.error || 'Ошибка сохранения')
 
       setSavedInfo(data)
+      if (onRefreshPackages) onRefreshPackages()
       toast.success('📦 Видео-пакет сохранен!', {
         id: toastId,
-        description: `📜 Текст: ✅ Готов | 📸 Фото: ✅ (${data.savedPhotosCount} шт. в news/) | 🎙️ Аудио: ⚠️ Отсутствует (нажмите «Создать audio.mp3»)`,
-        duration: 12000,
+        description: `Папка: news/${data.folderName} | Фото: ${data.savedPhotosCount} шт.`,
+        duration: 8000,
       })
     } catch (err) {
-      toast.error('Ошибка сохранения пакета', {
-        id: toastId,
-        description: err.message,
-      })
+      toast.error('Ошибка сохранения пакета', { id: toastId, description: err.message })
     } finally {
       setSaving(false)
     }
   }
 
-  const handleGenerateAudio = async () => {
-    if (!savedInfo || !savedInfo.bundleDir) return
-    setGeneratingAudio(true)
-
-    let seconds = 0
-    const toastId = toast.loading('🎙️ Генерация аудио-файла через edge-tts... [0 сек.]', {
-      description: 'Голос: Nikolay (ru-RU-DmitryNeural) | Скорость: 0% | Голос: -10%',
-    })
-
-    const timer = setInterval(() => {
-      seconds++
-      toast.loading(`🎙️ Генерация аудио-файла через edge-tts... [${seconds} сек.]`, {
-        id: toastId,
-        description: 'Идет обработка текста и синтез речи (Nikolay, 0%, -10%)...',
-      })
-    }, 1000)
-
-    try {
-      const startTime = Date.now()
-      const res = await fetch('/api/generate-audio', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          bundleDir: savedInfo.bundleDir,
-          text: feuilleton.text,
-        }),
-      })
-
-      const data = await res.json()
-      clearInterval(timer)
-
-      if (!res.ok || !data.success) throw new Error(data.error || 'Ошибка озвучки')
-
-      const totalTimeSec = Math.round((Date.now() - startTime) / 1000)
-      setAudioInfo(data)
-
-      toast.success('🎉 Все компоненты видео-пакета полностью готовы!', {
-        id: toastId,
-        description: `📜 Текст: ✅ | 📸 Фото: ✅ (${savedInfo.savedPhotosCount || 0} шт.) | 🎙️ Аудио: ✅ audio.mp3 (${totalTimeSec} сек., Nikolay)`,
-        duration: 14000,
-      })
-    } catch (err) {
-      clearInterval(timer)
-      toast.error('Ошибка создания аудио', {
-        id: toastId,
-        description: err.message,
-      })
-    } finally {
-      setGeneratingAudio(false)
-    }
-  }
-
-  const articleImages = feuilleton.images && feuilleton.images.length > 0
-    ? feuilleton.images
-    : (feuilleton.imageUrl ? [feuilleton.imageUrl] : [])
-
-  let brollImageCounter = 0
-
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()}>
+      <div
+        className="modal-content"
+        onClick={e => e.stopPropagation()}
+        style={{ maxWidth: '860px', width: '94%', maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}
+      >
         <div className="modal-header">
           <div>
-            <span className="modal-badge">🎭 3-Минутный Сатирический Фельетон</span>
-            <h2 className="modal-title">{feuilleton.title}</h2>
-            <div className="modal-stats">
-              <span>⏱️ Хронометраж: ~{feuilleton.minutes} мин.</span>
-              <span>📝 Слов: {feuilleton.words}</span>
-              <span>🤖 Модель: {feuilleton.modelName}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+              <span className="modal-badge" style={{ background: '#7c3aed', color: '#fff' }}>
+                🎭 3-Минутный Сатирический Фельетон
+              </span>
+              {!savedInfo && (
+                <span style={{ fontSize: '0.78rem', color: '#f59e0b', background: 'rgba(245, 158, 11, 0.15)', padding: '0.2rem 0.5rem', borderRadius: '4px', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
+                  ⚠️ Черновик (нажмите «Сохранить видео-пакет»)
+                </span>
+              )}
             </div>
-            {savedInfo && (
-              <div className="saved-file-notice">
-                📦 Видео-пакет сохранен в: <code>news/{savedInfo.folderName}</code> ({savedInfo.savedPhotosCount} фото скачано)
-                {audioInfo && <span> · 🎙️ <code>audio.mp3</code> (Nikolay) создан</span>}
-              </div>
+            <h2 className="modal-title" style={{ fontSize: '1.2rem', marginTop: '0.4rem' }}>
+              {currentTitle}
+            </h2>
+            <div className="modal-stats" style={{ marginTop: '0.3rem' }}>
+              <span>⏱️ ~{minutes} мин.</span>
+              <span>📝 Слов: {words}</span>
+              <span>🤖 Модель: {feuilleton.modelName || 'Gemini'}</span>
+            </div>
+          </div>
+          <button className="modal-close" onClick={onClose}>✕</button>
+        </div>
+
+        <div className="modal-body" style={{ overflowY: 'auto', flex: 1, padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {/* Панель выбора стиля и перегенерации */}
+          <div style={{ background: '#131b2e', padding: '0.85rem 1rem', borderRadius: '8px', border: '1px solid #1e3a8a', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.6rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#93c5fd' }}>
+                🎨 Стиль автора:
+              </span>
+              <select
+                value={selectedStyle}
+                onChange={e => handleRegenerateStyle(e.target.value)}
+                disabled={regenerating}
+                style={{
+                  background: '#1e293b',
+                  color: '#fff',
+                  border: '1px solid #3b82f6',
+                  borderRadius: '6px',
+                  padding: '0.4rem 0.75rem',
+                  fontSize: '0.86rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                {FEUILLETON_STYLES.map(s => (
+                  <option key={s.id} value={s.id}>
+                    {s.icon} {s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <button
+              type="button"
+              className="refresh-btn"
+              onClick={() => handleRegenerateStyle(selectedStyle)}
+              disabled={regenerating}
+              style={{ fontSize: '0.82rem', padding: '0.4rem 0.8rem' }}
+            >
+              🔄 {regenerating ? 'Генерация...' : 'Сгенерировать заново'}
+            </button>
+          </div>
+
+          {/* Редактируемый текст фельетона */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', flex: 1 }}>
+            <label style={{ fontSize: '0.84rem', fontWeight: 600, color: '#9ca3af' }}>
+              📜 Текст монолога диктора (для голосовой озвучки ElevenLabs / EdgeTTS):
+            </label>
+            <textarea
+              value={currentText}
+              onChange={e => setCurrentText(e.target.value)}
+              rows={12}
+              style={{
+                width: '100%',
+                background: '#0d1117',
+                border: '1px solid #30363d',
+                borderRadius: '8px',
+                color: '#f3f4f6',
+                padding: '0.85rem 1rem',
+                fontSize: '0.92rem',
+                lineHeight: '1.6',
+                resize: 'vertical',
+                fontFamily: 'inherit',
+              }}
+            />
+          </div>
+        </div>
+
+        <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+            <button
+              type="button"
+              className="save-bundle-btn"
+              onClick={handleSavePackage}
+              disabled={saving}
+              style={{
+                background: savedInfo ? 'linear-gradient(135deg, #059669 0%, #047857 100%)' : 'linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)',
+                fontWeight: 700,
+                padding: '0.65rem 1.25rem',
+                fontSize: '0.92rem',
+              }}
+            >
+              {saving ? '⏳ Сохранение...' : (savedInfo ? '✅ Видео-пакет сохранен в news/' : '💾 Сохранить видео-пакет в news/')}
+            </button>
+
+            {onOpenPhotos && (
+              <button
+                type="button"
+                className="photos-header-btn"
+                onClick={() => onOpenPhotos({ title: currentTitle, images: feuilleton.images, id: feuilleton.id })}
+                style={{ padding: '0.65rem 1rem', fontSize: '0.88rem' }}
+              >
+                🖼️ Фото к новости
+              </button>
             )}
           </div>
-          <div className="modal-header-actions">
-            <button
-              className="photos-header-btn"
-              onClick={() => onOpenPhotos({ title: feuilleton.title, images: feuilleton.images, id: feuilleton.id, url: feuilleton.url })}
-            >
-              🖼️ Фото к новости
-            </button>
-            <button className="modal-close" onClick={onClose}>✕</button>
-          </div>
-        </div>
 
-        {/* Audio Player im Haupt-Feuilleton-Dialog */}
-        {savedInfo && (audioInfo || savedInfo.hasAudio) && (
-          <div style={{ padding: '0 1.5rem', marginTop: '1rem' }}>
-            <div className="audio-player-box" style={{ marginBottom: 0 }}>
-              <div className="audio-player-title">🎙️ Прослушать озвучку Nikolay (audio.mp3, 0%, -10%):</div>
-              <audio controls src={`/news-static/${savedInfo.folderName}/audio.mp3`} className="audio-element" autoPlay>
-                Ваш браузер не поддерживает элемент audio.
-              </audio>
-            </div>
-          </div>
-        )}
-
-        <div className="modal-body">
-          {feuilleton.text.split('\n\n').map((paragraph, idx) => {
-            const isBRoll = paragraph.startsWith('[B-Roll:')
-            if (isBRoll) {
-              const currentPhoto = articleImages[brollImageCounter % (articleImages.length || 1)]
-              brollImageCounter++
-
-              return (
-                <div key={idx} className="broll-inline-card">
-                  {currentPhoto && (
-                    <div className="broll-photo-wrap">
-                      <img
-                        src={currentPhoto}
-                        alt={`Кадр к новости - ${feuilleton.title}`}
-                        className="broll-inline-photo"
-                        onError={e => e.target.parentNode.style.display = 'none'}
-                      />
-                      <div className="broll-photo-badge">
-                        📸 Оригинальное фото к этой новости #{((brollImageCounter - 1) % (articleImages.length || 1)) + 1}
-                      </div>
-                    </div>
-                  )}
-                  <div className="broll-tag">
-                    <span className="broll-icon">🖼️ Visual B-Roll / Кадр:</span> {paragraph.replace('[B-Roll:', '').replace(']', '').trim()}
-                  </div>
-                </div>
-              )
-            }
-
-            return (
-              <p key={idx} className="feuilleton-p">
-                {paragraph}
-              </p>
-            )
-          })}
-        </div>
-
-        <div className="modal-footer">
-          <button
-            className="save-bundle-btn"
-            onClick={handleSavePackage}
-            disabled={saving || !!savedInfo}
-          >
-            {saving ? '⏳ Сохранение...' : (savedInfo ? '✅ Пакет сохранен в news/' : '📦 Сохранить видео-пакет в news/')}
+          <button type="button" className="close-btn" onClick={onClose}>
+            Закрыть
           </button>
-          
-          {savedInfo && (
-            <button
-              className="audio-gen-btn"
-              onClick={handleGenerateAudio}
-              disabled={generatingAudio || !!audioInfo}
-            >
-              {generatingAudio ? '⏳ Озвучка Nikolay...' : (audioInfo ? '🎙️ audio.mp3 создан' : '🎙️ Создать audio.mp3 (Nikolay)')}
-            </button>
-          )}
-
-          <button className="close-btn" onClick={onClose}>Закрыть</button>
         </div>
       </div>
     </div>

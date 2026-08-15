@@ -2,7 +2,7 @@ import express from 'express';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import { exec, spawn } from 'child_process';
+import { exec, execSync, spawn } from 'child_process';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const router = express.Router();
@@ -99,73 +99,49 @@ const handleGenerateVideo = async (req, res) => {
         audioDuration = 180;
       }
 
-      broadcastProgress(10, 'building', 'Подготовка фотографий для монтажа...');
-
-      const FADE_DURATION = 0.8;
-      let ffmpegArgs = [];
       const blurFilter = 'split[bg][fg];[bg]scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,gblur=sigma=35[blurred];[fg]scale=1920:1080:force_original_aspect_ratio=decrease[sharp];[blurred][sharp]overlay=(W-w)/2:(H-h)/2,setsar=1,format=yuv420p';
+      let ffmpegArgs = [];
 
-      if (transition === 'xfade' && photoFiles.length > 1) {
-        const photoDuration = audioDuration / photoFiles.length;
-        const effectiveDuration = photoDuration - FADE_DURATION;
-
-        for (const f of photoFiles) {
-          const fp = path.join(photosDir, f);
-          ffmpegArgs.push('-loop', '1', '-t', String(photoDuration.toFixed(3)), '-i', fp);
-        }
-        ffmpegArgs.push('-i', audioPath);
-
-        let filterParts = [];
-        for (let i = 0; i < photoFiles.length; i++) {
-          filterParts.push(`[${i}:v]${blurFilter}[v${i}]`);
-        }
-
-        let xfadeChain = '';
-        let prevLabel = 'v0';
-        for (let i = 1; i < photoFiles.length; i++) {
-          const offset = (effectiveDuration * i).toFixed(3);
-          const outLabel = i < photoFiles.length - 1 ? `xf${i}` : 'vout';
-          xfadeChain += `[${prevLabel}][v${i}]xfade=transition=fade:duration=${FADE_DURATION}:offset=${offset}[${outLabel}];`;
-          prevLabel = outLabel;
-        }
-        xfadeChain = xfadeChain.replace(/;$/, '');
-
-        const fullFilter = filterParts.join(';') + ';' + xfadeChain;
-        const audioInputIndex = photoFiles.length;
-
-        ffmpegArgs = [
-          ...ffmpegArgs,
-          '-filter_complex', fullFilter,
-          '-map', '[vout]',
-          '-map', `${audioInputIndex}:a`,
-          '-c:v', 'libx264', '-preset', 'ultrafast',
-          '-c:a', 'copy',
-          '-shortest',
-          '-y', videoPath,
-        ];
-      } else {
-        const photoDuration = audioDuration / photoFiles.length;
-        const concatPath = path.join(bundleDir, 'concat.txt');
-        let concatContent = '';
-        for (const f of photoFiles) {
-          const fp = path.join(photosDir, f).replace(/\\/g, '/');
-          concatContent += `file '${fp}'\nduration ${photoDuration.toFixed(3)}\n`;
-        }
-        const lastPhoto = path.join(photosDir, photoFiles[photoFiles.length - 1]).replace(/\\/g, '/');
-        concatContent += `file '${lastPhoto}'\n`;
-        fs.writeFileSync(concatPath, concatContent, 'utf-8');
-
-        ffmpegArgs = [
-          '-y',
-          '-f', 'concat', '-safe', '0', '-i', concatPath,
-          '-i', audioPath,
-          '-filter_complex', blurFilter,
-          '-c:v', 'libx264', '-preset', 'ultrafast',
-          '-c:a', 'copy',
-          '-shortest',
-          videoPath,
-        ];
+      const tempFramesDir = path.join(bundleDir, 'temp_frames');
+      if (!fs.existsSync(tempFramesDir)) {
+        fs.mkdirSync(tempFramesDir, { recursive: true });
       }
+
+      broadcastProgress(10, 'building', 'Масштабирование и подготовка фото 1080p...');
+
+      const normalizedFrames = [];
+      for (let i = 0; i < photoFiles.length; i++) {
+        const srcFile = path.join(photosDir, photoFiles[i]);
+        const outFrame = path.join(tempFramesDir, `frame_${String(i).padStart(3, '0')}.jpg`);
+        try {
+          // Normalisiere jedes Bild sauber auf 1920x1080 mit Blur-Background
+          const normCmd = `ffmpeg -y -v error -i "${srcFile}" -vf "${blurFilter}" -q:v 2 "${outFrame}"`;
+          execSync(normCmd);
+          normalizedFrames.push(outFrame.replace(/\\/g, '/'));
+        } catch (e) {
+          console.error(`Fehler bei Bild ${photoFiles[i]}:`, e.message);
+        }
+      }
+
+      const activeFrames = normalizedFrames.length > 0 ? normalizedFrames : photoFiles.map(f => path.join(photosDir, f).replace(/\\/g, '/'));
+      const photoDuration = audioDuration / activeFrames.length;
+      const concatPath = path.join(bundleDir, 'concat.txt');
+      let concatContent = '';
+      for (const fp of activeFrames) {
+        concatContent += `file '${fp}'\nduration ${photoDuration.toFixed(3)}\n`;
+      }
+      concatContent += `file '${activeFrames[activeFrames.length - 1]}'\n`;
+      fs.writeFileSync(concatPath, concatContent, 'utf-8');
+
+      ffmpegArgs = [
+        '-y',
+        '-f', 'concat', '-safe', '0', '-i', concatPath,
+        '-i', audioPath,
+        '-c:v', 'libx264', '-preset', 'ultrafast', '-pix_fmt', 'yuv420p',
+        '-c:a', 'aac', '-b:a', '192k',
+        '-shortest',
+        videoPath,
+      ];
 
       broadcastProgress(15, 'encoding', 'Начало кодирования видео FFmpeg...');
 

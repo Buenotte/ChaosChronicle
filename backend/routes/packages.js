@@ -9,8 +9,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const router = express.Router();
 
-// POST /api/save-package
-router.post('/api/save-package', async (req, res) => {
+// POST /api/save-package & /api/save-news-package
+const handleSavePackage = async (req, res) => {
   try {
     const {
       title,
@@ -20,8 +20,14 @@ router.post('/api/save-package', async (req, res) => {
       model = 'gemini',
       source = '',
       photos = [],
+      images = [],
+      imageUrl,
       folderName: requestedFolderName,
     } = req.body;
+
+    const inputPhotos = Array.isArray(photos) && photos.length > 0
+      ? photos
+      : (Array.isArray(images) && images.length > 0 ? images : (imageUrl ? [imageUrl] : []));
 
     const newsDir = path.resolve(__dirname, '../../news');
     if (!fs.existsSync(newsDir)) {
@@ -63,9 +69,9 @@ router.post('/api/save-package', async (req, res) => {
     }
 
     const savedPhotos = [];
-    if (Array.isArray(photos) && photos.length > 0) {
-      for (let i = 0; i < photos.length; i++) {
-        const imgUrl = typeof photos[i] === 'string' ? photos[i] : photos[i]?.url;
+    if (Array.isArray(inputPhotos) && inputPhotos.length > 0) {
+      for (let i = 0; i < inputPhotos.length; i++) {
+        const imgUrl = typeof inputPhotos[i] === 'string' ? inputPhotos[i] : inputPhotos[i]?.url;
         if (!imgUrl) continue;
 
         try {
@@ -110,7 +116,10 @@ router.post('/api/save-package', async (req, res) => {
     console.error('Save package error:', err.message);
     res.status(500).json({ success: false, error: err.message });
   }
-});
+};
+
+router.post('/api/save-package', handleSavePackage);
+router.post('/api/save-news-package', handleSavePackage);
 
 // GET /api/saved-packages
 router.get('/api/saved-packages', async (req, res) => {

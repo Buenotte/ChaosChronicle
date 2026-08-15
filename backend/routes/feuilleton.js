@@ -13,38 +13,60 @@ const MODELS = {
   free:     'openrouter/free',
 };
 
-// ── Hybrid Prompt Builder aus scripts/ (Klimovski, Kasyanov, Golubuckiy) ──────
-export function buildHybridPrompt(newsTitle, newsSummary = '') {
+const STYLES = {
+  golubuzki: {
+    file: 'golubuzki_style.txt',
+    label: '🎭 Алексей Голобуцкий',
+    focus: 'Едкий политический сарказм, смех как оружие, деконструкция официальной лжи врага, бытовые маркеры, ироничный финал «Продолжаем наблюдение».',
+  },
+  kasjanov: {
+    file: 'kasjanov_style.txt',
+    label: '🪖 Юрий Касьянов',
+    focus: 'Военно-технический реализм, рубленый синтаксис, акцент на ТТХ, дронах, РЭБ, логистике, презрение к очковтирательству, финал «Работаем дальше. Без иллюзий.».',
+  },
+  klimovski: {
+    file: 'klimovski_style.txt',
+    label: '🔬 Юрий Климовский',
+    focus: 'Клинический реализм и геополитика, мир как операционный стол, диагноз вместо мнения, кулуарные кураторы и снятие имперских брендов, финал «Диагноз поставлен, агония продолжается».',
+  },
+  gibrid: {
+    file: 'gibrid_style.txt',
+    label: '⚡ Гибридный стиль (3 в 1)',
+    focus: 'Синтез сатиры Голобуцкого, военного реализма Касьянова и геополитической анатомии Климовского.',
+  },
+};
+
+// ── Построитель промпта фельетона с выбором авторского стиля ──
+export function buildStyledFeuilletonPrompt(newsTitle, newsSummary = '', styleKey = 'golubuzki') {
   const scriptsDir = path.resolve(__dirname, '../../scripts');
-  const gibridPath = path.join(scriptsDir, 'gibrid_style.txt');
-  const klimovskiPath = path.join(scriptsDir, 'klimovski_style.txt');
-  const kasjanovPath = path.join(scriptsDir, 'kasjanov_style.txt');
-  const golubuzkiPath = path.join(scriptsDir, 'golubuzki_style.txt');
+  const styleConfig = STYLES[styleKey] || STYLES.golubuzki;
+  const stylePath = path.join(scriptsDir, styleConfig.file);
+  let styleGuide = '';
 
-  const gibridTemplate = fs.existsSync(gibridPath) ? fs.readFileSync(gibridPath, 'utf-8') : '';
-  const klimovskiStyle = fs.existsSync(klimovskiPath) ? fs.readFileSync(klimovskiPath, 'utf-8') : '';
-  const kasjanovStyle = fs.existsSync(kasjanovPath) ? fs.readFileSync(kasjanovPath, 'utf-8') : '';
-  const golubuzkiStyle = fs.existsSync(golubuzkiPath) ? fs.readFileSync(golubuzkiPath, 'utf-8') : '';
+  if (fs.existsSync(stylePath)) {
+    try { styleGuide = fs.readFileSync(stylePath, 'utf-8').slice(0, 1800); } catch {}
+  }
 
-  let fullPrompt = gibridTemplate
-    .replace('{Здесь_будет_текст_из_файла_Климовский}', klimovskiStyle)
-    .replace('{Здесь_будет_текст_из_файла_Касьянов}', kasjanovStyle)
-    .replace('{Здесь_будет_текст_из_файла_Голобуцкий}', golubuzkiStyle);
+  const systemInstruction = `Ты — ведущий сатирический колумнист и аналитик канала ChaosChronicle.
+Твоя задача — написать яркий, захватывающий 3-минутный фельетон (400-550 слов) на русском языке для видео.
 
-  const newsText = `ТЕМА НОВОСТИ: ${newsTitle}\nКОНТЕКСТ: ${newsSummary || ''}`;
-  fullPrompt = fullPrompt.replace('[ВСТАВЬТЕ ТЕКСТ НОВОСТИ]', newsText);
+АВТОРСКИЙ СТИЛЬ: ${styleConfig.label}
+ГЛАВНЫЙ ФОКУС: ${styleConfig.focus}
+${styleGuide ? `\nПОДРОБНОЕ РУКОВОДСТВО ПО СТИЛЮ:\n${styleGuide}\n` : ''}
 
-  // СТРОГИЕ ПРАВИЛА ДЛЯ 100% ЧИСТОЙ ОЗВУЧКИ ГОЛОСОМ ИИ (TTS):
-  fullPrompt += `\n\nСТРОЖАЙШИЕ ПРАВИЛА ДЛЯ АУДИО-ОЗВУЧКИ (TTS):\n` +
-    `1. ПИШИ ТОЛЬКО ЧИСТЫЙ ПРОИЗНОСИМЫЙ ТЕКСТ ДИКТОРА от первого до последнего слова.\n` +
-    `2. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО писать заголовки блоков (например: НЕ ПИШИ "**Блок 1: Ироничный Крючок...**"), НЕ ПИШИ тайминги "(0:00 – 0:45)".\n` +
-    `3. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО использовать плейсхолдеры в квадратных скобках типа "[Название_канала]". Называй канал "ChaosChronicle". НЕ вставляй строки [B-Roll:...].\n` +
-    `4. Весь текст должен быть единым, ритмичным, готовым дикторским монологом для озвучки голосовым ИИ.`;
+СТРОЖАЙШИЕ ПРАВИЛА ДЛЯ АУДИО-ОЗВУЧКИ (TTS):
+1. ПИШИ ТОЛЬКО ЧИСТЫЙ ПРОИЗНОСИМЫЙ ТЕКСТ ДИКТОРА от первого до последнего слова.
+2. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО НАЧИНАТЬ ТЕКСТ С ПРИВЕТСТВИЙ («Привет, друзья!», «С вами ChaosChronicle», «Доброго времени суток», «Здравствуйте», «Приветствую»). Начинай СРАЗУ с инфоповода, саркастического хука или хлесткого факта!
+3. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО писать заголовки блоков (например: НЕ ПИШИ "**Блок 1: ...**"), НЕ ПИШИ тайминги "(0:00 – 0:45)".
+4. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО использовать плейсхолдеры в квадратных скобках [B-Roll:...], [Название_канала]. Называй канал "ChaosChronicle".
+5. Текст должен звучать слитно, ритмично и мощно для записи голосовым ИИ.`;
 
-  return fullPrompt;
+  const userInstruction = `ТЕМА НОВОСТИ: ${newsTitle}\nКОНТЕКСТ/ФАКТЫ: ${newsSummary || ''}\n\nНапиши полный, готовый монолог фельетона в стиле ${styleConfig.label} (БЕЗ вступительных приветствий, сразу с сути):`;
+
+  return { systemInstruction, userInstruction };
 }
 
-// ── Генератор заголовков в стиле Голобуцкого (4-5 слов, сатира & деконструкция) ──
+// ── Генератор заголовков в стиле Голобуцкого (4-5 слов) ──
 export async function generateGolubuzkiTitle(newsTitle, newsSummary = '') {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey || apiKey.includes('HIER')) {
@@ -52,20 +74,6 @@ export async function generateGolubuzkiTitle(newsTitle, newsSummary = '') {
   }
 
   try {
-    const scriptsDir = path.resolve(__dirname, '../../scripts');
-    const golubuzkiPath = path.join(scriptsDir, 'golubuzki_style.txt');
-    const golubuzkiGuide = fs.existsSync(golubuzkiPath) ? fs.readFileSync(golubuzkiPath, 'utf-8').slice(0, 1500) : '';
-
-    const systemPrompt = `Ты — мастер убойных, вирусных и сатирических заголовков для YouTube в авторском стиле «Алексей Голобуцкий» (деконструкция пропаганды, едкая ирония, короткие хлесткие фразы).
-Твоя задача: на основе новости создать сатирический, броский заголовок для обложки и видео.
-СТРОГИЕ ТРЕБОВАНИЯ:
-1. ДЛИНА: СТРОГО 4-5 СЛОВ (не больше и не меньше).
-2. СТИЛЬ: Едкий сарказм, деконструкция официальной лжи врага, мемы и триггеры («по плану», «бункерный дед», «высокоточный террор», «аналоговнет», «отрицательный рост»).
-3. БЕЗ кавычек, БЕЗ точки на конце.
-4. Выведи ТОЛЬКО заголовок из 4-5 слов на русском языке капсом (UPPERCASE). Никаких лишних слов.`;
-
-    const userPrompt = `Новость: ${newsTitle}\nКонтекст: ${newsSummary?.slice(0, 350) || ''}`;
-
     const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -75,8 +83,8 @@ export async function generateGolubuzkiTitle(newsTitle, newsSummary = '') {
       body: JSON.stringify({
         model: 'google/gemini-2.5-flash',
         messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
+          { role: 'system', content: 'Создай убойный сатирический YouTube-заголовок для обложки. СТРОГО 4-5 СЛОВ (капсом UPPERCASE). БЕЗ кавычек и точек.' },
+          { role: 'user', content: `Новость: ${newsTitle}\nКонтекст: ${newsSummary?.slice(0, 300) || ''}` }
         ],
         max_tokens: 40,
         temperature: 0.85,
@@ -96,38 +104,49 @@ export async function generateGolubuzkiTitle(newsTitle, newsSummary = '') {
       }
     }
   } catch (err) {
-    console.warn('Golubuzki title generation fallback:', err.message);
+    console.warn('Title generation fallback:', err.message);
   }
-
   return (newsTitle || 'ГЛАВНАЯ НОВОСТЬ ДНЯ').split(/\s+/).slice(0, 5).join(' ').toUpperCase();
 }
 
-export function cleanSpeechTextForAudio(rawText = '') {
+function cleanSpeechTextForAudio(rawText) {
+  if (!rawText) return '';
   return rawText
-    .replace(/\[Название_канала\]/g, 'ChaosChronicle')
-    .replace(/\[[^\]]+\]/g, '')
-    .replace(/\*\*\s*Блок\s*\d+:[^*]+\*\*/gi, '')
-    .replace(/Блок\s*\d+:[^\n]+/gi, '')
-    .replace(/\(\d+:\d+\s*–\s*\d+:\d+\)/g, '')
-    .split('\n')
-    .map(line => line.trim())
-    .filter(line => line.length > 0)
-    .join('\n\n');
+    .replace(/^#+\s.*$/gm, '')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/__([^_]+)__/g, '$1')
+    .replace(/_([^_]+)_/g, '$1')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/^\s*[-*+]\s+/gm, '')
+    .replace(/^\s*\d+\.\s+/gm, '')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/\[b-roll:[^\]]*\]/gi, '')
+    .replace(/\([0-9]+:[0-9]+[^)]*\)/g, '')
+    .replace(/^[А-Яа-яЁё\s0-9]+:\s*/gm, '')
+    .replace(/^(Привет,?\s*друзья!?|Доброго\s+времени\s+суток!?[^.!?\n]*[.!?]|Здравствуйте,?\s*[^.!?\n]*[.!?]|Приветствую,?\s*[^.!?\n]*[.!?]|С\s+вами\s+ChaosChronicle[^.!?\n]*[.!?])\s*/gi, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
 // POST /api/generate-feuilleton
+// WICHTIG: Generiert den Text NUR im Speicher ohne automatisches Speichern auf Festplatte!
 router.post('/api/generate-feuilleton', async (req, res) => {
-  const { title, summary, model = 'gemini', source = '' } = req.body;
-  const modelId = MODELS[model] || MODELS.gemini;
-  const apiKey = process.env.OPENROUTER_API_KEY;
+  const { title, summary, model = 'gemini', source, style = 'golubuzki' } = req.body;
 
-  if (!apiKey || apiKey.includes('HIER')) {
-    return res.status(500).json({ success: false, error: 'OpenRouter API Key nicht konfiguriert in .env' });
+  if (!title) {
+    return res.status(400).json({ error: 'Title is required' });
   }
 
-  try {
-    const hybridPrompt = buildHybridPrompt(title, summary);
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey || apiKey.includes('HIER')) {
+    return res.status(500).json({ error: 'OPENROUTER_API_KEY ist nicht konfiguriert.' });
+  }
 
+  const modelId = MODELS[model] || MODELS.gemini;
+  const { systemInstruction, userInstruction } = buildStyledFeuilletonPrompt(title, summary, style);
+
+  try {
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -139,7 +158,8 @@ router.post('/api/generate-feuilleton', async (req, res) => {
       body: JSON.stringify({
         model: modelId,
         messages: [
-          { role: 'user', content: hybridPrompt },
+          { role: 'system', content: systemInstruction },
+          { role: 'user', content: userInstruction },
         ],
         max_tokens: 2200,
         temperature: 0.85,
@@ -157,101 +177,22 @@ router.post('/api/generate-feuilleton', async (req, res) => {
     const words = text.split(/\s+/).filter(Boolean).length;
     const minutes = Math.round((words / 140) * 10) / 10;
 
-    const newsDir = path.resolve(__dirname, '../../news');
-    if (!fs.existsSync(newsDir)) {
-      fs.mkdirSync(newsDir, { recursive: true });
-    }
-
-    const safeTitlePart = (title || '').replace(/[^a-zA-Z0-9а-яА-ЯёЁ]/g, '_').replace(/_+/g, '_').slice(0, 25);
-    let bundleDir = null;
-
-    if (safeTitlePart.length >= 6) {
-      const existingDirs = fs.readdirSync(newsDir, { withFileTypes: true });
-      for (const d of existingDirs) {
-        if (d.isDirectory() && d.name.includes(safeTitlePart)) {
-          bundleDir = path.join(newsDir, d.name);
-          console.log(`♻️ Bestehenden Ordner für Nachricht wiederverwendet: news/${d.name}`);
-          break;
-        }
-      }
-    }
-
-    const now = new Date();
-    if (!bundleDir) {
-      const dateStr = now.toISOString().replace(/[:.]/g, '-').slice(0, 16);
-      const safeTitle = (title || 'Feuilleton')
-        .replace(/[^a-zA-Z0-9а-яА-ЯёЁ]/g, '_')
-        .replace(/_+/g, '_')
-        .slice(0, 80);
-      bundleDir = path.join(newsDir, `${dateStr}_${safeTitle}`);
-    }
-
-    const photosDir = path.join(bundleDir, 'photos');
-    fs.mkdirSync(photosDir, { recursive: true });
-
-    const imagesList = Array.isArray(req.body.images) && req.body.images.length > 0
-      ? req.body.images
-      : (req.body.imageUrl ? [req.body.imageUrl] : []);
-
-    // 4-5 слов заголовок в стиле Голобуцкого
     const punchyTitle = await generateGolubuzkiTitle(title, summary);
 
-    const mdContent = `# 🎭 ${punchyTitle || title}\n\n- **Оригинальная тема**: ${title}\n- **Дата**: ${now.toLocaleString('ru-RU')}\n- **Модель ИИ**: ${modelId}\n- **Хронометраж**: ~${minutes} мин.\n- **Количество слов**: ${words}\n- **Источник**: ${source || 'RSS Feed'}\n\n---\n\n${text}\n`;
-    const mdPath = path.join(bundleDir, 'script.md');
-    fs.writeFileSync(mdPath, mdContent, 'utf-8');
-
-    const cleanSpeechText = cleanSpeechTextForAudio(text);
-    const txtPath = path.join(bundleDir, 'script.txt');
-    fs.writeFileSync(txtPath, cleanSpeechText, 'utf-8');
-
-    const savedPhotos = [];
-    for (let i = 0; i < Math.min(imagesList.length, 30); i++) {
-      const imgUrl = imagesList[i];
-      try {
-        const imgRes = await fetch(imgUrl, { signal: AbortSignal.timeout(5000) });
-        if (imgRes.ok) {
-          const buffer = Buffer.from(await imgRes.arrayBuffer());
-          const ext = imgUrl.match(/\.(jpg|jpeg|png|webp)/i)?.[1] || 'jpg';
-          const imgFileName = `photo_${String(i + 1).padStart(2, '0')}.${ext}`;
-          const imgPath = path.join(photosDir, imgFileName);
-          fs.writeFileSync(imgPath, buffer);
-          savedPhotos.push(`photos/${imgFileName}`);
-        }
-      } catch (err) {
-        console.error(`Fehler beim Herunterladen von Bild ${imgUrl}:`, err.message);
-      }
-    }
-
-    const projectManifest = {
-      title: punchyTitle || title,
-      original_title: title,
-      source,
-      model: modelId,
-      date: now.toISOString(),
-      duration_target_seconds: Math.round(minutes * 60),
-      word_count: words,
-      speech_text_file: 'script.txt',
-      markdown_file: 'script.md',
-      photos: savedPhotos,
-    };
-    const jsonPath = path.join(bundleDir, 'project.json');
-    fs.writeFileSync(jsonPath, JSON.stringify(projectManifest, null, 2), 'utf-8');
-
-    const folderName = path.basename(bundleDir);
     const feuilletonObj = {
       title: punchyTitle || title,
       originalTitle: title,
       text,
       model: modelId,
       modelName: model,
+      style,
       words,
       minutes,
       readTimeMin: minutes,
       source,
       imageUrl: req.body.imageUrl,
-      images: req.body.images || [],
-      folderName,
-      bundleDir,
+      images: req.body.images || (req.body.imageUrl ? [req.body.imageUrl] : []),
+      isSaved: false,
     };
 
     res.json({

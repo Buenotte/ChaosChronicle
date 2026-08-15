@@ -1,8 +1,10 @@
-import { CATEGORIES, AI_MODELS } from '../../lib/utils'
+import { CATEGORIES, AI_MODELS, FEUILLETON_STYLES } from '../../lib/utils'
 
 export default function AppHeader({
   selectedModel,
   setSelectedModel,
+  selectedStyle,
+  setSelectedStyle,
   search,
   setSearch,
   category,
@@ -18,7 +20,25 @@ export default function AppHeader({
           <p className="brand-sub">Политическая сатира & Фельетоны · Генератор контента</p>
         </div>
 
-        <div className="header-actions">
+        <div className="header-actions" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          {/* Выбор стиля фельетона */}
+          <div className="model-select-wrap">
+            <span className="model-label">🎭 Стиль:</span>
+            <select
+              className="model-select"
+              value={selectedStyle}
+              onChange={e => setSelectedStyle(e.target.value)}
+              title="Выберите авторский стиль фельетона (Голобуцкий, Касьянов, Климовский или Гибридный)"
+              style={{ background: '#1c1829', borderColor: '#8b5cf6' }}
+            >
+              {FEUILLETON_STYLES.map(s => (
+                <option key={s.id} value={s.id}>
+                  {s.icon} {s.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Выбор модели ИИ */}
           <div className="model-select-wrap">
             <span className="model-label">🤖 Модель:</span>

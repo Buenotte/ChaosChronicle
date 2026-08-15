@@ -18,6 +18,13 @@ export const AI_MODELS = [
   { id: 'free',     name: '🎁 OpenRouter Free Router',   icon: '🆓' },
 ]
 
+export const FEUILLETON_STYLES = [
+  { id: 'golubuzki', name: '🎭 Алексей Голобуцкий (Сатира & Сарказм)', icon: '🎭', desc: 'Едкая ирония, смех как оружие, деконструкция официальной лжи' },
+  { id: 'kasjanov',  name: '🪖 Юрий Касьянов (Военный реализм)',       icon: '🪖', desc: 'Рубленый синтаксис, ТТХ, дроны, логистика, без иллюзий' },
+  { id: 'klimovski', name: '🔬 Юрий Климовский (Клиническая геополитика)', icon: '🔬', desc: 'Мир как операционный стол, диагнозы, снятие имперских брендов' },
+  { id: 'gibrid',    name: '⚡ Гибридный авторский стиль (3 в 1)',      icon: '⚡', desc: 'Синтез сатиры, военного реализма и геополитики' },
+]
+
 export const CATEGORY_COLOR = Object.fromEntries(CATEGORIES.map(c => [c.key, c.color]))
 
 export function timeAgo(pubDate) {
