@@ -2,6 +2,7 @@
 
 export const CATEGORIES = [
   { key: 'vse',       label: '🌐 Все новости',        color: '#6b7280' },
+  { key: 'rossija',   label: '🇷🇺 Россия',            color: '#f43f5e' },
   { key: 'kultura',   label: '🎭 Культура',            color: '#8b5cf6' },
   { key: 'politika',  label: '🏛️ Политика',           color: '#ef4444' },
   { key: 'tekh',      label: '🤖 Технологии',          color: '#06b6d4' },

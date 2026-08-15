@@ -53,24 +53,20 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
       const data = await res.json()
       if (data.success && data.style) {
         const c = data.style
-        if (c.text !== undefined && c.text !== '') setText(c.text)
-        if (c.font !== undefined) {
-          setFont(c.font)
-          setFontFamilyName(c.fontFamilyName || resolveFontFamily(c.font, customFonts))
-        }
+        if (c.text) setText(c.text)
+        if (c.font) { setFont(c.font); setFontFamilyName(c.fontFamilyName || resolveFontFamily(c.font, customFonts)); }
         if (c.fontSize !== undefined) { setFontSize(c.fontSize); if (c.fontSize !== 'auto') setCustomSizeNum(Number(c.fontSize)); }
-        if (c.customSizeNum !== undefined && c.fontSize !== 'auto') setCustomSizeNum(Number(c.customSizeNum))
-        if (c.fontColor !== undefined) setFontColor(c.fontColor)
+        if (c.fontColor) setFontColor(c.fontColor)
         if (c.lineColors !== undefined) setLineColors(Array.isArray(c.lineColors) ? c.lineColors : null)
-        if (c.borderColor !== undefined) setBorderColor(c.borderColor)
+        if (c.borderColor) setBorderColor(c.borderColor)
         if (c.borderWidth !== undefined) setBorderWidth(Number(c.borderWidth))
         if (c.shadowDistance !== undefined) setShadowDistance(Number(c.shadowDistance))
         if (c.lineSpacing !== undefined) setLineSpacing(Number(c.lineSpacing))
         if (c.isItalic !== undefined) setIsItalic(Boolean(c.isItalic))
         if (c.tiltAngle !== undefined) setTiltAngle(Number(c.tiltAngle))
-        if (c.position !== undefined) setPosition(c.position)
+        if (c.position) setPosition(c.position)
         if (c.hasBox !== undefined) setHasBox(Boolean(c.hasBox))
-        if (c.photoUrl !== undefined) setSelectedBgPhoto(c.photoUrl)
+        if (c.photoUrl) setSelectedBgPhoto(c.photoUrl)
       }
     } catch {}
   }
@@ -130,6 +126,29 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
     }
   }
 
+  const handleDeleteFont = async (fontId, fontName) => {
+    try {
+      const res = await fetch('/api/delete-font', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fontId }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        toast.success(`🗑️ Шрифт "${fontName}" удален`)
+        setCustomFonts(prev => prev.filter(f => f.id !== fontId))
+        if (font === fontId) {
+          setFont('impact')
+          setFontFamilyName('Impact, "Arial Black", sans-serif')
+        }
+      } else {
+        toast.error('Ошибка удаления: ' + (data.error || 'Неизвестная ошибка'))
+      }
+    } catch (err) {
+      toast.error('Ошибка удаления: ' + err.message)
+    }
+  }
+
   const handleGeneratePunchyTitle = async () => {
     try {
       setGeneratingTitle(true)
@@ -157,38 +176,23 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
     try {
       setSaving(true)
       const toastId = toast.loading('🎨 Сохранение обложки и стиля...')
-      
-      const payload = {
-        mode: 'apply_headline',
-        bundleDir: pkg.bundleDir,
-        folderName: pkg.folderName,
-        photoUrl: selectedBgPhoto ? (selectedBgPhoto.startsWith('/news-static/') ? selectedBgPhoto : `/news-static/${pkg.folderName}/${selectedBgPhoto}`) : null,
-        headlineConfig: {
-          text,
-          font,
-          fontFamilyName,
-          fontSize: fontSize === 'auto' ? 'auto' : Number(customSizeNum),
-          isItalic,
-          tiltAngle: Number(tiltAngle) || 0,
-          lineSpacing: Number(lineSpacing) || 1.15,
-          fontColor,
-          lineColors: Array.isArray(lineColors) ? lineColors : null,
-          borderColor,
-          borderWidth: Number(borderWidth),
-          shadowDistance: Number(shadowDistance),
-          position,
-          hasBox,
-        }
+      const photoUrl = selectedBgPhoto ? (selectedBgPhoto.startsWith('/news-static/') ? selectedBgPhoto : `/news-static/${pkg.folderName}/${selectedBgPhoto}`) : null
+      const headlineConfig = {
+        text, font, fontFamilyName,
+        fontSize: fontSize === 'auto' ? 'auto' : Number(customSizeNum),
+        isItalic, tiltAngle: Number(tiltAngle) || 0, lineSpacing: Number(lineSpacing) || 1.15,
+        fontColor, lineColors: Array.isArray(lineColors) ? lineColors : null,
+        borderColor, borderWidth: Number(borderWidth), shadowDistance: Number(shadowDistance),
+        position, hasBox,
       }
-
       const res = await fetch('/api/set-thumbnail', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ mode: 'apply_headline', bundleDir: pkg.bundleDir, folderName: pkg.folderName, photoUrl, headlineConfig }),
       })
       const data = await res.json()
       if (data.success) {
-        toast.success('✨ Обложка и стиль успешно сохранены!', { id: toastId })
+        toast.success('✨ Обложка и стиль сохранены!', { id: toastId })
         if (onUpdated) onUpdated(`${data.thumbnailUrl}&t=${Date.now()}`)
       } else {
         toast.error('Ошибка: ' + (data.error || 'Не удалось обновить'), { id: toastId })
@@ -207,12 +211,12 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
     }
     const words = String(raw || '').replace(/[\r\n\t]/g, ' ').replace(/["'«»`]/g, '').trim().split(/\s+/).filter(Boolean)
     if (!words.length) return ['ЗАГОЛОВОК ОБЛОЖКИ']
-    let lines = [], curLine = ''
+    let lines = [], cur = ''
     for (const w of words) {
-      if ((curLine + ' ' + w).trim().length <= 15) curLine = (curLine + ' ' + w).trim()
-      else { if (curLine) lines.push(curLine); curLine = w; if (lines.length >= 3) break }
+      if ((cur + ' ' + w).trim().length <= 15) cur = (cur + ' ' + w).trim()
+      else { if (cur) lines.push(cur); cur = w; if (lines.length >= 3) break }
     }
-    if (curLine && lines.length < 3) lines.push(curLine)
+    if (cur && lines.length < 3) lines.push(cur)
     return lines.map(l => l.toUpperCase())
   }
 
@@ -222,24 +226,14 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
   const calcLiveFontSize = () => {
     const longest = Math.max(...previewLines.map(l => l.length), 8)
     const maxFit = Math.floor(1160 / (longest * 0.65))
-    if (fontSize !== 'auto') {
-      const clamped = Math.min(Math.max(Number(customSizeNum), 32), maxFit)
-      return (clamped * 0.52) + 'px'
-    }
-    return (Math.min(Math.max(maxFit, 48), 92) * 0.52) + 'px'
+    const clamped = fontSize !== 'auto' ? Math.min(Math.max(Number(customSizeNum), 32), maxFit) : Math.min(Math.max(maxFit, 48), 92)
+    return (clamped * 0.52) + 'px'
   }
 
-  const rawBackgroundSrc = pkg?.folderName
-    ? `/news-static/${pkg.folderName}/thumbnail/raw_background.jpg?t=${Date.now()}`
-    : null
+  const rawBackgroundSrc = pkg?.folderName ? `/news-static/${pkg.folderName}/thumbnail/raw_background.jpg?t=${Date.now()}` : null
   const fallbackSrc = currentThumbnail || (pkg?.folderName ? `/news-static/${pkg.folderName}/thumbnail/thumbnail.jpg` : '')
-  const currentBgSrc = selectedBgPhoto
-    ? (selectedBgPhoto.startsWith('/news-static/') ? selectedBgPhoto : `/news-static/${pkg.folderName}/${selectedBgPhoto}`)
-    : (rawBackgroundSrc || fallbackSrc)
-
-  const photoList = Array.isArray(pkg.photoUrls) && pkg.photoUrls.length > 0
-    ? pkg.photoUrls
-    : (Array.isArray(pkg.photos) ? pkg.photos : [])
+  const currentBgSrc = selectedBgPhoto ? (selectedBgPhoto.startsWith('/news-static/') ? selectedBgPhoto : `/news-static/${pkg.folderName}/${selectedBgPhoto}`) : (rawBackgroundSrc || fallbackSrc)
+  const photoList = Array.isArray(pkg.photoUrls) && pkg.photoUrls.length > 0 ? pkg.photoUrls : (Array.isArray(pkg.photos) ? pkg.photos : [])
 
   return (
     <div className="modal-overlay" onClick={onClose} style={{ zIndex: 99999 }}>
@@ -338,6 +332,7 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
               uploadingFont={uploadingFont}
               onSelectFont={(fId, fam) => { setFont(fId); setFontFamilyName(fam); }}
               onFontFileUpload={handleFontFileUpload}
+              onDeleteFont={handleDeleteFont}
             />
 
             <TypographyStyleControls

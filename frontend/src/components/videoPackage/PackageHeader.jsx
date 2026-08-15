@@ -10,6 +10,7 @@ export default function PackageHeader({
   onOpenTitleVariants,
   onOpenScript,
   onOpenPhotos,
+  onDeletePackage,
   onClose,
 }) {
   const hasTitle = Boolean(
@@ -77,7 +78,18 @@ export default function PackageHeader({
           </span>
         </div>
       </div>
-      <div style={{ display: 'flex', gap: '0.35rem' }}>
+      <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+        {onDeletePackage && (
+          <button
+            type="button"
+            className="modal-close"
+            onClick={onDeletePackage}
+            title="Удалить весь этот пакет с диска"
+            style={{ color: '#ef4444', borderColor: '#ef4444' }}
+          >
+            🗑️
+          </button>
+        )}
         <button
           className="modal-close"
           onClick={() => setIsMaximized(!isMaximized)}

@@ -237,7 +237,7 @@ export default function App() {
       }
     }
 
-    const standaloneSaved = (savedPackages || [])
+    const standaloneSaved = (category === 'vse' ? (savedPackages || []) : [])
       .filter(p => !matchedFolderNames.has(p.folderName))
       .map(p => ({
         id: `pkg-${p.folderName}`,

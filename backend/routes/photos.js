@@ -72,6 +72,26 @@ router.post('/api/upload-font', async (req, res) => {
   }
 });
 
+// POST /api/delete-font
+router.post('/api/delete-font', (req, res) => {
+  try {
+    const { filename, fontId } = req.body;
+    const targetFile = filename || fontId;
+    if (!targetFile) return res.status(400).json({ success: false, error: 'Имя шрифта не указано' });
+    const safeFilename = path.basename(targetFile);
+    const targetPath = path.join(customFontsDir, safeFilename);
+    if (fs.existsSync(targetPath)) {
+      fs.unlinkSync(targetPath);
+      console.log(`🗑️ Пользовательский шрифт удален: ${safeFilename}`);
+      return res.json({ success: true, deleted: safeFilename });
+    }
+    return res.status(404).json({ success: false, error: 'Файл шрифта не найден' });
+  } catch (err) {
+    console.error('Delete font error:', err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // GET /api/news-photos
 router.get('/api/news-photos', async (req, res) => {
   try {

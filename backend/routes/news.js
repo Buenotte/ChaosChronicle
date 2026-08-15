@@ -14,6 +14,14 @@ const parser = new Parser({
 
 // RSS Feed Quellen – NUR unabhängige russischsprachige Medien
 export const FEEDS = [
+  // 🇷🇺 Россия (Проблемы, кризисы, репрессии, экономика – независимые СМИ)
+  { url: 'https://meduza.io/rss/news',                                      category: 'rossija',   source: 'Meduza Россия' },
+  { url: 'https://zona.media/rss',                                          category: 'rossija',   source: 'Медиазона' },
+  { url: 'https://novayagazeta.eu/rss',                                     category: 'rossija',   source: 'Новая газета Европа' },
+  { url: 'https://www.svoboda.org/api/zqpqe-mopot',                         category: 'rossija',   source: 'Радио Свобода' },
+  { url: 'https://www.currenttime.tv/api/zmmqo-mopot',                     category: 'rossija',   source: 'Настоящее Время' },
+  { url: 'https://www.bbc.com/russian/topics/russia.xml',                   category: 'rossija',   source: 'BBC Россия' },
+
   // 🎭 Культура & Общество
   { url: 'https://meduza.io/rss/all',                                       category: 'kultura',   source: 'Meduza' },
   { url: 'https://novayagazeta.eu/rss',                                     category: 'kultura',   source: 'Новая газета Европа' },
@@ -190,7 +198,14 @@ router.get('/api/news', async (req, res) => {
     const all = await fetchAllFeeds(isForce);
 
     let filtered = all;
-    if (category !== 'alle' && category !== 'vse') {
+    if (category === 'rossija') {
+      const russiaKeywords = /(росси|рф\b|москв|петербург|питер|кремл|путин|минобороны|госдум|росстат|минфин|центробанк|цб рф|фсб|мвд|росгварди|белгород|курск|брянск|воронеж|ростов|шебекино|сибирь|урал|татарстан|башкортостан|кавказ|дагестан|чечн|краснодар|сочи|владивосток|приморь|новосибирск|екатеринбург|россиян|российск|отечествен)/i;
+      const problemKeywords = /(кризис|дефицит|авари|пожар|взрыв|дрон|бпла|атак|прилет|разрушен|удар|хлопок|мобилизац|потер|погиб|ранен|инфляц|рост цен|рубл|девальвац|паден|санкци|убытк|ущерб|коллапс|банкротств|закрыт|дефолт|задержк|долг|нехватк|отключен|блэкаут|сбой|затоплен|наводнен|прорыв|чп|чрезвычайн|трагеди|арест|задержан|обыск|уголовн|приговор|срок|суд|штраф|иноагент|нежелательн|запрет|блокировк|цензур|протест|бунт|забастовк|митинг|коррупци|взятк|хищен|провал|ухудшен|катастроф|жалоб|скандал)/i;
+      filtered = all.filter(a => {
+        const full = `${a.title || ''} ${a.summary || ''}`;
+        return russiaKeywords.test(full) && problemKeywords.test(full);
+      });
+    } else if (category !== 'alle' && category !== 'vse') {
       filtered = all.filter(a => a.category === category);
     }
 

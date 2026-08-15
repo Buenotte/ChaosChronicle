@@ -251,6 +251,27 @@ router.get('/api/saved-packages', async (req, res) => {
   }
 });
 
+// POST /api/delete-package
+router.post('/api/delete-package', (req, res) => {
+  try {
+    const { bundleDir: inputBundleDir, folderName } = req.body;
+    const newsDir = path.resolve(__dirname, '../../news');
+    let bundleDir = inputBundleDir;
+    if (!bundleDir && folderName) {
+      bundleDir = path.join(newsDir, folderName);
+    }
+    if (!bundleDir || !fs.existsSync(bundleDir)) {
+      return res.status(404).json({ success: false, error: 'Папка пакета не найдена' });
+    }
+    fs.rmSync(bundleDir, { recursive: true, force: true });
+    console.log(`🗑️ Видео-пакет удален: ${bundleDir}`);
+    res.json({ success: true, deleted: path.basename(bundleDir) });
+  } catch (err) {
+    console.error('Delete package error:', err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // POST /api/save-script-text
 router.post('/api/save-script-text', async (req, res) => {
   try {

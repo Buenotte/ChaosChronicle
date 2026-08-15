@@ -16,6 +16,7 @@ export default function FontPicker({
   uploadingFont,
   onSelectFont,
   onFontFileUpload,
+  onDeleteFont,
 }) {
   const fileInputRef = useRef(null)
 
@@ -49,28 +50,54 @@ export default function FontPicker({
         {customFonts.map(cf => {
           const isSelected = font === cf.id
           return (
-            <button
+            <div
               key={cf.id}
-              type="button"
               onClick={() => onSelectFont(cf.id, `"${cf.name}", sans-serif`)}
               style={{
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                padding: '0.5rem 0.75rem',
+                padding: '0.45rem 0.65rem',
                 background: isSelected ? 'rgba(59, 130, 246, 0.2)' : '#18181b',
                 border: isSelected ? '2px solid #3b82f6' : '1px solid #27272a',
                 borderRadius: '6px',
                 color: '#fff',
                 cursor: 'pointer',
-                textAlign: 'left',
               }}
             >
-              <span style={{ fontWeight: 700, fontSize: '0.9rem', fontFamily: `"${cf.name}", sans-serif` }}>
-                ⭐ {cf.name} (Пользовательский)
-              </span>
-              {isSelected && <span style={{ color: '#3b82f6', fontWeight: 700 }}>✓</span>}
-            </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flex: 1, overflow: 'hidden' }}>
+                <span style={{ fontWeight: 700, fontSize: '0.9rem', fontFamily: `"${cf.name}", sans-serif`, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  ⭐ {cf.name}
+                </span>
+                {isSelected && <span style={{ color: '#3b82f6', fontWeight: 700 }}>✓</span>}
+              </div>
+
+              {onDeleteFont && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onDeleteFont(cf.id, cf.name)
+                  }}
+                  title={`Удалить шрифт "${cf.name}"`}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#ef4444',
+                    cursor: 'pointer',
+                    padding: '0.2rem 0.4rem',
+                    borderRadius: '4px',
+                    fontSize: '0.85rem',
+                    opacity: 0.75,
+                    transition: 'opacity 0.2s',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+                  onMouseLeave={e => e.currentTarget.style.opacity = '0.75'}
+                >
+                  🗑️
+                </button>
+              )}
+            </div>
           )
         })}
 

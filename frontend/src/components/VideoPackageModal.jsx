@@ -116,10 +116,7 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
   }
 
   const handleGenerateAudio = async () => {
-    if (!hasTxt && !pkg.scriptTxt?.trim() && !pkg.scriptMd?.trim()) {
-      toast.error('❌ Текст сценария отсутствует. Сначала создайте текст в разделе «1. Заголовок и сценарий»!')
-      return
-    }
+    if (!hasTxt) return toast.error('❌ Текст сценария отсутствует. Сначала создайте текст в разделе «1»!')
     try {
       setGeneratingAudio(true)
       const toastId = toast.loading('🎙️ Генерация аудио-озвучки...')
@@ -134,30 +131,23 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
         toast.success('🎙️ Озвучка успешно сгенерирована!', { id: toastId })
         if (onRefresh) onRefresh()
       } else {
-        toast.error('Ошибка генерации аудио', { id: toastId, description: data.error })
+        toast.error('Ошибка генерации аудио: ' + data.error, { id: toastId })
       }
     } catch (err) {
-      toast.error('Ошибка генерации аудио', { description: err.message })
+      toast.error('Ошибка генерации аудио: ' + err.message)
     } finally {
       setGeneratingAudio(false)
     }
   }
 
   const handleGenerateVideo = async () => {
-    if (!audioState.hasAudio) {
-      toast.error('❌ Сначала создайте аудио-озвучку (audio.mp3) в разделе 3!')
-      return
-    }
-    if (actualPhotoCount === 0) {
-      toast.error('❌ В пакете нет фотографий. Сначала откройте раздел 2 и сохраните фото!')
-      return
-    }
+    if (!audioState.hasAudio) return toast.error('❌ Сначала создайте аудио-озвучку (audio.mp3) в разделе 3!')
+    if (actualPhotoCount === 0) return toast.error('❌ В пакете нет фотографий. Сначала откройте раздел 2 и сохраните фото!')
     try {
       setGeneratingVideo(true)
       setVideoProgress(20)
       setProgressLog('Сборка параметров видео и монтаж слайд-шоу (FFmpeg)...')
       const toastId = toast.loading('🎬 Монтаж видео 16:9 через FFmpeg...')
-
       const res = await fetch('/api/render-video', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -170,29 +160,12 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
         toast.success('🎬 Финальное видео 16:9 готово!', { id: toastId })
         if (onRefresh) onRefresh()
       } else {
-        toast.error('Ошибка рендеринга видео', { id: toastId, description: data.error })
+        toast.error('Ошибка рендеринга видео: ' + data.error, { id: toastId })
       }
     } catch (err) {
-      toast.error('Ошибка рендеринга видео', { description: err.message })
+      toast.error('Ошибка рендеринга видео: ' + err.message)
     } finally {
       setGeneratingVideo(false)
-    }
-  }
-
-  const handleSetThumbnailDirect = async (photoUrl) => {
-    try {
-      const res = await fetch('/api/set-thumbnail', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ photoUrl, bundleDir: pkg.bundleDir, folderName: pkg.folderName, headlineConfig: { text: pkg.title } }),
-      })
-      const data = await res.json()
-      if (data.success) {
-        setCurrentThumbnail(`${data.thumbnailUrl}&t=${Date.now()}`)
-        toast.success('🖼️ Обложка (thumbnail.jpg) успешно сохранена в видео-пакет!')
-      }
-    } catch (err) {
-      toast.error('Ошибка сохранения обложки: ' + err.message)
     }
   }
 
@@ -209,7 +182,7 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
         setCurrentThumbnail(`${data.thumbnailUrl}&t=${Date.now()}`)
         toast.success('✨ Впечатляющая обложка 16:9 создана и сохранена!', { id: toastId })
       } else {
-        toast.error('Ошибка генерации обложки', { id: toastId, description: data.error })
+        toast.error('Ошибка генерации обложки: ' + data.error, { id: toastId })
       }
     } catch (err) {
       toast.error('Ошибка генерации обложки: ' + err.message)
@@ -246,6 +219,27 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
       url.searchParams.delete('modal')
       window.history.replaceState({}, '', url.toString())
     } catch {}
+  }
+
+  const handleDeletePackage = async () => {
+    if (!window.confirm(`Вы уверены, что хотите удалить пакет "${pkg.title || pkg.folderName}"?`)) return
+    try {
+      const res = await fetch('/api/delete-package', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folderName: pkg.folderName, bundleDir: pkg.bundleDir }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        toast.success(`🗑️ Пакет "${pkg.title || pkg.folderName}" удален`)
+        if (onRefresh) onRefresh()
+        onClose()
+      } else {
+        toast.error('Ошибка удаления: ' + (data.error || 'Не удалось удалить'))
+      }
+    } catch (err) {
+      toast.error('Ошибка удаления: ' + err.message)
+    }
   }
 
   const hasTxt = pkg.hasScriptTxt || pkg.hasScriptMd || (pkg.scriptTxt && pkg.scriptTxt.length > 10)
@@ -302,6 +296,7 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
           onOpenTitleVariants={() => setShowTitleVariantsModal(true)}
           onOpenScript={() => onOpenScriptText && onOpenScriptText(pkg)}
           onOpenPhotos={() => onOpenPhotos && onOpenPhotos(pkg)}
+          onDeletePackage={handleDeletePackage}
           onClose={onClose}
         />
 
