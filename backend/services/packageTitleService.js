@@ -145,7 +145,7 @@ export async function generateTitleVariants(title = '', summary = '', bundleDir 
   }
 }
 
-export function updatePackageTitle(bundleDir, newTitle, updateThumbnail = true) {
+export function updatePackageTitle(bundleDir, newTitle, updateThumbnail = true, titleOptions = {}) {
   if (!bundleDir || !fs.existsSync(bundleDir)) {
     return { success: false, error: 'Папка пакета не найдена' };
   }
@@ -159,6 +159,9 @@ export function updatePackageTitle(bundleDir, newTitle, updateThumbnail = true) 
 
   manifest.title = cleanTitle;
   manifest.title_updated_at = new Date().toISOString();
+  if (titleOptions && Object.keys(titleOptions).length > 0) {
+    manifest.headlineConfig = { ...(manifest.headlineConfig || {}), ...titleOptions };
+  }
   fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
 
   let thumbUpdated = false;
@@ -168,15 +171,14 @@ export function updatePackageTitle(bundleDir, newTitle, updateThumbnail = true) 
 
   if (updateThumbnail && fs.existsSync(thumbPath)) {
     try {
-      const styleConfig = fs.existsSync(path.join(thumbDir, 'style.json'))
+      const existingStyle = fs.existsSync(path.join(thumbDir, 'style.json'))
         ? JSON.parse(fs.readFileSync(path.join(thumbDir, 'style.json'), 'utf-8'))
         : (manifest.headlineConfig || {});
+      const mergedStyle = { ...existingStyle, ...titleOptions, text: cleanTitle };
 
-      overlayRussianHeadlineOnThumbnail({
-        bundleDir,
-        headlineText: cleanTitle,
-        ...styleConfig,
-      });
+      fs.writeFileSync(path.join(thumbDir, 'style.json'), JSON.stringify(mergedStyle, null, 2), 'utf-8');
+
+      overlayRussianHeadlineOnThumbnail(thumbPath, cleanTitle, mergedStyle);
       thumbUpdated = true;
       thumbnailUrl = `/news-static/${path.basename(bundleDir)}/thumbnail/thumbnail.jpg?t=${Date.now()}`;
     } catch (err) {

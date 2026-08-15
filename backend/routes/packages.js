@@ -317,7 +317,7 @@ router.post('/api/generate-title-variants', async (req, res) => {
 // POST /api/update-package-title
 router.post('/api/update-package-title', async (req, res) => {
   try {
-    const { bundleDir: inputBundleDir, folderName, newTitle, updateThumbnail = true } = req.body;
+    const { bundleDir: inputBundleDir, folderName, newTitle, updateThumbnail = true, lineSpacing, lineColors, fontSize, fontColor, font } = req.body;
     const newsDir = path.resolve(__dirname, '../../news');
     let targetFolder = inputBundleDir;
 
@@ -331,7 +331,14 @@ router.post('/api/update-package-title', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Заголовок не может быть пустым' });
     }
 
-    const result = updatePackageTitle(targetFolder, newTitle, updateThumbnail);
+    const titleOptions = {};
+    if (lineSpacing !== undefined) titleOptions.lineSpacing = Number(lineSpacing);
+    if (lineColors !== undefined) titleOptions.lineColors = lineColors;
+    if (fontSize !== undefined) titleOptions.fontSize = fontSize;
+    if (fontColor !== undefined) titleOptions.fontColor = fontColor;
+    if (font !== undefined) titleOptions.font = font;
+
+    const result = updatePackageTitle(targetFolder, newTitle, updateThumbnail, titleOptions);
     res.json(result);
   } catch (err) {
     console.error('Update package title error:', err.message);

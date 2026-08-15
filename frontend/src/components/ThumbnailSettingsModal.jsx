@@ -19,15 +19,15 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
   const [customSizeNum, setCustomSizeNum] = useState(cfg.fontSize && cfg.fontSize !== 'auto' ? Number(cfg.fontSize) : 82)
   const [isItalic, setIsItalic] = useState(!!cfg.isItalic)
   const [tiltAngle, setTiltAngle] = useState(Number(cfg.tiltAngle) || 0)
-
+  const [lineSpacing, setLineSpacing] = useState(cfg.lineSpacing !== undefined ? Number(cfg.lineSpacing) : 1.15)
   const [fontColor, setFontColor] = useState(cfg.fontColor || 'yellow')
+  const [lineColors, setLineColors] = useState(Array.isArray(cfg.lineColors) ? cfg.lineColors : null)
   const [borderColor, setBorderColor] = useState(cfg.borderColor || 'black')
   const [borderWidth, setBorderWidth] = useState(cfg.borderWidth !== undefined ? Number(cfg.borderWidth) : 9)
   const [shadowDistance, setShadowDistance] = useState(cfg.shadowDistance !== undefined ? Number(cfg.shadowDistance) : 4)
   const [position, setPosition] = useState(cfg.position || 'center')
   const [hasBox, setHasBox] = useState(!!cfg.hasBox)
   const [selectedBgPhoto, setSelectedBgPhoto] = useState(null)
-
   const [saving, setSaving] = useState(false)
   const [generatingTitle, setGeneratingTitle] = useState(false)
 
@@ -58,17 +58,14 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
           setFont(c.font)
           setFontFamilyName(c.fontFamilyName || resolveFontFamily(c.font, customFonts))
         }
-        if (c.fontSize !== undefined) {
-          setFontSize(c.fontSize)
-          if (c.fontSize !== 'auto') setCustomSizeNum(Number(c.fontSize))
-        }
-        if (c.customSizeNum !== undefined && c.fontSize !== 'auto') {
-          setCustomSizeNum(Number(c.customSizeNum))
-        }
+        if (c.fontSize !== undefined) { setFontSize(c.fontSize); if (c.fontSize !== 'auto') setCustomSizeNum(Number(c.fontSize)); }
+        if (c.customSizeNum !== undefined && c.fontSize !== 'auto') setCustomSizeNum(Number(c.customSizeNum))
         if (c.fontColor !== undefined) setFontColor(c.fontColor)
+        if (c.lineColors !== undefined) setLineColors(Array.isArray(c.lineColors) ? c.lineColors : null)
         if (c.borderColor !== undefined) setBorderColor(c.borderColor)
         if (c.borderWidth !== undefined) setBorderWidth(Number(c.borderWidth))
         if (c.shadowDistance !== undefined) setShadowDistance(Number(c.shadowDistance))
+        if (c.lineSpacing !== undefined) setLineSpacing(Number(c.lineSpacing))
         if (c.isItalic !== undefined) setIsItalic(Boolean(c.isItalic))
         if (c.tiltAngle !== undefined) setTiltAngle(Number(c.tiltAngle))
         if (c.position !== undefined) setPosition(c.position)
@@ -98,7 +95,6 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
   const handleFontFileUpload = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
-
     try {
       setUploadingFont(true)
       const toastId = toast.loading(`🔤 Загрузка шрифта "${file.name}"...`)
@@ -109,24 +105,15 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
           const res = await fetch('/api/upload-font', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              filename: file.name,
-              fontName: file.name.replace(/\.[^.]+$/, ''),
-              base64Data,
-            }),
+            body: JSON.stringify({ filename: file.name, fontName: file.name.replace(/\.[^.]+$/, ''), base64Data }),
           })
           const data = await res.json()
           if (data.success && data.font) {
-            try {
-              const fontFace = new FontFace(data.font.name, `url(${data.font.url})`)
-              await fontFace.load()
-              document.fonts.add(fontFace)
-            } catch {}
-
+            try { const ff = new FontFace(data.font.name, `url(${data.font.url})`); await ff.load(); document.fonts.add(ff); } catch {}
             setCustomFonts(prev => [data.font, ...prev.filter(f => f.id !== data.font.id)])
             setFont(data.font.id)
             setFontFamilyName(`"${data.font.name}", sans-serif`)
-            toast.success(`🔤 Шрифт "${data.font.name}" успешно загружен и применен!`, { id: toastId })
+            toast.success(`🔤 Шрифт "${data.font.name}" успешно применен!`, { id: toastId })
           } else {
             toast.error('Ошибка загрузки шрифта: ' + (data.error || 'Неизвестная ошибка'), { id: toastId })
           }
@@ -183,7 +170,9 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
           fontSize: fontSize === 'auto' ? 'auto' : Number(customSizeNum),
           isItalic,
           tiltAngle: Number(tiltAngle) || 0,
+          lineSpacing: Number(lineSpacing) || 1.15,
           fontColor,
+          lineColors: Array.isArray(lineColors) ? lineColors : null,
           borderColor,
           borderWidth: Number(borderWidth),
           shadowDistance: Number(shadowDistance),
@@ -284,6 +273,8 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
             position={position}
             fontFamilyName={fontFamilyName}
             calcLiveFontSize={calcLiveFontSize}
+            lineSpacing={lineSpacing}
+            lineColors={lineColors}
             activeColorHex={activeColorHex}
             borderWidth={borderWidth}
             activeStrokeHex={activeStrokeHex}
@@ -354,6 +345,11 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
               setFontSize={setFontSize}
               customSizeNum={customSizeNum}
               setCustomSizeNum={setCustomSizeNum}
+              lineSpacing={lineSpacing}
+              setLineSpacing={setLineSpacing}
+              previewLines={previewLines}
+              lineColors={lineColors}
+              setLineColors={setLineColors}
               isItalic={isItalic}
               setIsItalic={setIsItalic}
               tiltAngle={tiltAngle}

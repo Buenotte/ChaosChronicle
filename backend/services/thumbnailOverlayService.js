@@ -83,6 +83,7 @@ export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, optio
     const {
       font = 'arialbd',
       fontSize = 'auto',
+      lineSpacing = 1.15,
       fontColor = 'yellow',
       borderColor = 'black',
       borderWidth = 9,
@@ -124,7 +125,8 @@ export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, optio
     }
     if (!safeFontPath) safeFontPath = AVAILABLE_FONTS['arialbd'];
 
-    const lineHeight = Math.round(finalFontSize * 1.16);
+    const spacingMult = Number(lineSpacing || options.lineHeight || 1.15);
+    const lineHeight = Math.round(finalFontSize * (spacingMult > 0 ? spacingMult : 1.15));
     const totalTextHeight = cleanLines.length * lineHeight;
 
     let startY = 40;
@@ -137,6 +139,7 @@ export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, optio
     }
 
     const colorVal = fontColor || 'yellow';
+    const lineColorsList = Array.isArray(options.lineColors) ? options.lineColors : [];
     const bColor = borderColor || 'black';
     const bWidth = Number(borderWidth) >= 0 ? Number(borderWidth) : 9;
     const sDist = Number(shadowDistance) >= 0 ? Number(shadowDistance) : 4;
@@ -151,7 +154,8 @@ export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, optio
         .replace(/:/g, '\\:')
         .replace(/%/g, '\\%');
       const yPos = startY + (idx * lineHeight);
-      return `drawtext=fontfile='${safeFontPath}':text='${safeText}':fontsize=${finalFontSize}:fontcolor=${colorVal}:bordercolor=${bColor}:borderw=${bWidth}:shadowcolor=${sColor}:shadowx=${sDist}:shadowy=${sDist}${boxParam}:x=(w-text_w)/2:y=${yPos}`;
+      const lineCol = lineColorsList[idx] || colorVal;
+      return `drawtext=fontfile='${safeFontPath}':text='${safeText}':fontsize=${finalFontSize}:fontcolor=${lineCol}:bordercolor=${bColor}:borderw=${bWidth}:shadowcolor=${sColor}:shadowx=${sDist}:shadowy=${sDist}${boxParam}:x=(w-text_w)/2:y=${yPos}`;
     });
 
     const tempOut = path.join(path.dirname(imagePath), 'temp_rendered_thumb.jpg');

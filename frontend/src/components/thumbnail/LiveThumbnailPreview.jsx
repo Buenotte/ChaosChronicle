@@ -1,8 +1,19 @@
+const COLOR_MAP = {
+  yellow: '#FFE600',
+  white: '#FFFFFF',
+  red: '#FF2A2A',
+  cyan: '#00F0FF',
+  orange: '#FF8C00',
+  green: '#00FF66',
+}
+
 export default function LiveThumbnailPreview({
   previewSrc,
   position,
   fontFamilyName,
   calcLiveFontSize,
+  lineSpacing = 1.15,
+  lineColors = null,
   activeColorHex,
   borderWidth,
   activeStrokeHex,
@@ -71,7 +82,7 @@ export default function LiveThumbnailPreview({
             fontStyle: isItalic ? 'italic' : 'normal',
             fontSize: calcLiveFontSize(),
             fontWeight: 900,
-            lineHeight: 1.16,
+            lineHeight: Number(lineSpacing) || 1.15,
             color: activeColorHex,
             letterSpacing: '0.5px',
             transform: `rotate(${angle}deg) ${isItalic && !fontFamilyName.includes('Georgia') ? 'skewX(-8deg)' : ''}`,
@@ -87,11 +98,15 @@ export default function LiveThumbnailPreview({
             maxWidth: '92%',
           }}
         >
-          {previewLines.map((line, idx) => (
-            <div key={idx} style={{ whiteSpace: 'nowrap' }}>
-              {line}
-            </div>
-          ))}
+          {previewLines.map((line, idx) => {
+            const lineCol = (lineColors && lineColors[idx]) ? lineColors[idx] : null
+            const lineHex = lineCol ? (COLOR_MAP[lineCol] || (lineCol.startsWith('#') ? lineCol : activeColorHex)) : activeColorHex
+            return (
+              <div key={idx} style={{ whiteSpace: 'nowrap', color: lineHex }}>
+                {line}
+              </div>
+            )
+          })}
         </div>
       </div>
     </div>

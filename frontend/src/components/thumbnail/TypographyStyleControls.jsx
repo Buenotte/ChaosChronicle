@@ -19,6 +19,11 @@ export default function TypographyStyleControls({
   setFontSize,
   customSizeNum,
   setCustomSizeNum,
+  lineSpacing = 1.15,
+  setLineSpacing,
+  previewLines = [],
+  lineColors = null,
+  setLineColors = null,
   isItalic,
   setIsItalic,
   tiltAngle,
@@ -38,8 +43,8 @@ export default function TypographyStyleControls({
 }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
-      {/* КОЛОНКА 1: РАЗМЕР, КУРСИВ, НАКЛОН И ПОЗИЦИЯ */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      {/* КОЛОНКА 1: РАЗМЕР, ИНТЕРВАЛ, КУРСИВ, НАКЛОН И ПОЗИЦИЯ */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
         {/* Размер шрифта (до 160px) */}
         <div>
           <label style={{ display: 'block', fontSize: '0.85rem', color: '#9ca3af', marginBottom: '0.4rem', fontWeight: 600 }}>
@@ -75,6 +80,39 @@ export default function TypographyStyleControls({
             />
             <span style={{ fontSize: '0.85rem', color: '#fff', minWidth: '45px', textAlign: 'right', fontWeight: 700 }}>
               {fontSize === 'auto' ? 'Auto' : `${customSizeNum}px`}
+            </span>
+          </div>
+        </div>
+
+        {/* ↕️ Межстрочный интервал (Line Height / Abstand zwischen Zeilen) */}
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+            <label style={{ fontSize: '0.85rem', color: '#9ca3af', fontWeight: 600 }}>
+              ↕️ Межстрочный интервал: {Number(lineSpacing).toFixed(2)}x
+            </label>
+            {setLineSpacing && Number(lineSpacing) !== 1.15 && (
+              <button
+                type="button"
+                onClick={() => setLineSpacing(1.15)}
+                style={{ background: 'none', border: 'none', color: '#38bdf8', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline' }}
+              >
+                Сброс (1.15x)
+              </button>
+            )}
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.72rem', color: '#71717a' }}>0.7x</span>
+            <input
+              type="range"
+              min="0.70"
+              max="1.70"
+              step="0.05"
+              value={lineSpacing}
+              onChange={e => setLineSpacing && setLineSpacing(Number(e.target.value))}
+              style={{ flex: 1, accentColor: '#38bdf8', cursor: 'pointer' }}
+            />
+            <span style={{ fontSize: '0.85rem', color: '#38bdf8', minWidth: '45px', textAlign: 'right', fontWeight: 700 }}>
+              {Number(lineSpacing).toFixed(2)}x
             </span>
           </div>
         </div>
@@ -170,38 +208,101 @@ export default function TypographyStyleControls({
 
       {/* КОЛОНКА 2: ЦВЕТА, КОНТУР И ТЕНЬ */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        {/* Цвет текста */}
-        <div>
-          <label style={{ display: 'block', fontSize: '0.85rem', color: '#9ca3af', marginBottom: '0.4rem', fontWeight: 600 }}>
-            🎨 Цвет текста:
-          </label>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.4rem' }}>
-            {COLORS.map(c => {
-              const isSelected = fontColor === c.id
-              return (
+        {/* Цвет текста (общий и построчный) */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+              <label style={{ fontSize: '0.85rem', color: '#9ca3af', fontWeight: 600 }}>
+                🎨 Основной цвет:
+              </label>
+              {lineColors && setLineColors && (
                 <button
-                  key={c.id}
                   type="button"
-                  onClick={() => setFontColor(c.id)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    padding: '0.4rem 0.6rem',
-                    borderRadius: '6px',
-                    background: isSelected ? 'rgba(255,255,255,0.1)' : '#18181b',
-                    border: isSelected ? `2px solid ${c.hex}` : '1px solid #27272a',
-                    color: '#fff',
-                    cursor: 'pointer',
-                    fontSize: '0.8rem',
-                  }}
+                  onClick={() => setLineColors(null)}
+                  style={{ background: 'none', border: 'none', color: '#38bdf8', fontSize: '0.72rem', cursor: 'pointer', textDecoration: 'underline' }}
                 >
-                  <span style={{ width: '14px', height: '14px', borderRadius: '50%', background: c.hex, display: 'inline-block', border: '1px solid #000' }} />
-                  <span style={{ fontWeight: isSelected ? 700 : 400 }}>{c.label}</span>
+                  Сбросить цвет всех строк
                 </button>
-              )
-            })}
+              )}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.35rem' }}>
+              {COLORS.map(c => {
+                const isSelected = (!lineColors || lineColors.length === 0) && fontColor === c.id
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => {
+                      setFontColor(c.id)
+                      if (setLineColors) setLineColors(null)
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      padding: '0.35rem 0.5rem',
+                      borderRadius: '6px',
+                      background: isSelected ? 'rgba(255,255,255,0.12)' : '#18181b',
+                      border: isSelected ? `2px solid ${c.hex}` : '1px solid #27272a',
+                      color: '#fff',
+                      cursor: 'pointer',
+                      fontSize: '0.78rem',
+                    }}
+                  >
+                    <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: c.hex, display: 'inline-block', border: '1px solid #000' }} />
+                    <span style={{ fontWeight: isSelected ? 700 : 400 }}>{c.label}</span>
+                  </button>
+                )
+              })}
+            </div>
           </div>
+
+          {/* 🌈 Построчные цвета (если строк больше 1) */}
+          {previewLines && previewLines.length > 1 && setLineColors && (
+            <div style={{ background: '#18181b', padding: '0.65rem', borderRadius: '8px', border: '1px solid #27272a', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <label style={{ fontSize: '0.8rem', color: '#f472b6', fontWeight: 700 }}>
+                🌈 Цвет для каждой отдельной строки:
+              </label>
+              {previewLines.map((lineText, idx) => {
+                const currentLineColor = (lineColors && lineColors[idx]) ? lineColors[idx] : fontColor
+                return (
+                  <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', background: '#09090b', padding: '0.35rem 0.5rem', borderRadius: '6px' }}>
+                    <span style={{ fontSize: '0.78rem', color: '#e4e4e7', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '110px' }} title={lineText}>
+                      {idx + 1}. {lineText}
+                    </span>
+                    <div style={{ display: 'flex', gap: '0.25rem' }}>
+                      {COLORS.map(c => {
+                        const isCur = currentLineColor === c.id
+                        return (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => {
+                              const newArr = [...(lineColors || previewLines.map(() => fontColor))]
+                              newArr[idx] = c.id
+                              setLineColors(newArr)
+                            }}
+                            title={`Строка ${idx + 1}: ${c.label}`}
+                            style={{
+                              width: '20px',
+                              height: '20px',
+                              borderRadius: '50%',
+                              background: c.hex,
+                              border: isCur ? '2px solid #ffffff' : '1px solid #000',
+                              cursor: 'pointer',
+                              transform: isCur ? 'scale(1.25)' : 'scale(1)',
+                              boxShadow: isCur ? '0 0 6px rgba(255,255,255,0.8)' : 'none',
+                              padding: 0,
+                            }}
+                          />
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         {/* 🔲 КОНТУР / ОБВОДКА (STROKE) */}

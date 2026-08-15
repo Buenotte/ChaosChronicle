@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { FEUILLETON_STYLES } from '../lib/utils'
+import { COLORS } from './thumbnail/TypographyStyleControls'
 
 export default function TitleVariantsModal({ pkg, onClose, onTitleSaved }) {
   if (!pkg) return null
@@ -11,6 +12,8 @@ export default function TitleVariantsModal({ pkg, onClose, onTitleSaved }) {
   const [variants, setVariants] = useState(pkg.title_variants || [])
   const [selectedTitle, setSelectedTitle] = useState(pkg.title || '')
   const [originalNewsTitle, setOriginalNewsTitle] = useState(pkg.original_title || pkg.title || '')
+  const [lineSpacing, setLineSpacing] = useState(pkg.headlineConfig?.lineSpacing || 1.15)
+  const [lineColors, setLineColors] = useState(pkg.headlineConfig?.lineColors || null)
 
   const fetchVariants = async (force = false, overrideStyle = null) => {
     const styleToUse = overrideStyle || selectedStyle
@@ -51,6 +54,9 @@ export default function TitleVariantsModal({ pkg, onClose, onTitleSaved }) {
 
   useEffect(() => {
     setOriginalNewsTitle(pkg.original_title || pkg.title || '')
+    if (pkg.headlineConfig?.lineSpacing) {
+      setLineSpacing(Number(pkg.headlineConfig.lineSpacing))
+    }
     if (pkg.title_variants && pkg.title_variants.length > 0) {
       setVariants(pkg.title_variants)
     } else {
@@ -79,6 +85,8 @@ export default function TitleVariantsModal({ pkg, onClose, onTitleSaved }) {
           bundleDir: pkg.bundleDir,
           folderName: pkg.folderName,
           newTitle: selectedTitle.trim(),
+          lineSpacing: Number(lineSpacing),
+          lineColors: Array.isArray(lineColors) ? lineColors : null,
           updateThumbnail: true,
         }),
       })
@@ -229,27 +237,131 @@ export default function TitleVariantsModal({ pkg, onClose, onTitleSaved }) {
             )}
           </div>
 
-          {/* Редактирование выбранного варианта */}
-          <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', color: '#9ca3af', marginBottom: '0.35rem', fontWeight: 600 }}>
-              ✏️ Редактировать выбранный заголовок:
-            </label>
-            <input
-              type="text"
-              value={selectedTitle}
-              onChange={e => setSelectedTitle(e.target.value)}
-              style={{
-                width: '100%',
-                background: '#18181b',
-                color: '#fff',
-                border: '1px solid #3b82f6',
-                borderRadius: '8px',
-                padding: '0.65rem 0.85rem',
-                fontSize: '1rem',
-                fontWeight: 700,
-              }}
-              placeholder="Выбранный заголовок..."
-            />
+          {/* Редактирование выбранного варианта и межстрочный интервал */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', color: '#9ca3af', marginBottom: '0.35rem', fontWeight: 600 }}>
+                ✏️ Редактировать выбранный заголовок:
+              </label>
+              <input
+                type="text"
+                value={selectedTitle}
+                onChange={e => setSelectedTitle(e.target.value)}
+                style={{
+                  width: '100%',
+                  background: '#18181b',
+                  color: '#fff',
+                  border: '1px solid #3b82f6',
+                  borderRadius: '8px',
+                  padding: '0.65rem 0.85rem',
+                  fontSize: '1rem',
+                  fontWeight: 700,
+                }}
+                placeholder="Выбранный заголовок..."
+              />
+            </div>
+
+            {/* ↕️ Настройка межстрочного интервала */}
+            <div style={{ background: '#131b2e', padding: '0.6rem 0.85rem', borderRadius: '8px', border: '1px solid #1e3a8a' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
+                <label style={{ fontSize: '0.84rem', color: '#93c5fd', fontWeight: 700 }}>
+                  ↕️ Межстрочный интервал на обложке: {Number(lineSpacing).toFixed(2)}x
+                </label>
+                {Number(lineSpacing) !== 1.15 && (
+                  <button
+                    type="button"
+                    onClick={() => setLineSpacing(1.15)}
+                    style={{ background: 'none', border: 'none', color: '#38bdf8', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline' }}
+                  >
+                    Сброс (1.15x)
+                  </button>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.72rem', color: '#71717a' }}>0.7x (плотно)</span>
+                <input
+                  type="range"
+                  min="0.70"
+                  max="1.70"
+                  step="0.05"
+                  value={lineSpacing}
+                  onChange={e => setLineSpacing(Number(e.target.value))}
+                  style={{ flex: 1, accentColor: '#38bdf8', cursor: 'pointer' }}
+                />
+                <span style={{ fontSize: '0.85rem', color: '#38bdf8', minWidth: '45px', textAlign: 'right', fontWeight: 700 }}>
+                  {Number(lineSpacing).toFixed(2)}x
+                </span>
+                <span style={{ fontSize: '0.72rem', color: '#71717a' }}>1.7x (свободно)</span>
+              </div>
+            </div>
+
+            {/* 🌈 Цвета отдельных строк */}
+            {(() => {
+              const words = selectedTitle.replace(/[\r\n\t]/g, ' ').replace(/["'«»`]/g, '').trim().split(/\s+/).filter(Boolean)
+              let lines = [], cur = ''
+              for (const w of words) {
+                if ((cur + ' ' + w).trim().length <= 15) cur = (cur + ' ' + w).trim()
+                else { if (cur) lines.push(cur); cur = w; if (lines.length >= 3) break }
+              }
+              if (cur && lines.length < 3) lines.push(cur)
+              if (lines.length <= 1) return null
+
+              return (
+                <div style={{ background: '#18181b', padding: '0.6rem 0.85rem', borderRadius: '8px', border: '1px solid #27272a', display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <label style={{ fontSize: '0.8rem', color: '#f472b6', fontWeight: 700 }}>
+                      🌈 Цвет для каждой строки заголовка:
+                    </label>
+                    {lineColors && (
+                      <button
+                        type="button"
+                        onClick={() => setLineColors(null)}
+                        style={{ background: 'none', border: 'none', color: '#38bdf8', fontSize: '0.72rem', cursor: 'pointer', textDecoration: 'underline' }}
+                      >
+                        Сбросить цвета
+                      </button>
+                    )}
+                  </div>
+                  {lines.map((lText, lIdx) => {
+                    const activeCol = (lineColors && lineColors[lIdx]) ? lineColors[lIdx] : (lIdx === 0 ? 'yellow' : 'white')
+                    return (
+                      <div key={lIdx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#09090b', padding: '0.3rem 0.5rem', borderRadius: '6px' }}>
+                        <span style={{ fontSize: '0.78rem', color: '#f4f4f5', fontWeight: 700, maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {lIdx + 1}. {lText}
+                        </span>
+                        <div style={{ display: 'flex', gap: '0.3rem' }}>
+                          {COLORS.map(c => {
+                            const isCur = activeCol === c.id
+                            return (
+                              <button
+                                key={c.id}
+                                type="button"
+                                onClick={() => {
+                                  const newArr = [...(lineColors || lines.map((_, i) => i === 0 ? 'yellow' : 'white'))]
+                                  newArr[lIdx] = c.id
+                                  setLineColors(newArr)
+                                }}
+                                title={`Строка ${lIdx + 1}: ${c.label}`}
+                                style={{
+                                  width: '18px',
+                                  height: '18px',
+                                  borderRadius: '50%',
+                                  background: c.hex,
+                                  border: isCur ? '2px solid #ffffff' : '1px solid #000',
+                                  cursor: 'pointer',
+                                  transform: isCur ? 'scale(1.2)' : 'scale(1)',
+                                  padding: 0,
+                                }}
+                              />
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            })()}
           </div>
 
           {/* Кнопки действий */}
