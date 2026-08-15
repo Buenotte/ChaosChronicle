@@ -23,12 +23,16 @@ export default function PackageHeader({
           <span className="saved-status-badge">📜 script.txt {hasTxt ? '✅' : '❌'}</span>
           <span className="saved-status-badge">📸 photos/ ({actualPhotoCount})</span>
           <span className="saved-status-badge">🎙️ audio.mp3 {audioState.hasAudio ? '✅' : '❌'}</span>
-          <span className="saved-status-badge">🎬 video.mp4 {videoState.hasVideo ? '✅' : '❌'}</span>
-          {currentThumbnail && (
-            <span className="saved-status-badge" style={{ background: 'rgba(236,72,153,0.2)', border: '1px solid #ec4899', color: '#f472b6' }}>
-              ✨ thumbnail.jpg ✅
-            </span>
-          )}
+          <span
+            className="saved-status-badge"
+            style={{
+              background: currentThumbnail ? 'rgba(236,72,153,0.2)' : 'rgba(255,255,255,0.05)',
+              border: currentThumbnail ? '1px solid #ec4899' : '1px solid #3f3f46',
+              color: currentThumbnail ? '#f472b6' : '#9ca3af',
+            }}
+          >
+            ✨ thumbnail.jpg {currentThumbnail ? '✅' : '❌'}
+          </span>
         </div>
       </div>
       <div style={{ display: 'flex', gap: '0.35rem' }}>

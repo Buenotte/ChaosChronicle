@@ -75,8 +75,9 @@ router.post('/api/upload-font', async (req, res) => {
 // GET /api/news-photos
 router.get('/api/news-photos', async (req, res) => {
   try {
-    const { title = '', articleId = '', url = '', forceLive = 'false' } = req.query;
-    const isForceLive = forceLive === 'true' || forceLive === '1';
+    const { title = '', articleId = '', url = '', query = '', searchQuery = '', forceLive = 'false' } = req.query;
+    const effectiveQuery = query || searchQuery || '';
+    const isForceLive = forceLive === 'true' || forceLive === '1' || !!effectiveQuery;
 
     const newsDir = path.resolve(__dirname, '../../news');
     if (!isForceLive && fs.existsSync(newsDir) && title) {
@@ -169,8 +170,8 @@ router.get('/api/news-photos', async (req, res) => {
       } catch {}
     }));
 
-    if ((isForceLive || photos.length < 30) && title) {
-      const livePhotos = await searchLiveNewsPhotos(title);
+    if ((isForceLive || photos.length < 30) && (title || effectiveQuery)) {
+      const livePhotos = await searchLiveNewsPhotos(title, effectiveQuery);
       livePhotos.forEach(p => {
         if (!seen.has(p.url)) {
           seen.add(p.url);

@@ -121,19 +121,20 @@ export async function fetchDDGPhotos(query) {
   }
 }
 
-export async function searchLiveNewsPhotos(queryTitle) {
-  if (!queryTitle) return [];
+export async function searchLiveNewsPhotos(queryTitle, customQuery = '') {
+  if (!queryTitle && !customQuery) return [];
 
   try {
-    const titleClean = cleanText(queryTitle);
+    const rawSearchText = customQuery && customQuery.trim() ? customQuery : queryTitle;
+    const titleClean = cleanText(rawSearchText);
     const stopWords = new Set(['в', 'на', 'и', 'с', 'по', 'за', 'из', 'от', 'для', 'что', 'как', 'это', 'был', 'были', 'над', 'под', 'об', 'или', 'но', 'после', 'около']);
     const rawWords = titleClean
       .replace(/[^a-zA-Z0-9а-яА-ЯёЁ\s]/g, '')
       .split(/\s+/)
       .filter(w => w.length > 2 && !stopWords.has(w.toLowerCase()));
 
-    const keyNouns = rawWords.slice(0, 4);
-    const keywords = keyNouns.join(' ');
+    const keyNouns = rawWords.slice(0, 6);
+    const keywords = (customQuery && customQuery.trim()) ? customQuery.trim() : keyNouns.join(' ');
 
     if (!keywords) return [];
 

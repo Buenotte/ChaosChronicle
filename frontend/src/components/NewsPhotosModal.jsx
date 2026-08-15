@@ -2,40 +2,54 @@ import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import ImageLightboxModal from './ImageLightboxModal'
 
-export default function NewsPhotosModal({ newsTopic, photos, loading, onClose, onSaved, onReload }) {
+export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoading, onClose, onSaved, onReload }) {
   if (!newsTopic) return null
 
   const [items, setItems] = useState([])
+  const [searchQuery, setSearchQuery] = useState(newsTopic.title || '')
+  const [searching, setSearching] = useState(false)
   const [savingPhotos, setSavingPhotos] = useState(false)
   const [savedCount, setSavedCount] = useState(null)
-  const [activeThumbnailUrl, setActiveThumbnailUrl] = useState(newsTopic?.thumbnailUrl || null)
   const [lightboxUrl, setLightboxUrl] = useState(null)
 
   useEffect(() => {
     setItems(photos || [])
-  }, [photos])
+    if (newsTopic?.title) {
+      setSearchQuery(newsTopic.title)
+    }
+  }, [photos, newsTopic?.title])
 
-  const handleSetThumbnail = async (imgSrc) => {
+  const handleCustomSearch = async (e) => {
+    if (e && e.preventDefault) e.preventDefault()
+    if (!searchQuery.trim()) {
+      toast.error('Введите ключевые слова для поиска фото')
+      return
+    }
+
+    setSearching(true)
+    const toastId = toast.loading('🔎 Поиск фото по ключевым словам...', {
+      description: searchQuery.slice(0, 50),
+    })
+
     try {
-      const res = await fetch('/api/set-thumbnail', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          photoUrl: imgSrc,
-          bundleDir: newsTopic?.bundleDir,
-          folderName: newsTopic?.folderName,
-        }),
+      const params = new URLSearchParams({
+        title: newsTopic.title || '',
+        query: searchQuery.trim(),
+        forceLive: 'true',
       })
+      const res = await fetch(`/api/news-photos?${params}`)
       const data = await res.json()
+
       if (data.success) {
-        setActiveThumbnailUrl(data.thumbnailUrl)
-        toast.success('🖼️ Фото выбрано главной обложкой (thumbnail.jpg)!')
-        if (onSaved) onSaved()
+        setItems(data.photos || [])
+        toast.success(`Найдено ${data.photos?.length || 0} фото!`, { id: toastId })
       } else {
-        toast.error('Ошибка сохранения обложки: ' + (data.error || 'Неизвестная ошибка'))
+        toast.error('Ошибка поиска фото: ' + (data.error || 'Ничего не найдено'), { id: toastId })
       }
     } catch (err) {
-      toast.error('Ошибка создания обложки', { description: err.message })
+      toast.error('Ошибка запроса: ' + err.message, { id: toastId })
+    } finally {
+      setSearching(false)
     }
   }
 
@@ -83,7 +97,8 @@ export default function NewsPhotosModal({ newsTopic, photos, loading, onClose, o
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: newsTopic.title,
-          bundleDir: newsTopic.bundleDir,
+          folderName: newsTopic.folderName || newsTopic.matchingPkg?.folderName,
+          bundleDir: newsTopic.bundleDir || newsTopic.matchingPkg?.bundleDir,
           photos: items.map(p => (typeof p === 'string' ? p : p.url)),
         }),
       })
@@ -97,7 +112,7 @@ export default function NewsPhotosModal({ newsTopic, photos, loading, onClose, o
       toast.success(`📸 ${data.savedPhotosCount} фото успешно сохранены!`, {
         id: toastId,
         description: `Папка: news/${data.folderName}/photos/`,
-        duration: 12000,
+        duration: 10000,
       })
     } catch (err) {
       toast.error('Ошибка сохранения фото', {
@@ -109,6 +124,8 @@ export default function NewsPhotosModal({ newsTopic, photos, loading, onClose, o
     }
   }
 
+  const isLoading = initialLoading || searching
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <ImageLightboxModal
@@ -116,15 +133,22 @@ export default function NewsPhotosModal({ newsTopic, photos, loading, onClose, o
         title={newsTopic.title}
         onClose={() => setLightboxUrl(null)}
       />
-      <div className="modal-content" onClick={e => e.stopPropagation()}>
+      <div
+        className="modal-content"
+        onClick={e => e.stopPropagation()}
+        style={{ maxWidth: '960px', width: '95%', maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}
+      >
         <div className="modal-header">
           <div>
-            <span className="modal-badge">📸 Оригинальные фото к этой новости (100% Точность)</span>
-            <h2 className="modal-title">{newsTopic.title}</h2>
-            <div className="modal-stats">
-              <span>📰 Все изображения из статьи и прямых репортажей</span>
-              {items.length > 0 && <span>🖼️ Отобрано фото: {items.length}</span>}
-              {savedCount !== null && <span className="saved-status-badge">🟢 {savedCount} фото в news/photos/</span>}
+            <span className="modal-badge" style={{ background: '#3b82f6', color: '#fff' }}>
+              📸 Поиск и управление фотографиями к новости
+            </span>
+            <h2 className="modal-title" style={{ fontSize: '1.2rem', marginTop: '0.3rem' }}>
+              {newsTopic.title}
+            </h2>
+            <div className="modal-stats" style={{ marginTop: '0.3rem' }}>
+              {items.length > 0 && <span>🖼️ Всего в списке: {items.length} фото</span>}
+              {savedCount !== null && <span className="saved-status-badge">🟢 {savedCount} сохранено в news/photos/</span>}
             </div>
           </div>
           <div className="modal-header-actions" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
@@ -133,6 +157,7 @@ export default function NewsPhotosModal({ newsTopic, photos, loading, onClose, o
                 className="save-bundle-btn"
                 onClick={handleSavePhotosToFolder}
                 disabled={savingPhotos}
+                style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', fontWeight: 700 }}
               >
                 {savingPhotos ? '⏳ Скачивание...' : `💾 Сохранить ${items.length} фото в news/`}
               </button>
@@ -141,20 +166,64 @@ export default function NewsPhotosModal({ newsTopic, photos, loading, onClose, o
           </div>
         </div>
 
-        <div className="modal-body">
-          {loading && (
+        {/* Панель настройки поисковых слов для точного поиска */}
+        <form
+          onSubmit={handleCustomSearch}
+          style={{
+            margin: '0.75rem 1.25rem 0',
+            padding: '0.75rem 1rem',
+            background: '#131b2e',
+            borderRadius: '8px',
+            border: '1px solid #1e3a8a',
+            display: 'flex',
+            gap: '0.6rem',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+          }}
+        >
+          <label style={{ fontSize: '0.84rem', fontWeight: 700, color: '#93c5fd', whiteSpace: 'nowrap' }}>
+            🔍 Поисковые слова для фото:
+          </label>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Введите ключевые слова (например: Трамп Ормузский пролив корабль нефть)..."
+            style={{
+              flex: 1,
+              minWidth: '220px',
+              background: '#0a101f',
+              border: '1px solid #2563eb',
+              color: '#fff',
+              padding: '0.45rem 0.75rem',
+              borderRadius: '6px',
+              fontSize: '0.88rem',
+            }}
+          />
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="copy-btn"
+            style={{ background: '#2563eb', fontWeight: 700, padding: '0.45rem 0.9rem', fontSize: '0.85rem', whiteSpace: 'nowrap' }}
+          >
+            {searching ? '⏳ Поиск...' : '🔎 Найти точные фото'}
+          </button>
+        </form>
+
+        <div className="modal-body" style={{ flex: 1, overflowY: 'auto', padding: '1.25rem' }}>
+          {isLoading && (
             <div className="empty-state">
-              <p>⟳ Поиск фотографий из разных источников по теме новости...</p>
+              <p>⟳ Поиск репортажных фотографий по запросу «{searchQuery}»...</p>
             </div>
           )}
 
-          {!loading && items.length === 0 && (
+          {!isLoading && items.length === 0 && (
             <div className="empty-state">
-              <p>📷 Фотографий в списке нет.</p>
+              <p>📷 Фотографий не найдено. Попробуйте изменить ключевые слова в строке выше и нажать «Найти точные фото».</p>
             </div>
           )}
 
-          {!loading && items.length > 0 && (
+          {!isLoading && items.length > 0 && (
             <div className="multi-source-photos-grid">
               {items.map((photo, i) => {
                 const imgSrc = typeof photo === 'string' ? photo : (photo?.url || '')
@@ -163,12 +232,13 @@ export default function NewsPhotosModal({ newsTopic, photos, loading, onClose, o
 
                 return (
                   <div key={i} className="photo-card-item">
-                    <div className="photo-card-img-wrap" onClick={() => setLightboxUrl(imgSrc)} style={{ cursor: 'zoom-in' }} title="🔍 Нажмите, чтобы открыть фото во весь экран">
-                      <img
-                        src={imgSrc}
-                        alt={titleText}
-                        loading="lazy"
-                      />
+                    <div
+                      className="photo-card-img-wrap"
+                      onClick={() => setLightboxUrl(imgSrc)}
+                      style={{ cursor: 'zoom-in' }}
+                      title="🔍 Нажмите, чтобы открыть фото во весь экран"
+                    >
+                      <img src={imgSrc} alt={titleText} loading="lazy" />
                       <span className="photo-source-badge" style={{ background: '#2563eb' }}>
                         📍 {sourceText}
                       </span>

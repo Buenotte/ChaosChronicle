@@ -6,23 +6,45 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const newsDir = path.resolve(__dirname, '../../news');
 
+function cleanMatchTitle(str) {
+  if (!str) return '';
+  return str.toLowerCase().replace(/[^a-z0-9а-яё]/gi, '');
+}
+
 export async function saveNewsPhotos({ title = 'News', bundleDir: inputBundleDir, folderName, photos = [] }) {
   let bundleDir = inputBundleDir;
   if (!bundleDir && folderName) {
     bundleDir = path.join(newsDir, folderName);
   }
-  if (!bundleDir && title) {
-    const safeTitlePart = title.replace(/[^a-zA-Z0-9а-яА-ЯёЁ]/g, '_').slice(0, 20);
-    if (safeTitlePart.length >= 6 && fs.existsSync(newsDir)) {
-      const dirs = fs.readdirSync(newsDir, { withFileTypes: true });
-      for (const d of dirs) {
-        if (d.isDirectory() && d.name.includes(safeTitlePart)) {
-          bundleDir = path.join(newsDir, d.name);
-          break;
-        }
+
+  if (!bundleDir && title && fs.existsSync(newsDir)) {
+    const cleanQuery = cleanMatchTitle(title);
+    const dirs = fs.readdirSync(newsDir, { withFileTypes: true });
+    for (const d of dirs) {
+      if (!d.isDirectory()) continue;
+      const targetDir = path.join(newsDir, d.name);
+      const jsonPath = path.join(targetDir, 'project.json');
+      let manifestTitle = '';
+      let manifestOrig = '';
+      if (fs.existsSync(jsonPath)) {
+        try {
+          const m = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+          manifestTitle = cleanMatchTitle(m.title);
+          manifestOrig = cleanMatchTitle(m.original_title);
+        } catch {}
+      }
+      const folderClean = cleanMatchTitle(d.name.replace(/^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}_/, ''));
+      if (
+        (manifestOrig && (cleanQuery.includes(manifestOrig.slice(0, 12)) || manifestOrig.includes(cleanQuery.slice(0, 12)))) ||
+        (manifestTitle && (cleanQuery.includes(manifestTitle.slice(0, 12)) || manifestTitle.includes(cleanQuery.slice(0, 12)))) ||
+        (folderClean && (cleanQuery.includes(folderClean.slice(0, 12)) || folderClean.includes(cleanQuery.slice(0, 12))))
+      ) {
+        bundleDir = targetDir;
+        break;
       }
     }
   }
+
   if (!bundleDir) {
     const now = new Date();
     const dateStr = now.toISOString().replace(/[:.]/g, '-').slice(0, 16);
@@ -79,7 +101,7 @@ export async function saveNewsPhotos({ title = 'News', bundleDir: inputBundleDir
     }
   }
 
-  // Lösche nur Dateien, die nicht mehr in der Auswahl sind
+  // Lösche nur Dateien, die nicht mehr in der aktiven Auswahl sind
   try {
     const allFiles = fs.readdirSync(photosDir);
     for (const file of allFiles) {
@@ -99,10 +121,10 @@ export async function saveNewsPhotos({ title = 'News', bundleDir: inputBundleDir
     manifest.original_title = title;
   }
   manifest.photos = savedPhotos;
-  manifest.photos_saved_at = new Date().toISOString();
-  fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
+  manifest.photos_count = savedPhotos.length;
+  manifest.photos_updated_at = new Date().toISOString();
 
-  console.log(`📸 ${savedPhotos.length} Fotos erfolgreich in ${photosDir} gespeichert.`);
+  fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
 
   return {
     success: true,
@@ -113,35 +135,25 @@ export async function saveNewsPhotos({ title = 'News', bundleDir: inputBundleDir
   };
 }
 
-export function deleteNewsPhoto({ photoUrl, bundleDir, folderName }) {
-  let targetFile = null;
-
-  if (photoUrl && photoUrl.startsWith('/news-static/')) {
-    const subPath = photoUrl.replace('/news-static/', '');
-    targetFile = path.join(newsDir, decodeURIComponent(subPath));
-  } else if ((bundleDir || folderName) && photoUrl) {
-    const dir = bundleDir || path.join(newsDir, folderName);
-    const fileName = path.basename(photoUrl);
-    targetFile = path.join(dir, 'photos', fileName);
+export function deleteNewsPhoto({ bundleDir, folderName, photoUrl }) {
+  let targetDir = bundleDir;
+  if (!targetDir && folderName) {
+    targetDir = path.join(newsDir, folderName);
+  }
+  if (!targetDir || !photoUrl) {
+    return { success: false, error: 'bundleDir and photoUrl required' };
   }
 
-  if (targetFile && fs.existsSync(targetFile)) {
-    try {
-      fs.unlinkSync(targetFile);
-      const photoDir = path.dirname(targetFile);
-      const pkgDir = path.dirname(photoDir);
-      const jsonPath = path.join(pkgDir, 'project.json');
-      if (fs.existsSync(jsonPath)) {
-        const manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
-        const relName = `photos/${path.basename(targetFile)}`;
-        manifest.photos = (manifest.photos || []).filter(p => p !== relName && p !== path.basename(targetFile));
-        fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
-      }
-      return { success: true, deleted: true, targetFile };
-    } catch (err) {
-      return { success: false, error: err.message };
+  try {
+    const relativePath = decodeURIComponent(photoUrl.replace(/^\/news-static\//, ''));
+    const filePath = path.resolve(newsDir, relativePath);
+    if (fs.existsSync(filePath) && filePath.startsWith(targetDir)) {
+      fs.unlinkSync(filePath);
+      console.log(`🗑️ Foto gelöscht: ${filePath}`);
+      return { success: true, deleted: true };
     }
+  } catch (err) {
+    console.error('Fehler beim Löschen des Fotos:', err.message);
   }
-
-  return { success: true, deleted: false, message: 'Datei war nicht auf Festplatte' };
+  return { success: false, error: 'File not found or invalid path' };
 }

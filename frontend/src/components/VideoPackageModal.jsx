@@ -79,11 +79,13 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
 
   const [isMaximized, setIsMaximized] = useState(false)
   const [currentThumbnail, setCurrentThumbnail] = useState(
-    pkg.thumbnailUrl || (pkg.folderName ? `/news-static/${pkg.folderName}/thumbnail/thumbnail.jpg` : null)
+    pkg.hasThumbnail ? (pkg.thumbnailUrl || (pkg.folderName ? `/news-static/${pkg.folderName}/thumbnail/thumbnail.jpg` : null)) : null
   )
 
   useEffect(() => {
-    const thumb = pkg.thumbnailUrl || (pkg.folderName ? `/news-static/${pkg.folderName}/thumbnail/thumbnail.jpg?t=${Date.now()}` : null)
+    const thumb = pkg.hasThumbnail
+      ? (pkg.thumbnailUrl || (pkg.folderName ? `/news-static/${pkg.folderName}/thumbnail/thumbnail.jpg?t=${Date.now()}` : null))
+      : null
     setCurrentThumbnail(thumb)
   }, [pkg])
 
