@@ -40,7 +40,14 @@ router.get('/api/video-progress/:jobId', (req, res) => {
 // POST /api/generate-video & /api/render-video
 const handleGenerateVideo = async (req, res) => {
   try {
-    const { bundleDir: inputBundleDir, folderName, transition = 'concat', jobId } = req.body;
+    const {
+      bundleDir: inputBundleDir,
+      folderName,
+      transition = 'concat',
+      jobId,
+      includeSubBanner = true,
+      subBannerTime = 30,
+    } = req.body;
 
     const newsDir = path.resolve(__dirname, '../../news');
     let bundleDir = inputBundleDir;
@@ -133,15 +140,37 @@ const handleGenerateVideo = async (req, res) => {
       concatContent += `file '${activeFrames[activeFrames.length - 1]}'\n`;
       fs.writeFileSync(concatPath, concatContent, 'utf-8');
 
-      ffmpegArgs = [
-        '-y',
-        '-f', 'concat', '-safe', '0', '-i', concatPath,
-        '-i', audioPath,
-        '-c:v', 'libx264', '-preset', 'ultrafast', '-pix_fmt', 'yuv420p',
-        '-c:a', 'aac', '-b:a', '192k',
-        '-shortest',
-        videoPath,
-      ];
+      const bannerMov = path.resolve(__dirname, '../../assets/banner/sub_animation_transparent.mov');
+      const bannerWebm = path.resolve(__dirname, '../../assets/banner/sub_animation_transparent.webm');
+      const bannerPath = fs.existsSync(bannerMov) ? bannerMov : bannerWebm;
+      const hasBanner = includeSubBanner && fs.existsSync(bannerPath);
+      const bannerSec = Math.max(0, Number(subBannerTime) || 30);
+
+      if (hasBanner) {
+        ffmpegArgs = [
+          '-y',
+          '-f', 'concat', '-safe', '0', '-i', concatPath,
+          '-i', audioPath,
+          '-i', bannerPath,
+          '-filter_complex', `[0:v]fps=30[bg];[2:v]setpts=PTS-STARTPTS+${bannerSec}/TB[sub_b];[bg][sub_b]overlay=(W-w)/2:H-h-50:enable='between(t,${bannerSec},${bannerSec + 6})':eof_action=pass[v]`,
+          '-map', '[v]',
+          '-map', '1:a',
+          '-c:v', 'libx264', '-preset', 'ultrafast', '-pix_fmt', 'yuv420p',
+          '-c:a', 'aac', '-b:a', '192k',
+          '-shortest',
+          videoPath,
+        ];
+      } else {
+        ffmpegArgs = [
+          '-y',
+          '-f', 'concat', '-safe', '0', '-i', concatPath,
+          '-i', audioPath,
+          '-c:v', 'libx264', '-preset', 'ultrafast', '-pix_fmt', 'yuv420p',
+          '-c:a', 'aac', '-b:a', '192k',
+          '-shortest',
+          videoPath,
+        ];
+      }
 
       broadcastProgress(15, 'encoding', 'Начало кодирования видео FFmpeg...');
 

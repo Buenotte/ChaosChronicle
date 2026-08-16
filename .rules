@@ -16,3 +16,6 @@
 
 ## 5. Code Editing Rule
 - **STRICT REQUIREMENT**: When making code changes, NEVER overwrite or rewrite entire files. ALWAYS make targeted edits (diffs / surgical modifications or insertions) using `replace_file_content` or `multi_replace_file_content` targeting only the specific lines.
+
+## 6. Video Subscription Banner Rule
+- **STRICT REQUIREMENT**: Every generated news video (`video.mp4`) must ALWAYS automatically include the transparent subscription animation banner (`assets/banner/sub_animation_transparent.mov`) at second 30 (0:30–0:36) using FFmpeg 30 FPS overlay.

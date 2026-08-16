@@ -7,6 +7,8 @@ export default function PackageVideoSection({
   progressLog,
   selectedTransition,
   setSelectedTransition,
+  includeSubBanner = true,
+  setIncludeSubBanner,
   videoRef,
   isPlaying,
   currentTime,
@@ -92,22 +94,53 @@ export default function PackageVideoSection({
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-            <button
-              className="copy-btn"
-              style={{ background: '#10b981' }}
-              onClick={onOpenVideoModal}
-            >
-              🎬 Открыть видео-модалку
-            </button>
-            <button
-              className="copy-btn"
-              style={{ background: '#3f3f46' }}
-              onClick={onGenerateVideo}
-              disabled={generatingVideo}
-            >
-              {generatingVideo ? '⏳ Пересборка...' : '🔄 Собрать видео заново'}
-            </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              <select
+                value={selectedTransition}
+                onChange={e => setSelectedTransition(e.target.value)}
+                style={{
+                  background: '#181c27',
+                  border: '1px solid #1e2436',
+                  borderRadius: '8px',
+                  color: '#e8eaf0',
+                  padding: '0.5rem 0.65rem',
+                  fontSize: '0.82rem',
+                }}
+              >
+                <option value="concat">Прямая склейка (Быстро)</option>
+                <option value="crossfade">Плавное растворение (Crossfade)</option>
+                <option value="fadeblack">Через черный экран</option>
+              </select>
+              <button
+                className="copy-btn"
+                style={{ background: '#3f3f46', fontWeight: 600 }}
+                onClick={onGenerateVideo}
+                disabled={generatingVideo}
+              >
+                {generatingVideo ? '⏳ Пересборка...' : '🔄 Собрать видео заново'}
+              </button>
+              <button
+                className="copy-btn"
+                style={{ background: '#10b981' }}
+                onClick={onOpenVideoModal}
+              >
+                🎬 Во весь экран
+              </button>
+            </div>
+
+            {setIncludeSubBanner && (
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', color: '#cbd5e1', cursor: 'pointer', background: '#181c27', padding: '0.45rem 0.75rem', borderRadius: '6px', border: '1px solid #27272a', width: 'fit-content' }}>
+                <input
+                  type="checkbox"
+                  checked={includeSubBanner}
+                  onChange={e => setIncludeSubBanner(e.target.checked)}
+                  style={{ accentColor: '#10b981', cursor: 'pointer' }}
+                />
+                <span>🔔 Анимация подписки на <strong>30-й сек.</strong></span>
+                <span style={{ fontSize: '0.72rem', color: '#ef4444', fontWeight: 600 }}>• sub_animation_transparent.mov</span>
+              </label>
+            )}
           </div>
         </div>
       ) : (
@@ -124,31 +157,46 @@ export default function PackageVideoSection({
               {progressLog && <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.5rem' }}>{progressLog}</p>}
             </div>
           ) : (
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-              <select
-                value={selectedTransition}
-                onChange={e => setSelectedTransition(e.target.value)}
-                style={{
-                  background: '#181c27',
-                  border: '1px solid #1e2436',
-                  borderRadius: '8px',
-                  color: '#e8eaf0',
-                  padding: '0.55rem',
-                  fontSize: '0.82rem',
-                }}
-              >
-                <option value="concat">Прямая склейка (Быстро)</option>
-                <option value="crossfade">Плавное растворение (Crossfade)</option>
-                <option value="fadeblack">Через черный экран</option>
-              </select>
-              <button
-                className="copy-btn"
-                style={{ background: '#10b981', fontWeight: 700 }}
-                onClick={onGenerateVideo}
-                disabled={generatingVideo}
-              >
-                🎬 Создать видео (FFmpeg)
-              </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                <select
+                  value={selectedTransition}
+                  onChange={e => setSelectedTransition(e.target.value)}
+                  style={{
+                    background: '#181c27',
+                    border: '1px solid #1e2436',
+                    borderRadius: '8px',
+                    color: '#e8eaf0',
+                    padding: '0.55rem',
+                    fontSize: '0.82rem',
+                  }}
+                >
+                  <option value="concat">Прямая склейка (Быстро)</option>
+                  <option value="crossfade">Плавное растворение (Crossfade)</option>
+                  <option value="fadeblack">Через черный экран</option>
+                </select>
+                <button
+                  className="copy-btn"
+                  style={{ background: '#10b981', fontWeight: 700 }}
+                  onClick={onGenerateVideo}
+                  disabled={generatingVideo}
+                >
+                  🎬 Создать видео (FFmpeg)
+                </button>
+              </div>
+
+              {setIncludeSubBanner && (
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', color: '#cbd5e1', cursor: 'pointer', background: '#181c27', padding: '0.45rem 0.75rem', borderRadius: '6px', border: '1px solid #27272a', width: 'fit-content' }}>
+                  <input
+                    type="checkbox"
+                    checked={includeSubBanner}
+                    onChange={e => setIncludeSubBanner(e.target.checked)}
+                    style={{ accentColor: '#10b981', cursor: 'pointer' }}
+                  />
+                <span>🔔 Анимация подписки на <strong>30-й сек.</strong></span>
+                <span style={{ fontSize: '0.72rem', color: '#ef4444', fontWeight: 600 }}>• sub_animation_transparent.mov</span>
+                </label>
+              )}
             </div>
           )}
         </div>

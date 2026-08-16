@@ -23,8 +23,9 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
   const [videoProgress, setVideoProgress] = useState(0)
   const [progressLog, setProgressLog] = useState('')
 
-  const [selectedVoice, setSelectedVoice] = useState('nikolay')
+  const [selectedVoice, setSelectedVoice] = useState('aleg-neutral')
   const [selectedTransition, setSelectedTransition] = useState('concat')
+  const [includeSubBanner, setIncludeSubBanner] = useState(true)
 
   const [audioState, setAudioState] = useState({ hasAudio: !!pkg.hasAudio, audioUrl: pkg.audioUrl })
   const [videoState, setVideoState] = useState({ hasVideo: !!pkg.hasVideo, videoUrl: pkg.videoUrl })
@@ -136,7 +137,13 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
       const res = await fetch('/api/render-video', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bundleDir: pkg.bundleDir, folderName: pkg.folderName, transition: selectedTransition }),
+        body: JSON.stringify({
+          bundleDir: pkg.bundleDir,
+          folderName: pkg.folderName,
+          transition: selectedTransition,
+          includeSubBanner,
+          subBannerTime: 30,
+        }),
       })
       const data = await res.json()
       if (data.success) {
@@ -211,20 +218,11 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
 
   const handleOpenSettings = () => {
     setShowSettingsModal(true)
-    try {
-      const url = new URL(window.location.href)
-      url.searchParams.set('modal', 'thumbnail')
-      window.history.replaceState({}, '', url.toString())
-    } catch {}
+    try { const url = new URL(window.location.href); url.searchParams.set('modal', 'thumbnail'); window.history.replaceState({}, '', url.toString()) } catch {}
   }
-
   const handleCloseSettings = () => {
     setShowSettingsModal(false)
-    try {
-      const url = new URL(window.location.href)
-      url.searchParams.delete('modal')
-      window.history.replaceState({}, '', url.toString())
-    } catch {}
+    try { const url = new URL(window.location.href); url.searchParams.delete('modal'); window.history.replaceState({}, '', url.toString()) } catch {}
   }
 
   const handleDeletePackage = async () => {
@@ -364,6 +362,8 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
             progressLog={progressLog}
             selectedTransition={selectedTransition}
             setSelectedTransition={setSelectedTransition}
+            includeSubBanner={includeSubBanner}
+            setIncludeSubBanner={setIncludeSubBanner}
             videoRef={videoRef}
             isPlaying={isPlaying}
             currentTime={currentTime}
