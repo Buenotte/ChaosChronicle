@@ -27,6 +27,28 @@ export default function PackageHeader({
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
           <h2 className="modal-title" style={{ margin: 0 }}>{pkg.title}</h2>
+          {(pkg?.url || pkg?.original_url) && (
+            <a
+              href={pkg.url || pkg.original_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="copy-btn"
+              style={{
+                fontSize: '0.75rem',
+                background: '#1e293b',
+                color: '#38bdf8',
+                border: '1px solid #334155',
+                textDecoration: 'none',
+                padding: '0.2rem 0.55rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.3rem',
+              }}
+              title="Открыть оригинальную статью в новой вкладке"
+            >
+              🌐 Оригинал новости ↗
+            </a>
+          )}
         </div>
         <div className="modal-stats" style={{ marginTop: '0.65rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
           <button

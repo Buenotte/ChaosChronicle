@@ -1,20 +1,23 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
+import { FEUILLETON_STYLES } from '../lib/utils'
 
 export default function YouTubeMetadataModal({ pkg, onClose }) {
   if (!pkg) return null
 
   const [loading, setLoading] = useState(false)
+  const [selectedStyle, setSelectedStyle] = useState('golubuzki')
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [tags, setTags] = useState('')
   const [hashtags, setHashtags] = useState('')
   const [facebookPost, setFacebookPost] = useState('')
 
-  const fetchMetadata = async (force = false) => {
+  const fetchMetadata = async (force = false, styleOverride = selectedStyle) => {
     setLoading(true)
+    const styleLabel = FEUILLETON_STYLES.find(s => s.id === styleOverride)?.name?.split(' (')[0] || 'Голобуцкий'
     const toastId = force
-      ? toast.loading('🤖 Генерация свежих YouTube & Facebook метаданных...')
+      ? toast.loading(`🤖 Генерация метаданных в стиле: ${styleLabel}...`)
       : toast.loading('📥 Загрузка метаданных...')
 
     try {
@@ -25,6 +28,7 @@ export default function YouTubeMetadataModal({ pkg, onClose }) {
           folderName: pkg.folderName,
           bundleDir: pkg.bundleDir,
           title: pkg.title,
+          style: styleOverride,
           force,
         }),
       })
@@ -35,7 +39,7 @@ export default function YouTubeMetadataModal({ pkg, onClose }) {
         setTags(data.tags || '')
         setHashtags(data.hashtags || '')
         setFacebookPost(data.facebookPost || '')
-        toast.success(force ? '✨ Метаданные обновлены!' : '✅ Метаданные готовы!', { id: toastId })
+        toast.success(force ? `✨ Метаданные (${styleLabel}) готовы!` : '✅ Метаданные загружены!', { id: toastId })
       } else {
         toast.error('Ошибка генерации инфо', { id: toastId, description: data.error })
       }
@@ -47,7 +51,7 @@ export default function YouTubeMetadataModal({ pkg, onClose }) {
   }
 
   useEffect(() => {
-    fetchMetadata(false)
+    fetchMetadata(false, selectedStyle)
   }, [pkg?.folderName])
 
   const copyToClipboard = (text, label) => {
@@ -62,6 +66,8 @@ export default function YouTubeMetadataModal({ pkg, onClose }) {
     toast.success('📋 Все метаданные скопированы в буфер!')
   }
 
+  const currentStyleObj = FEUILLETON_STYLES.find(s => s.id === selectedStyle)
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div
@@ -72,13 +78,27 @@ export default function YouTubeMetadataModal({ pkg, onClose }) {
         <div className="modal-header">
           <div>
             <span className="modal-badge" style={{ background: '#dc2626', color: '#fff' }}>
-              📺 YouTube & 📱 Facebook Метаданные (Голобуцкий)
+              📺 YouTube & 📱 Facebook Метаданные ({currentStyleObj?.name?.split(' (')[0] || 'Голобуцкий'})
             </span>
             <h2 className="modal-title" style={{ fontSize: '1.2rem', marginTop: '0.3rem' }}>
               {pkg.title}
             </h2>
-            <div className="modal-stats">
-              <span>🎯 Оптимизировано для алгоритмов YouTube, соцсетей и канала ChaosChronicle</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.8rem', color: '#9ca3af', fontWeight: 600 }}>🎭 Стиль:</span>
+              {FEUILLETON_STYLES.map(s => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedStyle(s.id)
+                    fetchMetadata(false, s.id)
+                  }}
+                  className={`saved-status-badge ${selectedStyle === s.id ? 'active' : 'inactive'} clickable`}
+                  style={{ fontSize: '0.75rem', padding: '0.2rem 0.55rem' }}
+                >
+                  {s.icon} {s.name.split(' (')[0]}
+                </button>
+              ))}
             </div>
           </div>
           <button className="modal-close" onClick={onClose}>✕</button>
@@ -265,11 +285,11 @@ export default function YouTubeMetadataModal({ pkg, onClose }) {
           <button
             type="button"
             className="refresh-btn"
-            onClick={() => fetchMetadata(true)}
+            onClick={() => fetchMetadata(true, selectedStyle)}
             disabled={loading}
             style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
           >
-            🔄 {loading ? 'Генерация...' : 'Сгенерировать новые варианты'}
+            🔄 {loading ? 'Генерация...' : `Сгенерировать (${currentStyleObj?.name?.split(' (')[0] || 'стиль'})`}
           </button>
 
           <div style={{ display: 'flex', gap: '0.5rem' }}>

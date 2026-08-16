@@ -54,26 +54,51 @@ export async function generateFacebookPost({ folderName, bundleDir: inputBundleD
     try { styleGuide = fs.readFileSync(styleFilePath, 'utf-8').slice(0, 1800); } catch {}
   }
 
+  const fallback = `🔥 ${effectiveTitle.toUpperCase()}\n\nРазбираем главное событие дня без цензуры и пропаганды.\n\n📺 Разбор смотрите на канале Chaos Chronicle:\n👉 [ССЫЛКА НА ВАШЕ ВИДЕО В YOUTUBE] 🔔\n\n🔔 Подпишитесь, чтобы не пропустить новые сводки! 🔔\n\n#ChaosChronicle #Chaos_Chronicle #новости #сатира #аналитика`;
+
+  const formatPostWithMandatoryElements = (rawText) => {
+    let p = (rawText || '').trim();
+    if (!p.includes('Chaos Chronicle') && !p.includes('ChaosChronicle')) {
+      p = `📺 Канал Chaos Chronicle:\n${p}`;
+    }
+    if (!p.includes('[ССЫЛКА НА ВАШЕ ВИДЕО В YOUTUBE]') && !p.includes('[ССЫЛКА НА ВИДЕО В YOUTUBE]')) {
+      p += '\n\n👉 [ССЫЛКА НА ВАШЕ ВИДЕО В YOUTUBE] 🔔';
+    }
+    const mandatoryCta = 'Подпишитесь, чтобы не пропустить новые сводки! 🔔';
+    if (!p.includes('Подпишитесь, чтобы не пропустить новые сводки!')) {
+      const hashIdx = p.indexOf('#');
+      if (hashIdx > -1) {
+        const topPart = p.slice(0, hashIdx).trimEnd();
+        const hashes = p.slice(hashIdx).trimStart();
+        p = `${topPart}\n\n🔔 ${mandatoryCta}\n\n${hashes}`;
+      } else {
+        p += `\n\n🔔 ${mandatoryCta}\n\n#ChaosChronicle #новости #сатира`;
+      }
+    }
+    return p;
+  };
+
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey || apiKey.includes('HIER')) {
-    const fallback = `🔥 ${effectiveTitle.toUpperCase()}\n\nРазбираем главное событие дня без цензуры и пропаганды. Почему официальная версия трещит по швам и что происходит на самом деле.\n\nПодробный разбор смотрите в новом выпуске на канале ChaosChronicle:\n👉 [ССЫЛКА НА ВАШЕ ВИДЕО В YOUTUBE] 🔔\n\n#ChaosChronicle #новости #война #сатира #аналитика`;
     return { success: true, post: fallback, style };
   }
 
-  const systemPrompt = `Ты — автор коротких постов для Facebook канала ChaosChronicle.
-Напиши ОЧЕНЬ КРАТКИЙ, ёмкий пост (всего 40-70 слов), где изложена только самая суть новости без лишней воды.
+  const systemPrompt = `Ты — автор постов для Facebook канала Chaos Chronicle.
+Напиши КРАТКИЙ, ёмкий пост (всего 40-70 слов), где изложена только самая суть новости без лишней воды.
 
 СТИЛЕВОЙ ТОН:
 ${styleConfig.tone}
 
-СТРОГИЕ ТРЕБОВАНИЯ К ПОСТУ:
-1. Краткость: 1-2 коротких предложения, рассказывающие только факты новости и главную суть.
-2. Призыв к просмотру видео:
-👉 [ССЫЛКА НА ВАШЕ ВИДЕО В YOUTUBE] 🔔
-3. Фирменная концовка стиля и 3-5 хэштегов (#ChaosChronicle #новости ...).
-4. Выдавай ТОЛЬКО готовый текст поста без вступлений.`;
+СТРОГИЕ ОБЯЗАТЕЛЬНЫЕ ТРЕБОВАНИЯ К ПОСТУ:
+1. Краткость: 1-2 коротких предложения с сутью новости.
+2. Указание канала: канал Chaos Chronicle
+3. Ссылка на видео: 👉 [ССЫЛКА НА ВАШЕ ВИДЕО В YOUTUBE] 🔔
+4. ОБЯЗАТЕЛЬНАЯ ФРАЗА В КОНЦЕ (ТОЧНО В ТАКОМ ВИДЕ):
+Подпишитесь, чтобы не пропустить новые сводки! 🔔
+5. Хэштеги: #ChaosChronicle #новости #сатира ...
+6. Выдавай ТОЛЬКО готовый текст поста.`;
 
-  const userPrompt = `ТЕМА/ЗАГОЛОВОК: ${effectiveTitle}\nКОНТЕКСТ/СЦЕНАРИЙ:\n${effectiveText.slice(0, 1200)}`;
+  const userPrompt = `ТЕМА: ${effectiveTitle}\nКОНТЕКСТ:\n${effectiveText.slice(0, 1200)}`;
 
   try {
     const aiRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -95,19 +120,19 @@ ${styleConfig.tone}
     });
 
     const aiData = await aiRes.json();
-    const generatedPost = aiData.choices?.[0]?.message?.content?.trim() || '';
+    const rawGenerated = aiData.choices?.[0]?.message?.content?.trim() || '';
+    if (!rawGenerated) throw new Error('Пустой ответ модели');
 
-    if (!generatedPost) throw new Error('Пустой ответ модели');
+    const finalPost = formatPostWithMandatoryElements(rawGenerated);
 
     if (jsonPath && fs.existsSync(jsonPath)) {
       if (!manifest.facebookPosts) manifest.facebookPosts = {};
-      manifest.facebookPosts[style] = generatedPost;
+      manifest.facebookPosts[style] = finalPost;
       fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
     }
 
-    return { success: true, post: generatedPost, style };
+    return { success: true, post: finalPost, style };
   } catch (err) {
-    const fallback = `🔥 ${effectiveTitle.toUpperCase()}\n\nРазбираем главное событие дня без цензуры и пропаганды.\n\nПодробный разбор смотрите в новом выпуске на канале ChaosChronicle:\n👉 [ССЫЛКА НА ВАШЕ ВИДЕО В YOUTUBE] 🔔\n\n#ChaosChronicle #новости #война #сатира #аналитика`;
     return { success: true, post: fallback, style };
   }
 }

@@ -7,7 +7,14 @@ const __dirname = path.dirname(__filename);
 const newsDir = path.resolve(__dirname, '../../news');
 const scriptsDir = path.resolve(__dirname, '../../scripts');
 
-export async function generateYouTubeMetadata({ title = '', text = '', folderName, bundleDir: inputBundleDir, force = false, model = 'google/gemini-2.5-flash' }) {
+const STYLES = {
+  golubuzki: { file: 'golubuzki_style.txt', label: '🎭 Алексей Голобуцкий', focus: 'Едкий политический сарказм, смех как оружие, деконструкция официальной лжи врага, финал «Продолжаем наблюдение».' },
+  kasjanov: { file: 'kasjanov_style.txt', label: '🪖 Юрий Касьянов', focus: 'Военно-технический реализм, рубленый синтаксис, акцент на ТТХ, дронах, логистике, финал «Работаем дальше. Без иллюзий.».' },
+  klimovski: { file: 'klimovski_style.txt', label: '🔬 Юрий Климовский', focus: 'Клинический реализм и геополитика, мир как операционный стол, диагноз вместо мнения, финал «Диагноз поставлен, агония продолжается».' },
+  gibrid: { file: 'gibrid_style.txt', label: '⚡ Гибридный стиль (3 в 1)', focus: 'Синтез сатиры Голобуцкого, военного реализма Касьянова и геополитической анатомии Климовского.' },
+};
+
+export async function generateYouTubeMetadata({ title = '', text = '', folderName, bundleDir: inputBundleDir, force = false, style = 'golubuzki', model = 'google/gemini-2.5-flash' }) {
   let bundleDir = inputBundleDir;
   if (!bundleDir && folderName) {
     bundleDir = path.join(newsDir, folderName);
@@ -18,8 +25,9 @@ export async function generateYouTubeMetadata({ title = '', text = '', folderNam
   if (jsonPath && fs.existsSync(jsonPath)) {
     try {
       manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
-      if (!force && manifest.youtubeMetadata && manifest.youtubeMetadata.title && manifest.youtubeMetadata.facebookPost) {
-        return { success: true, ...manifest.youtubeMetadata, fromCache: true };
+      const cached = manifest.youtubeMetadata && (manifest.youtubeMetadata[style] || (!force && manifest.youtubeMetadata.title ? manifest.youtubeMetadata : null));
+      if (!force && cached && cached.title && cached.facebookPost) {
+        return { success: true, ...cached, style, fromCache: true };
       }
     } catch {}
   }
@@ -29,9 +37,9 @@ export async function generateYouTubeMetadata({ title = '', text = '', folderNam
     ? fs.readFileSync(path.join(bundleDir, 'script.txt'), 'utf-8') 
     : manifest.original_title || title);
 
-  // Lade Golubuzki-Style Guide falls vorhanden
+  const styleCfg = STYLES[style] || STYLES.golubuzki;
   let styleGuide = '';
-  const stylePath = path.join(scriptsDir, 'golubuzki_style.txt');
+  const stylePath = path.join(scriptsDir, styleCfg.file);
   if (fs.existsSync(stylePath)) {
     try { styleGuide = fs.readFileSync(stylePath, 'utf-8').slice(0, 1500); } catch {}
   }
@@ -40,7 +48,19 @@ export async function generateYouTubeMetadata({ title = '', text = '', folderNam
   const fallbackDesc = `Разбираем главное событие: ${effectiveTitle}.\n\n⚡ Факты, которые замалчивают\n⚡ Реальный анализ последствий для мировой геополитики\n⚡ Сатирический вердикт от ChaosChronicle\n\n🔔 Подписывайтесь на канал ChaosChronicle, жмите на колокольчик 🔔 и пишите комментарии!\n\n#ChaosChronicle #новости #политика #сатира #аналитика`;
   const fallbackTags = `ChaosChronicle, новости, мировые новости, политика, аналитика, сатира, геополитика, факты, разбор, ${effectiveTitle.slice(0, 30)}`;
   const fallbackHashtags = `#ChaosChronicle #новости #политика #сатира #аналитика`;
-  const fallbackFb = `🔥 ${effectiveTitle.toUpperCase()}\n\nРазбираем главное событие дня без цензуры и пропаганды. Подробный разбор смотрите в новом выпуске ChaosChronicle:\n👉 [ССЫЛКА НА ВАШЕ ВИДЕО В YOUTUBE] 🔔\n\n#ChaosChronicle #новости #сатира #политика`;
+  const fallbackFb = `🔥 ${effectiveTitle.toUpperCase()}\n\nРазбираем главное событие дня без цензуры и пропаганды.\n\n📺 Разбор смотрите на канале Chaos Chronicle:\n👉 [ССЫЛКА НА ВАШЕ ВИДЕО В YOUTUBE] 🔔\n\n🔔 Подпишитесь, чтобы не пропустить новые сводки! 🔔\n\n#ChaosChronicle #Chaos_Chronicle #новости #сатира #политика`;
+
+  const ensureFacebookPostCta = (raw) => {
+    let p = (raw || '').trim();
+    if (!p.includes('Chaos Chronicle') && !p.includes('ChaosChronicle')) p = `📺 Канал Chaos Chronicle:\n${p}`;
+    if (!p.includes('[ССЫЛКА НА ВАШЕ ВИДЕО В YOUTUBE]') && !p.includes('[ССЫЛКА НА ВИДЕО В YOUTUBE]')) p += '\n\n👉 [ССЫЛКА НА ВАШЕ ВИДЕО В YOUTUBE] 🔔';
+    const cta = 'Подпишитесь, чтобы не пропустить новые сводки! 🔔';
+    if (!p.includes('Подпишитесь, чтобы не пропустить новые сводки!')) {
+      const h = p.indexOf('#');
+      p = h > -1 ? `${p.slice(0, h).trimEnd()}\n\n🔔 ${cta}\n\n${p.slice(h).trimStart()}` : `${p}\n\n🔔 ${cta}\n\n#ChaosChronicle #новости #сатира`;
+    }
+    return p;
+  };
 
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey || apiKey.includes('HIER')) {
@@ -51,33 +71,41 @@ export async function generateYouTubeMetadata({ title = '', text = '', folderNam
       hashtags: fallbackHashtags,
       facebookPost: fallbackFb,
       generatedAt: new Date().toISOString(),
+      style,
     };
     if (jsonPath && fs.existsSync(jsonPath)) {
-      manifest.youtubeMetadata = fallbackMetadata;
+      if (!manifest.youtubeMetadata || typeof manifest.youtubeMetadata !== 'object') manifest.youtubeMetadata = {};
+      manifest.youtubeMetadata[style] = fallbackMetadata;
       fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
     }
     return { success: true, ...fallbackMetadata };
   }
 
-  const systemPrompt = `Ты — ведущий медиа-продюсер и сатирик канала ChaosChronicle.
-На основе новости и сценария создай комплект метаданных для YouTube и готовый краткий пост для Facebook.
+  const systemPrompt = `Ты — ведущий медиа-продюсер канала Chaos Chronicle.
+На основе новости и сценария создай комплект метаданных для YouTube и готовый краткий пост для Facebook в следующем авторском стиле:
+АВТОРСКИЙ СТИЛЬ: ${styleCfg.label}
+ФОКУС: ${styleCfg.focus}
+${styleGuide ? `РУКОВОДСТВО: ${styleGuide}\n` : ''}
+ПОЗИЦИЯ: СТРОГО НА СТОРОНЕ УКРАИНЫ. Высмеивай кремлевскую ложь и агрессию.
 
 СТРОГИЕ ТРЕБОВАНИЯ К ОПИСАНИЮ YOUTUBE (description):
-1. КАТЕГОРИЧЕСКИ БЕЗ ПРИВЕТСТВИЙ (никаких «Привет, друзья!», «Здравствуйте!», «Добро пожаловать!»). Сразу начинай с сути темы.
-2. 3 тезиса с эмодзи ⚡, призыв подписаться 🔔 и хэштеги.
+1. КАТЕГОРИЧЕСКИ БЕЗ ПРИВЕТСТВИЙ. Сразу начинай с сути темы.
+2. 3 тезиса с эмодзи ⚡, призыв подписаться на Chaos Chronicle 🔔 и хэштеги.
 
 СТРОГИЕ ТРЕБОВАНИЯ К FACEBOOK-ПОСТУ (facebookPost):
 1. БЕЗ ПРИВЕТСТВИЙ. Только краткий пересказ сути новости (1-2 коротких предложения, всего 40-70 слов).
-2. Призыв к просмотру: 👉 [ССЫЛКА НА ВАШЕ ВИДЕО В YOUTUBE] 🔔
-3. Фирменная концовка стиля и 3-5 хэштегов (#ChaosChronicle #новости ...).
+2. Название канала: канал Chaos Chronicle
+3. Ссылка на видео: 👉 [ССЫЛКА НА ВАШЕ ВИДЕО В YOUTUBE] 🔔
+4. ОБЯЗАТЕЛЬНАЯ ФРАЗА В КОНЦЕ: Подпишитесь, чтобы не пропустить новые сводки! 🔔
+5. Хэштеги: #ChaosChronicle #новости ...
 
 Ответь СТРОГО в формате JSON без каких-либо тегов \`\`\`json:
 {
-  "title": "Хлёсткий кликабельный YouTube-заголовок (до 75 символов) с эмодзи | ChaosChronicle",
+  "title": "Хлёсткий кликабельный YouTube-заголовок (до 75 символов) с эмодзи | Chaos Chronicle",
   "description": "Описание YouTube БЕЗ приветствий: суть темы, 3 пункта ⚡, призыв к подписке 🔔, хэштеги.",
   "tags": "Теги через запятую для YouTube Studio (до 400 символов)",
   "hashtags": "#ChaosChronicle #новости #сатира #аналитика #политика",
-  "facebookPost": "Короткий готовый пост для Facebook без приветствий (суть 40-70 слов + ссылка + хэштеги)"
+  "facebookPost": "Короткий готовый пост для Facebook (суть + канал Chaos Chronicle + ссылка + Подпишитесь, чтобы не пропустить новые сводки! 🔔 + хэштеги)"
 }`;
 
   const userPrompt = `НОВОСТЬ: ${effectiveTitle}\nТЕКСТ:\n${effectiveText.slice(0, 1200)}`;
@@ -120,12 +148,19 @@ export async function generateYouTubeMetadata({ title = '', text = '', folderNam
       description: parsed.description,
       tags: parsed.tags,
       hashtags: parsed.hashtags,
-      facebookPost: parsed.facebookPost || fallbackFb,
+      facebookPost: ensureFacebookPostCta(parsed.facebookPost || fallbackFb),
       generatedAt: new Date().toISOString(),
+      style,
     };
 
     if (jsonPath && fs.existsSync(jsonPath)) {
-      manifest.youtubeMetadata = metadata;
+      if (!manifest.youtubeMetadata || typeof manifest.youtubeMetadata !== 'object') manifest.youtubeMetadata = {};
+      manifest.youtubeMetadata[style] = metadata;
+      manifest.youtubeMetadata.title = metadata.title;
+      manifest.youtubeMetadata.description = metadata.description;
+      manifest.youtubeMetadata.tags = metadata.tags;
+      manifest.youtubeMetadata.hashtags = metadata.hashtags;
+      manifest.youtubeMetadata.facebookPost = metadata.facebookPost;
       fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
     }
 
@@ -138,10 +173,12 @@ export async function generateYouTubeMetadata({ title = '', text = '', folderNam
       hashtags: fallbackHashtags,
       facebookPost: fallbackFb,
       generatedAt: new Date().toISOString(),
+      style,
     };
 
     if (jsonPath && fs.existsSync(jsonPath)) {
-      manifest.youtubeMetadata = fallbackMetadata;
+      if (!manifest.youtubeMetadata || typeof manifest.youtubeMetadata !== 'object') manifest.youtubeMetadata = {};
+      manifest.youtubeMetadata[style] = fallbackMetadata;
       fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
     }
 

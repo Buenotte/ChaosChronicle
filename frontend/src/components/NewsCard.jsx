@@ -24,19 +24,43 @@ export default function NewsCard({ article, index, onGenerate, onOpenPhotos, isG
     setImgError(false)
   }, [displayImage])
 
+  const cleanTitleForSearch = (article.original_title || article.title || savedPkg?.title || '').replace(/^[0-9T_-]+/, '').replace(/_/g, ' ')
+  const targetUrl = article.url || article.link || savedPkg?.url || savedPkg?.original_url || savedPkg?.link || `https://www.google.com/search?q=${encodeURIComponent(cleanTitleForSearch + ' ' + (article.source || ''))}`
+
   return (
     <article
       className={`news-card ${hasAnyArtifact ? 'saved-news-card' : ''}`}
       style={{ '--cat-color': catColor, animationDelay: `${index * 30}ms` }}
     >
       {displayImage && !imgError && (
-        <div className="card-image">
+        <div className="card-image" style={{ position: 'relative' }}>
           <img
             src={displayImage}
             alt={article.title}
             onError={() => setImgError(true)}
             loading="lazy"
           />
+          {hasAnyArtifact && (
+            <span
+              style={{
+                position: 'absolute',
+                top: '8px',
+                right: '8px',
+                background: 'rgba(16, 185, 129, 0.92)',
+                color: '#fff',
+                fontSize: '0.68rem',
+                fontWeight: 800,
+                padding: '0.2rem 0.55rem',
+                borderRadius: '6px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.45)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.25rem',
+              }}
+            >
+              ✅ СОХРАНЕНО
+            </span>
+          )}
         </div>
       )}
       <div className="card-body">
@@ -44,7 +68,19 @@ export default function NewsCard({ article, index, onGenerate, onOpenPhotos, isG
           <span className="card-badge" style={{ background: catColor }}>
             {CATEGORIES.find(c => c.key === article.category)?.label || article.category}
           </span>
-          <span className="card-source">{article.source}</span>
+          {targetUrl ? (
+            <a
+              href={targetUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Открыть оригинальную статью в новой вкладке"
+              style={{ fontSize: '0.75rem', color: '#38bdf8', fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}
+            >
+              🔗 {article.source || 'Источник'} ↗
+            </a>
+          ) : (
+            <span className="card-source">{article.source}</span>
+          )}
           <span className="card-time">{timeAgo(article.pubDate)}</span>
           {hasAnyArtifact && (
             <span className="saved-status-badge">
@@ -54,9 +90,13 @@ export default function NewsCard({ article, index, onGenerate, onOpenPhotos, isG
         </div>
 
         <h2 className="card-title">
-          <a href={article.url} target="_blank" rel="noopener noreferrer">
-            {article.title}
-          </a>
+          {targetUrl ? (
+            <a href={targetUrl} target="_blank" rel="noopener noreferrer" title="Открыть оригинальную статью">
+              {article.title}
+            </a>
+          ) : (
+            <span>{article.title}</span>
+          )}
         </h2>
         {article.summary && (
           <p className="card-summary">{article.summary}</p>
@@ -108,6 +148,29 @@ export default function NewsCard({ article, index, onGenerate, onOpenPhotos, isG
           >
             🖼️ Фото {hasAnyArtifact && savedPkg?.photosCount ? `(${savedPkg.photosCount})` : ''}
           </button>
+          {targetUrl && (
+            <a
+              href={targetUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="copy-btn"
+              style={{
+                background: '#1e293b',
+                color: '#38bdf8',
+                border: '1px solid #334155',
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '0.78rem',
+                fontWeight: 600,
+                padding: '0.4rem 0.5rem',
+              }}
+              title="Открыть оригинальную статью в новой вкладке"
+            >
+              🌐 Оригинал ↗
+            </a>
+          )}
 
           <button
             className={`view-saved-btn ${hasAnyArtifact ? 'has-artifacts' : ''}`}

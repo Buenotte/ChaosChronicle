@@ -81,37 +81,22 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
     if (!currentThumbnail) return
     try {
       const resp = await fetch(currentThumbnail)
-      if (!resp.ok) throw new Error('Не удалось загрузить файл обложки')
       const blob = await resp.blob()
       const defaultName = `thumbnail_${pkg.folderName || 'cover'}.jpg`
-
       if (window.showSaveFilePicker) {
         try {
-          const handle = await window.showSaveFilePicker({
-            suggestedName: defaultName,
-            types: [{ description: 'JPEG Image', accept: { 'image/jpeg': ['.jpg'] } }],
-          })
+          const handle = await window.showSaveFilePicker({ suggestedName: defaultName, types: [{ description: 'JPEG Image', accept: { 'image/jpeg': ['.jpg'] } }] })
           const writable = await handle.createWritable()
           await writable.write(blob)
           await writable.close()
-          toast.success('💾 Обложка сохранена в выбранную папку!')
-          return
-        } catch (err) {
-          if (err.name === 'AbortError') return
-        }
+          return toast.success('💾 Обложка сохранена!')
+        } catch (e) { if (e.name === 'AbortError') return }
       }
-
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.style.display = 'none'
-      a.href = url
-      a.download = defaultName
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
+      const url = window.URL.createObjectURL(blob), a = document.createElement('a')
+      a.href = url; a.download = defaultName; document.body.appendChild(a); a.click(); window.URL.revokeObjectURL(url)
       toast.success('💾 Обложка скачана!')
     } catch (err) {
-      toast.error('Ошибка сохранения файла: ' + err.message)
+      toast.error('Ошибка сохранения: ' + err.message)
     }
   }
 
@@ -186,6 +171,27 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
       }
     } catch (err) {
       toast.error('Ошибка генерации обложки: ' + err.message)
+    }
+  }
+
+  const handleSelectPhotoAsThumbnail = async (photoUrl) => {
+    try {
+      const toastId = toast.loading('🖼️ Применение фото для обложки...')
+      const res = await fetch('/api/set-thumbnail', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ photoUrl, bundleDir: pkg.bundleDir, folderName: pkg.folderName, headlineConfig: { text: pkg.title } }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setCurrentThumbnail(`${data.thumbnailUrl}&t=${Date.now()}`)
+        toast.success('✨ Фото установлено фоном обложки!', { id: toastId })
+        if (onRefresh) onRefresh()
+      } else {
+        toast.error('Ошибка: ' + (data.error || 'Не удалось обновить'), { id: toastId })
+      }
+    } catch (err) {
+      toast.error('Ошибка: ' + err.message)
     }
   }
 
@@ -318,7 +324,10 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
           <PackageThumbnailSection
             actualPhotoCount={actualPhotoCount}
             currentThumbnail={currentThumbnail}
+            photoUrls={pkg.photoUrls || []}
+            folderName={pkg.folderName}
             onGenerateAiThumbnail={handleGenerateAiThumbnail}
+            onSelectBgPhoto={handleSelectPhotoAsThumbnail}
             onOpenSettingsModal={handleOpenSettings}
             onOpenLightbox={() => setLightboxUrl(currentThumbnail)}
             onSaveAsNative={handleSaveAsNative}

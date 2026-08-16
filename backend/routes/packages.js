@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { generateTitleVariants, updatePackageTitle } from '../services/packageTitleService.js';
 import { generateYouTubeMetadata } from '../services/youtubeMetadataService.js';
+import { processSetThumbnail } from '../services/thumbnailService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -14,6 +15,9 @@ const handleSavePackage = async (req, res) => {
   try {
     const {
       title,
+      url,
+      original_url,
+      link,
       text,
       summary = '',
       date,
@@ -52,6 +56,7 @@ const handleSavePackage = async (req, res) => {
     const manifest = {
       title: title || 'Ohne Titel',
       original_title: title || 'Ohne Titel',
+      url: url || original_url || link || '',
       date: date || now.toISOString(),
       model,
       source,
@@ -105,6 +110,20 @@ const handleSavePackage = async (req, res) => {
 
     manifest.photos = savedPhotos;
     fs.writeFileSync(path.join(bundleDir, 'project.json'), JSON.stringify(manifest, null, 2), 'utf-8');
+
+    if (savedPhotos.length > 0) {
+      try {
+        const firstPhotoUrl = `/news-static/${path.basename(bundleDir)}/${savedPhotos[0]}`;
+        await processSetThumbnail({
+          bundleDir,
+          folderName: path.basename(bundleDir),
+          photoUrl: firstPhotoUrl,
+          headlineConfig: { text: title || manifest.title }
+        });
+      } catch (thumbErr) {
+        console.warn('Initial thumbnail creation warning:', thumbErr.message);
+      }
+    }
 
     res.json({
       success: true,
@@ -220,6 +239,7 @@ router.get('/api/saved-packages', async (req, res) => {
           bundleDir,
           title: packageTitle,
           original_title: manifest.original_title || packageTitle,
+          url: manifest.url || manifest.original_url || manifest.link || null,
           date: manifest.date || null,
           model: manifest.model || 'gemini',
           source: manifest.source || '',
@@ -254,20 +274,12 @@ router.get('/api/saved-packages', async (req, res) => {
 // POST /api/delete-package
 router.post('/api/delete-package', (req, res) => {
   try {
-    const { bundleDir: inputBundleDir, folderName } = req.body;
     const newsDir = path.resolve(__dirname, '../../news');
-    let bundleDir = inputBundleDir;
-    if (!bundleDir && folderName) {
-      bundleDir = path.join(newsDir, folderName);
-    }
-    if (!bundleDir || !fs.existsSync(bundleDir)) {
-      return res.status(404).json({ success: false, error: 'Папка пакета не найдена' });
-    }
+    const bundleDir = req.body.bundleDir || (req.body.folderName ? path.join(newsDir, req.body.folderName) : null);
+    if (!bundleDir || !fs.existsSync(bundleDir)) return res.status(404).json({ success: false, error: 'Папка не найдена' });
     fs.rmSync(bundleDir, { recursive: true, force: true });
-    console.log(`🗑️ Видео-пакет удален: ${bundleDir}`);
     res.json({ success: true, deleted: path.basename(bundleDir) });
   } catch (err) {
-    console.error('Delete package error:', err.message);
     res.status(500).json({ success: false, error: err.message });
   }
 });
@@ -276,31 +288,8 @@ router.post('/api/delete-package', (req, res) => {
 router.post('/api/save-script-text', async (req, res) => {
   try {
     const { bundleDir, text } = req.body;
-    if (!bundleDir || !fs.existsSync(bundleDir)) {
-      return res.status(404).json({ success: false, error: 'Paketordner existiert nicht' });
-    }
-
-    const txtPath = path.join(bundleDir, 'script.txt');
-    const mdPath = path.join(bundleDir, 'script.md');
-
-    fs.writeFileSync(txtPath, text, 'utf-8');
-
-    if (fs.existsSync(mdPath)) {
-      try {
-        const lines = fs.readFileSync(mdPath, 'utf-8').split('\n');
-        const headerLines = [];
-        let inHeader = true;
-        for (const line of lines) {
-          if (inHeader) {
-            headerLines.push(line);
-            if (line.trim() === '---') inHeader = false;
-          }
-        }
-        const newMd = inHeader ? `# 🎭 Manuelles Update\n\n---\n\n${text}\n` : `${headerLines.join('\n')}\n\n${text}\n`;
-        fs.writeFileSync(mdPath, newMd, 'utf-8');
-      } catch {}
-    }
-
+    if (!bundleDir || !fs.existsSync(bundleDir)) return res.status(404).json({ success: false, error: 'Папка не найдена' });
+    fs.writeFileSync(path.join(bundleDir, 'script.txt'), text, 'utf-8');
     const jsonPath = path.join(bundleDir, 'project.json');
     if (fs.existsSync(jsonPath)) {
       try {

@@ -64,6 +64,8 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onClose, onR
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: currentTitle,
+          original_title: feuilleton.originalTitle || feuilleton.title || currentTitle,
+          url: feuilleton.url || feuilleton.link || '',
           text: currentText,
           model: feuilleton.modelName || 'gemini',
           source: feuilleton.source,

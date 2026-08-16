@@ -1,7 +1,10 @@
 export default function PackageThumbnailSection({
   actualPhotoCount,
   currentThumbnail,
+  photoUrls = [],
+  folderName,
   onGenerateAiThumbnail,
+  onSelectBgPhoto,
   onOpenSettingsModal,
   onOpenLightbox,
   onSaveAsNative,
@@ -21,7 +24,7 @@ export default function PackageThumbnailSection({
               onClick={onGenerateAiThumbnail}
               title="Создать единое кинематографичное 16:9 AI-изображение (Google Gemini)"
             >
-              ✨ Создать Gemini AI 16:9 Обложку
+              ✨ Gemini AI 16:9 Обложка
             </button>
 
             {currentThumbnail && (
@@ -29,12 +32,44 @@ export default function PackageThumbnailSection({
                 className="copy-btn"
                 style={{ background: '#3b82f6', fontWeight: 600 }}
                 onClick={onOpenSettingsModal}
-                title="Изменить шрифт, размер, цвет, контур, тень или сгенерировать заголовок в стиле Голобуцкого"
+                title="Изменить шрифт, размер, цвет, контур, тень"
               >
                 ⚙️ Настроить шрифт и текст
               </button>
             )}
           </div>
+
+          {photoUrls && photoUrls.length > 0 && (
+            <div style={{ marginBottom: '0.65rem', background: '#18181b', padding: '0.55rem 0.65rem', borderRadius: '8px', border: '1px solid #27272a' }}>
+              <div style={{ fontSize: '0.78rem', color: '#93c5fd', fontWeight: 700, marginBottom: '0.35rem' }}>
+                📸 Выберите фото из пакета для обложки ({photoUrls.length}):
+              </div>
+              <div style={{ display: 'flex', gap: '0.45rem', overflowX: 'auto', paddingBottom: '0.25rem' }}>
+                {photoUrls.map((p, idx) => {
+                  const pUrl = p.startsWith('/news-static/') ? p : `/news-static/${folderName}/${p}`
+                  return (
+                    <div
+                      key={idx}
+                      onClick={() => onSelectBgPhoto && onSelectBgPhoto(p)}
+                      title={`Сделать фото #${idx + 1} фоном обложки`}
+                      style={{
+                        position: 'relative',
+                        flexShrink: 0,
+                        width: '80px',
+                        height: '48px',
+                        borderRadius: '6px',
+                        overflow: 'hidden',
+                        cursor: 'pointer',
+                        border: '1px solid #3f3f46',
+                      }}
+                    >
+                      <img src={pUrl} alt={`Photo ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           {currentThumbnail ? (
             <div style={{ position: 'relative', width: '100%', maxWidth: '640px', borderRadius: '10px', overflow: 'hidden', border: '2px solid #ec4899', background: '#000', boxShadow: '0 4px 16px rgba(236,72,153,0.2)' }}>
@@ -69,7 +104,7 @@ export default function PackageThumbnailSection({
             </div>
           ) : (
             <div style={{ padding: '0.75rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px dashed #3f3f46', fontSize: '0.85rem', color: '#9ca3af' }}>
-              ℹ️ Нажмите «✨ Создать Gemini AI 16:9 Обложку» или выберите любое фото ниже, чтобы назначить обложку.
+              ℹ️ Нажмите «✨ Gemini AI 16:9 Обложка» или выберите фото выше, чтобы назначить обложку.
             </div>
           )}
         </div>

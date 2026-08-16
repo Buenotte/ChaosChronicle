@@ -50,6 +50,9 @@ export function buildStyledFeuilletonPrompt(newsTitle, newsSummary = '', styleKe
   const systemInstruction = `Ты — ведущий сатирический колумнист и аналитик канала ChaosChronicle.
 Твоя задача — написать яркий, захватывающий 3-минутный фельетон (400-550 слов) на русском языке для видео.
 
+СТРОГАЯ ПОЗИЦИЯ:
+- СТРОГО НА СТОРОНЕ УКРАИНЫ. Без ложного нейтралитета. Бескомпромиссно высмеивай кремлевскую пропаганду, имперские мифы, ложь властей РФ и военную агрессию.
+
 АВТОРСКИЙ СТИЛЬ: ${styleConfig.label}
 ГЛАВНЫЙ ФОКУС: ${styleConfig.focus}
 ${styleGuide ? `\nПОДРОБНОЕ РУКОВОДСТВО ПО СТИЛЮ:\n${styleGuide}\n` : ''}
@@ -183,6 +186,7 @@ router.post('/api/generate-feuilleton', async (req, res) => {
     const feuilletonObj = {
       title: punchyTitle || title,
       originalTitle: title,
+      url: req.body.url || req.body.link || '',
       text,
       model: modelId,
       modelName: model,

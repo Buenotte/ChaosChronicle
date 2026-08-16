@@ -18,12 +18,17 @@ export async function processSetThumbnail({
   headlineConfig = {},
 }) {
   let targetFolder = inputBundleDir;
-  if (!targetFolder && folderName) {
-    targetFolder = path.join(newsDir, folderName);
-  }
+  if (!targetFolder && folderName) targetFolder = path.join(newsDir, folderName);
   if (!targetFolder || !fs.existsSync(targetFolder)) {
-    throw new Error('Paketordner nicht gefunden');
+    if (fs.existsSync(newsDir)) {
+      const searchTarget = folderName || (inputBundleDir ? path.basename(inputBundleDir) : '');
+      const prefix = searchTarget.slice(0, 16);
+      const entries = fs.readdirSync(newsDir, { withFileTypes: true });
+      const matched = entries.find(e => e.isDirectory() && (e.name === searchTarget || (prefix && e.name.startsWith(prefix))));
+      if (matched) targetFolder = path.join(newsDir, matched.name);
+    }
   }
+  if (!targetFolder || !fs.existsSync(targetFolder)) throw new Error('Paketordner nicht gefunden');
 
   const thumbnailDir = path.join(targetFolder, 'thumbnail');
   if (!fs.existsSync(thumbnailDir)) {
@@ -122,6 +127,18 @@ export async function processSetThumbnail({
       fs.copyFileSync(rawBackgroundPath, destSub);
     } else if (fs.existsSync(destSub)) {
       fs.copyFileSync(destSub, rawBackgroundPath);
+    } else {
+      const photosDir = path.join(targetFolder, 'photos');
+      if (fs.existsSync(photosDir)) {
+        const photoList = fs.readdirSync(photosDir).filter(f => /\.(jpg|jpeg|png|webp)$/i.test(f));
+        if (photoList.length > 0) {
+          const firstPic = path.join(photosDir, photoList[0]);
+          try {
+            execSync(`ffmpeg -y -i "${firstPic}" -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720[v]" -map "[v]" -q:v 2 "${destSub}"`, { timeout: 10000 });
+          } catch { fs.copyFileSync(firstPic, destSub); }
+          fs.copyFileSync(destSub, rawBackgroundPath);
+        }
+      }
     }
     overlayRussianHeadlineOnThumbnail(destSub, titleToRender, headlineConfig);
 

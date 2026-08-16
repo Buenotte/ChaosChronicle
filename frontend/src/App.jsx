@@ -179,6 +179,7 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: article.title,
+          url: article.url || article.link || '',
           summary: article.summary,
           model: selectedModel,
           style: effectiveStyle,
@@ -231,7 +232,8 @@ export default function App() {
 
       if (matchingPkg) {
         matchedFolderNames.add(matchingPkg.folderName)
-        articlesWithPkg.push({ ...a, matchingPkg })
+        const effectiveUrl = a.url || a.link || matchingPkg.url || matchingPkg.original_url || null
+        articlesWithPkg.push({ ...a, url: effectiveUrl, matchingPkg: { ...matchingPkg, url: effectiveUrl } })
       } else {
         regularArticles.push(a)
       }
@@ -242,6 +244,7 @@ export default function App() {
       .map(p => ({
         id: `pkg-${p.folderName}`,
         title: p.title || p.original_title || p.folderName,
+        url: p.url || p.original_url || p.link || null,
         summary: p.summary || p.scriptTxt?.slice(0, 200) || 'Готовый сохраненный видео-пакет в news/',
         source: p.source || 'ChaosChronicle',
         pubDate: p.date || p.created_at,
