@@ -12,54 +12,35 @@ const parser = new Parser({
   headers: { 'User-Agent': 'ChaosChronicle/1.0' }
 });
 
-// RSS Feed Quellen – NUR unabhängige russischsprachige Medien
+// RSS Feed Quellen – Saubere, themenspezifische Feeds ohne Überschneidungen
 export const FEEDS = [
-  // 🇷🇺 Россия (Проблемы, кризисы, репрессии, экономика – независимые СМИ)
-  { url: 'https://meduza.io/rss/news',                                      category: 'rossija',   source: 'Meduza Россия' },
-  { url: 'https://zona.media/rss',                                          category: 'rossija',   source: 'Медиазона' },
-  { url: 'https://novayagazeta.eu/rss',                                     category: 'rossija',   source: 'Новая газета Европа' },
-  { url: 'https://www.svoboda.org/api/zqpqe-mopot',                         category: 'rossija',   source: 'Радио Свобода' },
-  { url: 'https://www.currenttime.tv/api/zmmqo-mopot',                     category: 'rossija',   source: 'Настоящее Время' },
-  { url: 'https://www.bbc.com/russian/topics/russia.xml',                   category: 'rossija',   source: 'BBC Россия' },
-
-  // 🎭 Культура & Общество
-  { url: 'https://meduza.io/rss/all',                                       category: 'kultura',   source: 'Meduza' },
-  { url: 'https://novayagazeta.eu/rss',                                     category: 'kultura',   source: 'Новая газета Европа' },
-  { url: 'https://zona.media/rss',                                          category: 'kultura',   source: 'Медиазона' },
-  { url: 'https://rss.dw.com/rdf/rss-ru-all',                              category: 'kultura',   source: 'Deutsche Welle RU' },
+  // 🇷🇺 Россия
+  { url: 'https://meduza.io/rss/all', category: 'rossija', source: 'Meduza' },
+  { url: 'https://zona.media/rss', category: 'rossija', source: 'Медиазона' },
+  { url: 'https://feeds.bbci.co.uk/russian/rss.xml', category: 'rossija', source: 'BBC Русская служба' },
 
   // 🏛️ Политика
-  { url: 'https://www.svoboda.org/api/zqpqe-mopot',                         category: 'politika',  source: 'Радио Свобода' },
-  { url: 'https://www.bbc.com/russian/index.xml',                           category: 'politika',  source: 'BBC Русская служба' },
-  { url: 'https://rss.dw.com/rdf/rss-ru-pol',                              category: 'politika',  source: 'DW Политика' },
-  { url: 'https://www.currenttime.tv/api/zqpqe-mopot',                     category: 'politika',  source: 'Настоящее Время' },
-
-  // 🤖 Технологии
-  { url: 'https://habr.com/ru/rss/hubs/all/',                               category: 'tekh',      source: 'Хабр' },
-  { url: 'https://rss.dw.com/rdf/rss-ru-sci',                              category: 'tekh',      source: 'DW Наука & Техника' },
-  { url: 'https://meduza.io/rss/shapito',                                   category: 'tekh',      source: 'Meduza Технологии' },
+  { url: 'https://rss.dw.com/rdf/rss-ru-pol', category: 'politika', source: 'DW Политика' },
 
   // 📈 Экономика
-  { url: 'https://rss.dw.com/rdf/rss-ru-eco',                              category: 'ekonomika', source: 'DW Экономика' },
-  { url: 'https://www.bbc.com/russian/topics/business.xml',                 category: 'ekonomika', source: 'BBC Экономика' },
-  { url: 'https://meduza.io/rss/news',                                      category: 'ekonomika', source: 'Meduza Новости' },
+  { url: 'https://rss.dw.com/rdf/rss-ru-eco', category: 'ekonomika', source: 'DW Экономика' },
+
+  // 🎭 Культура & Общество
+  { url: 'https://rss.dw.com/rdf/rss-ru-cul', category: 'kultura', source: 'DW Культура' },
+
+  // 🤖 Технологии & Наука
+  { url: 'https://habr.com/ru/rss/hubs/all/', category: 'tekh', source: 'Хабр' },
+  { url: 'https://3dnews.ru/news/rss/', category: 'tekh', source: '3DNews' },
 
   // 🌍 Мир
-  { url: 'https://www.bbc.com/russian/topics/world.xml',                    category: 'mir',       source: 'BBC Мир' },
-  { url: 'https://rss.dw.com/rdf/rss-ru-all',                              category: 'mir',       source: 'DW Мир' },
-  { url: 'https://www.svoboda.org/api/zqpqe-mopot',                         category: 'mir',       source: 'Радио Свобода' },
+  { url: 'https://rss.dw.com/rdf/rss-ru-all', category: 'mir', source: 'DW Мир' },
 
   // ⚽ Спорт
-  { url: 'https://www.sports.ru/rss/posts.xml',                             category: 'sport',     source: 'Sports.ru' },
-  { url: 'https://www.eurosport.ru/rss.xml',                                category: 'sport',     source: 'Eurosport RU' },
-  { url: 'https://rss.dw.com/rdf/rss-ru-sport',                            category: 'sport',     source: 'DW Спорт' },
+  { url: 'https://www.championat.com/rss/news/', category: 'sport', source: 'Чемпионат' },
+  { url: 'https://sport24.ru/rss', category: 'sport', source: 'Sport24' },
 
   // 🇺🇦 Война в Украине
-  { url: 'https://www.bbc.com/russian/topics/ukraine.xml',                  category: 'ukraina',   source: 'BBC Украина' },
-  { url: 'https://meduza.io/rss/Ukraine',                                   category: 'ukraina',   source: 'Meduza Украина' },
-  { url: 'https://rss.dw.com/rdf/rss-ru-ukr',                              category: 'ukraina',   source: 'DW Украина' },
-  { url: 'https://www.currenttime.tv/api/zmmqo-mopot',                     category: 'ukraina',   source: 'Настоящее Время' },
-  { url: 'https://novayagazeta.eu/rss',                                     category: 'ukraina',   source: 'Новая газета Европа' },
+  { url: 'https://rss.dw.com/rdf/rss-ru-ukr', category: 'ukraina', source: 'DW Украина' },
 ];
 
 export function cleanText(text = '') {
@@ -129,6 +110,63 @@ export function getRelativeTime(dateStr) {
   return `Vor ${diffDays} Tag${diffDays > 1 ? 'en' : ''}`;
 }
 
+export async function fetchOgImage(url) {
+  if (!url || !/^https?:\/\//i.test(url)) return null;
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 3500);
+    const resp = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml',
+      },
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+    if (!resp.ok) return null;
+    const html = await resp.text();
+    const head = html.slice(0, 40000);
+    const ogMatch = head.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i) ||
+                    head.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i) ||
+                    head.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i) ||
+                    head.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["']/i);
+    if (ogMatch && ogMatch[1]) {
+      let imgUrl = ogMatch[1].trim();
+      if (imgUrl.startsWith('//')) imgUrl = 'https:' + imgUrl;
+      else if (imgUrl.startsWith('/')) {
+        const origin = new URL(url).origin;
+        imgUrl = origin + imgUrl;
+      }
+      return imgUrl;
+    }
+  } catch {}
+  return null;
+}
+
+export async function enrichArticlesWithOgImages(articles) {
+  const missing = articles.filter(a => !a.imageUrl && a.url);
+  if (missing.length === 0) return articles;
+
+  const chunkSize = 15;
+  for (let i = 0; i < missing.length; i += chunkSize) {
+    const chunk = missing.slice(i, i + chunkSize);
+    await Promise.allSettled(
+      chunk.map(async (art) => {
+        const img = await fetchOgImage(art.url);
+        if (img) {
+          art.imageUrl = img;
+          art.images = [img];
+        }
+      })
+    );
+  }
+
+  try {
+    fs.writeFileSync(cacheFilePath, JSON.stringify({ lastFetch, articles }, null, 2), 'utf-8');
+  } catch {}
+  return articles;
+}
+
 const cacheFilePath = path.join(__dirname, '../cache_news.json');
 
 export let newsCache = [];
@@ -140,6 +178,15 @@ if (fs.existsSync(cacheFilePath)) {
     newsCache = cachedData.articles || [];
     lastFetch = cachedData.lastFetch || 0;
     console.log(`📦 ${newsCache.length} Nachrichten aus lokalem Festplatten-Cache geladen (cache_news.json).`);
+    // Hintergrund-Ergänzung für fehlende Bilder
+    const missingCount = newsCache.filter(a => !a.imageUrl && a.url).length;
+    if (missingCount > 0) {
+      console.log(`🔍 Lade Web-Originalfotos für ${missingCount} Nachrichten im Hintergrund nach...`);
+      enrichArticlesWithOgImages(newsCache).then(enriched => {
+        const withImg = enriched.filter(a => a.imageUrl).length;
+        console.log(`✨ Fotos angereichert: ${withImg}/${enriched.length} Nachrichten haben jetzt Original-Bilder!`);
+      });
+    }
   } catch (e) {
     console.error('Fehler beim Lesen von cache_news.json:', e.message);
   }
@@ -173,10 +220,25 @@ export async function fetchAllFeeds(forceRefresh = false) {
     })
   );
 
-  const articles = results
+  const rawArticles = results
     .filter(r => r.status === 'fulfilled')
     .flatMap(r => r.value)
     .sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+
+  // Strikte Duplikats-Filterung nach URL und normalisiertem Titel
+  const seenUrls = new Set();
+  const seenTitles = new Set();
+  const articles = [];
+
+  for (const art of rawArticles) {
+    const normUrl = (art.url || '').split('?')[0].replace(/\/$/, '').toLowerCase();
+    const normTitle = (art.title || '').toLowerCase().replace(/[^a-zа-я0-9]/gi, '');
+    if (normUrl && seenUrls.has(normUrl)) continue;
+    if (normTitle && normTitle.length > 12 && seenTitles.has(normTitle)) continue;
+    if (normUrl) seenUrls.add(normUrl);
+    if (normTitle) seenTitles.add(normTitle);
+    articles.push(art);
+  }
 
   newsCache = articles;
   lastFetch = Date.now();
@@ -186,6 +248,11 @@ export async function fetchAllFeeds(forceRefresh = false) {
   } catch (e) {
     console.error('Fehler beim Speichern von cache_news.json:', e.message);
   }
+
+  // Sofort Web-Fotos für Artikel ohne RSS-Bild nachladen
+  enrichArticlesWithOgImages(articles).then(enriched => {
+    newsCache = enriched;
+  });
 
   return articles;
 }
