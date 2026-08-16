@@ -1,13 +1,18 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import ImageLightboxModal from './ImageLightboxModal'
+import PhotoCardItem from './photos/PhotoCardItem'
+import PhotoSearchHeader from './photos/PhotoSearchHeader'
 
 export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoading, onClose, onSaved, onReload }) {
   if (!newsTopic) return null
 
   const [items, setItems] = useState([])
   const [searchQuery, setSearchQuery] = useState(newsTopic.title || '')
+  const [currentEngine, setCurrentEngine] = useState('all')
+  const [searchPage, setSearchPage] = useState(1)
   const [searching, setSearching] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [savingPhotos, setSavingPhotos] = useState(false)
   const [savingSingleIndex, setSavingSingleIndex] = useState(null)
   const [savedCount, setSavedCount] = useState(null)
@@ -20,23 +25,29 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
     }
   }, [photos, newsTopic?.title])
 
-  const handleCustomSearch = async (e) => {
-    if (e && e.preventDefault) e.preventDefault()
+  const handleCustomSearch = async (engine = 'all') => {
     if (!searchQuery.trim()) {
       toast.error('Введите ключевые слова для поиска фото')
       return
     }
 
     setSearching(true)
-    const toastId = toast.loading('🔎 Поиск фото по ключевым словам...', {
+    setCurrentEngine(engine)
+    setSearchPage(1)
+    const engineLabels = { all: 'по всем источникам', article: 'из оригинальной статьи', bing: 'в Bing', pinterest: 'в Pinterest', yandex: 'в Yandex' }
+    const toastId = toast.loading(`🔎 Поиск фото ${engineLabels[engine] || ''}...`, {
       description: searchQuery.slice(0, 50),
     })
 
     try {
       const params = new URLSearchParams({
         title: newsTopic.title || '',
+        articleId: newsTopic.id || '',
+        url: newsTopic.url || '',
         query: searchQuery.trim(),
         forceLive: 'true',
+        page: '1',
+        engine,
       })
       const res = await fetch(`/api/news-photos?${params}`)
       const data = await res.json()
@@ -83,6 +94,42 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
 
     setItems(prev => prev.filter((_, idx) => idx !== indexToRemove))
     if (onSaved) onSaved()
+  }
+
+  const handleLoadMorePhotos = async () => {
+    const nextPage = searchPage + 1
+    setLoadingMore(true)
+    const toastId = toast.loading(`🔎 Поиск следующих фото (страница ${nextPage})...`)
+
+    try {
+      const params = new URLSearchParams({
+        title: newsTopic.title || '',
+        query: searchQuery.trim(),
+        forceLive: 'true',
+        page: String(nextPage),
+        engine: currentEngine,
+      })
+      const res = await fetch(`/api/news-photos?${params}`)
+      const data = await res.json()
+
+      if (data.success && data.photos?.length > 0) {
+        const existingUrls = new Set(items.map(p => (typeof p === 'string' ? p : p.url)))
+        const newUnique = data.photos.filter(p => !existingUrls.has(p.url))
+        if (newUnique.length > 0) {
+          setItems(prev => [...prev, ...newUnique])
+          setSearchPage(nextPage)
+          toast.success(`📸 Добавлено +${newUnique.length} новых фото! Всего: ${items.length + newUnique.length}`, { id: toastId })
+        } else {
+          toast.info('Новых дополнительных фото не найдено', { id: toastId })
+        }
+      } else {
+        toast.info('Больше фото не найдено', { id: toastId })
+      }
+    } catch (err) {
+      toast.error('Ошибка поиска: ' + err.message, { id: toastId })
+    } finally {
+      setLoadingMore(false)
+    }
   }
 
   const handleSaveSinglePhoto = async (e, index) => {
@@ -225,49 +272,15 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
           </div>
         </div>
 
-        {/* Панель настройки поисковых слов */}
-        <form
-          onSubmit={handleCustomSearch}
-          style={{
-            margin: '0.75rem 1.25rem 0',
-            padding: '0.65rem 0.9rem',
-            background: '#0f172a',
-            borderRadius: '8px',
-            border: '1px solid #1e293b',
-            display: 'flex',
-            gap: '0.6rem',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-          }}
-        >
-          <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#94a3b8', whiteSpace: 'nowrap' }}>
-            🔍 Ключевые слова:
-          </label>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Ключевые слова для точного поиска..."
-            style={{
-              flex: 1,
-              minWidth: '220px',
-              background: '#020617',
-              border: '1px solid #334155',
-              color: '#f8fafc',
-              padding: '0.42rem 0.75rem',
-              borderRadius: '6px',
-              fontSize: '0.85rem',
-            }}
-          />
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="copy-btn"
-            style={{ background: '#1e293b', border: '1px solid #475569', color: '#f8fafc', fontWeight: 700, padding: '0.42rem 0.85rem', fontSize: '0.82rem', whiteSpace: 'nowrap' }}
-          >
-            {searching ? '⏳ Поиск...' : '🔎 Искать фото'}
-          </button>
-        </form>
+        {/* Панель поиска с выбором движка */}
+        <PhotoSearchHeader
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          onSearch={handleCustomSearch}
+          searching={searching}
+          isLoading={isLoading}
+          currentEngine={currentEngine}
+        />
 
         <div className="modal-body" style={{ flex: 1, overflowY: 'auto', padding: '1.25rem' }}>
           {isLoading && (
@@ -283,101 +296,47 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
           )}
 
           {!isLoading && items.length > 0 && (
-            <div className="multi-source-photos-grid">
-              {items.map((photo, i) => {
-                const imgSrc = typeof photo === 'string' ? photo : (photo?.url || '')
-                const isLocal = imgSrc.startsWith('/news-static/') || photo?.isSavedLocal
-                const titleText = photo?.articleTitle || photo?.source || `Фото #${i + 1}`
-                const sourceText = isLocal ? 'На диске' : (photo?.source || 'Веб-поиск')
-                const isSingleSaving = savingSingleIndex === i
+            <>
+              <div className="multi-source-photos-grid">
+                {items.map((photo, i) => (
+                  <PhotoCardItem
+                    key={i}
+                    photo={photo}
+                    index={i}
+                    isSingleSaving={savingSingleIndex === i}
+                    onLightbox={setLightboxUrl}
+                    onRemove={handleRemovePhoto}
+                    onSaveSingle={handleSaveSinglePhoto}
+                  />
+                ))}
+              </div>
 
-                return (
-                  <div key={i} className="photo-card-item" style={{ display: 'flex', flexDirection: 'column', background: '#0b0f19', borderRadius: '8px', overflow: 'hidden', border: isLocal ? '1px solid #10b981' : '1px solid #1e293b' }}>
-                    <div
-                      className="photo-card-img-wrap"
-                      onClick={() => setLightboxUrl(imgSrc)}
-                      style={{ cursor: 'zoom-in', position: 'relative', width: '100%', height: '160px', background: '#020617' }}
-                      title="🔍 Открыть во весь экран"
-                    >
-                      <img
-                        src={imgSrc}
-                        alt={titleText}
-                        loading="lazy"
-                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                      />
-                      <span
-                        style={{
-                          position: 'absolute',
-                          top: '6px',
-                          left: '6px',
-                          maxWidth: '140px',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          background: isLocal ? 'rgba(5, 150, 105, 0.85)' : 'rgba(15, 23, 42, 0.85)',
-                          backdropFilter: 'blur(4px)',
-                          border: '1px solid rgba(255, 255, 255, 0.15)',
-                          color: '#f8fafc',
-                          fontSize: '0.68rem',
-                          padding: '0.15rem 0.45rem',
-                          borderRadius: '4px',
-                          fontWeight: 600,
-                          pointerEvents: 'none',
-                          zIndex: 2,
-                        }}
-                      >
-                        📍 {sourceText}
-                      </span>
-                      <button
-                        className="remove-photo-btn"
-                        onClick={(e) => handleRemovePhoto(e, i)}
-                        title={isLocal ? 'Удалить с диска' : 'Скрыть'}
-                        style={{ zIndex: 3 }}
-                      >
-                        ✕
-                      </button>
-                    </div>
-
-                    <div style={{ padding: '0.6rem 0.75rem', display: 'flex', flexDirection: 'column', gap: '0.45rem', flex: 1, justifyContent: 'space-between' }}>
-                      <p style={{ margin: 0, fontSize: '0.76rem', color: '#94a3b8', lineHeight: 1.3, maxHeight: '2.6em', overflow: 'hidden' }}>
-                        {titleText}
-                      </p>
-
-                      <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', marginTop: 'auto' }}>
-                        {isLocal ? (
-                          <div style={{ fontSize: '0.74rem', color: '#34d399', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                            <span>✓ Сохранено в photos/</span>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={(e) => handleSaveSinglePhoto(e, i)}
-                            disabled={isSingleSaving}
-                            style={{
-                              flex: 1,
-                              background: '#10b981',
-                              color: '#fff',
-                              border: 'none',
-                              borderRadius: '6px',
-                              padding: '0.38rem 0.6rem',
-                              fontSize: '0.76rem',
-                              fontWeight: 700,
-                              cursor: isSingleSaving ? 'default' : 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: '0.3rem',
-                            }}
-                            title="Скачать фото в news/.../photos/"
-                          >
-                            {isSingleSaving ? '⏳...' : '💾 В папку news/'}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
+              <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1.5rem', marginBottom: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={handleLoadMorePhotos}
+                  disabled={loadingMore}
+                  style={{
+                    background: '#1e293b',
+                    border: '1px solid #475569',
+                    color: '#f8fafc',
+                    fontWeight: 700,
+                    padding: '0.65rem 1.6rem',
+                    fontSize: '0.85rem',
+                    borderRadius: '8px',
+                    cursor: loadingMore ? 'default' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={e => { if (!loadingMore) { e.currentTarget.style.background = '#334155'; e.currentTarget.style.borderColor = '#64748b' } }}
+                  onMouseLeave={e => { if (!loadingMore) { e.currentTarget.style.background = '#1e293b'; e.currentTarget.style.borderColor = '#475569' } }}
+                >
+                  {loadingMore ? '⏳ Поиск следующих фото...' : `🔍 Искать ещё фото (страница ${searchPage + 1})`}
+                </button>
+              </div>
+            </>
           )}
         </div>
 

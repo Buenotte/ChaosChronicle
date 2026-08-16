@@ -121,7 +121,78 @@ export async function fetchDDGPhotos(query) {
   }
 }
 
-export async function searchLiveNewsPhotos(queryTitle, customQuery = '') {
+export async function fetchBingPhotos(query) {
+  try {
+    const url = `https://www.bing.com/images/search?q=${encodeURIComponent(query)}&form=HDRSC2&first=1&tsc=ImageHoverTitle`;
+    const resp = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml',
+        'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
+      },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!resp.ok) return [];
+    const html = await resp.text();
+    const list = [];
+    const matches = html.matchAll(/m="?({.*?&quot;murl&quot;:&quot;[^"]+&quot;.*?})"?/g);
+    for (const m of matches) {
+      try {
+        const raw = m[1].replace(/&quot;/g, '"');
+        const p = JSON.parse(raw);
+        if (p.murl && /^https?:\/\//i.test(p.murl) && !p.murl.includes('bing.com')) {
+          list.push({ image: p.murl, title: p.t || query, source: 'Bing' });
+        }
+      } catch {}
+    }
+    return list;
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchYandexPhotos(query) {
+  try {
+    const url = `https://yandex.ru/images/search?text=${encodeURIComponent(query)}&nomisspell=1`;
+    const resp = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml',
+      },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!resp.ok) return [];
+    const html = await resp.text();
+    const list = [];
+    const matches = html.matchAll(/img_url=([^&"'>]+)/gi);
+    for (const m of matches) {
+      const decoded = decodeURIComponent(m[1]);
+      if (decoded && /^https?:\/\//i.test(decoded) && /\.(jpg|jpeg|png|webp)/i.test(decoded)) {
+        list.push({ image: decoded, title: query, source: 'Yandex' });
+      }
+    }
+    return list;
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchPinterestPhotos(query) {
+  try {
+    const results = await fetchDDGPhotos(`${query} site:pinterest.com`);
+    return results
+      .filter(r => r.image && r.image.includes('pinimg.com'))
+      .map(r => ({
+        image: r.image,
+        title: r.title || query,
+        source: 'Pinterest',
+      }));
+  } catch {
+    return [];
+  }
+}
+
+export async function searchLiveNewsPhotos(queryTitle, customQuery = '', page = 1, engine = 'all') {
   if (!queryTitle && !customQuery) return [];
 
   try {
@@ -138,12 +209,43 @@ export async function searchLiveNewsPhotos(queryTitle, customQuery = '') {
 
     if (!keywords) return [];
 
-    const [mainResults, agencyResults] = await Promise.all([
-      fetchDDGPhotos(`"${keywords}"`),
-      fetchDDGPhotos(`${keywords} фото репортаж`),
-    ]);
+    const pageNum = Math.max(1, Number(page) || 1);
+    let queries = [`"${keywords}"`, `${keywords} фото репортаж`];
+    if (pageNum === 2) {
+      queries = [`${keywords} новости`, `${keywords} происшествия кадры`];
+    } else if (pageNum === 3) {
+      queries = [`${keywords} событие`, `${keywords} фото агентство`];
+    } else if (pageNum >= 4) {
+      queries = [`${keywords} репортаж`, `${keywords} место событий`];
+    }
 
-    const combined = [...mainResults, ...agencyResults];
+    let combined = [];
+    if (engine === 'article' || engine === 'news') {
+      const mediaQueries = [
+        `"${keywords}" фото репортаж`,
+        `"${keywords}" новости СМИ`,
+        `${keywords} агентство фото`,
+      ];
+      const [mediaSets, bingMedia] = await Promise.all([
+        Promise.all(mediaQueries.map(q => fetchDDGPhotos(q))),
+        fetchBingPhotos(`${keywords} новости репортаж фото`),
+      ]);
+      combined = [...mediaSets.flat(), ...bingMedia];
+    } else if (engine === 'bing') {
+      combined = await fetchBingPhotos(keywords);
+    } else if (engine === 'pinterest') {
+      combined = await fetchPinterestPhotos(keywords);
+    } else if (engine === 'yandex') {
+      combined = await fetchYandexPhotos(keywords);
+    } else {
+      const [ddgSets, bingList, yandexList, pinterestList] = await Promise.all([
+        Promise.all(queries.map(q => fetchDDGPhotos(q))),
+        fetchBingPhotos(keywords),
+        fetchYandexPhotos(keywords),
+        fetchPinterestPhotos(keywords),
+      ]);
+      combined = [...ddgSets.flat(), ...bingList, ...yandexList, ...pinterestList];
+    }
     const photos = [];
     const seen = new Set();
 

@@ -95,9 +95,9 @@ router.post('/api/delete-font', (req, res) => {
 // GET /api/news-photos
 router.get('/api/news-photos', async (req, res) => {
   try {
-    const { title = '', articleId = '', url = '', query = '', searchQuery = '', folderName = '', bundleDir: inputBundleDir = '', forceLive = 'false' } = req.query;
+    const { title = '', articleId = '', url = '', query = '', searchQuery = '', folderName = '', bundleDir: inputBundleDir = '', forceLive = 'false', page = '1', engine = 'all' } = req.query;
     const effectiveQuery = query || searchQuery || '';
-    const isForceLive = forceLive === 'true' || forceLive === '1' || !!effectiveQuery;
+    const isForceLive = forceLive === 'true' || forceLive === '1' || !!effectiveQuery || engine !== 'all';
 
     const newsDir = path.resolve(__dirname, '../../news');
     if (!isForceLive && fs.existsSync(newsDir)) {
@@ -220,8 +220,34 @@ router.get('/api/news-photos', async (req, res) => {
       } catch {}
     }));
 
+    if (engine === 'article' || engine === 'news') {
+      const newsMediaPhotos = await searchLiveNewsPhotos(title, effectiveQuery, Number(page) || 1, 'news');
+      newsMediaPhotos.forEach(p => {
+        if (!seen.has(p.url)) {
+          seen.add(p.url);
+          photos.push(p);
+        }
+      });
+      return res.json({
+        success: true,
+        count: photos.length,
+        isLocal: false,
+        photos,
+      });
+    }
+
+    if (engine !== 'all') {
+      const singleEnginePhotos = await searchLiveNewsPhotos(title, effectiveQuery, Number(page) || 1, engine);
+      return res.json({
+        success: true,
+        count: singleEnginePhotos.length,
+        isLocal: false,
+        photos: singleEnginePhotos,
+      });
+    }
+
     if ((isForceLive || photos.length < 30) && (title || effectiveQuery)) {
-      const livePhotos = await searchLiveNewsPhotos(title, effectiveQuery);
+      const livePhotos = await searchLiveNewsPhotos(title, effectiveQuery, Number(page) || 1, 'all');
       livePhotos.forEach(p => {
         if (!seen.has(p.url)) {
           seen.add(p.url);
