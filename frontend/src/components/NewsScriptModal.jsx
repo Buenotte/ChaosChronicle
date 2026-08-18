@@ -72,7 +72,7 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: pkg.original_title || pkg.title,
-          summary: pkg.summary || '',
+          summary: pkg.summary || (text ? text.slice(0, 350) : '') || '',
           style: styleToUse,
           source: pkg.source || '',
           model: modelToUse,
@@ -83,9 +83,12 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
       if (!res.ok || !data.success) throw new Error(data.error || 'Ошибка генерации текста')
 
       const fData = data.feuilleton || data
-      if (fData.text) {
-        setText(fData.text)
+      const newText = fData.text || data.text || ''
+      if (newText) {
+        setText(newText)
         toast.success('✨ Новый вариант текста готов! Нажмите «Сохранить изменения»', { id: toastId })
+      } else {
+        toast.warning('Ответ ИИ не содержит нового текста', { id: toastId })
       }
     } catch (err) {
       toast.error('Ошибка перегенерации', { id: toastId, description: err.message })

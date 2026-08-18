@@ -186,6 +186,7 @@ router.post('/api/generate-feuilleton', async (req, res) => {
     return res.status(400).json({ error: 'Title is required' });
   }
 
+  const modelId = model === 'gemini' ? 'gemini-3.7-flash' : (MODELS[model] || MODELS.gemini);
   const { systemInstruction, userInstruction } = buildStyledFeuilletonPrompt(title, summary, style);
 
   try {
@@ -207,7 +208,7 @@ router.post('/api/generate-feuilleton', async (req, res) => {
         return res.status(500).json({ error: 'OPENROUTER_API_KEY ist nicht konfiguriert.' });
       }
 
-      const modelId = MODELS[model] || MODELS.gemini;
+      const orModelId = MODELS[model] || MODELS.gemini;
       const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -217,7 +218,7 @@ router.post('/api/generate-feuilleton', async (req, res) => {
           'X-Title': 'ChaosChronicle',
         },
         body: JSON.stringify({
-          model: modelId,
+          model: orModelId,
           messages: [
             { role: 'system', content: systemInstruction },
             { role: 'user', content: userInstruction },

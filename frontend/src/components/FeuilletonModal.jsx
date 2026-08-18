@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { FEUILLETON_STYLES, AI_MODELS } from '../lib/utils'
 
@@ -8,10 +8,20 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onClose, onR
   const [currentText, setCurrentText] = useState(feuilleton.text || '')
   const [currentTitle, setCurrentTitle] = useState(feuilleton.title || '')
   const [selectedStyle, setSelectedStyle] = useState(feuilleton.style || 'golubuzki')
-  const [selectedModel, setSelectedModel] = useState(feuilleton.modelName || 'gemini')
+  const [selectedModel, setSelectedModel] = useState(feuilleton.modelName || feuilleton.model || 'gemini')
   const [regenerating, setRegenerating] = useState(false)
   const [saving, setSaving] = useState(false)
   const [savedInfo, setSavedInfo] = useState(feuilleton.bundleDir ? feuilleton : null)
+
+  useEffect(() => {
+    if (feuilleton) {
+      setCurrentText(feuilleton.text || '')
+      setCurrentTitle(feuilleton.title || '')
+      setSelectedStyle(feuilleton.style || 'golubuzki')
+      setSelectedModel(feuilleton.modelName || feuilleton.model || 'gemini')
+      setSavedInfo(feuilleton.bundleDir ? feuilleton : null)
+    }
+  }, [feuilleton])
 
   const words = currentText.split(/\s+/).filter(Boolean).length
   const minutes = Math.round((words / 140) * 10) / 10
