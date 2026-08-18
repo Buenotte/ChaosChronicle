@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { FEUILLETON_STYLES } from '../lib/utils'
+import { FEUILLETON_STYLES, AI_MODELS } from '../lib/utils'
 
 export default function FeuilletonModal({ feuilleton, onOpenPhotos, onClose, onRefreshPackages }) {
   if (!feuilleton) return null
@@ -8,6 +8,7 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onClose, onR
   const [currentText, setCurrentText] = useState(feuilleton.text || '')
   const [currentTitle, setCurrentTitle] = useState(feuilleton.title || '')
   const [selectedStyle, setSelectedStyle] = useState(feuilleton.style || 'golubuzki')
+  const [selectedModel, setSelectedModel] = useState(feuilleton.modelName || 'gemini')
   const [regenerating, setRegenerating] = useState(false)
   const [saving, setSaving] = useState(false)
   const [savedInfo, setSavedInfo] = useState(feuilleton.bundleDir ? feuilleton : null)
@@ -15,11 +16,14 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onClose, onR
   const words = currentText.split(/\s+/).filter(Boolean).length
   const minutes = Math.round((words / 140) * 10) / 10
 
-  const handleRegenerateStyle = async (newStyle) => {
+  const handleRegenerateStyle = async (newStyle = selectedStyle, newModel = selectedModel) => {
     setSelectedStyle(newStyle)
+    setSelectedModel(newModel)
     setRegenerating(true)
+    const styleName = FEUILLETON_STYLES.find(s => s.id === newStyle)?.name || newStyle
+    const modelName = AI_MODELS.find(m => m.id === newModel)?.name || newModel
     const toastId = toast.loading('🔄 Переписывание фельетона...', {
-      description: `Стиль: ${FEUILLETON_STYLES.find(s => s.id === newStyle)?.name || newStyle}`,
+      description: `${modelName} | ${styleName}`,
     })
 
     try {
@@ -29,7 +33,7 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onClose, onR
         body: JSON.stringify({
           title: feuilleton.originalTitle || feuilleton.title,
           summary: feuilleton.summary,
-          model: feuilleton.modelName || 'gemini',
+          model: newModel,
           style: newStyle,
           source: feuilleton.source,
           imageUrl: feuilleton.imageUrl,
@@ -124,43 +128,78 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onClose, onR
         </div>
 
         <div className="modal-body" style={{ overflowY: 'auto', flex: 1, padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {/* Панель выбора стиля и перегенерации */}
+          {/* Панель выбора стиля, модели ИИ и перегенерации */}
           <div style={{ background: '#131b2e', padding: '0.85rem 1rem', borderRadius: '8px', border: '1px solid #1e3a8a', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.6rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-              <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#93c5fd' }}>
-                🎨 Стиль автора:
-              </span>
-              <select
-                value={selectedStyle}
-                onChange={e => handleRegenerateStyle(e.target.value)}
-                disabled={regenerating}
-                style={{
-                  background: '#1e293b',
-                  color: '#fff',
-                  border: '1px solid #3b82f6',
-                  borderRadius: '6px',
-                  padding: '0.4rem 0.75rem',
-                  fontSize: '0.86rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                {FEUILLETON_STYLES.map(s => (
-                  <option key={s.id} value={s.id}>
-                    {s.icon} {s.name}
-                  </option>
-                ))}
-              </select>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <span style={{ fontSize: '0.86rem', fontWeight: 600, color: '#93c5fd' }}>
+                  🤖 Модель:
+                </span>
+                <select
+                  value={selectedModel}
+                  onChange={e => {
+                    setSelectedModel(e.target.value)
+                    handleRegenerateStyle(selectedStyle, e.target.value)
+                  }}
+                  disabled={regenerating}
+                  style={{
+                    background: '#1e293b',
+                    color: '#fff',
+                    border: '1px solid #3b82f6',
+                    borderRadius: '6px',
+                    padding: '0.4rem 0.65rem',
+                    fontSize: '0.84rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {AI_MODELS.map(m => (
+                    <option key={m.id} value={m.id}>
+                      {m.icon} {m.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <span style={{ fontSize: '0.86rem', fontWeight: 600, color: '#93c5fd' }}>
+                  🎨 Стиль:
+                </span>
+                <select
+                  value={selectedStyle}
+                  onChange={e => {
+                    setSelectedStyle(e.target.value)
+                    handleRegenerateStyle(e.target.value, selectedModel)
+                  }}
+                  disabled={regenerating}
+                  style={{
+                    background: '#1e293b',
+                    color: '#fff',
+                    border: '1px solid #3b82f6',
+                    borderRadius: '6px',
+                    padding: '0.4rem 0.65rem',
+                    fontSize: '0.84rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {FEUILLETON_STYLES.map(s => (
+                    <option key={s.id} value={s.id}>
+                      {s.icon} {s.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <button
               type="button"
               className="refresh-btn"
-              onClick={() => handleRegenerateStyle(selectedStyle)}
+              onClick={() => handleRegenerateStyle(selectedStyle, selectedModel)}
               disabled={regenerating}
-              style={{ fontSize: '0.82rem', padding: '0.4rem 0.8rem' }}
+              style={{ fontSize: '0.82rem', padding: '0.4rem 0.85rem' }}
             >
-              🔄 {regenerating ? 'Генерация...' : 'Сгенерировать заново'}
+              🔄 {regenerating ? '⏳ Генерация...' : 'Сгенерировать (AI)'}
             </button>
           </div>
 
