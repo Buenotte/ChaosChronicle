@@ -11,6 +11,7 @@ export default function AppHeader({
   setCategory,
   onRefresh,
   loading,
+  savedCount = 0,
 }) {
   return (
     <header className="app-header">
@@ -90,16 +91,19 @@ export default function AppHeader({
 
       {/* Категории */}
       <nav className="category-tabs" aria-label="Категории новостей">
-        {CATEGORIES.map(cat => (
-          <button
-            key={cat.key}
-            className={`tab-btn ${category === cat.key ? 'active' : ''}`}
-            style={{ '--tab-color': cat.color }}
-            onClick={() => setCategory(cat.key)}
-          >
-            {cat.label}
-          </button>
-        ))}
+        {CATEGORIES.map(cat => {
+          const countBadge = cat.key === 'saved' && savedCount > 0 ? ` (${savedCount})` : ''
+          return (
+            <button
+              key={cat.key}
+              className={`tab-btn ${category === cat.key ? 'active' : ''}`}
+              style={{ '--tab-color': cat.color }}
+              onClick={() => setCategory(cat.key)}
+            >
+              {cat.label}{countBadge}
+            </button>
+          )
+        })}
       </nav>
     </header>
   )

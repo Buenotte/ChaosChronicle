@@ -9,7 +9,10 @@ const router = express.Router();
 
 const parser = new Parser({
   timeout: 10000,
-  headers: { 'User-Agent': 'ChaosChronicle/1.0' }
+  headers: {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+  }
 });
 
 // RSS Feed Quellen – Saubere, themenspezifische Feeds ohne Überschneidungen
@@ -18,6 +21,10 @@ export const FEEDS = [
   { url: 'https://meduza.io/rss/all', category: 'rossija', source: 'Meduza' },
   { url: 'https://zona.media/rss', category: 'rossija', source: 'Медиазона' },
   { url: 'https://feeds.bbci.co.uk/russian/rss.xml', category: 'rossija', source: 'BBC Русская служба' },
+  { url: 'https://novayagazeta.eu/feed/rss', category: 'rossija', source: 'Новая газета Европа' },
+  { url: 'https://ru.themoscowtimes.com/rss/news', category: 'rossija', source: 'The Moscow Times' },
+  { url: 'https://verstka.media/feed', category: 'rossija', source: 'Вёрстка' },
+  { url: 'https://www.agents.media/feed/', category: 'rossija', source: 'Агентство' },
 
   // 🏛️ Политика
   { url: 'https://rss.dw.com/rdf/rss-ru-pol', category: 'politika', source: 'DW Политика' },
@@ -34,10 +41,6 @@ export const FEEDS = [
 
   // 🌍 Мир
   { url: 'https://rss.dw.com/rdf/rss-ru-all', category: 'mir', source: 'DW Мир' },
-
-  // ⚽ Спорт
-  { url: 'https://www.championat.com/rss/news/', category: 'sport', source: 'Чемпионат' },
-  { url: 'https://sport24.ru/rss', category: 'sport', source: 'Sport24' },
 
   // 🇺🇦 Война в Украине
   { url: 'https://rss.dw.com/rdf/rss-ru-ukr', category: 'ukraina', source: 'DW Украина' },
@@ -275,7 +278,7 @@ router.get('/api/news', async (req, res) => {
     } else if (category === 'ukraina') {
       const ukraineKeywords = /(украин|киев|всу\b|зеленск|донбасс|донецк|луганск|харьков|днепр|одесс|запорожь|херсон|покровск|купянск|часов яр|краматорск|бахмут|авдеевк|сумск|курск|генштаб|оккупац|пво\b|шахед|обстрел|азов\b|войн)/i;
       filtered = all.filter(a => {
-        if (a.category === 'tekh' || a.category === 'sport' || a.category === 'kultura') return false;
+        if (a.category === 'tekh' || a.category === 'kultura') return false;
         const full = `${a.title || ''} ${a.summary || ''}`;
         return a.category === 'ukraina' || ukraineKeywords.test(full);
       }).sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));

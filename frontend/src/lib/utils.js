@@ -2,14 +2,14 @@
 
 export const CATEGORIES = [
   { key: 'vse',       label: '🌐 Все новости',        color: '#6b7280' },
+  { key: 'saved',     label: '💾 Сохранённые',       color: '#10b981' },
   { key: 'rossija',   label: '🇷🇺 Россия',            color: '#f43f5e' },
-  { key: 'kultura',   label: '🎭 Культура',            color: '#8b5cf6' },
-  { key: 'politika',  label: '🏛️ Политика',           color: '#ef4444' },
-  { key: 'tekh',      label: '🤖 Технологии',          color: '#06b6d4' },
-  { key: 'ekonomika', label: '📈 Экономика',           color: '#10b981' },
-  { key: 'mir',       label: '🌍 Мир',                 color: '#f59e0b' },
-  { key: 'sport',     label: '⚽ Спорт',               color: '#22c55e' },
   { key: 'ukraina',   label: '🇺🇦 Война в Украине',   color: '#facc15' },
+  { key: 'politika',  label: '🏛️ Политика',           color: '#ef4444' },
+  { key: 'ekonomika', label: '📈 Экономика',           color: '#3b82f6' },
+  { key: 'kultura',   label: '🎭 Культура',            color: '#8b5cf6' },
+  { key: 'tekh',      label: '🤖 Технологии',          color: '#06b6d4' },
+  { key: 'mir',       label: '🌍 Мир',                 color: '#f59e0b' },
 ]
 
 export const AI_MODELS = [

@@ -1,11 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { toast } from 'sonner'
 import NewsCard from './components/NewsCard'
-import FeuilletonModal from './components/FeuilletonModal'
-import NewsPhotosModal from './components/NewsPhotosModal'
-import VideoPackageModal from './components/VideoPackageModal'
-import NewsScriptModal from './components/NewsScriptModal'
-import NewsAudioModal from './components/NewsAudioModal'
+import NewsModalsContainer from './components/layout/NewsModalsContainer'
 import AppHeader from './components/layout/AppHeader'
 import AppStatusBar from './components/layout/AppStatusBar'
 import { cleanMatchTitle } from './lib/utils'
@@ -84,47 +80,6 @@ export default function App() {
     }
   }, [])
 
-  const fetchNews = useCallback(async (cat, force = false) => {
-    setLoading(true)
-    setError(null)
-    try {
-      const url = `/api/news?category=${cat === 'vse' ? 'alle' : cat}${force ? '&force=true' : ''}`
-      const res = await fetch(url)
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const data = await res.json()
-      setArticles(data.articles || [])
-      setLastRefresh(new Date().toLocaleTimeString('ru-RU'))
-
-      if (force) {
-        toast.success('Ленты новостей успешно обновлены!')
-      }
-    } catch (err) {
-      setError(`Ошибка загрузки новостей: ${err.message}`)
-      toast.error('Ошибка загрузки новостей', { description: err.message })
-      setArticles([])
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  const updateUrlState = (pkgFolder, modalName) => {
-    try {
-      const url = new URL(window.location.href)
-      if (pkgFolder) {
-        url.searchParams.set('pkg', pkgFolder)
-        if (modalName) {
-          url.searchParams.set('modal', modalName)
-        } else {
-          url.searchParams.delete('modal')
-        }
-      } else {
-        url.searchParams.delete('pkg')
-        url.searchParams.delete('modal')
-      }
-      window.history.replaceState({}, '', url.toString())
-    } catch {}
-  }
-
   const fetchSavedPackages = useCallback(async () => {
     try {
       const res = await fetch('/api/saved-packages')
@@ -147,6 +102,52 @@ export default function App() {
       console.error('Fetch saved packages error:', err.message)
     }
   }, [])
+
+  const fetchNews = useCallback(async (cat, force = false) => {
+    if (cat === 'saved') {
+      fetchSavedPackages()
+      setLastRefresh(new Date().toLocaleTimeString('ru-RU'))
+      return
+    }
+    setLoading(true)
+    setError(null)
+    try {
+      const url = `/api/news?category=${cat === 'vse' ? 'alle' : cat}${force ? '&force=true' : ''}`
+      const res = await fetch(url)
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const data = await res.json()
+      setArticles(data.articles || [])
+      setLastRefresh(new Date().toLocaleTimeString('ru-RU'))
+
+      if (force) {
+        toast.success('Ленты новостей успешно обновлены!')
+      }
+    } catch (err) {
+      setError(`Ошибка загрузки новостей: ${err.message}`)
+      toast.error('Ошибка загрузки новостей', { description: err.message })
+      setArticles([])
+    } finally {
+      setLoading(false)
+    }
+  }, [fetchSavedPackages])
+
+  const updateUrlState = (pkgFolder, modalName) => {
+    try {
+      const url = new URL(window.location.href)
+      if (pkgFolder) {
+        url.searchParams.set('pkg', pkgFolder)
+        if (modalName) {
+          url.searchParams.set('modal', modalName)
+        } else {
+          url.searchParams.delete('modal')
+        }
+      } else {
+        url.searchParams.delete('pkg')
+        url.searchParams.delete('modal')
+      }
+      window.history.replaceState({}, '', url.toString())
+    } catch {}
+  }
 
   const handleOpenSavedPackage = (pkg) => {
     setActiveSavedPackage(pkg)
@@ -212,11 +213,29 @@ export default function App() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
-    const matchedFolderNames = new Set()
-    const articlesWithPkg = []
-    const regularArticles = []
 
-    for (const a of articles) {
+    if (category === 'saved') {
+      const savedItems = (savedPackages || []).map(p => ({
+        id: `pkg-${p.folderName}`,
+        title: p.title || p.original_title || p.folderName,
+        url: p.url || p.original_url || p.link || null,
+        summary: p.summary || p.scriptTxt?.slice(0, 200) || 'Готовый сохраненный видео-пакет в news/',
+        source: p.source || 'ChaosChronicle',
+        pubDate: p.date || p.created_at,
+        imageUrl: p.coverUrl || p.thumbnailUrl || (p.photoUrls && p.photoUrls[0]) || null,
+        images: p.photoUrls || [],
+        matchingPkg: p,
+      }))
+      if (!q) return savedItems
+      return savedItems.filter(
+        a =>
+          a.title?.toLowerCase().includes(q) ||
+          a.summary?.toLowerCase().includes(q) ||
+          a.source?.toLowerCase().includes(q)
+      )
+    }
+
+    const regularWithPkg = articles.map(a => {
       const artClean = cleanMatchTitle(a?.title)
       const matchingPkg = (savedPackages || []).find(p => {
         if (!artClean) return false
@@ -231,38 +250,20 @@ export default function App() {
       })
 
       if (matchingPkg) {
-        matchedFolderNames.add(matchingPkg.folderName)
         const effectiveUrl = a.url || a.link || matchingPkg.url || matchingPkg.original_url || null
-        articlesWithPkg.push({ ...a, url: effectiveUrl, matchingPkg: { ...matchingPkg, url: effectiveUrl } })
-      } else {
-        regularArticles.push(a)
+        return { ...a, url: effectiveUrl, matchingPkg: { ...matchingPkg, url: effectiveUrl } }
       }
-    }
+      return a
+    })
 
-    const standaloneSaved = (category === 'vse' ? (savedPackages || []) : [])
-      .filter(p => !matchedFolderNames.has(p.folderName))
-      .map(p => ({
-        id: `pkg-${p.folderName}`,
-        title: p.title || p.original_title || p.folderName,
-        url: p.url || p.original_url || p.link || null,
-        summary: p.summary || p.scriptTxt?.slice(0, 200) || 'Готовый сохраненный видео-пакет в news/',
-        source: p.source || 'ChaosChronicle',
-        pubDate: p.date || p.created_at,
-        imageUrl: p.coverUrl || (p.photoUrls && p.photoUrls[0]) || null,
-        images: p.photoUrls || [],
-        matchingPkg: p,
-      }))
-
-    const combined = [...articlesWithPkg, ...standaloneSaved, ...regularArticles]
-
-    if (!q) return combined
-    return combined.filter(
+    if (!q) return regularWithPkg
+    return regularWithPkg.filter(
       a =>
         a.title?.toLowerCase().includes(q) ||
         a.summary?.toLowerCase().includes(q) ||
         a.source?.toLowerCase().includes(q)
     )
-  }, [articles, savedPackages, search])
+  }, [articles, savedPackages, search, category])
 
   return (
     <div className="app-layout">
@@ -276,8 +277,9 @@ export default function App() {
         setSearch={setSearch}
         category={category}
         setCategory={setCategory}
-        onRefresh={() => fetchNews(category, true)}
+        onRefresh={() => (category === 'saved' ? fetchSavedPackages() : fetchNews(category, true))}
         loading={loading}
+        savedCount={savedPackages?.length || 0}
       />
 
       {/* Информационная строка статуса */}
@@ -343,45 +345,22 @@ export default function App() {
       </main>
 
       {/* Модальные окна */}
-      <FeuilletonModal
-        feuilleton={currentFeuilleton}
-        onOpenPhotos={handleFetchNewsPhotos}
-        onRefreshPackages={fetchSavedPackages}
-        onClose={() => {
-          setCurrentFeuilleton(null)
-          fetchSavedPackages()
-        }}
-      />
-
-      <VideoPackageModal
-        pkg={activeSavedPackage}
-        onOpenPhotos={handleFetchNewsPhotos}
-        onOpenScriptText={pkg => setScriptTextPackage(pkg)}
-        onOpenAudio={pkg => setAudioPackage(pkg)}
-        onOpenVideo={pkg => setVideoPackage(pkg)}
-        onClose={handleCloseSavedPackage}
-        onRefresh={fetchSavedPackages}
-      />
-
-      <NewsScriptModal
-        pkg={scriptTextPackage}
-        onClose={() => setScriptTextPackage(null)}
-        onSaved={fetchSavedPackages}
-      />
-
-      <NewsAudioModal
-        pkg={audioPackage}
-        onClose={() => setAudioPackage(null)}
-        onRefresh={fetchSavedPackages}
-      />
-
-      <NewsPhotosModal
-        newsTopic={photoTopic}
-        photos={newsPhotos}
-        loading={loadingPhotos}
-        onClose={() => setPhotoTopic(null)}
-        onSaved={fetchSavedPackages}
-        onReload={() => handleFetchNewsPhotos(photoTopic, true)}
+      <NewsModalsContainer
+        currentFeuilleton={currentFeuilleton}
+        setCurrentFeuilleton={setCurrentFeuilleton}
+        activeSavedPackage={activeSavedPackage}
+        handleCloseSavedPackage={handleCloseSavedPackage}
+        scriptTextPackage={scriptTextPackage}
+        setScriptTextPackage={setScriptTextPackage}
+        audioPackage={audioPackage}
+        setAudioPackage={setAudioPackage}
+        setVideoPackage={setVideoPackage}
+        photoTopic={photoTopic}
+        setPhotoTopic={setPhotoTopic}
+        newsPhotos={newsPhotos}
+        loadingPhotos={loadingPhotos}
+        handleFetchNewsPhotos={handleFetchNewsPhotos}
+        fetchSavedPackages={fetchSavedPackages}
       />
 
       <footer className="app-footer">

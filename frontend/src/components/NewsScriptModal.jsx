@@ -10,11 +10,6 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
   const [selectedModel, setSelectedModel] = useState(pkg.model || 'gemini')
   const [savingText, setSavingText] = useState(false)
   const [regenerating, setRegenerating] = useState(false)
-  const [generatingAudio, setGeneratingAudio] = useState(false)
-  const [audioState, setAudioState] = useState({
-    hasAudio: pkg.hasAudio,
-    audioUrl: pkg.audioUrl,
-  })
 
   // Drag & Drop State für Verschiebbarkeit
   const [pos, setPos] = useState({ x: 0, y: 0 })
@@ -23,10 +18,6 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
 
   useEffect(() => {
     setText(pkg.scriptTxt || pkg.scriptMd || '')
-    setAudioState({
-      hasAudio: pkg.hasAudio,
-      audioUrl: pkg.audioUrl,
-    })
     setPos({ x: 0, y: 0 })
   }, [pkg])
 
@@ -141,56 +132,7 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
     }
   }
 
-  const handleGenerateAudioInTextModal = async () => {
-    if (!pkg.bundleDir && !pkg.folderName) {
-      toast.error('Сначала сохраните пакет в папку news/')
-      return
-    }
-    setGeneratingAudio(true)
-    const toastId = toast.loading('🎙️ Синтез речи Nikolay (ru-RU-DmitryNeural, 0%, -10%)...', {
-      description: 'Генерация аудио-файла для озвучивания текста...',
-    })
-
-    try {
-      const res = await fetch('/api/generate-audio', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          bundleDir: pkg.bundleDir,
-          folderName: pkg.folderName,
-          text,
-        }),
-      })
-
-      const data = await res.json()
-      if (!res.ok || !data.success) throw new Error(data.error || 'Ошибка генерации аудио')
-
-      const newAudioUrl = `/news-static/${data.folderName}/${data.audioFileName}?t=${Date.now()}`
-      setAudioState({
-        hasAudio: true,
-        audioUrl: newAudioUrl,
-      })
-
-      if (onSaved) onSaved()
-
-      toast.success('🎙️ Голосовой файл audio.mp3 успешно создан!', {
-        id: toastId,
-        description: `Папка: news/${data.folderName}/audio.mp3 (${data.voice})`,
-        duration: 10000,
-      })
-    } catch (err) {
-      toast.error('Ошибка создания аудио', {
-        id: toastId,
-        description: err.message,
-      })
-    } finally {
-      setGeneratingAudio(false)
-    }
-  }
-
   const [isMaximized, setIsMaximized] = useState(false)
-  const computedAudioUrl = audioState.audioUrl || pkg.audioUrl || (pkg.folderName ? `/news-static/${pkg.folderName}/audio.mp3` : null)
-  const hasAudioFile = audioState.hasAudio || pkg.hasAudio
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -214,7 +156,7 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
         >
           <div>
             <span className="modal-badge saved-badge">
-              📜 Текст и Озвучка диктора (🖐️ Перетащите окно)
+              📜 Текст диктора (🖐️ Перетащите окно)
             </span>
             <h2 className="modal-title">{pkg.title}</h2>
           </div>
@@ -231,31 +173,6 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
         </div>
 
         <div className="modal-body">
-          {/* Audio Player im Text-Dialog */}
-          {hasAudioFile && computedAudioUrl ? (
-            <div className="audio-player-box" style={{ marginBottom: '1rem' }}>
-              <div className="audio-player-title">🎙️ Озвучка диктора Nikolay (ru-RU-DmitryNeural, 0%, -10%):</div>
-              <audio controls src={computedAudioUrl} className="audio-element">
-                Ваш браузер не поддерживает элемент audio.
-              </audio>
-            </div>
-          ) : (
-            <div className="empty-state" style={{ padding: '0.8rem 1rem', marginBottom: '1rem', textAlign: 'left', background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: '12px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
-                <div>
-                  <p style={{ margin: 0, fontWeight: 600, color: '#ef4444' }}>🎙️ Аудио-файл audio.mp3 отсутствует</p>
-                </div>
-                <button
-                  className="audio-gen-btn"
-                  onClick={handleGenerateAudioInTextModal}
-                  disabled={generatingAudio}
-                  style={{ whiteSpace: 'nowrap' }}
-                >
-                  {generatingAudio ? '⏳ Создание audio.mp3...' : '🎙️ Создать audio.mp3 (Nikolay)'}
-                </button>
-              </div>
-            </div>
-          )}
 
           {/* Панель выбора стиля, модели ИИ и перегенерации текста */}
           <div style={{ background: '#0f172a', padding: '0.65rem 0.9rem', borderRadius: '8px', border: '1px solid #1e293b', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.6rem', marginBottom: '1rem' }}>
