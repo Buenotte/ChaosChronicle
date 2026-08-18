@@ -69,46 +69,90 @@ ${styleGuide ? `\nПОДРОБНОЕ РУКОВОДСТВО ПО СТИЛЮ:\n${
   return { systemInstruction, userInstruction };
 }
 
-// ── Генератор заголовков в стиле Голобуцкого (4-5 слов) СТРОГО ИЗ ТЕКСТА ──
-export async function generateGolubuzkiTitle(newsTitle, newsSummary = '', monologueText = '') {
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey || apiKey.includes('HIER')) {
-    return (newsTitle || 'ГЛАВНАЯ НОВОСТЬ ДНЯ').split(/\s+/).slice(0, 5).join(' ').toUpperCase();
+async function callGeminiDirect(systemInstruction, userInstruction, maxTokens = 2200) {
+  const geminiKey = process.env.GEMINI_API_KEY;
+  if (!geminiKey || geminiKey.includes('HIER')) return null;
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent?key=${geminiKey}`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      system_instruction: { parts: [{ text: systemInstruction }] },
+      contents: [{ parts: [{ text: userInstruction }] }],
+      generationConfig: {
+        temperature: 0.85,
+        maxOutputTokens: maxTokens,
+      },
+    }),
+    signal: AbortSignal.timeout(20000),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Google Gemini Direct ${response.status}: ${errText}`);
   }
 
-  try {
-    const textContext = monologueText && monologueText.trim() ? monologueText.slice(0, 1200) : (newsSummary || newsTitle);
-    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: 'Создай убойный сатирический YouTube-заголовок СТРОГО НА ОСНОВЕ ПРИВЕДЕННОГО ТЕКСТА ФЕЛЬЕТОНА. Требования: СТРОГО 4-5 СЛОВ (капсом UPPERCASE). БЕЗ кавычек и точек.' },
-          { role: 'user', content: `Текст фельетона:\n"""\n${textContext}\n"""\n\nСоздай 1 заголовок из 4-5 слов капсом:` }
-        ],
-        max_tokens: 40,
-        temperature: 0.85,
-      }),
-      signal: AbortSignal.timeout(7000),
-    });
+  const data = await response.json();
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+}
 
-    if (res.ok) {
-      const data = await res.json();
-      let text = data.choices?.[0]?.message?.content?.trim();
-      if (text) {
-        text = text.replace(/["'«»`]/g, '').replace(/\.$/, '').trim();
-        const words = text.split(/\s+/).filter(Boolean);
-        if (words.length >= 3 && words.length <= 6) {
-          return text.toUpperCase();
-        }
-      }
+// ── Генератор заголовков в стиле Голобуцкого (4-5 слов) СТРОГО ИЗ ТЕКСТА ──
+export async function generateGolubuzkiTitle(newsTitle, newsSummary = '', monologueText = '') {
+  const textContext = monologueText && monologueText.trim() ? monologueText.slice(0, 1200) : (newsSummary || newsTitle);
+
+  // 1. Попытка через прямой Google Gemini API
+  try {
+    const directTitle = await callGeminiDirect(
+      'Создай убойный сатирический YouTube-заголовок СТРОГО НА ОСНОВЕ ПРИВЕДЕННОГО ТЕКСТА ФЕЛЬЕТОНА. Требования: СТРОГО 4-5 СЛОВ (капсом UPPERCASE). БЕЗ кавычек и точек.',
+      `Текст фельетона:\n"""\n${textContext}\n"""\n\nСоздай 1 заголовок из 4-5 слов капсом:`,
+      60
+    );
+    if (directTitle) {
+      const clean = directTitle.replace(/["'«»`]/g, '').replace(/\.$/, '').trim();
+      const words = clean.split(/\s+/).filter(Boolean);
+      if (words.length >= 3 && words.length <= 6) return clean.toUpperCase();
     }
   } catch (err) {
-    console.warn('Title generation fallback:', err.message);
+    console.warn('Direct title fallback:', err.message);
+  }
+
+  // 2. OpenRouter fallback
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (apiKey && !apiKey.includes('HIER')) {
+    try {
+      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages: [
+            { role: 'system', content: 'Создай убойный сатирический YouTube-заголовок СТРОГО НА ОСНОВЕ ПРИВЕДЕННОГО ТЕКСТА ФЕЛЬЕТОНА. Требования: СТРОГО 4-5 СЛОВ (капсом UPPERCASE). БЕЗ кавычек и точек.' },
+            { role: 'user', content: `Текст фельетона:\n"""\n${textContext}\n"""\n\nСоздай 1 заголовок из 4-5 слов капсом:` }
+          ],
+          max_tokens: 40,
+          temperature: 0.85,
+        }),
+        signal: AbortSignal.timeout(7000),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        let text = data.choices?.[0]?.message?.content?.trim();
+        if (text) {
+          text = text.replace(/["'«»`]/g, '').replace(/\.$/, '').trim();
+          const words = text.split(/\s+/).filter(Boolean);
+          if (words.length >= 3 && words.length <= 6) {
+            return text.toUpperCase();
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Title generation fallback:', err.message);
+    }
   }
   return (newsTitle || 'ГЛАВНАЯ НОВОСТЬ ДНЯ').split(/\s+/).slice(0, 5).join(' ').toUpperCase();
 }
@@ -142,41 +186,55 @@ router.post('/api/generate-feuilleton', async (req, res) => {
     return res.status(400).json({ error: 'Title is required' });
   }
 
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey || apiKey.includes('HIER')) {
-    return res.status(500).json({ error: 'OPENROUTER_API_KEY ist nicht konfiguriert.' });
-  }
-
-  const modelId = MODELS[model] || MODELS.gemini;
   const { systemInstruction, userInstruction } = buildStyledFeuilletonPrompt(title, summary, style);
 
   try {
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'http://localhost:5173',
-        'X-Title': 'ChaosChronicle',
-      },
-      body: JSON.stringify({
-        model: modelId,
-        messages: [
-          { role: 'system', content: systemInstruction },
-          { role: 'user', content: userInstruction },
-        ],
-        max_tokens: 2200,
-        temperature: 0.85,
-      }),
-    });
+    let rawText = '';
 
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`OpenRouter ${response.status}: ${errText}`);
+    // 1. Direkt Google Gemini 3.7 Flash
+    if (model === 'gemini') {
+      try {
+        rawText = await callGeminiDirect(systemInstruction, userInstruction, 2200);
+      } catch (gErr) {
+        console.warn('Google Gemini Direct fehlgeschlagen, nutze OpenRouter Fallback:', gErr.message);
+      }
     }
 
-    const data = await response.json();
-    const rawText = data.choices?.[0]?.message?.content || '';
+    // 2. OpenRouter (für DeepSeek, Qwen oder Fallback)
+    if (!rawText) {
+      const apiKey = process.env.OPENROUTER_API_KEY;
+      if (!apiKey || apiKey.includes('HIER')) {
+        return res.status(500).json({ error: 'OPENROUTER_API_KEY ist nicht konfiguriert.' });
+      }
+
+      const modelId = MODELS[model] || MODELS.gemini;
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'http://localhost:5173',
+          'X-Title': 'ChaosChronicle',
+        },
+        body: JSON.stringify({
+          model: modelId,
+          messages: [
+            { role: 'system', content: systemInstruction },
+            { role: 'user', content: userInstruction },
+          ],
+          max_tokens: 2200,
+          temperature: 0.85,
+        }),
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`OpenRouter ${response.status}: ${errText}`);
+      }
+
+      const data = await response.json();
+      rawText = data.choices?.[0]?.message?.content || '';
+    }
     const text = cleanSpeechTextForAudio(rawText);
     const words = text.split(/\s+/).filter(Boolean).length;
     const minutes = Math.round((words / 140) * 10) / 10;

@@ -43,6 +43,10 @@ export const FEEDS = [
   { url: 'https://rss.dw.com/rdf/rss-ru-all', category: 'mir', source: 'DW Мир' },
 
   // 🇺🇦 Война в Украине
+  { url: 'https://www.pravda.com.ua/rus/rss/', category: 'ukraina', source: 'Украинская правда' },
+  { url: 'https://www.rbc.ua/static/rss/newsline.rus.rss.xml', category: 'ukraina', source: 'РБК-Украина' },
+  { url: 'https://nv.ua/rss/all.xml', category: 'ukraina', source: 'New Voice (NV)' },
+  { url: 'https://news.google.com/rss/search?q=site:svoboda.org+OR+site:radiosvoboda.org&hl=ru&gl=UA&ceid=UA:ru', category: 'ukraina', source: 'Радио Свобода' },
   { url: 'https://rss.dw.com/rdf/rss-ru-ukr', category: 'ukraina', source: 'DW Украина' },
 ];
 

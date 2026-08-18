@@ -364,7 +364,7 @@ export default function App() {
       />
 
       <footer className="app-footer">
-        <p>ChaosChronicle PoC · Новости из открытых RSS-лент · ИИ: Gemini 3.6 Flash, DeepSeek R1, Qwen</p>
+        <p>ChaosChronicle PoC · Новости из открытых RSS-лент · ИИ: Gemini 3.7 Flash, DeepSeek R1, Qwen</p>
       </footer>
     </div>
   )
