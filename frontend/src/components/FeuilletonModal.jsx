@@ -71,6 +71,7 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onClose, onR
           source: feuilleton.source,
           imageUrl: feuilleton.imageUrl,
           images: feuilleton.images || [],
+          folderName: savedInfo?.folderName,
         }),
       })
 
@@ -79,9 +80,9 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onClose, onR
 
       setSavedInfo(data)
       if (onRefreshPackages) onRefreshPackages()
-      toast.success('📦 Видео-пакет сохранен!', {
+      toast.success('📦 Видео-пакет успешно сохранен!', {
         id: toastId,
-        description: `Папка: news/${data.folderName} | Фото: ${data.savedPhotosCount} шт.`,
+        description: `Папка: news/${data.folderName} | Фото: ${data.savedPhotosCount || 0} шт.`,
         duration: 8000,
       })
     } catch (err) {
@@ -170,7 +171,10 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onClose, onR
             </label>
             <textarea
               value={currentText}
-              onChange={e => setCurrentText(e.target.value)}
+              onChange={e => {
+                setCurrentText(e.target.value)
+                setSavedInfo(null)
+              }}
               rows={12}
               style={{
                 width: '100%',

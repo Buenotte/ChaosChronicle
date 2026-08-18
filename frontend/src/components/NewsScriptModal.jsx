@@ -1,11 +1,14 @@
 import { useState, useEffect, useRef } from 'react'
 import { toast } from 'sonner'
+import { FEUILLETON_STYLES } from '../lib/utils'
 
 export default function NewsScriptModal({ pkg, onClose, onSaved }) {
   if (!pkg) return null
 
   const [text, setText] = useState(pkg.scriptTxt || pkg.scriptMd || '')
+  const [selectedStyle, setSelectedStyle] = useState('golubuzki')
   const [savingText, setSavingText] = useState(false)
+  const [regenerating, setRegenerating] = useState(false)
   const [generatingAudio, setGeneratingAudio] = useState(false)
   const [audioState, setAudioState] = useState({
     hasAudio: pkg.hasAudio,
@@ -62,6 +65,41 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
       window.removeEventListener('mouseup', handleMouseUp)
     }
   }, [isDragging])
+
+  const handleRegenerateScript = async (styleToUse = selectedStyle) => {
+    setRegenerating(true)
+    const styleName = FEUILLETON_STYLES.find(s => s.id === styleToUse)?.name || styleToUse
+    const toastId = toast.loading('🔄 Перегенерация текста нейросетью...', {
+      description: `Стиль: ${styleName}`,
+    })
+
+    try {
+      const res = await fetch('/api/generate-feuilleton', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: pkg.original_title || pkg.title,
+          summary: pkg.summary || '',
+          style: styleToUse,
+          source: pkg.source || '',
+          model: pkg.model || 'gemini',
+        }),
+      })
+
+      const data = await res.json()
+      if (!res.ok || !data.success) throw new Error(data.error || 'Ошибка генерации текста')
+
+      const fData = data.feuilleton || data
+      if (fData.text) {
+        setText(fData.text)
+        toast.success('✨ Новый вариант текста готов! Нажмите «Сохранить изменения»', { id: toastId })
+      }
+    } catch (err) {
+      toast.error('Ошибка перегенерации', { id: toastId, description: err.message })
+    } finally {
+      setRegenerating(false)
+    }
+  }
 
   const handleSaveText = async () => {
     if (!text.trim()) return
@@ -217,11 +255,59 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
             </div>
           )}
 
+          {/* Панель выбора стиля и перегенерации текста */}
+          <div style={{ background: '#0f172a', padding: '0.65rem 0.9rem', borderRadius: '8px', border: '1px solid #1e293b', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.6rem', marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#94a3b8' }}>
+                🎨 Стиль:
+              </span>
+              <select
+                value={selectedStyle}
+                onChange={e => {
+                  setSelectedStyle(e.target.value)
+                  handleRegenerateScript(e.target.value)
+                }}
+                disabled={regenerating}
+                style={{
+                  background: '#020617',
+                  color: '#f8fafc',
+                  border: '1px solid #334155',
+                  borderRadius: '6px',
+                  padding: '0.35rem 0.65rem',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                {FEUILLETON_STYLES.map(s => (
+                  <option key={s.id} value={s.id}>
+                    {s.icon} {s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <button
+              type="button"
+              className="refresh-btn"
+              onClick={() => handleRegenerateScript(selectedStyle)}
+              disabled={regenerating}
+              style={{ fontSize: '0.8rem', padding: '0.38rem 0.8rem', background: '#1e293b', border: '1px solid #475569', color: '#f8fafc', fontWeight: 700, borderRadius: '6px', cursor: 'pointer' }}
+            >
+              🔄 {regenerating ? '⏳ Генерация...' : 'Сгенерировать заново (AI)'}
+            </button>
+          </div>
+
           {/* Text Editor */}
           <div className="script-editor-wrap">
-            <label className="section-title" style={{ display: 'block', marginBottom: '0.5rem' }}>
-              📝 Текст для озвучки Nikolay (можно редактировать и сохранить):
-            </label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+              <label className="section-title" style={{ margin: 0, fontSize: '0.86rem', fontWeight: 700, color: '#94a3b8' }}>
+                📝 Текст для озвучки (редактируемый):
+              </label>
+              <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                Слов: {text.split(/\s+/).filter(Boolean).length} | ~{Math.round((text.split(/\s+/).filter(Boolean).length / 140) * 10) / 10} мин.
+              </span>
+            </div>
             <textarea
               className="script-editor-textarea"
               value={text}
