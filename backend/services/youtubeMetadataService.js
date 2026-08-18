@@ -14,6 +14,17 @@ const STYLES = {
   gibrid: { file: 'gibrid_style.txt', label: '⚡ Гибридный стиль (3 в 1)', focus: 'Синтез сатиры Голобуцкого, военного реализма Касьянова и геополитической анатомии Климовского.' },
 };
 
+export function stripBloggerNames(text = '') {
+  if (!text) return '';
+  const bloggerRegex = /#?(?:голобуцк[а-яёa-z]*|касьянов[а-яёa-z]*|климовск[а-яёa-z]*|golubuzk[a-z]*|golobutsk[a-z]*|kasyanov[a-z]*|kasjanov[a-z]*|klimovsk[a-z]*|варламов[а-яёa-z]*|невзоров[а-яёa-z]*|шульман[а-яёa-z]*|кац[а-яёa-z]*)\b/gi;
+  return text
+    .replace(bloggerRegex, '')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/,\s*,/g, ',')
+    .replace(/^,\s*|,\s*$/g, '')
+    .trim();
+}
+
 export async function generateYouTubeMetadata({ title = '', text = '', folderName, bundleDir: inputBundleDir, force = false, style = 'golubuzki', model = 'google/gemini-2.5-flash' }) {
   let bundleDir = inputBundleDir;
   if (!bundleDir && folderName) {
@@ -88,22 +99,26 @@ export async function generateYouTubeMetadata({ title = '', text = '', folderNam
 ${styleGuide ? `РУКОВОДСТВО: ${styleGuide}\n` : ''}
 ПОЗИЦИЯ: СТРОГО НА СТОРОНЕ УКРАИНЫ. Высмеивай кремлевскую ложь и агрессию.
 
+СТРОГИЕ ТРЕБОВАНИЯ К ХЭШТЕГАМ И ТЕГАМ (hashtags, tags):
+1. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО писать имена блогеров, авторов или названий стилей (НИКАКИХ #Голобуцкий, #Касьянов, #Климовский, #golubuzki, #kasyanov, #klimovski и т.д.)!
+2. Хэштеги и теги должны относиться ИСКЛЮЧИТЕЛЬНО к теме новости, географии, событиям и каналу: #ChaosChronicle #новости #политика ...
+
 СТРОГИЕ ТРЕБОВАНИЯ К ОПИСАНИЮ YOUTUBE (description):
 1. КАТЕГОРИЧЕСКИ БЕЗ ПРИВЕТСТВИЙ. Сразу начинай с сути темы.
-2. 3 тезиса с эмодзи ⚡, призыв подписаться на Chaos Chronicle 🔔 и хэштеги.
+2. 3 тезиса с эмодзи ⚡, призыв подписаться на Chaos Chronicle 🔔 и тематические хэштеги (БЕЗ имён блогеров).
 
 СТРОГИЕ ТРЕБОВАНИЯ К FACEBOOK-ПОСТУ (facebookPost):
 1. БЕЗ ПРИВЕТСТВИЙ. Только краткий пересказ сути новости (1-2 коротких предложения, всего 40-70 слов).
 2. Название канала: канал Chaos Chronicle
 3. Ссылка на видео: 👉 [ССЫЛКА НА ВАШЕ ВИДЕО В YOUTUBE] 🔔
 4. ОБЯЗАТЕЛЬНАЯ ФРАЗА В КОНЦЕ: Подпишитесь, чтобы не пропустить новые сводки! 🔔
-5. Хэштеги: #ChaosChronicle #новости ...
+5. Хэштеги: #ChaosChronicle #новости ... (БЕЗ имён блогеров).
 
 Ответь СТРОГО в формате JSON без каких-либо тегов \`\`\`json:
 {
   "title": "Хлёсткий кликабельный YouTube-заголовок (до 75 символов) с эмодзи | Chaos Chronicle",
-  "description": "Описание YouTube БЕЗ приветствий: суть темы, 3 пункта ⚡, призыв к подписке 🔔, хэштеги.",
-  "tags": "Теги через запятую для YouTube Studio (до 400 символов)",
+  "description": "Описание YouTube БЕЗ приветствий: суть темы, 3 пункта ⚡, призыв к подписке 🔔, хэштеги (без имён блогеров).",
+  "tags": "Теги через запятую для YouTube Studio (только по теме новости, без имён блогеров)",
   "hashtags": "#ChaosChronicle #новости #сатира #аналитика #политика",
   "facebookPost": "Короткий готовый пост для Facebook (суть + канал Chaos Chronicle + ссылка + Подпишитесь, чтобы не пропустить новые сводки! 🔔 + хэштеги)"
 }`;
@@ -144,11 +159,11 @@ ${styleGuide ? `РУКОВОДСТВО: ${styleGuide}\n` : ''}
     if (!parsed || !parsed.title) throw new Error('Некорректный ответ модели');
 
     const metadata = {
-      title: parsed.title,
-      description: parsed.description,
-      tags: parsed.tags,
-      hashtags: parsed.hashtags,
-      facebookPost: ensureFacebookPostCta(parsed.facebookPost || fallbackFb),
+      title: stripBloggerNames(parsed.title || ''),
+      description: stripBloggerNames(parsed.description || ''),
+      tags: stripBloggerNames(parsed.tags || ''),
+      hashtags: stripBloggerNames(parsed.hashtags || ''),
+      facebookPost: stripBloggerNames(ensureFacebookPostCta(parsed.facebookPost || fallbackFb)),
       generatedAt: new Date().toISOString(),
       style,
     };

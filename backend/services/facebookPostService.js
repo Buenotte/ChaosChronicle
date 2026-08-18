@@ -95,7 +95,7 @@ ${styleConfig.tone}
 3. Ссылка на видео: 👉 [ССЫЛКА НА ВАШЕ ВИДЕО В YOUTUBE] 🔔
 4. ОБЯЗАТЕЛЬНАЯ ФРАЗА В КОНЦЕ (ТОЧНО В ТАКОМ ВИДЕ):
 Подпишитесь, чтобы не пропустить новые сводки! 🔔
-5. Хэштеги: #ChaosChronicle #новости #сатира ...
+5. Хэштеги: #ChaosChronicle #новости #сатира ... (КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО писать имена блогеров, авторов или стилей в хэштегах!)
 6. Выдавай ТОЛЬКО готовый текст поста.`;
 
   const userPrompt = `ТЕМА: ${effectiveTitle}\nКОНТЕКСТ:\n${effectiveText.slice(0, 1200)}`;
@@ -123,7 +123,9 @@ ${styleConfig.tone}
     const rawGenerated = aiData.choices?.[0]?.message?.content?.trim() || '';
     if (!rawGenerated) throw new Error('Пустой ответ модели');
 
-    const finalPost = formatPostWithMandatoryElements(rawGenerated);
+    const bloggerRegex = /#?(?:голобуцк[а-яёa-z]*|касьянов[а-яёa-z]*|климовск[а-яёa-z]*|golubuzk[a-z]*|golobutsk[a-z]*|kasyanov[a-z]*|kasjanov[a-z]*|klimovsk[a-z]*|варламов[а-яёa-z]*|невзоров[а-яёa-z]*|шульман[а-яёa-z]*|кац[а-яёa-z]*)\b/gi;
+    const cleanedGenerated = rawGenerated.replace(bloggerRegex, '').replace(/\s{2,}/g, ' ').trim();
+    const finalPost = formatPostWithMandatoryElements(cleanedGenerated);
 
     if (jsonPath && fs.existsSync(jsonPath)) {
       if (!manifest.facebookPosts) manifest.facebookPosts = {};
