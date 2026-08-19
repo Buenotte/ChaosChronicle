@@ -19,6 +19,21 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
   useEffect(() => {
     setText(pkg.scriptTxt || pkg.scriptMd || '')
     setPos({ x: 0, y: 0 })
+
+    // Live-Abruf der Datei direkt von der Festplatte
+    const folderName = pkg.folderName || ''
+    const bundleDir = pkg.bundleDir || ''
+    if (folderName || bundleDir) {
+      const params = new URLSearchParams({ folderName, bundleDir })
+      fetch(`/api/package-script-text?${params}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.success && typeof data.text === 'string') {
+            setText(data.text)
+          }
+        })
+        .catch(() => {})
+    }
   }, [pkg])
 
   // Drag Event Handlers

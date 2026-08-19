@@ -284,6 +284,31 @@ router.post('/api/delete-package', (req, res) => {
   }
 });
 
+// GET /api/package-script-text?folderName=...&bundleDir=...
+router.get('/api/package-script-text', (req, res) => {
+  try {
+    const { folderName, bundleDir: inputBundleDir } = req.query;
+    const newsDir = path.resolve(__dirname, '../../news');
+    const targetDir = inputBundleDir || (folderName ? path.join(newsDir, folderName) : null);
+    if (!targetDir || !fs.existsSync(targetDir)) {
+      return res.status(404).json({ success: false, error: 'Папка не найдена' });
+    }
+
+    const txtPath = path.join(targetDir, 'script.txt');
+    const mdPath = path.join(targetDir, 'script.md');
+    let text = '';
+    if (fs.existsSync(txtPath)) {
+      text = fs.readFileSync(txtPath, 'utf-8');
+    } else if (fs.existsSync(mdPath)) {
+      text = fs.readFileSync(mdPath, 'utf-8');
+    }
+
+    res.json({ success: true, text, folderName: path.basename(targetDir) });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // POST /api/save-script-text
 router.post('/api/save-script-text', async (req, res) => {
   try {

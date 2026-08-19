@@ -23,7 +23,7 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
   const [videoProgress, setVideoProgress] = useState(0)
   const [progressLog, setProgressLog] = useState('')
 
-  const [selectedVoice, setSelectedVoice] = useState('aleg-neutral')
+  const [selectedVoice, setSelectedVoice] = useState('el_adam')
   const [selectedTransition, setSelectedTransition] = useState('concat')
   const [includeSubBanner, setIncludeSubBanner] = useState(true)
 

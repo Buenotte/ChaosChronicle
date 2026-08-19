@@ -69,7 +69,7 @@ ${styleGuide ? `\nПОДРОБНОЕ РУКОВОДСТВО ПО СТИЛЮ:\n${
   return { systemInstruction, userInstruction };
 }
 
-async function callGeminiDirect(systemInstruction, userInstruction, maxTokens = 2200) {
+async function callGeminiDirect(systemInstruction, userInstruction, maxTokens = 4000) {
   const geminiKey = process.env.GEMINI_API_KEY;
   if (!geminiKey || geminiKey.includes('HIER')) return null;
 
@@ -83,9 +83,10 @@ async function callGeminiDirect(systemInstruction, userInstruction, maxTokens = 
       generationConfig: {
         temperature: 0.85,
         maxOutputTokens: maxTokens,
+        thinkingConfig: { thinkingBudget: 0 },
       },
     }),
-    signal: AbortSignal.timeout(20000),
+    signal: AbortSignal.timeout(30000),
   });
 
   if (!response.ok) {
@@ -195,7 +196,7 @@ router.post('/api/generate-feuilleton', async (req, res) => {
     // 1. Direkt Google Gemini 3.7 Flash
     if (model === 'gemini') {
       try {
-        rawText = await callGeminiDirect(systemInstruction, userInstruction, 2200);
+        rawText = await callGeminiDirect(systemInstruction, userInstruction, 4000);
       } catch (gErr) {
         console.warn('Google Gemini Direct fehlgeschlagen, nutze OpenRouter Fallback:', gErr.message);
       }
