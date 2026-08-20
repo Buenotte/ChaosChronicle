@@ -27,6 +27,8 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
   const [shadowDistance, setShadowDistance] = useState(cfg.shadowDistance !== undefined ? Number(cfg.shadowDistance) : 4)
   const [position, setPosition] = useState(cfg.position || 'center')
   const [hasBox, setHasBox] = useState(!!cfg.hasBox)
+  const [boxStyle, setBoxStyle] = useState(cfg.boxStyle || (cfg.hasBox ? 'dark_soft' : 'none'))
+  const [boxOpacity, setBoxOpacity] = useState(cfg.boxOpacity !== undefined ? Number(cfg.boxOpacity) : 75)
   const [selectedBgPhoto, setSelectedBgPhoto] = useState(null)
   const [saving, setSaving] = useState(false)
   const [generatingTitle, setGeneratingTitle] = useState(false)
@@ -66,6 +68,9 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
         if (c.tiltAngle !== undefined) setTiltAngle(Number(c.tiltAngle))
         if (c.position) setPosition(c.position)
         if (c.hasBox !== undefined) setHasBox(Boolean(c.hasBox))
+        if (c.boxStyle !== undefined) setBoxStyle(c.boxStyle)
+        else if (c.hasBox) setBoxStyle('dark_soft')
+        if (c.boxOpacity !== undefined) setBoxOpacity(Number(c.boxOpacity))
         if (c.photoUrl) setSelectedBgPhoto(c.photoUrl)
       }
     } catch {}
@@ -183,7 +188,7 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
         isItalic, tiltAngle: Number(tiltAngle) || 0, lineSpacing: Number(lineSpacing) || 1.15,
         fontColor, lineColors: Array.isArray(lineColors) ? lineColors : null,
         borderColor, borderWidth: Number(borderWidth), shadowDistance: Number(shadowDistance),
-        position, hasBox,
+        position, hasBox: boxStyle !== 'none', boxStyle, boxOpacity: Number(boxOpacity) || 75,
       }
       const res = await fetch('/api/set-thumbnail', {
         method: 'POST',
@@ -221,8 +226,8 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
   }
 
   const previewLines = formatPreviewLines(text)
-  const activeColorHex = COLORS.find(c => c.id === fontColor)?.hex || '#FFE600'
-  const activeStrokeHex = STROKE_COLORS.find(c => c.id === borderColor)?.hex || '#000000'
+  const activeColorHex = fontColor?.startsWith('#') ? fontColor : (COLORS.find(c => c.id === fontColor)?.hex || '#FFE600')
+  const activeStrokeHex = borderColor?.startsWith('#') ? borderColor : (STROKE_COLORS.find(c => c.id === borderColor)?.hex || '#000000')
   const calcLiveFontSize = () => {
     const longest = Math.max(...previewLines.map(l => l.length), 8)
     const maxFit = Math.floor(1160 / (longest * 0.65))
@@ -274,6 +279,8 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
             activeStrokeHex={activeStrokeHex}
             shadowDistance={shadowDistance}
             hasBox={hasBox}
+            boxStyle={boxStyle}
+            boxOpacity={boxOpacity}
             isItalic={isItalic}
             tiltAngle={tiltAngle}
             previewLines={previewLines}
@@ -361,20 +368,18 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
               setPosition={setPosition}
               hasBox={hasBox}
               setHasBox={setHasBox}
+              boxStyle={boxStyle}
+              setBoxStyle={setBoxStyle}
+              boxOpacity={boxOpacity}
+              setBoxOpacity={setBoxOpacity}
             />
           </div>
 
           {/* Кнопки действий */}
           <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.75rem', borderTop: '1px solid #27272a', paddingTop: '1rem', flexWrap: 'wrap' }}>
-            <button
-              className="copy-btn"
-              disabled={saving}
-              style={{ background: '#10b981', flex: 1, minWidth: '240px', padding: '0.75rem', fontSize: '0.95rem', fontWeight: 700 }}
-              onClick={handleApply}
-            >
+            <button className="copy-btn" disabled={saving} style={{ background: '#10b981', flex: 1, minWidth: '240px', padding: '0.75rem', fontSize: '0.95rem', fontWeight: 700 }} onClick={handleApply}>
               {saving ? '⏳ Сохранение...' : '💾 Применить стиль и сохранить обложку'}
             </button>
-
             <button className="copy-btn" style={{ background: '#3f3f46', padding: '0.75rem 1.4rem', fontWeight: 600 }} onClick={onClose}>
               ✕ Закрыть
             </button>

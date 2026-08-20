@@ -47,6 +47,7 @@ const handleGenerateVideo = async (req, res) => {
       jobId,
       includeSubBanner = true,
       subBannerTime = 30,
+      bannerStyle = 'modern_dark',
     } = req.body;
 
     const newsDir = path.resolve(__dirname, '../../news');
@@ -140,9 +141,14 @@ const handleGenerateVideo = async (req, res) => {
       concatContent += `file '${activeFrames[activeFrames.length - 1]}'\n`;
       fs.writeFileSync(concatPath, concatContent, 'utf-8');
 
-      const bannerMov = path.resolve(__dirname, '../../assets/banner/sub_animation_transparent.mov');
-      const bannerWebm = path.resolve(__dirname, '../../assets/banner/sub_animation_transparent.webm');
-      const bannerPath = fs.existsSync(bannerMov) ? bannerMov : bannerWebm;
+      const bannerMap = {
+        youtube_studio: 'banner_youtube_studio.webm',
+        modern_dark: 'banner_modern_dark.webm',
+      };
+      const styleFileName = bannerMap[bannerStyle] || 'banner_modern_dark.webm';
+      const specificBanner = path.resolve(__dirname, `../../assets/banner/${styleFileName}`);
+      const fallbackWebm = path.resolve(__dirname, '../../assets/banner/sub_animation_transparent.webm');
+      const bannerPath = fs.existsSync(specificBanner) ? specificBanner : fallbackWebm;
       const hasBanner = includeSubBanner && fs.existsSync(bannerPath);
       const bannerSec = Math.max(0, Number(subBannerTime) || 30);
 

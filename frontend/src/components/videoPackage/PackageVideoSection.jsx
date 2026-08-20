@@ -1,5 +1,10 @@
 import { useState } from 'react'
 
+export const BANNER_STYLES = [
+  { id: 'modern_dark', name: '✨ Modern Dark (Стандартный со стеклом и золотым колокольчиком)', file: 'banner_modern_dark.webm' },
+  { id: 'youtube_studio', name: '🔴 YouTube Studio Official (Оригинальная анимация с колокольчиком и курсором)', file: 'banner_youtube_studio.webm' },
+]
+
 export default function PackageVideoSection({
   videoState,
   actualPhotoCount,
@@ -13,6 +18,8 @@ export default function PackageVideoSection({
   setIncludeSubBanner,
   subBannerTime = 25,
   setSubBannerTime,
+  bannerStyle = 'modern_dark',
+  setBannerStyle,
   videoRef,
   isPlaying,
   currentTime,
@@ -25,6 +32,7 @@ export default function PackageVideoSection({
   onLoadedMetadata,
 }) {
   const [showBannerPreview, setShowBannerPreview] = useState(false)
+  const activeBannerFile = BANNER_STYLES.find(b => b.id === bannerStyle)?.file || 'banner_modern_dark.webm'
 
   const formatTime = (secs) => {
     const m = Math.floor(secs / 60)
@@ -66,7 +74,8 @@ export default function PackageVideoSection({
                 filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.65))',
               }}>
                 <video
-                  src="/assets/banner/sub_animation_transparent.webm"
+                  key={activeBannerFile}
+                  src={`/assets/banner/${activeBannerFile}`}
                   autoPlay
                   loop
                   muted
@@ -174,66 +183,14 @@ export default function PackageVideoSection({
               </button>
             </div>
 
-            {setIncludeSubBanner && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', background: '#181c27', padding: '0.45rem 0.75rem', borderRadius: '6px', border: '1px solid #27272a' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.82rem', color: '#cbd5e1', cursor: 'pointer', margin: 0 }}>
-                  <input
-                    type="checkbox"
-                    checked={includeSubBanner}
-                    onChange={e => setIncludeSubBanner(e.target.checked)}
-                    style={{ accentColor: '#10b981', cursor: 'pointer' }}
-                  />
-                  <span>🔔 Анимация подписки</span>
-                </label>
-
-                {includeSubBanner && setSubBannerTime && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginLeft: 'auto' }}>
-                    <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>на:</span>
-                    <input
-                      type="number"
-                      min={0}
-                      max={600}
-                      value={subBannerTime}
-                      onChange={e => setSubBannerTime(Math.max(0, parseInt(e.target.value) || 0))}
-                      style={{
-                        width: '52px',
-                        background: '#0f172a',
-                        border: '1px solid #3b82f6',
-                        borderRadius: '4px',
-                        color: '#fff',
-                        fontSize: '0.8rem',
-                        fontWeight: 700,
-                        padding: '0.2rem 0.35rem',
-                        textAlign: 'center',
-                      }}
-                    />
-                    <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>сек.</span>
-
-                    <div style={{ display: 'flex', gap: '0.2rem', marginLeft: '0.25rem' }}>
-                      {[15, 25, 30, 45].map(sec => (
-                        <button
-                          key={sec}
-                          type="button"
-                          onClick={() => setSubBannerTime(sec)}
-                          style={{
-                            background: subBannerTime === sec ? '#3b82f6' : '#1e293b',
-                            border: '1px solid #334155',
-                            borderRadius: '4px',
-                            color: subBannerTime === sec ? '#fff' : '#94a3b8',
-                            fontSize: '0.72rem',
-                            fontWeight: 600,
-                            padding: '0.15rem 0.4rem',
-                            cursor: 'pointer',
-                          }}
-                        >
-                          {sec}с
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
+            <BannerSettingsBar
+              includeSubBanner={includeSubBanner}
+              setIncludeSubBanner={setIncludeSubBanner}
+              bannerStyle={bannerStyle}
+              setBannerStyle={setBannerStyle}
+              subBannerTime={subBannerTime}
+              setSubBannerTime={setSubBannerTime}
+            />
           </div>
         </div>
       ) : (
@@ -241,9 +198,9 @@ export default function PackageVideoSection({
           {/* Live Preview Box vor dem Rendern, falls gewünscht */}
           {showBannerPreview && (
             <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9', background: '#090d16', borderRadius: '8px', overflow: 'hidden', marginBottom: '0.75rem', border: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <div style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: 600 }}>🖼️ 16:9 Фон видео (Предпросмотр)</div>
+              <div style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: 600 }}>🖼️ 16:9 Фон видео (Предпросмотр баннера)</div>
               <div style={{ position: 'absolute', bottom: '20px', left: '50%', transform: 'translateX(-50%)', width: '60%', maxWidth: '520px', pointerEvents: 'none', zIndex: 25, filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.65))' }}>
-                <video src="/assets/banner/sub_animation_transparent.webm" autoPlay loop muted playsInline style={{ width: '100%', height: 'auto', display: 'block' }} />
+                <video key={activeBannerFile} src={`/assets/banner/${activeBannerFile}`} autoPlay loop muted playsInline style={{ width: '100%', height: 'auto', display: 'block' }} />
               </div>
             </div>
           )}
@@ -302,66 +259,102 @@ export default function PackageVideoSection({
                 </button>
               </div>
 
-              {setIncludeSubBanner && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', background: '#181c27', padding: '0.45rem 0.75rem', borderRadius: '6px', border: '1px solid #27272a' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.82rem', color: '#cbd5e1', cursor: 'pointer', margin: 0 }}>
-                    <input
-                      type="checkbox"
-                      checked={includeSubBanner}
-                      onChange={e => setIncludeSubBanner(e.target.checked)}
-                      style={{ accentColor: '#10b981', cursor: 'pointer' }}
-                    />
-                    <span>🔔 Анимация подписки</span>
-                  </label>
+              <BannerSettingsBar
+                includeSubBanner={includeSubBanner}
+                setIncludeSubBanner={setIncludeSubBanner}
+                bannerStyle={bannerStyle}
+                setBannerStyle={setBannerStyle}
+                subBannerTime={subBannerTime}
+                setSubBannerTime={setSubBannerTime}
+              />
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
 
-                  {includeSubBanner && setSubBannerTime && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginLeft: 'auto' }}>
-                      <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>на:</span>
-                      <input
-                        type="number"
-                        min={0}
-                        max={600}
-                        value={subBannerTime}
-                        onChange={e => setSubBannerTime(Math.max(0, parseInt(e.target.value) || 0))}
-                        style={{
-                          width: '52px',
-                          background: '#0f172a',
-                          border: '1px solid #3b82f6',
-                          borderRadius: '4px',
-                          color: '#fff',
-                          fontSize: '0.8rem',
-                          fontWeight: 700,
-                          padding: '0.2rem 0.35rem',
-                          textAlign: 'center',
-                        }}
-                      />
-                      <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>сек.</span>
+function BannerSettingsBar({ includeSubBanner, setIncludeSubBanner, bannerStyle, setBannerStyle, subBannerTime, setSubBannerTime }) {
+  if (!setIncludeSubBanner) return null
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', background: '#181c27', padding: '0.45rem 0.75rem', borderRadius: '6px', border: '1px solid #27272a' }}>
+      <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.82rem', color: '#cbd5e1', cursor: 'pointer', margin: 0 }}>
+        <input
+          type="checkbox"
+          checked={includeSubBanner}
+          onChange={e => setIncludeSubBanner(e.target.checked)}
+          style={{ accentColor: '#10b981', cursor: 'pointer' }}
+        />
+        <span>🔔 Анимация подписки</span>
+      </label>
 
-                      <div style={{ display: 'flex', gap: '0.2rem', marginLeft: '0.25rem' }}>
-                        {[15, 25, 30, 45].map(sec => (
-                          <button
-                            key={sec}
-                            type="button"
-                            onClick={() => setSubBannerTime(sec)}
-                            style={{
-                              background: subBannerTime === sec ? '#3b82f6' : '#1e293b',
-                              border: '1px solid #334155',
-                              borderRadius: '4px',
-                              color: subBannerTime === sec ? '#fff' : '#94a3b8',
-                              fontSize: '0.72rem',
-                              fontWeight: 600,
-                              padding: '0.15rem 0.4rem',
-                              cursor: 'pointer',
-                            }}
-                          >
-                            {sec}с
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
+      {includeSubBanner && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: 'auto', flexWrap: 'wrap' }}>
+          {setBannerStyle && (
+            <select
+              value={bannerStyle}
+              onChange={e => setBannerStyle(e.target.value)}
+              style={{
+                background: '#0f172a',
+                border: '1px solid #3b82f6',
+                borderRadius: '4px',
+                color: '#e2e8f0',
+                fontSize: '0.78rem',
+                fontWeight: 600,
+                padding: '0.2rem 0.45rem',
+              }}
+            >
+              {BANNER_STYLES.map(s => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+          )}
+
+          {setSubBannerTime && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+              <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>на:</span>
+              <input
+                type="number"
+                min={0}
+                max={600}
+                value={subBannerTime}
+                onChange={e => setSubBannerTime(Math.max(0, parseInt(e.target.value) || 0))}
+                style={{
+                  width: '48px',
+                  background: '#0f172a',
+                  border: '1px solid #3b82f6',
+                  borderRadius: '4px',
+                  color: '#fff',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  padding: '0.2rem 0.35rem',
+                  textAlign: 'center',
+                }}
+              />
+              <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>сек.</span>
+
+              <div style={{ display: 'flex', gap: '0.2rem' }}>
+                {[15, 25, 30, 45].map(sec => (
+                  <button
+                    key={sec}
+                    type="button"
+                    onClick={() => setSubBannerTime(sec)}
+                    style={{
+                      background: subBannerTime === sec ? '#3b82f6' : '#1e293b',
+                      border: '1px solid #334155',
+                      borderRadius: '4px',
+                      color: subBannerTime === sec ? '#fff' : '#94a3b8',
+                      fontSize: '0.72rem',
+                      fontWeight: 600,
+                      padding: '0.15rem 0.35rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {sec}с
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </div>

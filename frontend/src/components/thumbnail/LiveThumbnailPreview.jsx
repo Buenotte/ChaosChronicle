@@ -1,11 +1,6 @@
-const COLOR_MAP = {
-  yellow: '#FFE600',
-  white: '#FFFFFF',
-  red: '#FF2A2A',
-  cyan: '#00F0FF',
-  orange: '#FF8C00',
-  green: '#00FF66',
-}
+import { COLORS } from './TypographyStyleControls'
+
+const COLOR_MAP = Object.fromEntries(COLORS.map(c => [c.id, c.hex]))
 
 export default function LiveThumbnailPreview({
   previewSrc,
@@ -19,6 +14,8 @@ export default function LiveThumbnailPreview({
   activeStrokeHex,
   shadowDistance,
   hasBox,
+  boxStyle = 'none',
+  boxOpacity = 75,
   isItalic,
   tiltAngle,
   previewLines,
@@ -73,41 +70,58 @@ export default function LiveThumbnailPreview({
         />
 
         {/* Накладываемый живой текст с точной имитацией FFmpeg (наклон, курсив, обводка, тень) */}
-        <div
-          style={{
-            position: 'relative',
-            zIndex: 2,
-            textAlign: 'center',
-            fontFamily: fontFamilyName,
-            fontStyle: isItalic ? 'italic' : 'normal',
-            fontSize: calcLiveFontSize(),
-            fontWeight: 900,
-            lineHeight: Number(lineSpacing) || 1.15,
-            color: activeColorHex,
-            letterSpacing: '0.5px',
-            transform: `rotate(${angle}deg) ${isItalic && !fontFamilyName.includes('Georgia') ? 'skewX(-8deg)' : ''}`,
-            transformOrigin: 'center center',
-            transition: 'transform 0.15s ease',
-            WebkitTextStroke: `${Math.round(borderWidth * 0.45)}px ${activeStrokeHex}`,
-            textShadow: `${Math.round(shadowDistance * 0.45)}px ${Math.round(shadowDistance * 0.45)}px ${Math.round(shadowDistance * 0.45)}px rgba(0,0,0,0.92)`,
-            background: hasBox ? 'rgba(0, 0, 0, 0.72)' : 'transparent',
-            padding: hasBox ? '8px 18px' : '0',
-            borderRadius: hasBox ? '8px' : '0',
-            userSelect: 'none',
-            pointerEvents: 'none',
-            maxWidth: '92%',
-          }}
-        >
-          {previewLines.map((line, idx) => {
-            const lineCol = (lineColors && lineColors[idx]) ? lineColors[idx] : null
-            const lineHex = lineCol ? (COLOR_MAP[lineCol] || (lineCol.startsWith('#') ? lineCol : activeColorHex)) : activeColorHex
-            return (
-              <div key={idx} style={{ whiteSpace: 'nowrap', color: lineHex }}>
-                {line}
-              </div>
-            )
-          })}
-        </div>
+        {(() => {
+          const alpha = ((Number(boxOpacity) >= 10 ? Number(boxOpacity) : 75) / 100).toFixed(2)
+          return (
+            <div
+              style={{
+                position: 'relative',
+                zIndex: 2,
+                textAlign: 'center',
+                fontFamily: fontFamilyName,
+                fontStyle: isItalic ? 'italic' : 'normal',
+                fontSize: calcLiveFontSize(),
+                fontWeight: 900,
+                lineHeight: Number(lineSpacing) || 1.15,
+                color: activeColorHex,
+                letterSpacing: '0.5px',
+                transform: `rotate(${angle}deg) ${isItalic && !fontFamilyName.includes('Georgia') ? 'skewX(-8deg)' : ''}`,
+                transformOrigin: 'center center',
+                transition: 'transform 0.15s ease',
+                WebkitTextStroke: `${Math.round(borderWidth * 0.45)}px ${activeStrokeHex}`,
+                textShadow: `${Math.round(shadowDistance * 0.45)}px ${Math.round(shadowDistance * 0.45)}px ${Math.round(shadowDistance * 0.45)}px rgba(0,0,0,0.92)`,
+                background: (boxStyle === 'dark_solid' ? `rgba(0,0,0,${alpha})` : (boxStyle === 'dark_soft' || (hasBox && boxStyle === 'none') ? `rgba(0,0,0,${alpha})` : (boxStyle === 'red_accent' ? `rgba(220,38,38,${alpha})` : (boxStyle === 'yellow_highlight' ? `rgba(245,158,11,${alpha})` : (boxStyle === 'blue_cyber' ? `rgba(15,23,42,${alpha})` : (boxStyle === 'purple_glass' ? `rgba(59,7,100,${alpha})` : 'transparent')))))),
+                border: boxStyle === 'blue_cyber' ? '2px solid #0284c7' : (boxStyle === 'purple_glass' ? '1px solid #c084fc' : (boxStyle === 'dark_solid' ? '1px solid #27272a' : 'none')),
+                padding: (boxStyle !== 'none' && boxStyle !== 'per_line') || hasBox ? '8px 18px' : '0',
+                borderRadius: (boxStyle !== 'none' && boxStyle !== 'per_line') || hasBox ? '8px' : '0',
+                userSelect: 'none',
+                pointerEvents: 'none',
+                maxWidth: '92%',
+              }}
+            >
+              {previewLines.map((line, idx) => {
+                const lineCol = (lineColors && lineColors[idx]) ? lineColors[idx] : null
+                const lineHex = lineCol ? (COLOR_MAP[lineCol] || (lineCol.startsWith('#') ? lineCol : activeColorHex)) : activeColorHex
+                return (
+                  <div
+                    key={idx}
+                    style={{
+                      whiteSpace: 'nowrap',
+                      color: lineHex,
+                      background: boxStyle === 'per_line' ? `rgba(0,0,0,${alpha})` : 'transparent',
+                      padding: boxStyle === 'per_line' ? '3px 14px' : '0',
+                      borderRadius: boxStyle === 'per_line' ? '6px' : '0',
+                      margin: boxStyle === 'per_line' ? '3px 0' : '0',
+                      display: boxStyle === 'per_line' ? 'inline-block' : 'block',
+                    }}
+                  >
+                    {line}
+                  </div>
+                )
+              })}
+            </div>
+          )
+        })()}
       </div>
     </div>
   )

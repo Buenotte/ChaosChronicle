@@ -324,14 +324,15 @@ export default function TitleVariantsModal({ pkg, onClose, onTitleSaved }) {
                   </div>
                   {lines.map((lText, lIdx) => {
                     const activeCol = (lineColors && lineColors[lIdx]) ? lineColors[lIdx] : (lIdx === 0 ? 'yellow' : 'white')
+                    const curHex = activeCol?.startsWith('#') ? activeCol : (COLORS.find(c => c.id === activeCol)?.hex || '#FFE600')
                     return (
-                      <div key={lIdx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#09090b', padding: '0.3rem 0.5rem', borderRadius: '6px' }}>
-                        <span style={{ fontSize: '0.78rem', color: '#f4f4f5', fontWeight: 700, maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <div key={lIdx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#09090b', padding: '0.3rem 0.5rem', borderRadius: '6px', gap: '0.4rem' }}>
+                        <span style={{ fontSize: '0.78rem', color: '#f4f4f5', fontWeight: 700, maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {lIdx + 1}. {lText}
                         </span>
-                        <div style={{ display: 'flex', gap: '0.3rem' }}>
+                        <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
                           {COLORS.map(c => {
-                            const isCur = activeCol === c.id
+                            const isCur = activeCol === c.id || activeCol === c.hex
                             return (
                               <button
                                 key={c.id}
@@ -343,18 +344,24 @@ export default function TitleVariantsModal({ pkg, onClose, onTitleSaved }) {
                                 }}
                                 title={`Строка ${lIdx + 1}: ${c.label}`}
                                 style={{
-                                  width: '18px',
-                                  height: '18px',
-                                  borderRadius: '50%',
-                                  background: c.hex,
-                                  border: isCur ? '2px solid #ffffff' : '1px solid #000',
-                                  cursor: 'pointer',
-                                  transform: isCur ? 'scale(1.2)' : 'scale(1)',
-                                  padding: 0,
+                                  width: '16px', height: '16px', borderRadius: '50%', background: c.hex,
+                                  border: isCur ? '2px solid #ffffff' : '1px solid #000', cursor: 'pointer',
+                                  transform: isCur ? 'scale(1.2)' : 'scale(1)', padding: 0,
                                 }}
                               />
                             )
                           })}
+                          <input
+                            type="color"
+                            value={curHex}
+                            onChange={e => {
+                              const newArr = [...(lineColors || lines.map((_, i) => i === 0 ? 'yellow' : 'white'))]
+                              newArr[lIdx] = e.target.value
+                              setLineColors(newArr)
+                            }}
+                            title="Свой цвет для строки"
+                            style={{ width: '20px', height: '20px', padding: 0, border: 'none', borderRadius: '4px', cursor: 'pointer', background: 'transparent' }}
+                          />
                         </div>
                       </div>
                     )
@@ -369,17 +376,7 @@ export default function TitleVariantsModal({ pkg, onClose, onTitleSaved }) {
             <button
               className="copy-btn"
               disabled={saving || !selectedTitle.trim()}
-              style={{
-                background: '#10b981',
-                flex: 1,
-                padding: '0.75rem',
-                fontSize: '1rem',
-                fontWeight: 800,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.5rem',
-              }}
+              style={{ background: '#10b981', flex: 1, padding: '0.75rem', fontSize: '1rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
               onClick={handleSave}
             >
               {saving ? '⏳ Сохранение...' : '💾 Сохранить заголовок в пакет и обложку'}

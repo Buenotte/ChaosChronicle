@@ -143,8 +143,20 @@ export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, optio
     const bColor = borderColor || 'black';
     const bWidth = Number(borderWidth) >= 0 ? Number(borderWidth) : 9;
     const sDist = Number(shadowDistance) >= 0 ? Number(shadowDistance) : 4;
-    const sColor = shadowColor || 'black@0.92';
-    const boxParam = hasBox ? ':box=1:boxcolor=black@0.72:boxborderw=20' : ':box=0';
+    const rawOp = Number(options.boxOpacity);
+    const op = (!isNaN(rawOp) && rawOp >= 10 && rawOp <= 100) ? (rawOp / 100).toFixed(2) : '0.75';
+    const BOX_MAP = {
+      none: ':box=0',
+      dark_soft: `:box=1:boxcolor=black@${op}:boxborderw=20`,
+      dark_solid: `:box=1:boxcolor=black@${op}:boxborderw=24`,
+      red_accent: `:box=1:boxcolor=#dc2626@${op}:boxborderw=22`,
+      yellow_highlight: `:box=1:boxcolor=#f59e0b@${op}:boxborderw=20`,
+      blue_cyber: `:box=1:boxcolor=#0f172a@${op}:boxborderw=22`,
+      purple_glass: `:box=1:boxcolor=#3b0764@${op}:boxborderw=22`,
+      per_line: `:box=1:boxcolor=black@${op}:boxborderw=14`,
+    };
+    const chosenBox = options.boxStyle || (hasBox ? 'dark_soft' : 'none');
+    const boxParam = BOX_MAP[chosenBox] || (hasBox ? `:box=1:boxcolor=black@${op}:boxborderw=20` : ':box=0');
     const numAngle = Number(tiltAngle) || 0;
 
     const drawtextFilters = cleanLines.map((line, idx) => {

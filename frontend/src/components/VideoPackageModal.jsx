@@ -27,6 +27,7 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
   const [selectedTransition, setSelectedTransition] = useState('concat')
   const [includeSubBanner, setIncludeSubBanner] = useState(true)
   const [subBannerTime, setSubBannerTime] = useState(25)
+  const [bannerStyle, setBannerStyle] = useState('modern_dark')
 
   const [audioState, setAudioState] = useState({ hasAudio: !!pkg.hasAudio, audioUrl: pkg.audioUrl })
   const [videoState, setVideoState] = useState({ hasVideo: !!pkg.hasVideo, videoUrl: pkg.videoUrl })
@@ -82,24 +83,20 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
   const handleSaveAsNative = async () => {
     if (!currentThumbnail) return
     try {
-      const resp = await fetch(currentThumbnail)
-      const blob = await resp.blob()
+      const blob = await (await fetch(currentThumbnail)).blob()
       const defaultName = `thumbnail_${pkg.folderName || 'cover'}.jpg`
       if (window.showSaveFilePicker) {
         try {
           const handle = await window.showSaveFilePicker({ suggestedName: defaultName, types: [{ description: 'JPEG Image', accept: { 'image/jpeg': ['.jpg'] } }] })
           const writable = await handle.createWritable()
-          await writable.write(blob)
-          await writable.close()
+          await writable.write(blob); await writable.close()
           return toast.success('💾 Обложка сохранена!')
         } catch (e) { if (e.name === 'AbortError') return }
       }
       const url = window.URL.createObjectURL(blob), a = document.createElement('a')
       a.href = url; a.download = defaultName; document.body.appendChild(a); a.click(); window.URL.revokeObjectURL(url)
       toast.success('💾 Обложка скачана!')
-    } catch (err) {
-      toast.error('Ошибка сохранения: ' + err.message)
-    }
+    } catch (err) { toast.error('Ошибка сохранения: ' + err.message) }
   }
 
   const handleGenerateAudio = async () => {
@@ -144,6 +141,7 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
           transition: selectedTransition,
           includeSubBanner,
           subBannerTime: Number(subBannerTime) || 25,
+          bannerStyle,
         }),
       })
       const data = await res.json()
@@ -367,6 +365,8 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
             setIncludeSubBanner={setIncludeSubBanner}
             subBannerTime={subBannerTime}
             setSubBannerTime={setSubBannerTime}
+            bannerStyle={bannerStyle}
+            setBannerStyle={setBannerStyle}
             videoRef={videoRef}
             isPlaying={isPlaying}
             currentTime={currentTime}
