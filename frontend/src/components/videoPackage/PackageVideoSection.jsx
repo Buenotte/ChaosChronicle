@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 export default function PackageVideoSection({
   videoState,
   actualPhotoCount,
@@ -9,6 +11,8 @@ export default function PackageVideoSection({
   setSelectedTransition,
   includeSubBanner = true,
   setIncludeSubBanner,
+  subBannerTime = 25,
+  setSubBannerTime,
   videoRef,
   isPlaying,
   currentTime,
@@ -20,6 +24,8 @@ export default function PackageVideoSection({
   onTimeUpdate,
   onLoadedMetadata,
 }) {
+  const [showBannerPreview, setShowBannerPreview] = useState(false)
+
   const formatTime = (secs) => {
     const m = Math.floor(secs / 60)
     const s = Math.floor(secs % 60)
@@ -34,7 +40,7 @@ export default function PackageVideoSection({
 
       {videoState.hasVideo ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          <div className="video-player-box">
+          <div className="video-player-box" style={{ position: 'relative' }}>
             <video
               ref={videoRef}
               src={videoState.videoUrl}
@@ -45,6 +51,31 @@ export default function PackageVideoSection({
               controls
               playsInline
             />
+
+            {/* 🔔 Live Preview Banner Overlay */}
+            {showBannerPreview && (
+              <div style={{
+                position: 'absolute',
+                bottom: '48px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: '60%',
+                maxWidth: '520px',
+                pointerEvents: 'none',
+                zIndex: 25,
+                filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.65))',
+              }}>
+                <video
+                  src="/assets/banner/sub_animation_transparent.webm"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  style={{ width: '100%', height: 'auto', display: 'block' }}
+                />
+              </div>
+            )}
+
             {/* Custom overlay controls bar */}
             <div style={{
               position: 'absolute',
@@ -127,24 +158,96 @@ export default function PackageVideoSection({
               >
                 🎬 Во весь экран
               </button>
+              <button
+                type="button"
+                className="copy-btn"
+                style={{
+                  background: showBannerPreview ? '#ec4899' : '#1e293b',
+                  color: '#fff',
+                  border: '1px solid #3b82f6',
+                  fontWeight: 600,
+                }}
+                onClick={() => setShowBannerPreview(!showBannerPreview)}
+                title="Показать / скрыть живую анимацию баннера прямо в плеере без пересборки видео"
+              >
+                {showBannerPreview ? '🙈 Скрыть баннер' : '👁️ Тест баннера'}
+              </button>
             </div>
 
             {setIncludeSubBanner && (
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', color: '#cbd5e1', cursor: 'pointer', background: '#181c27', padding: '0.45rem 0.75rem', borderRadius: '6px', border: '1px solid #27272a', width: 'fit-content' }}>
-                <input
-                  type="checkbox"
-                  checked={includeSubBanner}
-                  onChange={e => setIncludeSubBanner(e.target.checked)}
-                  style={{ accentColor: '#10b981', cursor: 'pointer' }}
-                />
-                <span>🔔 Анимация подписки на <strong>30-й сек.</strong></span>
-                <span style={{ fontSize: '0.72rem', color: '#ef4444', fontWeight: 600 }}>• sub_animation_transparent.mov</span>
-              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', background: '#181c27', padding: '0.45rem 0.75rem', borderRadius: '6px', border: '1px solid #27272a' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.82rem', color: '#cbd5e1', cursor: 'pointer', margin: 0 }}>
+                  <input
+                    type="checkbox"
+                    checked={includeSubBanner}
+                    onChange={e => setIncludeSubBanner(e.target.checked)}
+                    style={{ accentColor: '#10b981', cursor: 'pointer' }}
+                  />
+                  <span>🔔 Анимация подписки</span>
+                </label>
+
+                {includeSubBanner && setSubBannerTime && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginLeft: 'auto' }}>
+                    <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>на:</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={600}
+                      value={subBannerTime}
+                      onChange={e => setSubBannerTime(Math.max(0, parseInt(e.target.value) || 0))}
+                      style={{
+                        width: '52px',
+                        background: '#0f172a',
+                        border: '1px solid #3b82f6',
+                        borderRadius: '4px',
+                        color: '#fff',
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                        padding: '0.2rem 0.35rem',
+                        textAlign: 'center',
+                      }}
+                    />
+                    <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>сек.</span>
+
+                    <div style={{ display: 'flex', gap: '0.2rem', marginLeft: '0.25rem' }}>
+                      {[15, 25, 30, 45].map(sec => (
+                        <button
+                          key={sec}
+                          type="button"
+                          onClick={() => setSubBannerTime(sec)}
+                          style={{
+                            background: subBannerTime === sec ? '#3b82f6' : '#1e293b',
+                            border: '1px solid #334155',
+                            borderRadius: '4px',
+                            color: subBannerTime === sec ? '#fff' : '#94a3b8',
+                            fontSize: '0.72rem',
+                            fontWeight: 600,
+                            padding: '0.15rem 0.4rem',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {sec}с
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>
       ) : (
         <div>
+          {/* Live Preview Box vor dem Rendern, falls gewünscht */}
+          {showBannerPreview && (
+            <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9', background: '#090d16', borderRadius: '8px', overflow: 'hidden', marginBottom: '0.75rem', border: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: 600 }}>🖼️ 16:9 Фон видео (Предпросмотр)</div>
+              <div style={{ position: 'absolute', bottom: '20px', left: '50%', transform: 'translateX(-50%)', width: '60%', maxWidth: '520px', pointerEvents: 'none', zIndex: 25, filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.65))' }}>
+                <video src="/assets/banner/sub_animation_transparent.webm" autoPlay loop muted playsInline style={{ width: '100%', height: 'auto', display: 'block' }} />
+              </div>
+            </div>
+          )}
+
           {generatingVideo ? (
             <div style={{ background: '#181c27', padding: '1rem', borderRadius: '8px', border: '1px solid #1e2436' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.85rem' }}>
@@ -183,19 +286,81 @@ export default function PackageVideoSection({
                 >
                   🎬 Создать видео (FFmpeg)
                 </button>
+                <button
+                  type="button"
+                  className="copy-btn"
+                  style={{
+                    background: showBannerPreview ? '#ec4899' : '#1e293b',
+                    color: '#fff',
+                    border: '1px solid #3b82f6',
+                    fontWeight: 600,
+                  }}
+                  onClick={() => setShowBannerPreview(!showBannerPreview)}
+                  title="Посмотреть анимацию баннера прямо сейчас"
+                >
+                  {showBannerPreview ? '🙈 Скрыть тест' : '👁️ Тест баннера'}
+                </button>
               </div>
 
               {setIncludeSubBanner && (
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', color: '#cbd5e1', cursor: 'pointer', background: '#181c27', padding: '0.45rem 0.75rem', borderRadius: '6px', border: '1px solid #27272a', width: 'fit-content' }}>
-                  <input
-                    type="checkbox"
-                    checked={includeSubBanner}
-                    onChange={e => setIncludeSubBanner(e.target.checked)}
-                    style={{ accentColor: '#10b981', cursor: 'pointer' }}
-                  />
-                <span>🔔 Анимация подписки на <strong>30-й сек.</strong></span>
-                <span style={{ fontSize: '0.72rem', color: '#ef4444', fontWeight: 600 }}>• sub_animation_transparent.mov</span>
-                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', background: '#181c27', padding: '0.45rem 0.75rem', borderRadius: '6px', border: '1px solid #27272a' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.82rem', color: '#cbd5e1', cursor: 'pointer', margin: 0 }}>
+                    <input
+                      type="checkbox"
+                      checked={includeSubBanner}
+                      onChange={e => setIncludeSubBanner(e.target.checked)}
+                      style={{ accentColor: '#10b981', cursor: 'pointer' }}
+                    />
+                    <span>🔔 Анимация подписки</span>
+                  </label>
+
+                  {includeSubBanner && setSubBannerTime && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginLeft: 'auto' }}>
+                      <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>на:</span>
+                      <input
+                        type="number"
+                        min={0}
+                        max={600}
+                        value={subBannerTime}
+                        onChange={e => setSubBannerTime(Math.max(0, parseInt(e.target.value) || 0))}
+                        style={{
+                          width: '52px',
+                          background: '#0f172a',
+                          border: '1px solid #3b82f6',
+                          borderRadius: '4px',
+                          color: '#fff',
+                          fontSize: '0.8rem',
+                          fontWeight: 700,
+                          padding: '0.2rem 0.35rem',
+                          textAlign: 'center',
+                        }}
+                      />
+                      <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>сек.</span>
+
+                      <div style={{ display: 'flex', gap: '0.2rem', marginLeft: '0.25rem' }}>
+                        {[15, 25, 30, 45].map(sec => (
+                          <button
+                            key={sec}
+                            type="button"
+                            onClick={() => setSubBannerTime(sec)}
+                            style={{
+                              background: subBannerTime === sec ? '#3b82f6' : '#1e293b',
+                              border: '1px solid #334155',
+                              borderRadius: '4px',
+                              color: subBannerTime === sec ? '#fff' : '#94a3b8',
+                              fontSize: '0.72rem',
+                              fontWeight: 600,
+                              padding: '0.15rem 0.4rem',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {sec}с
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           )}

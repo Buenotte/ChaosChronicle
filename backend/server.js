@@ -21,6 +21,9 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
+// Statische Assets (Banner, Wasserzeichen, Animationen)
+app.use('/assets', express.static(path.resolve(__dirname, '../assets')));
+
 // API Status
 app.get('/api/status', (req, res) => {
   res.json({ status: 'online', timestamp: new Date().toISOString() });

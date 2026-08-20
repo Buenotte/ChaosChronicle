@@ -26,6 +26,7 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
   const [selectedVoice, setSelectedVoice] = useState('el_adam')
   const [selectedTransition, setSelectedTransition] = useState('concat')
   const [includeSubBanner, setIncludeSubBanner] = useState(true)
+  const [subBannerTime, setSubBannerTime] = useState(25)
 
   const [audioState, setAudioState] = useState({ hasAudio: !!pkg.hasAudio, audioUrl: pkg.audioUrl })
   const [videoState, setVideoState] = useState({ hasVideo: !!pkg.hasVideo, videoUrl: pkg.videoUrl })
@@ -142,7 +143,7 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
           folderName: pkg.folderName,
           transition: selectedTransition,
           includeSubBanner,
-          subBannerTime: 30,
+          subBannerTime: Number(subBannerTime) || 25,
         }),
       })
       const data = await res.json()
@@ -364,6 +365,8 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
             setSelectedTransition={setSelectedTransition}
             includeSubBanner={includeSubBanner}
             setIncludeSubBanner={setIncludeSubBanner}
+            subBannerTime={subBannerTime}
+            setSubBannerTime={setSubBannerTime}
             videoRef={videoRef}
             isPlaying={isPlaying}
             currentTime={currentTime}
