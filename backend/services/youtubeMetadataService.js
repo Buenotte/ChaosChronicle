@@ -17,8 +17,10 @@ const STYLES = {
 export function stripBloggerNames(text = '') {
   if (!text) return '';
   const bloggerRegex = /#?(?:голобуцк[а-яёa-z]*|касьянов[а-яёa-z]*|климовск[а-яёa-z]*|golubuzk[a-z]*|golobutsk[a-z]*|kasyanov[a-z]*|kasjanov[a-z]*|klimovsk[a-z]*|варламов[а-яёa-z]*|невзоров[а-яёa-z]*|шульман[а-яёa-z]*|кац[а-яёa-z]*)\b/gi;
+  const satireRegex = /#?(?:сатир[а-яёa-z]*|satir[a-z]*)\b/gi;
   return text
     .replace(bloggerRegex, '')
+    .replace(satireRegex, '')
     .replace(/\s{2,}/g, ' ')
     .replace(/,\s*,/g, ',')
     .replace(/^,\s*|,\s*$/g, '')
@@ -56,10 +58,10 @@ export async function generateYouTubeMetadata({ title = '', text = '', folderNam
   }
 
   const fallbackTitle = `🔥 ${effectiveTitle.toUpperCase().slice(0, 65)} | ChaosChronicle`;
-  const fallbackDesc = `Разбираем главное событие: ${effectiveTitle}.\n\n⚡ Факты, которые замалчивают\n⚡ Реальный анализ последствий для мировой геополитики\n⚡ Сатирический вердикт от ChaosChronicle\n\n🔔 Подписывайтесь на канал ChaosChronicle, жмите на колокольчик 🔔 и пишите комментарии!\n\n#ChaosChronicle #новости #политика #сатира #аналитика`;
-  const fallbackTags = `ChaosChronicle, новости, мировые новости, политика, аналитика, сатира, геополитика, факты, разбор, ${effectiveTitle.slice(0, 30)}`;
-  const fallbackHashtags = `#ChaosChronicle #новости #политика #сатира #аналитика`;
-  const fallbackFb = `🔥 ${effectiveTitle.toUpperCase()}\n\nРазбираем главное событие дня без цензуры и пропаганды.\n\n📺 Разбор смотрите на канале Chaos Chronicle:\n👉 [ССЫЛКА НА ВАШЕ ВИДЕО В YOUTUBE] 🔔\n\n🔔 Подпишитесь, чтобы не пропустить новые сводки! 🔔\n\n#ChaosChronicle #Chaos_Chronicle #новости #сатира #политика`;
+  const fallbackDesc = `Разбираем главное событие: ${effectiveTitle}.\n\n⚡ Факты, которые замалчивают\n⚡ Реальный анализ последствий для мировой геополитики\n⚡ Аналитический вердикт от ChaosChronicle\n\n🔔 Подписывайтесь на канал ChaosChronicle, жмите на колокольчик 🔔 и пишите комментарии!\n\n#ChaosChronicle #новости #политика #аналитика #геополитика`;
+  const fallbackTags = `ChaosChronicle, новости, мировые новости, политика, аналитика, геополитика, факты, разбор, ${effectiveTitle.slice(0, 30)}`;
+  const fallbackHashtags = `#ChaosChronicle #новости #политика #аналитика #геополитика`;
+  const fallbackFb = `🔥 ${effectiveTitle.toUpperCase()}\n\nРазбираем главное событие дня без цензуры и пропаганды.\n\n📺 Разбор смотрите на канале Chaos Chronicle:\n👉 [ССЫЛКА НА ВАШЕ ВИДЕО В YOUTUBE] 🔔\n\n🔔 Подпишитесь, чтобы не пропустить новые сводки! 🔔\n\n#ChaosChronicle #Chaos_Chronicle #новости #политика #аналитика`;
 
   const ensureFacebookPostCta = (raw) => {
     let p = (raw || '').trim();
@@ -68,7 +70,7 @@ export async function generateYouTubeMetadata({ title = '', text = '', folderNam
     const cta = 'Подпишитесь, чтобы не пропустить новые сводки! 🔔';
     if (!p.includes('Подпишитесь, чтобы не пропустить новые сводки!')) {
       const h = p.indexOf('#');
-      p = h > -1 ? `${p.slice(0, h).trimEnd()}\n\n🔔 ${cta}\n\n${p.slice(h).trimStart()}` : `${p}\n\n🔔 ${cta}\n\n#ChaosChronicle #новости #сатира`;
+      p = h > -1 ? `${p.slice(0, h).trimEnd()}\n\n🔔 ${cta}\n\n${p.slice(h).trimStart()}` : `${p}\n\n🔔 ${cta}\n\n#ChaosChronicle #новости #политика #аналитика`;
     }
     return p;
   };
@@ -100,27 +102,28 @@ ${styleGuide ? `РУКОВОДСТВО: ${styleGuide}\n` : ''}
 ПОЗИЦИЯ: СТРОГО НА СТОРОНЕ УКРАИНЫ. Высмеивай кремлевскую ложь и агрессию.
 
 СТРОГИЕ ТРЕБОВАНИЯ К ХЭШТЕГАМ И ТЕГАМ (hashtags, tags):
-1. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО писать имена блогеров, авторов или названий стилей (НИКАКИХ #Голобуцкий, #Касьянов, #Климовский, #golubuzki, #kasyanov, #klimovski и т.д.)!
-2. Хэштеги и теги должны относиться ИСКЛЮЧИТЕЛЬНО к теме новости, географии, событиям и каналу: #ChaosChronicle #новости #политика ...
+1. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО писать слово «сатира» (и любые производные: #сатира, #сатирический, #политическаясатира, сатира и т.д.)!
+2. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО писать имена блогеров, авторов или названий стилей (НИКАКИХ #Голобуцкий, #Касьянов, #Климовский, #golubuzki, #kasyanov, #klimovski и т.д.)!
+3. Хэштеги и теги должны относиться ИСКЛЮЧИТЕЛЬНО к теме новости, географии, событиям и каналу: #ChaosChronicle #новости #политика #аналитика #геополитика ...
 
 СТРОГИЕ ТРЕБОВАНИЯ К ОПИСАНИЮ YOUTUBE (description):
 1. КАТЕГОРИЧЕСКИ БЕЗ ПРИВЕТСТВИЙ. Сразу начинай с сути темы.
-2. 3 тезиса с эмодзи ⚡, призыв подписаться на Chaos Chronicle 🔔 и тематические хэштеги (БЕЗ имён блогеров).
+2. 3 тезиса с эмодзи ⚡, призыв подписаться на Chaos Chronicle 🔔 и тематические хэштеги (БЕЗ имён блогеров и БЕЗ слова сатира).
 
 СТРОГИЕ ТРЕБОВАНИЯ К FACEBOOK-ПОСТУ (facebookPost):
 1. БЕЗ ПРИВЕТСТВИЙ. Только краткий пересказ сути новости (1-2 коротких предложения, всего 40-70 слов).
 2. Название канала: канал Chaos Chronicle
 3. Ссылка на видео: 👉 [ССЫЛКА НА ВАШЕ ВИДЕО В YOUTUBE] 🔔
 4. ОБЯЗАТЕЛЬНАЯ ФРАЗА В КОНЦЕ: Подпишитесь, чтобы не пропустить новые сводки! 🔔
-5. Хэштеги: #ChaosChronicle #новости ... (БЕЗ имён блогеров).
+5. Хэштеги: #ChaosChronicle #новости #политика #аналитика ... (БЕЗ имён блогеров и БЕЗ слова сатира).
 
 Ответь СТРОГО в формате JSON без каких-либо тегов \`\`\`json:
 {
   "title": "Хлёсткий кликабельный YouTube-заголовок (до 75 символов) с эмодзи | Chaos Chronicle",
-  "description": "Описание YouTube БЕЗ приветствий: суть темы, 3 пункта ⚡, призыв к подписке 🔔, хэштеги (без имён блогеров).",
-  "tags": "Теги через запятую для YouTube Studio (только по теме новости, без имён блогеров)",
-  "hashtags": "#ChaosChronicle #новости #сатира #аналитика #политика",
-  "facebookPost": "Короткий готовый пост для Facebook (суть + канал Chaos Chronicle + ссылка + Подпишитесь, чтобы не пропустить новые сводки! 🔔 + хэштеги)"
+  "description": "Описание YouTube БЕЗ приветствий: суть темы, 3 пункта ⚡, призыв к подписке 🔔, хэштеги (без имён блогеров и без слова сатира).",
+  "tags": "Теги через запятую для YouTube Studio (только по теме новости, без имён блогеров и без слова сатира)",
+  "hashtags": "#ChaosChronicle #новости #аналитика #политика #геополитика",
+  "facebookPost": "Короткий готовый пост для Facebook (суть + канал Chaos Chronicle + ссылка + Подпишитесь, чтобы не пропустить новые сводки! 🔔 + хэштеги без сатиры и блогеров)"
 }`;
 
   const userPrompt = `НОВОСТЬ: ${effectiveTitle}\nТЕКСТ:\n${effectiveText.slice(0, 1200)}`;

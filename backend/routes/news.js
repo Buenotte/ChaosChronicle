@@ -29,7 +29,11 @@ export const FEEDS = [
   // 🏛️ Политика
   { url: 'https://rss.dw.com/rdf/rss-ru-pol', category: 'politika', source: 'DW Политика' },
 
-  // 📈 Экономика
+  // 📈 Экономика (Строго независимые и международные издания)
+  { url: 'https://news.google.com/rss/search?q=site:thebell.io&hl=ru&gl=UA&ceid=UA:ru', category: 'ekonomika', source: 'The Bell' },
+  { url: 'https://news.google.com/rss/search?q=site:ru.themoscowtimes.com+(%D1%8D%D0%BA%D0%BE%D0%BD%D0%BE%D0%BC%D0%B8%D0%BA%D0%B0+OR+%D0%B1%D0%B8%D0%B7%D0%BD%D0%B5%D1%81+OR+%D1%81%D0%B0%D0%BD%D0%BA%D1%86%D0%B8%D0%B8+OR+%D1%80%D1%83%D0%B1%D0%BB%D1%8C)&hl=ru&gl=UA&ceid=UA:ru', category: 'ekonomika', source: 'The Moscow Times Экономика' },
+  { url: 'https://news.google.com/rss/search?q=site:novayagazeta.eu+(%D1%8D%D0%BA%D0%BE%D0%BD%D0%BE%D0%BC%D0%B8%D0%BA%D0%B0+OR+%D0%B1%D0%B8%D0%B7%D0%BD%D0%B5%D1%81+OR+%D1%81%D0%B0%D0%BD%D0%BA%D1%86%D0%B8%D0%B8+OR+%D1%80%D1%83%D0%B1%D0%BB%D1%8C)&hl=ru&gl=UA&ceid=UA:ru', category: 'ekonomika', source: 'Новая газета Европа' },
+  { url: 'https://news.google.com/rss/search?q=site:svoboda.org+(%D1%8D%D0%BA%D0%BE%D0%BD%D0%BE%D0%BC%D0%B8%D0%BA%D0%B0+OR+%D1%81%D0%B0%D0%BD%D0%BA%D1%86%D0%B8%D0%B8+OR+%D1%80%D1%83%D0%B1%D0%BB%D1%8C+OR+%D0%BD%D0%B5%D1%84%D1%82%D1%8C)&hl=ru&gl=UA&ceid=UA:ru', category: 'ekonomika', source: 'Радио Свобода' },
   { url: 'https://rss.dw.com/rdf/rss-ru-eco', category: 'ekonomika', source: 'DW Экономика' },
 
   // 🎭 Культура & Общество
