@@ -138,11 +138,22 @@ export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, optio
       startY = 40;
     }
 
-    const colorVal = fontColor || 'yellow';
+    const FFMPEG_COLOR_MAP = {
+      yellow: '#FFE600', gold: '#F59E0B', white: '#FFFFFF', red: '#FF2A2A',
+      coral: '#FF5722', orange: '#FF8C00', lime: '#A6FF00', green: '#00FF66',
+      emerald: '#10B981', cyan: '#00F0FF', sky: '#38BDF8', blue: '#2563EB',
+      fuchsia: '#FF007F', pink: '#EC4899', purple: '#A855F7', violet: '#8B5CF6',
+      silver: '#E2E8F0', darkgray: '#64748B', black: '#000000', darkred: '#5B0606',
+      darkblue: '#0A1931', darkgreen: '#064E3B', darkpurple: '#3B0764',
+    };
+    const toFfmpegColor = (col) => (col && FFMPEG_COLOR_MAP[col]) ? FFMPEG_COLOR_MAP[col] : (col || '#FFE600');
+
+    const colorVal = toFfmpegColor(fontColor || 'yellow');
     const lineColorsList = Array.isArray(options.lineColors) ? options.lineColors : [];
-    const bColor = borderColor || 'black';
+    const bColor = toFfmpegColor(borderColor || 'black');
     const bWidth = Number(borderWidth) >= 0 ? Number(borderWidth) : 9;
     const sDist = Number(shadowDistance) >= 0 ? Number(shadowDistance) : 4;
+    const sColor = shadowColor || 'black@0.92';
     const rawOp = Number(options.boxOpacity);
     const op = (!isNaN(rawOp) && rawOp >= 10 && rawOp <= 100) ? (rawOp / 100).toFixed(2) : '0.75';
     const BOX_MAP = {
@@ -166,7 +177,7 @@ export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, optio
         .replace(/:/g, '\\:')
         .replace(/%/g, '\\%');
       const yPos = startY + (idx * lineHeight);
-      const lineCol = lineColorsList[idx] || colorVal;
+      const lineCol = toFfmpegColor(lineColorsList[idx] || colorVal);
       return `drawtext=fontfile='${safeFontPath}':text='${safeText}':fontsize=${finalFontSize}:fontcolor=${lineCol}:bordercolor=${bColor}:borderw=${bWidth}:shadowcolor=${sColor}:shadowx=${sDist}:shadowy=${sDist}${boxParam}:x=(w-text_w)/2:y=${yPos}`;
     });
 

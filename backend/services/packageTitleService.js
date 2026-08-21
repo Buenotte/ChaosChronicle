@@ -171,6 +171,10 @@ export function updatePackageTitle(bundleDir, newTitle, updateThumbnail = true, 
 
   if (updateThumbnail && fs.existsSync(thumbPath)) {
     try {
+      const rawBg = path.join(thumbDir, 'raw_background.jpg');
+      if (fs.existsSync(rawBg)) {
+        fs.copyFileSync(rawBg, thumbPath);
+      }
       const existingStyle = fs.existsSync(path.join(thumbDir, 'style.json'))
         ? JSON.parse(fs.readFileSync(path.join(thumbDir, 'style.json'), 'utf-8'))
         : (manifest.headlineConfig || {});

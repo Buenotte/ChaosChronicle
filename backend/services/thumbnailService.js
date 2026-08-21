@@ -89,6 +89,8 @@ export async function processSetThumbnail({
       tiltAngle: Number(headlineConfig.tiltAngle) || 0,
       position: headlineConfig.position || 'center',
       hasBox: !!headlineConfig.hasBox,
+      boxStyle: headlineConfig.boxStyle || (headlineConfig.hasBox ? 'dark_soft' : 'none'),
+      boxOpacity: headlineConfig.boxOpacity !== undefined ? Number(headlineConfig.boxOpacity) : 75,
       photoUrl: photoUrl || null,
       updatedAt: new Date().toISOString(),
     };
