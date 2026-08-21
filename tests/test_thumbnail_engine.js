@@ -49,7 +49,27 @@ async function runThumbnailTests() {
     assert.ok(stat.size > 1000, 'Rendered thumbnail file size must be > 1KB');
     console.log(`  ✅ FFmpeg Overlay completed successfully (${Math.round(stat.size / 1024)} KB)`);
 
-    // 2. Test Apply Headline API & style.json generation
+    // 2. Test FFmpeg Overlay with Box Style, Opacity, per-line colors and hex colors
+    console.log('  🎨 Testing FFmpeg overlay with red_accent box, 60% opacity and per-line colors...');
+    overlayRussianHeadlineOnThumbnail(testImg, 'ПЕРВАЯ СТРОКА ТЕСТА\nВТОРАЯ СТРОКА ТЕСТА', {
+      font: 'impact',
+      fontSize: 72,
+      fontColor: 'yellow',
+      lineColors: ['#FFE600', '#00F0FF'],
+      borderColor: 'darkred',
+      borderWidth: 8,
+      shadowDistance: 4,
+      position: 'center',
+      tiltAngle: 2,
+      boxStyle: 'red_accent',
+      boxOpacity: 60,
+      hasBox: true,
+    });
+
+    assert.ok(fs.existsSync(testImg), 'Rendered box image must exist');
+    console.log('  ✅ Box style and opacity overlay rendered successfully');
+
+    // 3. Test Apply Headline API & style.json generation
     const applyRes = await fetch('http://localhost:3001/api/set-thumbnail', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -61,11 +81,15 @@ async function runThumbnailTests() {
           font: 'impact',
           fontSize: 80,
           fontColor: 'yellow',
-          borderColor: 'black',
+          lineColors: ['#FFE600', '#FFFFFF'],
+          borderColor: 'darkblue',
           borderWidth: 9,
           shadowDistance: 4,
           position: 'center',
           tiltAngle: -4,
+          boxStyle: 'dark_soft',
+          boxOpacity: 75,
+          hasBox: true,
         }
       }),
     });
@@ -74,12 +98,14 @@ async function runThumbnailTests() {
     const applyData = await applyRes.json();
     assert.ok(applyData.success, 'apply_headline must return success');
 
-    // 3. Test GET /api/thumbnail-style
+    // 4. Test GET /api/thumbnail-style
     const styleRes = await fetch(`http://localhost:3001/api/thumbnail-style?folderName=${tempTestFolder}`);
     assert.strictEqual(styleRes.status, 200, 'thumbnail-style API must return 200');
     const styleData = await styleRes.json();
     assert.ok(styleData.success && styleData.style, 'Must return saved style');
     assert.strictEqual(styleData.style.text, 'ТЕСТОВЫЙ ЗАГОЛОВОК: ПО ПЛАНУ');
+    assert.strictEqual(styleData.style.boxStyle, 'dark_soft');
+    assert.strictEqual(styleData.style.boxOpacity, 75);
     console.log('  ✅ style.json generation & retrieval verified');
   } finally {
     // Test-Ordner sauber aufräumen

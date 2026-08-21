@@ -17,6 +17,7 @@ const testSuites = [
   { name: '5. Photos Scraper & Storage Engine', file: 'test_photos_service.js' },
   { name: '6. Custom Fonts Upload & Management', file: 'test_fonts_service.js' },
   { name: '7. Edge-TTS Audio Generation', file: 'test_audio_service.js' },
+  { name: '8. Video Engine & Subscribe Banner (FFmpeg)', file: 'test_video_engine.js' },
 ];
 
 let passedCount = 0;
