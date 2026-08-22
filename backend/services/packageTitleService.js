@@ -9,9 +9,13 @@ const __dirname = path.dirname(__filename);
 const newsDir = path.resolve(__dirname, '../../news');
 
 const TITLE_STYLES = {
+  clickbait: {
+    name: '🔥 Кликбейт & YouTube Топ (CTR 20%+)',
+    desc: 'Максимальная кликабельность, интрига, шок-фактор, мощные глаголы, вопросы, открытая петля любопытства, эффект разорвавшейся бомбы.',
+  },
   golubuzki: {
     name: '🎭 Алексей Голобуцкий (Сатира & Сарказм)',
-    desc: 'Едкий сарказм, деконструкция официальной лжи, мемы («по плану», «бункерный дед», «аналоговнет», «отрицательный рост», «скрепы»).',
+    desc: 'Едкий сарказм, язвительное высмеивание бункера, мемы («по плану», «бункерный дед», «аналоговнет», «отрицательный рост», «скрепы»).',
   },
   kasjanov: {
     name: '🪖 Юрий Касьянов (Военный реализм)',
@@ -27,7 +31,7 @@ const TITLE_STYLES = {
   },
 };
 
-export async function generateTitleVariants(title = '', summary = '', bundleDir = null, folderName = null, forceRegenerate = false, style = 'golubuzki', text = '') {
+export async function generateTitleVariants(title = '', summary = '', bundleDir = null, folderName = null, forceRegenerate = false, style = 'clickbait', text = '') {
   let effectiveTitle = title;
   let existingVariants = [];
   let scriptContent = text || '';
@@ -79,19 +83,24 @@ export async function generateTitleVariants(title = '', summary = '', bundleDir 
     };
   }
 
-  const selectedStyleConfig = TITLE_STYLES[style] || TITLE_STYLES.golubuzki;
-  const systemPrompt = `Ты — мастер убойных, вирусных и кликабельных заголовков для YouTube в авторском стиле: ${selectedStyleConfig.name}.
+  const selectedStyleConfig = TITLE_STYLES[style] || TITLE_STYLES.clickbait;
+  const systemPrompt = `Ты — лучший в мире YouTube-продюсер и эксперт по вирусным обложкам и кликабельным заголовкам (CTR 15-25%) в стиле: ${selectedStyleConfig.name}.
 ОСОБЕННОСТИ СТИЛЯ: ${selectedStyleConfig.desc}
 
-Твоя задача: Создать РОВНО 10 РАЗНЫХ убойных вариантов заголовков, которые четко отражают суть главной темы и новости.
-СТРОГИЕ ТРЕБОВАНИЯ:
-1. ДЛИНА КАЖДОГО ЗАГОЛОВКА: СТРОГО 4-5 СЛОВ (не больше и не меньше).
-2. СУТЬ И СМЫСЛ: Каждый заголовок ОБЯЗАН отражать конкретную тему новости (ключевые события, место, суть происходящего), адаптируя ее под стиль ${selectedStyleConfig.name}.
-3. БЕЗ кавычек, БЕЗ нумерации, БЕЗ точек на конце.
-4. Выведи ТОЛЬКО 10 строк, по одному заголовку на строку (капсом UPPERCASE). Никаких вводных слов или пояснений.`;
+Твоя задача: Создать РОВНО 10 РАЗНЫХ супер-кликабельных, цепляющих и убойных YouTube-заголовков, которые заставляют зрителя немедленно кликнуть на видео!
 
-  const contextBody = scriptContent ? `\n\nТЕКСТ СЦЕНАРИЯ / ДЕТАЛИ:\n"""\n${scriptContent.slice(0, 1500)}\n"""` : '';
-  const userPrompt = `ГЛАВНАЯ ТЕМА НОВОСТИ:\n"${effectiveTitle}"${contextBody}\n\nСоздай 10 убойных заголовков из 4-5 слов, раскрывающих именно эту тему:`;
+СТРОГИЕ ПРАВИЛА И СТРУКТУРА:
+1. ДЛИНА: СТРОГО 4-5 СЛОВ (идеально для обложек и ленты YouTube).
+2. СУТЬ И КЛИКАБЕЛЬНОСТЬ: Используй проверенные вирусные YouTube-формулы:
+   - Интрига и вопрос (ЧТО СКРЫВАЮТ?, КУДА ПРИЛЕТЕЛО НА САМОМ ДЕЛЕ?, КТО ОТВЕТИТ?)
+   - Шок-фактор и срыв покровов (ТАКОГО НЕ ОЖИДАЛИ, ПРИКАЗ БЫЛ ОТДАН, СРОЧНЫЙ УДАР)
+   - Конкретика темы (называй место, суть события, главных действующих лиц)
+   - Жесткая эмоциональная оценка и ирония по выбранному стилю.
+3. БЕЗ кавычек, БЕЗ нумерации, БЕЗ точек на конце.
+4. ВЫВОД: Выведи РОВНО 10 строк, по одному заголовку на строку (капсом UPPERCASE). Никаких вводных слов или пояснений.`;
+
+  const contextBody = scriptContent ? `\n\nДЕТАЛИ ИЗ СЦЕНАРИЯ:\n"""\n${scriptContent.slice(0, 1200)}\n"""` : '';
+  const userPrompt = `НОВОСТЬ / ТЕМА:\n"${effectiveTitle}"${contextBody}\n\nСгенерируй 10 убойных, супер-кликабельных заголовков из 4-5 слов для YouTube:`;
 
   try {
     const aiRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
