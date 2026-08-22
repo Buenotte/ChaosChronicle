@@ -39,34 +39,10 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
     setCurrentTime(0)
   }, [pkg])
 
-  const togglePlay = () => {
-    if (videoRef.current) {
-      if (isPlaying) videoRef.current.pause()
-      else videoRef.current.play()
-      setIsPlaying(!isPlaying)
-    }
-  }
-
-  const handleTimeUpdate = () => {
-    if (videoRef.current) {
-      setCurrentTime(videoRef.current.currentTime)
-      setIsPlaying(!videoRef.current.paused)
-    }
-  }
-
-  const handleLoadedMetadata = () => {
-    if (videoRef.current) {
-      setDuration(videoRef.current.duration)
-    }
-  }
-
-  const seekVideo = (e) => {
-    const time = parseFloat(e.target.value)
-    if (videoRef.current) {
-      videoRef.current.currentTime = time
-      setCurrentTime(time)
-    }
-  }
+  const togglePlay = () => { if (videoRef.current) { if (isPlaying) videoRef.current.pause(); else videoRef.current.play(); setIsPlaying(!isPlaying); } }
+  const handleTimeUpdate = () => { if (videoRef.current) { setCurrentTime(videoRef.current.currentTime); setIsPlaying(!videoRef.current.paused); } }
+  const handleLoadedMetadata = () => { if (videoRef.current) setDuration(videoRef.current.duration); }
+  const seekVideo = (e) => { const time = parseFloat(e.target.value); if (videoRef.current) { videoRef.current.currentTime = time; setCurrentTime(time); } }
 
   const [isMaximized, setIsMaximized] = useState(false)
   const [currentThumbnail, setCurrentThumbnail] = useState(
@@ -300,6 +276,11 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
           onOpenScript={() => onOpenScriptText && onOpenScriptText(pkg)}
           onOpenPhotos={() => onOpenPhotos && onOpenPhotos(pkg)}
           onDeletePackage={handleDeletePackage}
+          onTitleSaved={(newTitle, newThumb) => {
+            pkg.title = newTitle
+            if (newThumb) setCurrentThumbnail(newThumb)
+            if (onRefresh) onRefresh()
+          }}
           onClose={onClose}
         />
 

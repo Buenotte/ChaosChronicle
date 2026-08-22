@@ -1,3 +1,6 @@
+import { useState, useEffect } from 'react'
+import { toast } from 'sonner'
+
 export default function PackageHeader({
   pkg,
   hasTxt,
@@ -11,8 +14,48 @@ export default function PackageHeader({
   onOpenScript,
   onOpenPhotos,
   onDeletePackage,
+  onTitleSaved,
   onClose,
 }) {
+  const [isEditingTitle, setIsEditingTitle] = useState(false)
+  const [editTitleText, setEditTitleText] = useState(pkg?.title || '')
+  const [savingTitle, setSavingTitle] = useState(false)
+
+  useEffect(() => {
+    setEditTitleText(pkg?.title || '')
+  }, [pkg?.title])
+
+  const handleSaveTitle = async () => {
+    const trimmed = editTitleText.trim()
+    if (!trimmed) return
+    try {
+      setSavingTitle(true)
+      const res = await fetch('/api/update-package-title', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bundleDir: pkg.bundleDir,
+          folderName: pkg.folderName,
+          newTitle: trimmed,
+          updateThumbnail: true,
+        }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        toast.success(`🎉 Заголовок обновлен: "${data.newTitle}"`)
+        pkg.title = data.newTitle
+        setIsEditingTitle(false)
+        if (onTitleSaved) onTitleSaved(data.newTitle, data.thumbnailUrl)
+      } else {
+        toast.error('Ошибка сохранения: ' + (data.error || 'Неизвестная ошибка'))
+      }
+    } catch (err) {
+      toast.error('Ошибка сохранения: ' + err.message)
+    } finally {
+      setSavingTitle(false)
+    }
+  }
+
   const hasTitle = Boolean(
     (pkg?.title_variants && pkg.title_variants.length > 0) ||
     pkg?.title_updated_at ||
@@ -21,12 +64,80 @@ export default function PackageHeader({
 
   return (
     <div className="modal-header">
-      <div>
+      <div style={{ flex: 1, minWidth: 0 }}>
         <span className="modal-badge saved-badge">
           📂 Видео-пакет в news/{pkg.folderName || ''}
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
-          <h2 className="modal-title" style={{ margin: 0 }}>{pkg.title}</h2>
+          {isEditingTitle ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', width: '100%', maxWidth: '640px' }}>
+              <input
+                type="text"
+                value={editTitleText}
+                onChange={e => setEditTitleText(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') handleSaveTitle()
+                  if (e.key === 'Escape') { setIsEditingTitle(false); setEditTitleText(pkg?.title || ''); }
+                }}
+                autoFocus
+                style={{
+                  flex: 1,
+                  background: '#09090b',
+                  color: '#fff',
+                  border: '2px solid #3b82f6',
+                  borderRadius: '6px',
+                  padding: '0.4rem 0.65rem',
+                  fontSize: '1.05rem',
+                  fontWeight: 700,
+                  outline: 'none',
+                }}
+                placeholder="Введите новый заголовок пакета..."
+              />
+              <button
+                type="button"
+                className="copy-btn"
+                disabled={savingTitle || !editTitleText.trim()}
+                onClick={handleSaveTitle}
+                style={{ background: '#10b981', padding: '0.4rem 0.75rem', fontWeight: 700, fontSize: '0.85rem' }}
+                title="Сохранить заголовок (Enter)"
+              >
+                {savingTitle ? '⏳' : '💾 Сохранить'}
+              </button>
+              <button
+                type="button"
+                className="copy-btn"
+                onClick={() => { setIsEditingTitle(false); setEditTitleText(pkg?.title || ''); }}
+                style={{ background: '#3f3f46', padding: '0.4rem 0.6rem', fontSize: '0.85rem' }}
+                title="Отмена (Esc)"
+              >
+                ✕
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <h2 className="modal-title" style={{ margin: 0 }}>{pkg.title}</h2>
+              <button
+                type="button"
+                onClick={() => { setEditTitleText(pkg?.title || ''); setIsEditingTitle(true); }}
+                className="copy-btn"
+                style={{
+                  background: 'rgba(59, 130, 246, 0.15)',
+                  color: '#60a5fa',
+                  border: '1px solid rgba(59, 130, 246, 0.4)',
+                  padding: '0.2rem 0.5rem',
+                  fontSize: '0.75rem',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.25rem',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                }}
+                title="Редактировать заголовок вручную"
+              >
+                ✏️ Изменить
+              </button>
+            </div>
+          )}
           {(pkg?.url || pkg?.original_url) && (
             <a
               href={pkg.url || pkg.original_url}

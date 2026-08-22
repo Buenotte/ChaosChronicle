@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import { overlayRussianHeadlineOnThumbnail } from './thumbnailOverlayService.js';
 
@@ -45,8 +46,10 @@ export async function generateTitleVariants(title = '', summary = '', bundleDir 
     if (fs.existsSync(jsonPath)) {
       try {
         const manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
-        if (manifest.original_title) effectiveTitle = manifest.original_title;
-        else if (manifest.title && manifest.title.length > effectiveTitle.length) effectiveTitle = manifest.title;
+        if (!effectiveTitle) {
+          if (manifest.original_title) effectiveTitle = manifest.original_title;
+          else if (manifest.title) effectiveTitle = manifest.title;
+        }
         if (!forceRegenerate && Array.isArray(manifest.title_variants) && manifest.title_variants.length > 0) {
           existingVariants = manifest.title_variants;
         }
@@ -80,15 +83,15 @@ export async function generateTitleVariants(title = '', summary = '', bundleDir 
   const systemPrompt = `Ты — мастер убойных, вирусных и кликабельных заголовков для YouTube в авторском стиле: ${selectedStyleConfig.name}.
 ОСОБЕННОСТИ СТИЛЯ: ${selectedStyleConfig.desc}
 
-Твоя задача: СТРОГО НА ОСНОВЕ ПРИВЕДЕННОГО ТЕКСТА ФЕЛЬЕТОНА/МОНОЛОГА создать РОВНО 10 РАЗНЫХ убойных вариантов заголовков.
+Твоя задача: Создать РОВНО 10 РАЗНЫХ убойных вариантов заголовков, которые четко отражают суть главной темы и новости.
 СТРОГИЕ ТРЕБОВАНИЯ:
 1. ДЛИНА КАЖДОГО ЗАГОЛОВКА: СТРОГО 4-5 СЛОВ (не больше и не меньше).
-2. СТИЛЬ: В точности соответствуй стилю ${selectedStyleConfig.name}.
+2. СУТЬ И СМЫСЛ: Каждый заголовок ОБЯЗАН отражать конкретную тему новости (ключевые события, место, суть происходящего), адаптируя ее под стиль ${selectedStyleConfig.name}.
 3. БЕЗ кавычек, БЕЗ нумерации, БЕЗ точек на конце.
 4. Выведи ТОЛЬКО 10 строк, по одному заголовку на строку (капсом UPPERCASE). Никаких вводных слов или пояснений.`;
 
-  const contextText = (scriptContent || summary || effectiveTitle).trim();
-  const userPrompt = `ПОЛНЫЙ ТЕКСТ ФЕЛЬЕТОНА/МОНОЛОГА:\n"""\n${contextText.slice(0, 1500)}\n"""\n\nСоздай 10 убойных заголовков из 4-5 слов строго на основе содержания этого текста:`;
+  const contextBody = scriptContent ? `\n\nТЕКСТ СЦЕНАРИЯ / ДЕТАЛИ:\n"""\n${scriptContent.slice(0, 1500)}\n"""` : '';
+  const userPrompt = `ГЛАВНАЯ ТЕМА НОВОСТИ:\n"${effectiveTitle}"${contextBody}\n\nСоздай 10 убойных заголовков из 4-5 слов, раскрывающих именно эту тему:`;
 
   try {
     const aiRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -168,23 +171,48 @@ export function updatePackageTitle(bundleDir, newTitle, updateThumbnail = true, 
   let thumbnailUrl = null;
   const thumbDir = path.join(bundleDir, 'thumbnail');
   const thumbPath = path.join(thumbDir, 'thumbnail.jpg');
+  const rawBg = path.join(thumbDir, 'raw_background.jpg');
 
-  if (updateThumbnail && fs.existsSync(thumbPath)) {
+  if (updateThumbnail) {
     try {
-      const rawBg = path.join(thumbDir, 'raw_background.jpg');
+      if (!fs.existsSync(thumbDir)) fs.mkdirSync(thumbDir, { recursive: true });
+
+      if (!fs.existsSync(rawBg)) {
+        if (fs.existsSync(thumbPath)) {
+          fs.copyFileSync(thumbPath, rawBg);
+        } else {
+          const photosDir = path.join(bundleDir, 'photos');
+          if (fs.existsSync(photosDir)) {
+            const photoList = fs.readdirSync(photosDir).filter(f => /\.(jpg|jpeg|png|webp)$/i.test(f));
+            if (photoList.length > 0) {
+              const firstPic = path.join(photosDir, photoList[0]);
+              try {
+                execSync(`ffmpeg -y -i "${firstPic}" -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720[v]" -map "[v]" -q:v 2 "${rawBg}"`, { timeout: 10000 });
+              } catch {
+                fs.copyFileSync(firstPic, rawBg);
+              }
+            }
+          }
+        }
+      }
+
       if (fs.existsSync(rawBg)) {
         fs.copyFileSync(rawBg, thumbPath);
+        const existingStyle = fs.existsSync(path.join(thumbDir, 'style.json'))
+          ? JSON.parse(fs.readFileSync(path.join(thumbDir, 'style.json'), 'utf-8'))
+          : (manifest.headlineConfig || {});
+        const mergedStyle = { ...existingStyle, ...titleOptions, text: cleanTitle };
+
+        fs.writeFileSync(path.join(thumbDir, 'style.json'), JSON.stringify(mergedStyle, null, 2), 'utf-8');
+
+        overlayRussianHeadlineOnThumbnail(thumbPath, cleanTitle, mergedStyle);
+        thumbUpdated = true;
+        manifest.thumbnail = 'thumbnail/thumbnail.jpg';
+        manifest.thumbnail_updated_at = new Date().toISOString();
+        manifest.headlineConfig = mergedStyle;
+        fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
+        thumbnailUrl = `/news-static/${path.basename(bundleDir)}/thumbnail/thumbnail.jpg?t=${Date.now()}`;
       }
-      const existingStyle = fs.existsSync(path.join(thumbDir, 'style.json'))
-        ? JSON.parse(fs.readFileSync(path.join(thumbDir, 'style.json'), 'utf-8'))
-        : (manifest.headlineConfig || {});
-      const mergedStyle = { ...existingStyle, ...titleOptions, text: cleanTitle };
-
-      fs.writeFileSync(path.join(thumbDir, 'style.json'), JSON.stringify(mergedStyle, null, 2), 'utf-8');
-
-      overlayRussianHeadlineOnThumbnail(thumbPath, cleanTitle, mergedStyle);
-      thumbUpdated = true;
-      thumbnailUrl = `/news-static/${path.basename(bundleDir)}/thumbnail/thumbnail.jpg?t=${Date.now()}`;
     } catch (err) {
       console.warn('Thumbnail overlay update on title save failed:', err.message);
     }

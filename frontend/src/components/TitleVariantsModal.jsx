@@ -17,13 +17,14 @@ export default function TitleVariantsModal({ pkg, onClose, onTitleSaved }) {
 
   const fetchVariants = async (force = false, overrideStyle = null) => {
     const styleToUse = overrideStyle || selectedStyle
+    const effectiveTopic = originalNewsTitle.trim() || pkg.original_title || pkg.title || ''
     try {
       setLoading(true)
       const res = await fetch('/api/generate-title-variants', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: pkg.original_title || pkg.title || '',
+          title: effectiveTopic,
           summary: pkg.summary || '',
           text: pkg.scriptTxt || pkg.text || '',
           bundleDir: pkg.bundleDir,
@@ -35,7 +36,7 @@ export default function TitleVariantsModal({ pkg, onClose, onTitleSaved }) {
       const data = await res.json()
       if (data.success && Array.isArray(data.variants) && data.variants.length > 0) {
         setVariants(data.variants)
-        if (data.resolvedTitle) setOriginalNewsTitle(data.resolvedTitle)
+        if (data.resolvedTitle && !originalNewsTitle) setOriginalNewsTitle(data.resolvedTitle)
         if (!selectedTitle || selectedTitle === pkg.title) {
           setSelectedTitle(data.variants[0])
         }
@@ -126,50 +127,46 @@ export default function TitleVariantsModal({ pkg, onClose, onTitleSaved }) {
         </div>
 
         <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {/* Исходная тема */}
-          <div style={{ background: '#18181b', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px solid #27272a' }}>
-            <span style={{ fontSize: '0.75rem', color: '#a1a1aa', display: 'block', fontWeight: 600 }}>
-              📰 ИСХОДНАЯ НОВОСТЬ:
-            </span>
-            <span style={{ fontSize: '0.9rem', color: '#e4e4e7', fontWeight: 600 }}>
-              {originalNewsTitle || pkg.original_title || pkg.title}
-            </span>
+          {/* Исходная тема для ИИ */}
+          <div style={{ background: '#18181b', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px solid #3b82f6' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+              <span style={{ fontSize: '0.75rem', color: '#93c5fd', fontWeight: 700 }}>
+                📰 ИСХОДНАЯ ТЕМА / КОНТЕКСТ ДЛЯ ГЕНЕРАЦИИ:
+              </span>
+              <span style={{ fontSize: '0.7rem', color: '#9ca3af' }}>
+                💡 Отредактируйте тему и нажмите «Сгенерировать новые 10»
+              </span>
+            </div>
+            <input
+              type="text"
+              value={originalNewsTitle}
+              onChange={e => setOriginalNewsTitle(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') fetchVariants(true); }}
+              placeholder="Введите исходную тему или событие для генерации заголовков..."
+              style={{
+                width: '100%',
+                background: '#09090b',
+                border: '1px solid #2563eb',
+                borderRadius: '6px',
+                padding: '0.45rem 0.65rem',
+                color: '#fff',
+                fontSize: '0.9rem',
+                fontWeight: 600,
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+            />
           </div>
 
           {/* Панель выбора авторского стиля */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', background: '#131b2e', padding: '0.6rem 0.85rem', borderRadius: '8px', border: '1px solid #1e3a8a' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', background: '#131b2e', padding: '0.5rem 0.85rem', borderRadius: '8px', border: '1px solid #1e3a8a' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <label style={{ fontSize: '0.85rem', fontWeight: 700, color: '#93c5fd', whiteSpace: 'nowrap' }}>
-                🎭 Стиль автора:
-              </label>
-              <select
-                value={selectedStyle}
-                onChange={handleStyleChange}
-                disabled={loading}
-                style={{
-                  background: '#0a101f',
-                  border: '1px solid #2563eb',
-                  color: '#fff',
-                  padding: '0.35rem 0.65rem',
-                  borderRadius: '6px',
-                  fontSize: '0.85rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                {FEUILLETON_STYLES.map(s => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
+              <label style={{ fontSize: '0.85rem', fontWeight: 700, color: '#93c5fd', whiteSpace: 'nowrap' }}>🎭 Стиль автора:</label>
+              <select value={selectedStyle} onChange={handleStyleChange} disabled={loading} style={{ background: '#0a101f', border: '1px solid #2563eb', color: '#fff', padding: '0.35rem 0.65rem', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>
+                {FEUILLETON_STYLES.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
             </div>
-
-            <button
-              type="button"
-              className="copy-btn"
-              disabled={loading}
-              onClick={() => fetchVariants(true)}
-              style={{ background: '#2563eb', fontSize: '0.8rem', padding: '0.35rem 0.75rem', fontWeight: 700 }}
-            >
+            <button type="button" className="copy-btn" disabled={loading} onClick={() => fetchVariants(true)} style={{ background: '#2563eb', fontSize: '0.8rem', padding: '0.35rem 0.75rem', fontWeight: 700 }}>
               {loading ? '⏳ Генерация...' : '🔄 Сгенерировать новые 10 вариантов'}
             </button>
           </div>
@@ -179,9 +176,8 @@ export default function TitleVariantsModal({ pkg, onClose, onTitleSaved }) {
             <label style={{ fontSize: '0.85rem', color: '#9ca3af', fontWeight: 600, display: 'block', marginBottom: '0.4rem' }}>
               🎯 Выберите лучший заголовок (кликните):
             </label>
-
             {loading && variants.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '2rem', color: '#a1a1aa' }}>
+              <div style={{ textAlign: 'center', padding: '1.5rem', color: '#a1a1aa' }}>
                 <div style={{ fontSize: '1.8rem', marginBottom: '0.5rem' }}>🤖</div>
                 ИИ генерирует 10 заголовков в выбранном стиле...
               </div>
@@ -194,32 +190,20 @@ export default function TitleVariantsModal({ pkg, onClose, onTitleSaved }) {
                       key={idx}
                       onClick={() => setSelectedTitle(variant)}
                       style={{
-                        padding: '0.65rem 0.85rem',
+                        padding: '0.6rem 0.85rem',
                         borderRadius: '8px',
-                        background: isSelected ? 'rgba(59, 130, 246, 0.18)' : '#18181b',
-                        border: isSelected ? '2px solid #3b82f6' : '1px solid #27272a',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
+                        justifyContent: 'space-between',
                         gap: '0.75rem',
+                        background: isSelected ? 'rgba(59, 130, 246, 0.18)' : '#18181b',
+                        border: isSelected ? '2px solid #3b82f6' : '1px solid #27272a',
+                        boxShadow: isSelected ? '0 0 12px rgba(59,130,246,0.3)' : 'none',
                         transition: 'all 0.15s ease',
                       }}
                     >
-                      <span
-                        style={{
-                          width: '24px',
-                          height: '24px',
-                          borderRadius: '50%',
-                          background: isSelected ? '#3b82f6' : '#27272a',
-                          color: '#fff',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '0.75rem',
-                          fontWeight: 700,
-                          flexShrink: 0,
-                        }}
-                      >
+                      <span style={{ width: '24px', height: '24px', borderRadius: '50%', background: isSelected ? '#3b82f6' : '#27272a', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, flexShrink: 0 }}>
                         {idx + 1}
                       </span>
                       <span style={{ fontSize: '0.95rem', fontWeight: 700, color: isSelected ? '#60a5fa' : '#f4f4f5', flex: 1, letterSpacing: '0.3px' }}>
