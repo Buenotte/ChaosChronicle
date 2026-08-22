@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { generateTitleVariants, updatePackageTitle } from '../services/packageTitleService.js';
-import { generateYouTubeMetadata } from '../services/youtubeMetadataService.js';
+import { generateYouTubeMetadata, saveYouTubeMetadataJson } from '../services/youtubeMetadataService.js';
 import { processSetThumbnail } from '../services/thumbnailService.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -216,50 +216,22 @@ router.get('/api/saved-packages', async (req, res) => {
         const hasAudio = fs.existsSync(audioPath);
         const photosCount = photoFiles.length;
 
-        const artifactCount = (hasScriptTxt ? 1 : 0) +
-          (hasScriptMd ? 1 : 0) +
-          (hasAudio ? 1 : 0) +
-          (hasVideo ? 1 : 0) +
-          (photosCount > 0 ? 1 : 0) +
-          (hasThumbnail ? 1 : 0);
-
         const styleJsonPath = path.join(bundleDir, 'thumbnail', 'style.json');
         let thumbnailStyle = null;
         if (fs.existsSync(styleJsonPath)) {
-          try {
-            thumbnailStyle = JSON.parse(fs.readFileSync(styleJsonPath, 'utf-8'));
-          } catch {}
+          try { thumbnailStyle = JSON.parse(fs.readFileSync(styleJsonPath, 'utf-8')); } catch {}
         }
-        if (!thumbnailStyle && manifest.headlineConfig) {
-          thumbnailStyle = manifest.headlineConfig;
-        }
+        if (!thumbnailStyle && manifest.headlineConfig) thumbnailStyle = manifest.headlineConfig;
 
+        const artifactCount = (hasScriptTxt ? 1 : 0) + (hasScriptMd ? 1 : 0) + (hasAudio ? 1 : 0) + (hasVideo ? 1 : 0) + (photosCount > 0 ? 1 : 0) + (hasThumbnail ? 1 : 0);
         packages.push({
-          folderName: entry.name,
-          bundleDir,
-          title: packageTitle,
-          original_title: manifest.original_title || packageTitle,
-          url: manifest.url || manifest.original_url || manifest.link || null,
-          date: manifest.date || null,
-          model: manifest.model || 'gemini',
-          source: manifest.source || '',
-          hasAudio,
-          hasVideo,
-          hasScriptTxt,
-          hasScriptMd,
-          photosCount,
-          photoUrls: photoFiles,
-          hasThumbnail,
-          thumbnailUrl,
-          thumbnail_updated_at: thumbnailUpdatedAt,
-          artifactCount,
-          hasAnyArtifact: artifactCount > 0,
-          headlineConfig: thumbnailStyle,
-          title_variants: manifest.title_variants || [],
-          audioUrl: hasAudio ? `/news-static/${entry.name}/audio.mp3` : null,
-          videoUrl,
-          scriptTxt: hasScriptTxt ? fs.readFileSync(txtPath, 'utf-8') : '',
-          scriptMd: hasScriptMd ? fs.readFileSync(mdPath, 'utf-8') : '',
+          folderName: entry.name, bundleDir, title: packageTitle, original_title: manifest.original_title || packageTitle,
+          url: manifest.url || manifest.original_url || manifest.link || null, date: manifest.date || null,
+          model: manifest.model || 'gemini', source: manifest.source || '', hasAudio, hasVideo, hasScriptTxt, hasScriptMd,
+          photosCount, photoUrls: photoFiles, hasThumbnail, thumbnailUrl, thumbnail_updated_at: thumbnailUpdatedAt,
+          artifactCount, hasAnyArtifact: artifactCount > 0, headlineConfig: thumbnailStyle,
+          title_variants: manifest.title_variants || [], audioUrl: hasAudio ? `/news-static/${entry.name}/audio.mp3` : null, videoUrl,
+          scriptTxt: hasScriptTxt ? fs.readFileSync(txtPath, 'utf-8') : '', scriptMd: hasScriptMd ? fs.readFileSync(mdPath, 'utf-8') : '',
         });
       }
     }
@@ -388,6 +360,17 @@ router.post('/api/youtube-metadata', async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error('YouTube metadata error:', err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/save-youtube-metadata
+router.post('/api/save-youtube-metadata', (req, res) => {
+  try {
+    const result = saveYouTubeMetadataJson(req.body);
+    res.json(result);
+  } catch (err) {
+    console.error('Save YouTube metadata error:', err.message);
     res.status(500).json({ success: false, error: err.message });
   }
 });

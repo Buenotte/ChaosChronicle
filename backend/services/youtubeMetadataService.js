@@ -203,3 +203,44 @@ ${styleGuide ? `РУКОВОДСТВО: ${styleGuide}\n` : ''}
     return { success: true, ...fallbackMetadata };
   }
 }
+
+export function saveYouTubeMetadataJson({ bundleDir: inputBundleDir, folderName, title, description, tags, hashtags, facebookPost, style = 'golubuzki' }) {
+  let bundleDir = inputBundleDir;
+  if (!bundleDir && folderName) {
+    bundleDir = path.join(newsDir, folderName);
+  }
+  if (!bundleDir || !fs.existsSync(bundleDir)) {
+    return { success: false, error: 'Папка пакета не найдена' };
+  }
+
+  const metadata = {
+    title: (title || '').trim(),
+    description: (description || '').trim(),
+    tags: (tags || '').trim(),
+    hashtags: (hashtags || '').trim(),
+    facebookPost: (facebookPost || '').trim(),
+    savedAt: new Date().toISOString(),
+    style,
+  };
+
+  const jsonPath = path.join(bundleDir, 'project.json');
+  if (fs.existsSync(jsonPath)) {
+    try {
+      const manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+      if (!manifest.youtubeMetadata || typeof manifest.youtubeMetadata !== 'object') manifest.youtubeMetadata = {};
+      manifest.youtubeMetadata[style] = metadata;
+      manifest.youtubeMetadata.title = metadata.title;
+      manifest.youtubeMetadata.description = metadata.description;
+      manifest.youtubeMetadata.tags = metadata.tags;
+      manifest.youtubeMetadata.hashtags = metadata.hashtags;
+      manifest.youtubeMetadata.facebookPost = metadata.facebookPost;
+      manifest.youtubeMetadata.savedAt = metadata.savedAt;
+      fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
+    } catch {}
+  }
+
+  const separateJsonPath = path.join(bundleDir, 'youtube_metadata.json');
+  fs.writeFileSync(separateJsonPath, JSON.stringify(metadata, null, 2), 'utf-8');
+
+  return { success: true, metadata, folderName: path.basename(bundleDir) };
+}

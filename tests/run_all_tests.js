@@ -23,6 +23,14 @@ const testSuites = [
 let passedCount = 0;
 const startTime = Date.now();
 
+// Preflight check: ensure backend is ready
+try {
+  execSync('node -e "fetch(\'http://localhost:3001/api/status\').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"', { timeout: 4000 });
+} catch {
+  console.log('⏳ Waiting for backend server on http://localhost:3001...');
+  execSync('node -e "setTimeout(()=>process.exit(0), 1500)"');
+}
+
 for (const suite of testSuites) {
   const suitePath = path.join(__dirname, suite.file);
   console.log(`▶ Running Suite: ${suite.name}...`);
