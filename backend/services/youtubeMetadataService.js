@@ -27,7 +27,39 @@ export function stripBloggerNames(text = '') {
     .trim();
 }
 
-export async function generateYouTubeMetadata({ title = '', text = '', folderName, bundleDir: inputBundleDir, force = false, style = 'golubuzki', model = 'google/gemini-2.5-flash' }) {
+export function cleanExtractedTitle(raw = '', fallback = '') {
+  let t = (raw || '').trim();
+  t = t.replace(/```(?:json)?/gi, '').replace(/```/g, '').trim();
+  t = t.replace(/^\{?\s*"?(?:title|youtube_title|заголовок)"?\s*:\s*"?/i, '');
+  t = t.replace(/,\s*"?(?:youtube_description|description|tags|facebookPost)[\s\S]*$/i, '');
+  t = t.replace(/["'{}]+/g, '').trim();
+  t = t.replace(/^(?:title|заголовок)[:\s-]+/i, '').trim();
+  t = stripBloggerNames(t);
+  if (!t || t.length < 5) t = fallback;
+  if (!t.toLowerCase().includes('chaos chronicle') && !t.toLowerCase().includes('chaoschronicle')) {
+    t = `${t} | Chaos Chronicle`;
+  }
+  t = t.replace(/(?:\s*\|\s*Chaos\s*Chronicle\s*)+/gi, ' | Chaos Chronicle');
+  return t.slice(0, 95);
+}
+
+const MODEL_MAP = {
+  gemini:   'google/gemini-2.5-flash',
+  deepseek: 'deepseek/deepseek-chat',
+  qwen:     'qwen/qwen-2.5-72b-instruct',
+  free:     'openrouter/free',
+};
+
+export async function generateYouTubeMetadata({
+  title = '',
+  text = '',
+  folderName,
+  bundleDir: inputBundleDir,
+  force = false,
+  style = 'clickbait',
+  model = 'gemini',
+  section = 'all',
+}) {
   let bundleDir = inputBundleDir;
   if (!bundleDir && folderName) {
     bundleDir = path.join(newsDir, folderName);
@@ -39,7 +71,7 @@ export async function generateYouTubeMetadata({ title = '', text = '', folderNam
     try {
       manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
       const cached = manifest.youtubeMetadata && (manifest.youtubeMetadata[style] || (!force && manifest.youtubeMetadata.title ? manifest.youtubeMetadata : null));
-      if (!force && cached && cached.title && cached.facebookPost) {
+      if (!force && section === 'all' && cached && cached.title && cached.facebookPost) {
         return { success: true, ...cached, style, fromCache: true };
       }
     } catch {}
@@ -77,54 +109,39 @@ export async function generateYouTubeMetadata({ title = '', text = '', folderNam
 
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey || apiKey.includes('HIER')) {
-    const fallbackMetadata = {
-      title: fallbackTitle,
-      description: fallbackDesc,
-      tags: fallbackTags,
-      hashtags: fallbackHashtags,
-      facebookPost: fallbackFb,
-      generatedAt: new Date().toISOString(),
-      style,
-    };
-    if (jsonPath && fs.existsSync(jsonPath)) {
-      if (!manifest.youtubeMetadata || typeof manifest.youtubeMetadata !== 'object') manifest.youtubeMetadata = {};
-      manifest.youtubeMetadata[style] = fallbackMetadata;
-      fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
-    }
-    return { success: true, ...fallbackMetadata };
+    if (section === 'title') return { success: true, title: fallbackTitle };
+    if (section === 'description') return { success: true, description: fallbackDesc, tags: fallbackTags, hashtags: fallbackHashtags };
+    if (section === 'facebookPost') return { success: true, facebookPost: fallbackFb };
+    return { success: true, title: fallbackTitle, description: fallbackDesc, tags: fallbackTags, hashtags: fallbackHashtags, facebookPost: fallbackFb, style };
   }
 
-  const systemPrompt = `Ты — ведущий медиа-продюсер канала Chaos Chronicle.
-На основе новости и сценария создай комплект метаданных для YouTube и готовый краткий пост для Facebook в следующем авторском стиле:
-АВТОРСКИЙ СТИЛЬ: ${styleCfg.label}
+  const chosenModel = MODEL_MAP[model] || model || 'google/gemini-2.5-flash';
+
+  let systemPrompt = `Ты — ведущий медиа-продюсер канала Chaos Chronicle.
+На основе новости создай метаданные для YouTube и Facebook в авторском стиле: ${styleCfg.label}
 ФОКУС: ${styleCfg.focus}
-${styleGuide ? `РУКОВОДСТВО: ${styleGuide}\n` : ''}
-ПОЗИЦИЯ: СТРОГО НА СТОРОНЕ УКРАИНЫ. Высмеивай кремлевскую ложь и агрессию.
+ПОЗИЦИЯ: СТРОГО НА СТОРОНЕ УКРАИНЫ.
+СТРОГИЕ ПРАВИЛА: БЕЗ слова «сатира», БЕЗ имен блогеров в тегах/хэштегах.`;
 
-СТРОГИЕ ТРЕБОВАНИЯ К ХЭШТЕГАМ И ТЕГАМ (hashtags, tags):
-1. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО писать слово «сатира» (и любые производные: #сатира, #сатирический, #политическаясатира, сатира и т.д.)!
-2. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО писать имена блогеров, авторов или названий стилей (НИКАКИХ #Голобуцкий, #Касьянов, #Климовский, #golubuzki, #kasyanov, #klimovski и т.д.)!
-3. Хэштеги и теги должны относиться ИСКЛЮЧИТЕЛЬНО к теме новости, географии, событиям и каналу: #ChaosChronicle #новости #политика #аналитика #геополитика ...
-
-СТРОГИЕ ТРЕБОВАНИЯ К ОПИСАНИЮ YOUTUBE (description):
-1. КАТЕГОРИЧЕСКИ БЕЗ ПРИВЕТСТВИЙ. Сразу начинай с сути темы.
-2. 3 тезиса с эмодзи ⚡, призыв подписаться на Chaos Chronicle 🔔 и тематические хэштеги (БЕЗ имён блогеров и БЕЗ слова сатира).
-
-СТРОГИЕ ТРЕБОВАНИЯ К FACEBOOK-ПОСТУ (facebookPost):
-1. БЕЗ ПРИВЕТСТВИЙ. Только краткий пересказ сути новости (1-2 коротких предложения, всего 40-70 слов).
-2. Название канала: канал Chaos Chronicle
-3. Ссылка на видео: 👉 [ССЫЛКА НА ВАШЕ ВИДЕО В YOUTUBE] 🔔
-4. ОБЯЗАТЕЛЬНАЯ ФРАЗА В КОНЦЕ: Подпишитесь, чтобы не пропустить новые сводки! 🔔
-5. Хэштеги: #ChaosChronicle #новости #политика #аналитика ... (БЕЗ имён блогеров и БЕЗ слова сатира).
-
-Ответь СТРОГО в формате JSON без каких-либо тегов \`\`\`json:
+  if (section === 'title') {
+    systemPrompt += `\nСоздай ТОЛЬКО 1 убойный, супер-кликабельный YouTube-заголовок (до 75 символов) с эмодзи в конце | Chaos Chronicle.
+Ответь СТРОГО JSON: { "title": "..." }`;
+  } else if (section === 'description') {
+    systemPrompt += `\nСоздай ТОЛЬКО описание для YouTube БЕЗ приветствий (суть, 3 тезиса ⚡, призыв 🔔, хэштеги), а также keywords теги и хэштеги.
+Ответь СТРОГО JSON: { "description": "...", "tags": "...", "hashtags": "..." }`;
+  } else if (section === 'facebookPost') {
+    systemPrompt += `\nСоздай ТОЛЬКО готовый вирусный пост для Facebook (40-70 слов, БЕЗ приветствий, ссылка 👉 [ССЫЛКА НА ВАШЕ ВИДЕО В YOUTUBE] 🔔, фраза «Подпишитесь, чтобы не пропустить новые сводки! 🔔», хэштеги).
+Ответь СТРОГО JSON: { "facebookPost": "..." }`;
+  } else {
+    systemPrompt += `\nОтветь СТРОГО JSON:
 {
   "title": "Хлёсткий кликабельный YouTube-заголовок (до 75 символов) с эмодзи | Chaos Chronicle",
-  "description": "Описание YouTube БЕЗ приветствий: суть темы, 3 пункта ⚡, призыв к подписке 🔔, хэштеги (без имён блогеров и без слова сатира).",
-  "tags": "Теги через запятую для YouTube Studio (только по теме новости, без имён блогеров и без слова сатира)",
+  "description": "Описание YouTube БЕЗ приветствий: суть темы, 3 пункта ⚡, призыв к подписке 🔔, хэштеги.",
+  "tags": "Теги через запятую для YouTube Studio (без слова сатира и имен)",
   "hashtags": "#ChaosChronicle #новости #аналитика #политика #геополитика",
-  "facebookPost": "Короткий готовый пост для Facebook (суть + канал Chaos Chronicle + ссылка + Подпишитесь, чтобы не пропустить новые сводки! 🔔 + хэштеги без сатиры и блогеров)"
+  "facebookPost": "Короткий готовый пост для Facebook"
 }`;
+  }
 
   const userPrompt = `НОВОСТЬ: ${effectiveTitle}\nТЕКСТ:\n${effectiveText.slice(0, 1200)}`;
 
@@ -136,12 +153,12 @@ ${styleGuide ? `РУКОВОДСТВО: ${styleGuide}\n` : ''}
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: chosenModel,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        max_tokens: 850,
+        max_tokens: section === 'title' ? 120 : (section === 'facebookPost' ? 300 : 850),
         temperature: 0.8,
       }),
       signal: AbortSignal.timeout(12000),
@@ -150,7 +167,7 @@ ${styleGuide ? `РУКОВОДСТВО: ${styleGuide}\n` : ''}
     const aiData = await aiRes.json();
     const rawContent = aiData.choices?.[0]?.message?.content || '';
 
-    let parsed = null;
+    let parsed = {};
     try {
       const cleanJson = rawContent.replace(/```json/gi, '').replace(/```/g, '').trim();
       parsed = JSON.parse(cleanJson);
@@ -159,16 +176,33 @@ ${styleGuide ? `РУКОВОДСТВО: ${styleGuide}\n` : ''}
       if (match) parsed = JSON.parse(match[0]);
     }
 
+    if (section === 'title') {
+      const titleCandidate = parsed.title || rawContent;
+      const generatedTitle = cleanExtractedTitle(titleCandidate, fallbackTitle);
+      return { success: true, title: generatedTitle, section: 'title', model };
+    }
+    if (section === 'description') {
+      const generatedDesc = stripBloggerNames(parsed.description || fallbackDesc);
+      const generatedTags = stripBloggerNames(parsed.tags || fallbackTags);
+      const generatedHashtags = stripBloggerNames(parsed.hashtags || fallbackHashtags);
+      return { success: true, description: generatedDesc, tags: generatedTags, hashtags: generatedHashtags, section: 'description', model };
+    }
+    if (section === 'facebookPost') {
+      const generatedFb = stripBloggerNames(ensureFacebookPostCta(parsed.facebookPost || rawContent || fallbackFb));
+      return { success: true, facebookPost: generatedFb, section: 'facebookPost', model };
+    }
+
     if (!parsed || !parsed.title) throw new Error('Некорректный ответ модели');
 
     const metadata = {
-      title: stripBloggerNames(parsed.title || ''),
+      title: cleanExtractedTitle(parsed.title || fallbackTitle, fallbackTitle),
       description: stripBloggerNames(parsed.description || ''),
       tags: stripBloggerNames(parsed.tags || ''),
       hashtags: stripBloggerNames(parsed.hashtags || ''),
       facebookPost: stripBloggerNames(ensureFacebookPostCta(parsed.facebookPost || fallbackFb)),
       generatedAt: new Date().toISOString(),
       style,
+      model,
     };
 
     if (jsonPath && fs.existsSync(jsonPath)) {
@@ -184,6 +218,10 @@ ${styleGuide ? `РУКОВОДСТВО: ${styleGuide}\n` : ''}
 
     return { success: true, ...metadata };
   } catch (err) {
+    if (section === 'title') return { success: true, title: fallbackTitle, section: 'title' };
+    if (section === 'description') return { success: true, description: fallbackDesc, tags: fallbackTags, hashtags: fallbackHashtags, section: 'description' };
+    if (section === 'facebookPost') return { success: true, facebookPost: fallbackFb, section: 'facebookPost' };
+
     const fallbackMetadata = {
       title: fallbackTitle,
       description: fallbackDesc,

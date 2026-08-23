@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { toast } from 'sonner'
-import { FEUILLETON_STYLES } from '../lib/utils'
+import { FEUILLETON_STYLES, AI_MODELS } from '../lib/utils'
 
 export default function YouTubeMetadataModal({ pkg, onClose }) {
   if (!pkg) return null
@@ -9,6 +9,10 @@ export default function YouTubeMetadataModal({ pkg, onClose }) {
   const [loading, setLoading] = useState(false)
   const [savingJson, setSavingJson] = useState(false)
   const [selectedStyle, setSelectedStyle] = useState('clickbait')
+  const [titleModel, setTitleModel] = useState('gemini')
+  const [descModel, setDescModel] = useState('gemini')
+  const [fbModel, setFbModel] = useState('gemini')
+  const [sectionLoading, setSectionLoading] = useState(null)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [tags, setTags] = useState('')
@@ -18,21 +22,12 @@ export default function YouTubeMetadataModal({ pkg, onClose }) {
   const fetchMetadata = async (force = false, styleOverride = selectedStyle) => {
     setLoading(true)
     const styleLabel = FEUILLETON_STYLES.find(s => s.id === styleOverride)?.name?.split(' (')[0] || 'Кликбейт'
-    const toastId = force
-      ? toast.loading(`🤖 Генерация метаданных в стиле: ${styleLabel}...`)
-      : toast.loading('📥 Загрузка метаданных...')
-
+    const toastId = force ? toast.loading(`🤖 Генерация всех метаданных...`) : toast.loading('📥 Загрузка метаданных...')
     try {
       const res = await fetch('/api/youtube-metadata', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          folderName: pkg.folderName,
-          bundleDir: pkg.bundleDir,
-          title: pkg.title,
-          style: styleOverride,
-          force,
-        }),
+        body: JSON.stringify({ folderName: pkg.folderName, bundleDir: pkg.bundleDir, title: pkg.title, style: styleOverride, force, section: 'all' }),
       })
       const data = await res.json()
       if (data.success) {
@@ -49,6 +44,36 @@ export default function YouTubeMetadataModal({ pkg, onClose }) {
       toast.error('Ошибка загрузки: ' + err.message, { id: toastId })
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchSection = async (section, model) => {
+    setSectionLoading(section)
+    const mObj = AI_MODELS.find(m => m.id === model)
+    const toastId = toast.loading(`🤖 Генерация (${section === 'title' ? 'Заголовок' : (section === 'description' ? 'Описание' : 'Пост FB')}) через ${mObj?.name || model}...`)
+    try {
+      const res = await fetch('/api/youtube-metadata', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folderName: pkg.folderName, bundleDir: pkg.bundleDir, title: pkg.title, style: selectedStyle, force: true, section, model }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        if (section === 'title' && data.title) setTitle(data.title)
+        if (section === 'description') {
+          if (data.description) setDescription(data.description)
+          if (data.tags) setTags(data.tags)
+          if (data.hashtags) setHashtags(data.hashtags)
+        }
+        if (section === 'facebookPost' && data.facebookPost) setFacebookPost(data.facebookPost)
+        toast.success(`✨ Обновлено через ${mObj?.name?.split(' ')[1] || 'ИИ'}!`, { id: toastId })
+      } else {
+        toast.error('Ошибка генерации: ' + (data.error || 'Неизвестная ошибка'), { id: toastId })
+      }
+    } catch (err) {
+      toast.error('Ошибка: ' + err.message, { id: toastId })
+    } finally {
+      setSectionLoading(null)
     }
   }
 
@@ -146,13 +171,20 @@ export default function YouTubeMetadataModal({ pkg, onClose }) {
   const currentStyleObj = FEUILLETON_STYLES.find(s => s.id === selectedStyle)
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <input type="file" ref={fileInputRef} onChange={handleUploadJson} accept=".json,application/json" style={{ display: 'none' }} />
+    <div className="modal-overlay" onClick={e => { e.stopPropagation(); onClose(); }}>
       <div
         className="modal-content"
         onClick={e => e.stopPropagation()}
         style={{ maxWidth: '850px', width: '94%', maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}
       >
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleUploadJson}
+          onClick={e => e.stopPropagation()}
+          accept=".json,application/json"
+          style={{ display: 'none' }}
+        />
         <div className="modal-header">
           <div style={{ flex: 1 }}>
             <span className="modal-badge" style={{ background: '#dc2626', color: '#fff' }}>
@@ -181,7 +213,7 @@ export default function YouTubeMetadataModal({ pkg, onClose }) {
               <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center', flexWrap: 'wrap' }}>
                 <button
                   type="button"
-                  onClick={handleDownloadJson}
+                  onClick={e => { e.stopPropagation(); handleDownloadJson(); }}
                   className="copy-btn"
                   style={{ background: '#2563eb', color: '#fff', fontSize: '0.75rem', padding: '0.25rem 0.6rem' }}
                   title="Скачать файл youtube_metadata.json на компьютер (Экспорт)"
@@ -190,7 +222,7 @@ export default function YouTubeMetadataModal({ pkg, onClose }) {
                 </button>
                 <button
                   type="button"
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={e => { e.stopPropagation(); fileInputRef.current?.click(); }}
                   className="copy-btn"
                   style={{ background: '#475569', color: '#fff', fontSize: '0.75rem', padding: '0.25rem 0.6rem' }}
                   title="Загрузить сохраненный JSON-файл с компьютера (Импорт)"
@@ -200,64 +232,64 @@ export default function YouTubeMetadataModal({ pkg, onClose }) {
               </div>
             </div>
           </div>
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <button className="modal-close" onClick={e => { e.stopPropagation(); onClose(); }}>✕</button>
         </div>
 
         <div className="modal-body" style={{ overflowY: 'auto', flex: 1, padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
           {/* 1. YouTube Заголовок */}
-          <div style={{ background: '#181c27', padding: '1rem', borderRadius: '10px', border: '1px solid #232936' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-              <label style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f3f4f6' }}>
-                🏷️ 1. Название видео (YouTube Title)
-              </label>
-              <button
-                type="button"
-                className="copy-btn"
-                style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', background: '#3b82f6' }}
-                onClick={() => copyToClipboard(title, 'Заголовок')}
-              >
-                📋 Скопировать заголовок
-              </button>
+          <div style={{ background: '#181c27', padding: '0.85rem 1rem', borderRadius: '10px', border: '1px solid #232936' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem', flexWrap: 'wrap', gap: '0.4rem' }}>
+              <label style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f3f4f6' }}>🏷️ 1. Название видео (YouTube Title)</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <select value={titleModel} onChange={e => setTitleModel(e.target.value)} style={{ background: '#0d1117', border: '1px solid #30363d', color: '#e6edf3', borderRadius: '5px', padding: '0.2rem 0.4rem', fontSize: '0.75rem' }}>
+                  {AI_MODELS.map(m => (<option key={m.id} value={m.id}>{m.icon} {m.name.split(' ')[1]}</option>))}
+                </select>
+                <button type="button" className="copy-btn" style={{ padding: '0.25rem 0.55rem', fontSize: '0.75rem', background: '#3b82f6' }} onClick={() => fetchSection('title', titleModel)} disabled={sectionLoading === 'title'}>
+                  {sectionLoading === 'title' ? '⏳' : '🔄'}
+                </button>
+                <button type="button" className="copy-btn" style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem', background: '#1e40af' }} onClick={() => copyToClipboard(title, 'Заголовок')}>
+                  📋 Копировать
+                </button>
+              </div>
             </div>
-            <input
-              type="text"
-              value={title}
-              onChange={e => setTitle(e.target.value)}
-              placeholder="Генерация заголовка..."
-              style={{
-                width: '100%',
-                background: '#0d1117',
-                border: '1px solid #30363d',
-                borderRadius: '6px',
-                color: '#fff',
-                padding: '0.65rem 0.8rem',
-                fontSize: '0.95rem',
-                fontWeight: 600,
-              }}
-            />
-            <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.3rem', textAlign: 'right' }}>
-              Длина: {title.length} / 100 символов
-            </div>
+            <input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="Генерация заголовка..." style={{ width: '100%', background: '#0d1117', border: '1px solid #30363d', borderRadius: '6px', color: '#fff', padding: '0.55rem 0.75rem', fontSize: '0.95rem', fontWeight: 600 }} />
+            <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.2rem', textAlign: 'right' }}>Длина: {title.length} / 100 символов</div>
           </div>
 
           {/* 2. Описание видео для YouTube */}
           <div style={{ background: '#181c27', padding: '0.85rem 1rem', borderRadius: '10px', border: '1px solid #232936' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem', flexWrap: 'wrap', gap: '0.4rem' }}>
               <label style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f3f4f6' }}>📝 2. Описание видео (YouTube Description)</label>
-              <button type="button" className="copy-btn" style={{ padding: '0.3rem 0.65rem', fontSize: '0.8rem', background: '#10b981' }} onClick={() => copyToClipboard(description, 'Описание')}>
-                📋 Скопировать описание
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <select value={descModel} onChange={e => setDescModel(e.target.value)} style={{ background: '#0d1117', border: '1px solid #30363d', color: '#e6edf3', borderRadius: '5px', padding: '0.2rem 0.4rem', fontSize: '0.75rem' }}>
+                  {AI_MODELS.map(m => (<option key={m.id} value={m.id}>{m.icon} {m.name.split(' ')[1]}</option>))}
+                </select>
+                <button type="button" className="copy-btn" style={{ padding: '0.25rem 0.55rem', fontSize: '0.75rem', background: '#10b981' }} onClick={() => fetchSection('description', descModel)} disabled={sectionLoading === 'description'}>
+                  {sectionLoading === 'description' ? '⏳' : '🔄'}
+                </button>
+                <button type="button" className="copy-btn" style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem', background: '#047857' }} onClick={() => copyToClipboard(description, 'Описание')}>
+                  📋 Копировать
+                </button>
+              </div>
             </div>
             <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Генерация описания..." rows={5} style={{ width: '100%', background: '#0d1117', border: '1px solid #30363d', borderRadius: '6px', color: '#e6edf3', padding: '0.55rem 0.75rem', fontSize: '0.85rem', lineHeight: '1.45', resize: 'vertical', fontFamily: 'inherit' }} />
           </div>
 
           {/* 3. Готовый пост для Facebook */}
           <div style={{ background: '#131b2e', padding: '0.85rem 1rem', borderRadius: '10px', border: '1px solid #1e3a8a' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem', flexWrap: 'wrap', gap: '0.4rem' }}>
               <label style={{ fontSize: '0.9rem', fontWeight: 700, color: '#60a5fa' }}>📱 3. Готовый пост для Facebook</label>
-              <button type="button" className="copy-btn" style={{ padding: '0.3rem 0.65rem', fontSize: '0.8rem', background: '#2563eb' }} onClick={() => copyToClipboard(facebookPost, 'Пост для Facebook')}>
-                📋 Скопировать пост FB
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <select value={fbModel} onChange={e => setFbModel(e.target.value)} style={{ background: '#0a101f', border: '1px solid #1d4ed8', color: '#93c5fd', borderRadius: '5px', padding: '0.2rem 0.4rem', fontSize: '0.75rem' }}>
+                  {AI_MODELS.map(m => (<option key={m.id} value={m.id}>{m.icon} {m.name.split(' ')[1]}</option>))}
+                </select>
+                <button type="button" className="copy-btn" style={{ padding: '0.25rem 0.55rem', fontSize: '0.75rem', background: '#2563eb' }} onClick={() => fetchSection('facebookPost', fbModel)} disabled={sectionLoading === 'facebookPost'}>
+                  {sectionLoading === 'facebookPost' ? '⏳' : '🔄'}
+                </button>
+                <button type="button" className="copy-btn" style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem', background: '#1d4ed8' }} onClick={() => copyToClipboard(facebookPost, 'Пост для Facebook')}>
+                  📋 Копировать
+                </button>
+              </div>
             </div>
             <textarea value={facebookPost} onChange={e => setFacebookPost(e.target.value)} placeholder="Генерация короткого вирусного поста для Facebook..." rows={5} style={{ width: '100%', background: '#0a101f', border: '1px solid #1d4ed8', borderRadius: '6px', color: '#f8fafc', padding: '0.55rem 0.75rem', fontSize: '0.88rem', lineHeight: '1.45', resize: 'vertical', fontFamily: 'inherit' }} />
           </div>
