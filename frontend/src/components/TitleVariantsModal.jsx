@@ -45,6 +45,7 @@ export default function TitleVariantsModal({ pkg, onClose, onTitleSaved }) {
     setOriginalNewsTitle(pkg.original_title || pkg.title || '')
     if (pkg.headlineConfig?.lineSpacing) {
       setLineSpacing(Number(pkg.headlineConfig.lineSpacing))
+    }
     if (pkg.title_variants && pkg.title_variants.length > 0) {
       setVariants(pkg.title_variants)
     }
