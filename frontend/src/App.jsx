@@ -167,48 +167,21 @@ export default function App() {
     fetchSavedPackages()
   }, [category, fetchNews, checkStatus, fetchSavedPackages])
 
-  const handleGenerate = async (article, customStyle = null) => {
-    setGeneratingId(article.id)
-    const effectiveStyle = customStyle || selectedStyle
-    const toastId = toast.loading('ИИ пишет 3-минутный фельетон...', {
-      description: `Тема: ${article.title.slice(0, 45)}...`,
+  const handleGenerate = (article, customStyle = null) => {
+    setCurrentFeuilleton({
+      id: article.id,
+      title: article.title,
+      originalTitle: article.title,
+      summary: article.summary,
+      source: article.source,
+      url: article.url || article.link || '',
+      imageUrl: article.imageUrl,
+      images: article.images || (article.imageUrl ? [article.imageUrl] : []),
+      text: '',
+      style: customStyle || selectedStyle,
+      modelName: selectedModel,
+      isDraft: true,
     })
-
-    try {
-      const res = await fetch('/api/generate-feuilleton', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: article.title,
-          url: article.url || article.link || '',
-          summary: article.summary,
-          model: selectedModel,
-          style: effectiveStyle,
-          source: article.source,
-          imageUrl: article.imageUrl,
-          images: article.images || (article.imageUrl ? [article.imageUrl] : []),
-        }),
-      })
-
-      const data = await res.json()
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || `HTTP ${res.status}`)
-      }
-
-      const fData = data.feuilleton || data
-      setCurrentFeuilleton(fData)
-      toast.success('Фельетон успешно создан!', {
-        id: toastId,
-        description: `Слов: ${fData.words || ''} | Чтение: ~${fData.readTimeMin || fData.minutes || 3} мин.`,
-      })
-    } catch (err) {
-      toast.error('Ошибка генерации фельетона', {
-        id: toastId,
-        description: err.message,
-      })
-    } finally {
-      setGeneratingId(null)
-    }
   }
 
   const filtered = useMemo(() => {

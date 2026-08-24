@@ -77,6 +77,19 @@ export async function generateYouTubeMetadata({
     } catch {}
   }
 
+  if (!force && section === 'all') {
+    return {
+      success: true,
+      notGenerated: true,
+      title: '',
+      description: '',
+      tags: '',
+      hashtags: '',
+      facebookPost: '',
+      style,
+    };
+  }
+
   const effectiveTitle = manifest.title || title || 'Мировые новости';
   const effectiveText = text || (bundleDir && fs.existsSync(path.join(bundleDir, 'script.txt')) 
     ? fs.readFileSync(path.join(bundleDir, 'script.txt'), 'utf-8') 

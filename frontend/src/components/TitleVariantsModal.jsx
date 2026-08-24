@@ -8,7 +8,7 @@ export default function TitleVariantsModal({ pkg, onClose, onTitleSaved }) {
 
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [selectedStyle, setSelectedStyle] = useState(pkg.title_variants_style || 'golubuzki')
+  const [selectedStyle, setSelectedStyle] = useState(pkg.title_variants_style || 'clickbait')
   const [variants, setVariants] = useState(pkg.title_variants || [])
   const [selectedTitle, setSelectedTitle] = useState(pkg.title || '')
   const [originalNewsTitle, setOriginalNewsTitle] = useState(pkg.original_title || pkg.title || '')
@@ -23,26 +23,14 @@ export default function TitleVariantsModal({ pkg, onClose, onTitleSaved }) {
       const res = await fetch('/api/generate-title-variants', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: effectiveTopic,
-          summary: pkg.summary || '',
-          text: pkg.scriptTxt || pkg.text || '',
-          bundleDir: pkg.bundleDir,
-          folderName: pkg.folderName,
-          style: styleToUse,
-          forceRegenerate: force,
-        }),
+        body: JSON.stringify({ title: effectiveTopic, summary: pkg.summary || '', text: pkg.scriptTxt || pkg.text || '', bundleDir: pkg.bundleDir, folderName: pkg.folderName, style: styleToUse, forceRegenerate: force }),
       })
       const data = await res.json()
       if (data.success && Array.isArray(data.variants) && data.variants.length > 0) {
         setVariants(data.variants)
         if (data.resolvedTitle && !originalNewsTitle) setOriginalNewsTitle(data.resolvedTitle)
-        if (!selectedTitle || selectedTitle === pkg.title) {
-          setSelectedTitle(data.variants[0])
-        }
-        if (force) {
-          toast.success('✨ 10 новых вариантов заголовков сгенерировано!')
-        }
+        if (!selectedTitle || selectedTitle === pkg.title) setSelectedTitle(data.variants[0])
+        if (force) toast.success('✨ 10 новых вариантов заголовков сгенерировано!')
       } else {
         toast.error('Не удалось получить варианты: ' + (data.error || 'Ошибка ИИ'))
       }
@@ -57,18 +45,13 @@ export default function TitleVariantsModal({ pkg, onClose, onTitleSaved }) {
     setOriginalNewsTitle(pkg.original_title || pkg.title || '')
     if (pkg.headlineConfig?.lineSpacing) {
       setLineSpacing(Number(pkg.headlineConfig.lineSpacing))
-    }
     if (pkg.title_variants && pkg.title_variants.length > 0) {
       setVariants(pkg.title_variants)
-    } else {
-      fetchVariants(false)
     }
   }, [pkg?.folderName])
 
   const handleStyleChange = (e) => {
-    const newStyle = e.target.value
-    setSelectedStyle(newStyle)
-    fetchVariants(true, newStyle)
+    setSelectedStyle(e.target.value)
   }
 
   const handleSave = async () => {
@@ -180,6 +163,28 @@ export default function TitleVariantsModal({ pkg, onClose, onTitleSaved }) {
               <div style={{ textAlign: 'center', padding: '1.5rem', color: '#a1a1aa' }}>
                 <div style={{ fontSize: '1.8rem', marginBottom: '0.5rem' }}>🤖</div>
                 ИИ генерирует 10 заголовков в выбранном стиле...
+              </div>
+            ) : variants.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '1.5rem', background: '#18181b', borderRadius: '8px', border: '1px dashed #3f3f46' }}>
+                <p style={{ color: '#9ca3af', fontSize: '0.9rem', marginBottom: '0.8rem' }}>
+                  Заголовки еще не созданы. Выберите стиль выше и нажмите кнопку:
+                </p>
+                <button
+                  type="button"
+                  onClick={() => fetchVariants(true)}
+                  style={{
+                    background: 'linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '0.65rem 1.4rem',
+                    fontSize: '0.92rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  ✨ Сгенерировать 10 вариантов заголовков
+                </button>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>

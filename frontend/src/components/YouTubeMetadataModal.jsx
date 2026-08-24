@@ -22,7 +22,7 @@ export default function YouTubeMetadataModal({ pkg, onClose }) {
   const fetchMetadata = async (force = false, styleOverride = selectedStyle) => {
     setLoading(true)
     const styleLabel = FEUILLETON_STYLES.find(s => s.id === styleOverride)?.name?.split(' (')[0] || 'Кликбейт'
-    const toastId = force ? toast.loading(`🤖 Генерация всех метаданных...`) : toast.loading('📥 Загрузка метаданных...')
+    const toastId = force ? toast.loading(`🤖 Генерация всех метаданных...`) : null
     try {
       const res = await fetch('/api/youtube-metadata', {
         method: 'POST',
@@ -31,17 +31,19 @@ export default function YouTubeMetadataModal({ pkg, onClose }) {
       })
       const data = await res.json()
       if (data.success) {
-        setTitle(data.title || '')
-        setDescription(data.description || '')
-        setTags(data.tags || '')
-        setHashtags(data.hashtags || '')
-        setFacebookPost(data.facebookPost || '')
-        toast.success(force ? `✨ Метаданные (${styleLabel}) готовы!` : '✅ Метаданные загружены!', { id: toastId })
+        if (!data.notGenerated) {
+          setTitle(data.title || '')
+          setDescription(data.description || '')
+          setTags(data.tags || '')
+          setHashtags(data.hashtags || '')
+          setFacebookPost(data.facebookPost || '')
+          if (force && toastId) toast.success(`✨ Метаданные (${styleLabel}) готовы!`, { id: toastId })
+        }
       } else {
-        toast.error('Ошибка генерации инфо', { id: toastId, description: data.error })
+        if (toastId) toast.error('Ошибка генерации инфо', { id: toastId, description: data.error })
       }
     } catch (err) {
-      toast.error('Ошибка загрузки: ' + err.message, { id: toastId })
+      if (toastId) toast.error('Ошибка загрузки: ' + err.message, { id: toastId })
     } finally {
       setLoading(false)
     }
