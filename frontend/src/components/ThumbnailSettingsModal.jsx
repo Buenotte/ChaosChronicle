@@ -27,6 +27,7 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
   const [borderWidth, setBorderWidth] = useState(cfg.borderWidth !== undefined ? Number(cfg.borderWidth) : 9)
   const [shadowDistance, setShadowDistance] = useState(cfg.shadowDistance !== undefined ? Number(cfg.shadowDistance) : 4)
   const [position, setPosition] = useState(cfg.position || 'center')
+  const [offsetY, setOffsetY] = useState(cfg.offsetY !== undefined && cfg.offsetY !== null ? Number(cfg.offsetY) : (cfg.position === 'top' ? 12 : cfg.position === 'bottom' ? 85 : 50))
   const [hasBox, setHasBox] = useState(!!cfg.hasBox)
   const [boxStyle, setBoxStyle] = useState(cfg.boxStyle || (cfg.hasBox ? 'dark_soft' : 'none'))
   const [boxOpacity, setBoxOpacity] = useState(cfg.boxOpacity !== undefined ? Number(cfg.boxOpacity) : 75)
@@ -69,6 +70,10 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
         if (c.isItalic !== undefined) setIsItalic(Boolean(c.isItalic))
         if (c.tiltAngle !== undefined) setTiltAngle(Number(c.tiltAngle))
         if (c.position) setPosition(c.position)
+        if (c.offsetY !== undefined && c.offsetY !== null) setOffsetY(Number(c.offsetY))
+        else if (c.position === 'top') setOffsetY(12)
+        else if (c.position === 'bottom') setOffsetY(85)
+        else if (c.position === 'center') setOffsetY(50)
         if (c.hasBox !== undefined) setHasBox(Boolean(c.hasBox))
         if (c.boxStyle !== undefined) setBoxStyle(c.boxStyle)
         else if (c.hasBox) setBoxStyle('dark_soft')
@@ -191,7 +196,8 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
         fontColor, lineColors: Array.isArray(lineColors) ? lineColors : null,
         lineFontSizes: Array.isArray(lineFontSizes) ? lineFontSizes : null,
         borderColor, borderWidth: Number(borderWidth), shadowDistance: Number(shadowDistance),
-        position, hasBox: boxStyle !== 'none', boxStyle, boxOpacity: Number(boxOpacity) || 75,
+        position, offsetY: offsetY !== undefined && offsetY !== null ? Number(offsetY) : 50,
+        hasBox: boxStyle !== 'none', boxStyle, boxOpacity: Number(boxOpacity) || 75,
       }
       const res = await fetch('/api/set-thumbnail', {
         method: 'POST',
@@ -279,6 +285,7 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
           <LiveThumbnailPreview
             previewSrc={currentBgSrc}
             position={position}
+            offsetY={offsetY}
             fontFamilyName={fontFamilyName}
             calcLiveFontSize={calcLiveFontSize}
             lineSpacing={lineSpacing}
@@ -359,8 +366,8 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
               isItalic={isItalic} setIsItalic={setIsItalic} tiltAngle={tiltAngle} setTiltAngle={setTiltAngle}
               fontColor={fontColor} setFontColor={setFontColor} borderColor={borderColor} setBorderColor={setBorderColor}
               borderWidth={borderWidth} setBorderWidth={setBorderWidth} shadowDistance={shadowDistance} setShadowDistance={setShadowDistance}
-              position={position} setPosition={setPosition} hasBox={hasBox} setHasBox={setHasBox}
-              boxStyle={boxStyle} setBoxStyle={setBoxStyle} boxOpacity={boxOpacity} setBoxOpacity={setBoxOpacity}
+              position={position} setPosition={setPosition} offsetY={offsetY} setOffsetY={setOffsetY}
+              hasBox={hasBox} setHasBox={setHasBox} boxStyle={boxStyle} setBoxStyle={setBoxStyle} boxOpacity={boxOpacity} setBoxOpacity={setBoxOpacity}
             />
           </div>
 

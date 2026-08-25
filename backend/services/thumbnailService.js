@@ -89,6 +89,7 @@ export async function processSetThumbnail({
       isItalic: !!headlineConfig.isItalic,
       tiltAngle: Number(headlineConfig.tiltAngle) || 0,
       position: headlineConfig.position || 'center',
+      offsetY: headlineConfig.offsetY !== undefined && headlineConfig.offsetY !== null ? Number(headlineConfig.offsetY) : 50,
       hasBox: !!headlineConfig.hasBox,
       boxStyle: headlineConfig.boxStyle || (headlineConfig.hasBox ? 'dark_soft' : 'none'),
       boxOpacity: headlineConfig.boxOpacity !== undefined ? Number(headlineConfig.boxOpacity) : 75,

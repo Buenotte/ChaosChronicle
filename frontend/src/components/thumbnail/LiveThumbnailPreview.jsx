@@ -5,6 +5,7 @@ const COLOR_MAP = Object.fromEntries(COLORS.map(c => [c.id, c.hex]))
 export default function LiveThumbnailPreview({
   previewSrc,
   position,
+  offsetY = 50,
   fontFamilyName,
   calcLiveFontSize,
   lineSpacing = 1.15,
@@ -22,6 +23,9 @@ export default function LiveThumbnailPreview({
   previewLines,
 }) {
   const angle = Number(tiltAngle) || 0
+  const yPct = (offsetY !== undefined && offsetY !== null && !isNaN(Number(offsetY)))
+    ? Math.max(0, Math.min(100, Number(offsetY)))
+    : (position === 'top' ? 12 : position === 'bottom' ? 85 : 50)
 
   return (
     <div>
@@ -30,7 +34,7 @@ export default function LiveThumbnailPreview({
           👁️ ЖИВОЙ ПРЕДПРОСМОТР ОБЛОЖКИ (16:9):
         </label>
         <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
-          {isItalic ? '✍️ Курсив ' : ''}{angle !== 0 ? `📐 Угол: ${angle}° ` : ''}• Обновляется мгновенно
+          {isItalic ? '✍️ Курсив ' : ''}{angle !== 0 ? `📐 Угол: ${angle}° ` : ''}• Позиция Y: {yPct}%
         </span>
       </div>
 
@@ -45,10 +49,6 @@ export default function LiveThumbnailPreview({
           background: '#09090b',
           boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
           border: '2px solid #3f3f46',
-          display: 'flex',
-          alignItems: position === 'top' ? 'flex-start' : position === 'bottom' ? 'flex-end' : 'center',
-          justifyContent: 'center',
-          padding: position === 'top' ? '20px 16px' : position === 'bottom' ? '20px 16px' : '0 16px',
         }}
       >
         {/* Фоновое чистое изображение */}
@@ -70,13 +70,15 @@ export default function LiveThumbnailPreview({
           }}
         />
 
-        {/* Накладываемый живой текст с точной имитацией FFmpeg (наклон, курсив, обводка, тень) */}
+        {/* Накладываемый живой текст с точной имитацией FFmpeg (позиция Y, наклон, курсив, обводка, тень) */}
         {(() => {
           const alpha = ((Number(boxOpacity) >= 10 ? Number(boxOpacity) : 75) / 100).toFixed(2)
           return (
             <div
               style={{
-                position: 'relative',
+                position: 'absolute',
+                left: '50%',
+                top: `${yPct}%`,
                 zIndex: 2,
                 textAlign: 'center',
                 fontFamily: fontFamilyName,
@@ -86,9 +88,9 @@ export default function LiveThumbnailPreview({
                 lineHeight: Number(lineSpacing) || 1.15,
                 color: activeColorHex,
                 letterSpacing: '0.5px',
-                transform: `rotate(${angle}deg) ${isItalic && !fontFamilyName.includes('Georgia') ? 'skewX(-8deg)' : ''}`,
+                transform: `translate(-50%, -${yPct}%) rotate(${angle}deg) ${isItalic && !fontFamilyName.includes('Georgia') ? 'skewX(-8deg)' : ''}`,
                 transformOrigin: 'center center',
-                transition: 'transform 0.15s ease',
+                transition: 'transform 0.15s ease, top 0.15s ease',
                 WebkitTextStroke: `${Math.round(borderWidth * 0.45)}px ${activeStrokeHex}`,
                 textShadow: `${Math.round(shadowDistance * 0.45)}px ${Math.round(shadowDistance * 0.45)}px ${Math.round(shadowDistance * 0.45)}px rgba(0,0,0,0.92)`,
                 background: (boxStyle === 'dark_solid' ? `rgba(0,0,0,${alpha})` : (boxStyle === 'dark_soft' || (hasBox && boxStyle === 'none') ? `rgba(0,0,0,${alpha})` : (boxStyle === 'red_accent' ? `rgba(220,38,38,${alpha})` : (boxStyle === 'yellow_highlight' ? `rgba(245,158,11,${alpha})` : (boxStyle === 'blue_cyber' ? `rgba(15,23,42,${alpha})` : (boxStyle === 'purple_glass' ? `rgba(59,7,100,${alpha})` : 'transparent')))))),

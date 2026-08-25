@@ -53,6 +53,8 @@ export default function TypographyStyleControls({
   setShadowDistance,
   position,
   setPosition,
+  offsetY = 50,
+  setOffsetY = null,
   hasBox,
   setHasBox,
   boxStyle = 'none',
@@ -152,21 +154,53 @@ export default function TypographyStyleControls({
           </div>
         </div>
 
-        {/* Позиция заголовка */}
-        <div>
-          <label style={{ display: 'block', fontSize: '0.82rem', color: '#9ca3af', marginBottom: '0.35rem', fontWeight: 600 }}>📍 Расположение по вертикали:</label>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.4rem' }}>
-            {[{ id: 'top', label: '⬆️ Вверху' }, { id: 'center', label: '🎯 По центру' }, { id: 'bottom', label: '⬇️ Внизу' }].map(p => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => setPosition(p.id)}
-                style={{ padding: '0.4rem', borderRadius: '6px', background: position === p.id ? '#3b82f6' : '#18181b', border: position === p.id ? '1px solid #60a5fa' : '1px solid #27272a', color: '#fff', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}
-              >
-                {p.label}
-              </button>
-            ))}
+        {/* Позиция заголовка: пресеты + плавный слайдер Y */}
+        <div style={{ background: '#18181b', padding: '0.6rem', borderRadius: '8px', border: '1px solid #27272a', display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <label style={{ fontSize: '0.82rem', color: '#f4f4f5', fontWeight: 700 }}>📍 Расположение по вертикали:</label>
+            <span style={{ fontSize: '0.78rem', color: '#38bdf8', fontWeight: 700 }}>
+              Y: {offsetY !== undefined && offsetY !== null ? offsetY : (position === 'top' ? 12 : position === 'bottom' ? 85 : 50)}%
+            </span>
           </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.4rem' }}>
+            {[{ id: 'top', label: '⬆️ Вверху', y: 12 }, { id: 'center', label: '🎯 По центру', y: 50 }, { id: 'bottom', label: '⬇️ Внизу', y: 85 }].map(p => {
+              const curY = offsetY !== undefined && offsetY !== null ? Number(offsetY) : (position === 'top' ? 12 : position === 'bottom' ? 85 : 50)
+              const isMatch = position === p.id && Math.abs(curY - p.y) <= 8
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => { setPosition(p.id); if (setOffsetY) setOffsetY(p.y); }}
+                  style={{ padding: '0.35rem', borderRadius: '6px', background: isMatch ? '#3b82f6' : '#09090b', border: isMatch ? '1px solid #60a5fa' : '1px solid #27272a', color: '#fff', cursor: 'pointer', fontSize: '0.76rem', fontWeight: 600 }}
+                >
+                  {p.label}
+                </button>
+              )
+            })}
+          </div>
+
+          {setOffsetY && (
+            <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', marginTop: '0.1rem' }}>
+              <span style={{ fontSize: '0.7rem', color: '#71717a' }}>0%</span>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                step="1"
+                value={offsetY !== undefined && offsetY !== null ? Number(offsetY) : (position === 'top' ? 12 : position === 'bottom' ? 85 : 50)}
+                onChange={e => {
+                  const val = Number(e.target.value)
+                  setOffsetY(val)
+                  if (val <= 25) setPosition('top')
+                  else if (val >= 75) setPosition('bottom')
+                  else setPosition('center')
+                }}
+                style={{ flex: 1, accentColor: '#38bdf8', cursor: 'pointer', height: '4px' }}
+              />
+              <span style={{ fontSize: '0.7rem', color: '#71717a' }}>100%</span>
+            </div>
+          )}
         </div>
       </div>
 

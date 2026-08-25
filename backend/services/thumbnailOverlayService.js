@@ -134,7 +134,12 @@ export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, optio
     const totalTextHeight = lineHeights.reduce((sum, h) => sum + h, 0);
 
     let startY = 40;
-    if (position === 'center') {
+    if (options.offsetY !== undefined && options.offsetY !== null && !isNaN(Number(options.offsetY))) {
+      const pct = Math.max(0, Math.min(100, Number(options.offsetY)));
+      const availableSpace = Math.max(0, 720 - totalTextHeight);
+      startY = Math.round(20 + (availableSpace - 40) * (pct / 100));
+      startY = Math.max(15, Math.min(startY, 720 - totalTextHeight - 15));
+    } else if (position === 'center') {
       startY = Math.max(Math.round((720 - totalTextHeight) / 2), 20);
     } else if (position === 'bottom') {
       startY = Math.max(720 - totalTextHeight - 35, 20);
