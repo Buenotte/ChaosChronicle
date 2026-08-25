@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { toast } from 'sonner'
+import { Toaster, toast } from 'sonner'
 import NewsCard from './components/NewsCard'
 import NewsModalsContainer from './components/layout/NewsModalsContainer'
 import AppHeader from './components/layout/AppHeader'
@@ -240,6 +240,9 @@ export default function App() {
 
   return (
     <div className="app-layout">
+      {/* 🔔 Всплывающие уведомления Sonner */}
+      <Toaster richColors position="top-right" theme="dark" closeButton duration={3500} />
+
       {/* Верхняя панель */}
       <AppHeader
         selectedModel={selectedModel}
