@@ -79,6 +79,7 @@ export async function processSetThumbnail({
       fontFamilyName: headlineConfig.fontFamilyName || 'Impact, sans-serif',
       fontSize: headlineConfig.fontSize || 'auto',
       customSizeNum: headlineConfig.fontSize !== 'auto' && headlineConfig.fontSize ? Number(headlineConfig.fontSize) : 82,
+      lineFontSizes: Array.isArray(headlineConfig.lineFontSizes) ? headlineConfig.lineFontSizes : null,
       fontColor: headlineConfig.fontColor || 'yellow',
       lineColors: Array.isArray(headlineConfig.lineColors) ? headlineConfig.lineColors : null,
       borderColor: headlineConfig.borderColor || 'black',

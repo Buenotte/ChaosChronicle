@@ -1,3 +1,5 @@
+import PerLineStyleControls from './PerLineStyleControls'
+
 export const COLORS = [
   { id: 'yellow', hex: '#FFE600', label: 'Желтый' },
   { id: 'white', hex: '#FFFFFF', label: 'Белый' },
@@ -35,6 +37,8 @@ export default function TypographyStyleControls({
   previewLines = [],
   lineColors = null,
   setLineColors = null,
+  lineFontSizes = null,
+  setLineFontSizes = null,
   isItalic,
   setIsItalic,
   tiltAngle,
@@ -222,52 +226,17 @@ export default function TypographyStyleControls({
             </div>
           </div>
 
-          {/* 🌈 Построчные цвета (если строк больше 1) */}
-          {previewLines && previewLines.length > 1 && setLineColors && (
-            <div style={{ background: '#18181b', padding: '0.6rem', borderRadius: '8px', border: '1px solid #27272a', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-              <label style={{ fontSize: '0.78rem', color: '#f472b6', fontWeight: 700 }}>🌈 Цвет для каждой отдельной строки:</label>
-              {previewLines.map((lineText, idx) => {
-                const curLineVal = (lineColors && lineColors[idx]) ? lineColors[idx] : fontColor
-                const curHex = curLineVal?.startsWith('#') ? curLineVal : (COLORS.find(c => c.id === curLineVal)?.hex || '#FFE600')
-                return (
-                  <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.4rem', background: '#09090b', padding: '0.3rem 0.5rem', borderRadius: '6px' }}>
-                    <span style={{ fontSize: '0.75rem', color: '#e4e4e7', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '90px' }} title={lineText}>
-                      {idx + 1}. {lineText}
-                    </span>
-                    <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
-                      {COLORS.map(c => {
-                        const isCur = curLineVal === c.id || curLineVal === c.hex
-                        return (
-                          <button
-                            key={c.id}
-                            type="button"
-                            onClick={() => {
-                              const newArr = [...(lineColors || previewLines.map(() => fontColor))]
-                              newArr[idx] = c.id
-                              setLineColors(newArr)
-                            }}
-                            title={`Строка ${idx + 1}: ${c.label}`}
-                            style={{ width: '16px', height: '16px', borderRadius: '50%', background: c.hex, border: isCur ? '2px solid #fff' : '1px solid #000', cursor: 'pointer', transform: isCur ? 'scale(1.2)' : 'scale(1)', padding: 0 }}
-                          />
-                        )
-                      })}
-                      <input
-                        type="color"
-                        value={curHex}
-                        onChange={e => {
-                          const newArr = [...(lineColors || previewLines.map(() => fontColor))]
-                          newArr[idx] = e.target.value
-                          setLineColors(newArr)
-                        }}
-                        title="Свой цвет для строки"
-                        style={{ width: '18px', height: '18px', padding: 0, border: 'none', borderRadius: '4px', cursor: 'pointer', background: 'transparent' }}
-                      />
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
+          {/* 📑 Построчная кастомизация: размеры и цвета */}
+          <PerLineStyleControls
+            previewLines={previewLines}
+            lineColors={lineColors}
+            setLineColors={setLineColors}
+            fontColor={fontColor}
+            lineFontSizes={lineFontSizes}
+            setLineFontSizes={setLineFontSizes}
+            customSizeNum={customSizeNum}
+            fontSize={fontSize}
+          />
         </div>
 
         {/* 🔲 КОНТУР / ОБВОДКА (STROKE) */}

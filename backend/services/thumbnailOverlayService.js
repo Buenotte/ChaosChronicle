@@ -105,7 +105,7 @@ export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, optio
 
     let finalFontSize = 78;
     if (fontSize && fontSize !== 'auto' && !isNaN(Number(fontSize))) {
-      finalFontSize = Math.min(Math.max(Number(fontSize), 32), maxFitSize);
+      finalFontSize = Math.min(Math.max(Number(fontSize), 32), 160);
     } else {
       finalFontSize = Math.min(Math.max(maxFitSize, 48), 92);
     }
@@ -126,8 +126,12 @@ export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, optio
     if (!safeFontPath) safeFontPath = AVAILABLE_FONTS['arialbd'];
 
     const spacingMult = Number(lineSpacing || options.lineHeight || 1.15);
-    const lineHeight = Math.round(finalFontSize * (spacingMult > 0 ? spacingMult : 1.15));
-    const totalTextHeight = cleanLines.length * lineHeight;
+    const lineSizesList = Array.isArray(options.lineFontSizes) ? options.lineFontSizes : [];
+    const lineHeights = cleanLines.map((_, idx) => {
+      const sz = (lineSizesList[idx] && Number(lineSizesList[idx]) > 0) ? Math.min(Math.max(Number(lineSizesList[idx]), 32), 160) : finalFontSize;
+      return Math.round(sz * (spacingMult > 0 ? spacingMult : 1.15));
+    });
+    const totalTextHeight = lineHeights.reduce((sum, h) => sum + h, 0);
 
     let startY = 40;
     if (position === 'center') {
@@ -176,9 +180,10 @@ export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, optio
         .replace(/'/g, "'\\''")
         .replace(/:/g, '\\:')
         .replace(/%/g, '\\%');
-      const yPos = startY + (idx * lineHeight);
+      const yPos = startY + lineHeights.slice(0, idx).reduce((sum, h) => sum + h, 0);
+      const lineSize = (lineSizesList[idx] && Number(lineSizesList[idx]) > 0) ? Math.min(Math.max(Number(lineSizesList[idx]), 32), 160) : finalFontSize;
       const lineCol = toFfmpegColor(lineColorsList[idx] || colorVal);
-      return `drawtext=fontfile='${safeFontPath}':text='${safeText}':fontsize=${finalFontSize}:fontcolor=${lineCol}:bordercolor=${bColor}:borderw=${bWidth}:shadowcolor=${sColor}:shadowx=${sDist}:shadowy=${sDist}${boxParam}:x=(w-text_w)/2:y=${yPos}`;
+      return `drawtext=fontfile='${safeFontPath}':text='${safeText}':fontsize=${lineSize}:fontcolor=${lineCol}:bordercolor=${bColor}:borderw=${bWidth}:shadowcolor=${sColor}:shadowx=${sDist}:shadowy=${sDist}${boxParam}:x=(w-text_w)/2:y=${yPos}`;
     });
 
     const tempOut = path.join(path.dirname(imagePath), 'temp_rendered_thumb.jpg');

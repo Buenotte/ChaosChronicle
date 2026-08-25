@@ -103,11 +103,25 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
   const handleGenerateVideo = async () => {
     if (!audioState.hasAudio) return toast.error('❌ Сначала создайте аудио-озвучку (audio.mp3) в разделе 3!')
     if (actualPhotoCount === 0) return toast.error('❌ В пакете нет фотографий. Сначала откройте раздел 2 и сохраните фото!')
+    const jobId = `job_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
+    let evtSource = null
     try {
       setGeneratingVideo(true)
-      setVideoProgress(20)
-      setProgressLog('Сборка параметров видео и монтаж слайд-шоу (FFmpeg)...')
+      setVideoProgress(5)
+      setProgressLog('Инициализация монтажа видео...')
       const toastId = toast.loading('🎬 Монтаж видео 16:9 через FFmpeg...')
+
+      try {
+        evtSource = new EventSource(`/api/video-progress/${jobId}`)
+        evtSource.onmessage = (e) => {
+          try {
+            const data = JSON.parse(e.data)
+            if (data.progress !== undefined && !isNaN(data.progress)) setVideoProgress(data.progress)
+            if (data.log) setProgressLog(data.log)
+          } catch {}
+        }
+      } catch {}
+
       const res = await fetch('/api/render-video', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -115,6 +129,7 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
           bundleDir: pkg.bundleDir,
           folderName: pkg.folderName,
           transition: selectedTransition,
+          jobId,
           includeSubBanner,
           subBannerTime: Number(subBannerTime) || 25,
           bannerStyle,
@@ -123,6 +138,7 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
       const data = await res.json()
       if (data.success) {
         setVideoProgress(100)
+        setProgressLog('Видео успешно создано!')
         setVideoState({ hasVideo: true, videoUrl: data.videoUrl })
         toast.success('🎬 Финальное видео 16:9 готово!', { id: toastId })
         if (onRefresh) onRefresh()
@@ -132,6 +148,7 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
     } catch (err) {
       toast.error('Ошибка рендеринга видео: ' + err.message)
     } finally {
+      if (evtSource) { try { evtSource.close() } catch {} }
       setGeneratingVideo(false)
     }
   }

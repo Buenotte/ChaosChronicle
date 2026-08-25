@@ -22,6 +22,7 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
   const [lineSpacing, setLineSpacing] = useState(cfg.lineSpacing !== undefined ? Number(cfg.lineSpacing) : 1.15)
   const [fontColor, setFontColor] = useState(cfg.fontColor || 'yellow')
   const [lineColors, setLineColors] = useState(Array.isArray(cfg.lineColors) ? cfg.lineColors : null)
+  const [lineFontSizes, setLineFontSizes] = useState(Array.isArray(cfg.lineFontSizes) ? cfg.lineFontSizes : null)
   const [borderColor, setBorderColor] = useState(cfg.borderColor || 'black')
   const [borderWidth, setBorderWidth] = useState(cfg.borderWidth !== undefined ? Number(cfg.borderWidth) : 9)
   const [shadowDistance, setShadowDistance] = useState(cfg.shadowDistance !== undefined ? Number(cfg.shadowDistance) : 4)
@@ -60,6 +61,7 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
         if (c.fontSize !== undefined) { setFontSize(c.fontSize); if (c.fontSize !== 'auto') setCustomSizeNum(Number(c.fontSize)); }
         if (c.fontColor) setFontColor(c.fontColor)
         if (c.lineColors !== undefined) setLineColors(Array.isArray(c.lineColors) ? c.lineColors : null)
+        if (c.lineFontSizes !== undefined) setLineFontSizes(Array.isArray(c.lineFontSizes) ? c.lineFontSizes : null)
         if (c.borderColor) setBorderColor(c.borderColor)
         if (c.borderWidth !== undefined) setBorderWidth(Number(c.borderWidth))
         if (c.shadowDistance !== undefined) setShadowDistance(Number(c.shadowDistance))
@@ -187,6 +189,7 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
         fontSize: fontSize === 'auto' ? 'auto' : Number(customSizeNum),
         isItalic, tiltAngle: Number(tiltAngle) || 0, lineSpacing: Number(lineSpacing) || 1.15,
         fontColor, lineColors: Array.isArray(lineColors) ? lineColors : null,
+        lineFontSizes: Array.isArray(lineFontSizes) ? lineFontSizes : null,
         borderColor, borderWidth: Number(borderWidth), shadowDistance: Number(shadowDistance),
         position, hasBox: boxStyle !== 'none', boxStyle, boxOpacity: Number(boxOpacity) || 75,
       }
@@ -228,10 +231,16 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
   const previewLines = formatPreviewLines(text)
   const activeColorHex = fontColor?.startsWith('#') ? fontColor : (COLORS.find(c => c.id === fontColor)?.hex || '#FFE600')
   const activeStrokeHex = borderColor?.startsWith('#') ? borderColor : (STROKE_COLORS.find(c => c.id === borderColor)?.hex || '#000000')
-  const calcLiveFontSize = () => {
+  const calcLiveFontSize = (overrideSize = null) => {
+    if (overrideSize !== null && overrideSize !== undefined && !isNaN(Number(overrideSize)) && Number(overrideSize) > 0) {
+      return (Number(overrideSize) * 0.52) + 'px'
+    }
+    if (fontSize !== 'auto') {
+      return (Number(customSizeNum) * 0.52) + 'px'
+    }
     const longest = Math.max(...previewLines.map(l => l.length), 8)
     const maxFit = Math.floor(1160 / (longest * 0.65))
-    const clamped = fontSize !== 'auto' ? Math.min(Math.max(Number(customSizeNum), 32), maxFit) : Math.min(Math.max(maxFit, 48), 92)
+    const clamped = Math.min(Math.max(maxFit, 48), 92)
     return (clamped * 0.52) + 'px'
   }
 
@@ -274,6 +283,7 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
             calcLiveFontSize={calcLiveFontSize}
             lineSpacing={lineSpacing}
             lineColors={lineColors}
+            lineFontSizes={lineFontSizes}
             activeColorHex={activeColorHex}
             borderWidth={borderWidth}
             activeStrokeHex={activeStrokeHex}
@@ -343,35 +353,14 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
             />
 
             <TypographyStyleControls
-              fontSize={fontSize}
-              setFontSize={setFontSize}
-              customSizeNum={customSizeNum}
-              setCustomSizeNum={setCustomSizeNum}
-              lineSpacing={lineSpacing}
-              setLineSpacing={setLineSpacing}
-              previewLines={previewLines}
-              lineColors={lineColors}
-              setLineColors={setLineColors}
-              isItalic={isItalic}
-              setIsItalic={setIsItalic}
-              tiltAngle={tiltAngle}
-              setTiltAngle={setTiltAngle}
-              fontColor={fontColor}
-              setFontColor={setFontColor}
-              borderColor={borderColor}
-              setBorderColor={setBorderColor}
-              borderWidth={borderWidth}
-              setBorderWidth={setBorderWidth}
-              shadowDistance={shadowDistance}
-              setShadowDistance={setShadowDistance}
-              position={position}
-              setPosition={setPosition}
-              hasBox={hasBox}
-              setHasBox={setHasBox}
-              boxStyle={boxStyle}
-              setBoxStyle={setBoxStyle}
-              boxOpacity={boxOpacity}
-              setBoxOpacity={setBoxOpacity}
+              fontSize={fontSize} setFontSize={setFontSize} customSizeNum={customSizeNum} setCustomSizeNum={setCustomSizeNum}
+              lineSpacing={lineSpacing} setLineSpacing={setLineSpacing} previewLines={previewLines}
+              lineColors={lineColors} setLineColors={setLineColors} lineFontSizes={lineFontSizes} setLineFontSizes={setLineFontSizes}
+              isItalic={isItalic} setIsItalic={setIsItalic} tiltAngle={tiltAngle} setTiltAngle={setTiltAngle}
+              fontColor={fontColor} setFontColor={setFontColor} borderColor={borderColor} setBorderColor={setBorderColor}
+              borderWidth={borderWidth} setBorderWidth={setBorderWidth} shadowDistance={shadowDistance} setShadowDistance={setShadowDistance}
+              position={position} setPosition={setPosition} hasBox={hasBox} setHasBox={setHasBox}
+              boxStyle={boxStyle} setBoxStyle={setBoxStyle} boxOpacity={boxOpacity} setBoxOpacity={setBoxOpacity}
             />
           </div>
 

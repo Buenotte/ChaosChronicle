@@ -283,12 +283,14 @@ router.get('/api/news', async (req, res) => {
         const full = `${a.title || ''} ${a.summary || ''}`;
         return russiaKeywords.test(full) && problemKeywords.test(full);
       });
-    } else if (category === 'ukraina') {
+    } else if (category === 'ukraina' || category === 'ukraine') {
+      const ukraineSources = /(украинская правда|new voice|nv|рбк-украина|dw украина)/i;
       const ukraineKeywords = /(украин|киев|всу\b|зеленск|донбасс|донецк|луганск|харьков|днепр|одесс|запорожь|херсон|покровск|купянск|часов яр|краматорск|бахмут|авдеевк|сумск|курск|генштаб|оккупац|пво\b|шахед|обстрел|азов\b|войн)/i;
       filtered = all.filter(a => {
+        if (ukraineSources.test(a.source || '')) return true;
         if (a.category === 'tekh' || a.category === 'kultura') return false;
         const full = `${a.title || ''} ${a.summary || ''}`;
-        return a.category === 'ukraina' || ukraineKeywords.test(full);
+        return a.category === 'ukraina' || a.category === 'ukraine' || ukraineKeywords.test(full);
       }).sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
     } else if (category !== 'alle' && category !== 'vse') {
       filtered = all.filter(a => a.category === category);

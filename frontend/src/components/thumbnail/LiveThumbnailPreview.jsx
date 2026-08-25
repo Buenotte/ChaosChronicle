@@ -9,6 +9,7 @@ export default function LiveThumbnailPreview({
   calcLiveFontSize,
   lineSpacing = 1.15,
   lineColors = null,
+  lineFontSizes = null,
   activeColorHex,
   borderWidth,
   activeStrokeHex,
@@ -102,12 +103,16 @@ export default function LiveThumbnailPreview({
               {previewLines.map((line, idx) => {
                 const lineCol = (lineColors && lineColors[idx]) ? lineColors[idx] : null
                 const lineHex = lineCol ? (COLOR_MAP[lineCol] || (lineCol.startsWith('#') ? lineCol : activeColorHex)) : activeColorHex
+                const lineSize = (lineFontSizes && lineFontSizes[idx] && Number(lineFontSizes[idx]) > 0)
+                  ? calcLiveFontSize(lineFontSizes[idx])
+                  : calcLiveFontSize()
                 return (
                   <div
                     key={idx}
                     style={{
                       whiteSpace: 'nowrap',
                       color: lineHex,
+                      fontSize: lineSize,
                       background: boxStyle === 'per_line' ? `rgba(0,0,0,${alpha})` : 'transparent',
                       padding: boxStyle === 'per_line' ? '3px 14px' : '0',
                       borderRadius: boxStyle === 'per_line' ? '6px' : '0',
