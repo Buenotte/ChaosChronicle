@@ -14,12 +14,18 @@ const videoJobs = new Map();
 router.get('/api/video-progress/:jobId', (req, res) => {
   const { jobId } = req.params;
   res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
   res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.flushHeaders();
+  if (typeof res.flushHeaders === 'function') res.flushHeaders();
 
-  const sendEvent = (data) => res.write(`data: ${JSON.stringify(data)}\n\n`);
+  const sendEvent = (data) => {
+    try {
+      res.write(`data: ${JSON.stringify(data)}\n\n`);
+      if (typeof res.flush === 'function') res.flush();
+    } catch {}
+  };
 
   if (!videoJobs.has(jobId)) {
     videoJobs.set(jobId, { clients: new Set(), progress: 0, status: 'waiting', log: '' });
@@ -152,30 +158,73 @@ const handleGenerateVideo = async (req, res) => {
       const hasBanner = includeSubBanner && fs.existsSync(bannerPath);
       const bannerSec = Math.max(0, Number(subBannerTime) || 30);
 
-      if (hasBanner) {
-        ffmpegArgs = [
-          '-y',
-          '-f', 'concat', '-safe', '0', '-i', concatPath,
-          '-i', audioPath,
-          '-i', bannerPath,
-          '-filter_complex', `[0:v]fps=30[bg];[2:v]setpts=PTS-STARTPTS+${bannerSec}/TB[sub_b];[bg][sub_b]overlay=(W-w)/2:H-h-50:enable='between(t,${bannerSec},${bannerSec + 6})':eof_action=pass[v]`,
-          '-map', '[v]',
-          '-map', '1:a',
-          '-c:v', 'libx264', '-preset', 'ultrafast', '-pix_fmt', 'yuv420p',
-          '-c:a', 'aac', '-b:a', '192k',
-          '-shortest',
-          videoPath,
-        ];
+      const isXfade = (transition === 'crossfade' || transition === 'fadeblack') && activeFrames.length > 1;
+      const xfadeType = transition === 'fadeblack' ? 'fadeblack' : 'fade';
+
+      if (isXfade) {
+        const N = activeFrames.length;
+        const D = Math.min(0.8, (audioDuration / N) * 0.4);
+        const Tbase = (audioDuration + (N - 1) * D) / N;
+        const step = Tbase - D;
+
+        ffmpegArgs.push('-y');
+        for (let i = 0; i < N; i++) {
+          ffmpegArgs.push('-loop', '1', '-t', Tbase.toFixed(3), '-i', activeFrames[i]);
+        }
+        const audioIdx = N;
+        ffmpegArgs.push('-i', audioPath);
+
+        const bannerIdx = N + 1;
+        if (hasBanner) ffmpegArgs.push('-i', bannerPath);
+
+        const filterParts = [];
+        for (let i = 0; i < N; i++) {
+          filterParts.push(`[${i}:v]fps=30,settb=AVTB,setpts=PTS-STARTPTS[f${i}]`);
+        }
+
+        let lastV = 'f0';
+        for (let k = 1; k < N; k++) {
+          const offset = (k * step).toFixed(3);
+          const nextV = k === N - 1 ? 'v_slides' : `v_xf${k}`;
+          filterParts.push(`[${lastV}][f${k}]xfade=transition=${xfadeType}:duration=${D.toFixed(3)}:offset=${offset}[${nextV}]`);
+          lastV = nextV;
+        }
+
+        if (hasBanner) {
+          filterParts.push(`[${bannerIdx}:v]setpts=PTS-STARTPTS+${bannerSec}/TB[sub_b]`);
+          filterParts.push(`[v_slides][sub_b]overlay=(W-w)/2:H-h-50:enable='between(t,${bannerSec},${bannerSec + 6})':eof_action=pass[v]`);
+          ffmpegArgs.push('-filter_complex', filterParts.join(';'), '-map', '[v]', '-map', `${audioIdx}:a`);
+        } else {
+          ffmpegArgs.push('-filter_complex', filterParts.join(';'), '-map', '[v_slides]', '-map', `${audioIdx}:a`);
+        }
+
+        ffmpegArgs.push('-c:v', 'libx264', '-preset', 'ultrafast', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '192k', '-shortest', videoPath);
       } else {
-        ffmpegArgs = [
-          '-y',
-          '-f', 'concat', '-safe', '0', '-i', concatPath,
-          '-i', audioPath,
-          '-c:v', 'libx264', '-preset', 'ultrafast', '-pix_fmt', 'yuv420p',
-          '-c:a', 'aac', '-b:a', '192k',
-          '-shortest',
-          videoPath,
-        ];
+        if (hasBanner) {
+          ffmpegArgs = [
+            '-y',
+            '-f', 'concat', '-safe', '0', '-i', concatPath,
+            '-i', audioPath,
+            '-i', bannerPath,
+            '-filter_complex', `[0:v]fps=30[bg];[2:v]setpts=PTS-STARTPTS+${bannerSec}/TB[sub_b];[bg][sub_b]overlay=(W-w)/2:H-h-50:enable='between(t,${bannerSec},${bannerSec + 6})':eof_action=pass[v]`,
+            '-map', '[v]',
+            '-map', '1:a',
+            '-c:v', 'libx264', '-preset', 'ultrafast', '-pix_fmt', 'yuv420p',
+            '-c:a', 'aac', '-b:a', '192k',
+            '-shortest',
+            videoPath,
+          ];
+        } else {
+          ffmpegArgs = [
+            '-y',
+            '-f', 'concat', '-safe', '0', '-i', concatPath,
+            '-i', audioPath,
+            '-c:v', 'libx264', '-preset', 'ultrafast', '-pix_fmt', 'yuv420p',
+            '-c:a', 'aac', '-b:a', '192k',
+            '-shortest',
+            videoPath,
+          ];
+        }
       }
 
       broadcastProgress(15, 'encoding', 'Начало кодирования видео FFmpeg...');

@@ -46,8 +46,6 @@ export function cleanExtractedTitle(raw = '', fallback = '') {
 const MODEL_MAP = {
   gemini:   'google/gemini-2.5-flash',
   deepseek: 'deepseek/deepseek-chat',
-  qwen:     'qwen/qwen-2.5-72b-instruct',
-  free:     'openrouter/free',
 };
 
 export async function generateYouTubeMetadata({

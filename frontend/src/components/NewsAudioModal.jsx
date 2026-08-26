@@ -89,8 +89,20 @@ export default function NewsAudioModal({ pkg, onClose, onRefresh }) {
         }),
       })
 
+      if (!res.ok) {
+        let errMsg = `Ошибка сервера (${res.status})`
+        try {
+          const errData = await res.json()
+          if (errData?.error) errMsg = errData.error
+        } catch {
+          const textErr = await res.text().catch(() => '')
+          if (textErr) errMsg = textErr.slice(0, 100)
+        }
+        throw new Error(errMsg)
+      }
+
       const data = await res.json()
-      if (!res.ok || !data.success) throw new Error(data.error || 'Ошибка генерации аудио')
+      if (!data?.success) throw new Error(data?.error || 'Не удалось создать аудио')
 
       const newAudioUrl = `/news-static/${data.folderName}/${data.audioFileName}?t=${Date.now()}`
       pkg.hasAudio = true
@@ -105,12 +117,12 @@ export default function NewsAudioModal({ pkg, onClose, onRefresh }) {
       toast.success('🎙️ Голосовой файл audio.mp3 успешно создан!', {
         id: toastId,
         description: `Папка: news/${data.folderName}/audio.mp3 (${data.voice})`,
-        duration: 10000,
+        duration: 8000,
       })
     } catch (err) {
-      toast.error('Ошибка создания аудио', {
+      toast.error('❌ Ошибка генерации аудио', {
         id: toastId,
-        description: err.message,
+        description: err.message || 'Сервер бэкенда недоступен (порт 3001)',
       })
     } finally {
       setGeneratingAudio(false)

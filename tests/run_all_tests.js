@@ -18,20 +18,28 @@ const testSuites = [
   { name: '6. Custom Fonts Upload & Management', file: 'test_fonts_service.js' },
   { name: '7. Edge-TTS Audio Generation', file: 'test_audio_service.js' },
   { name: '8. Video Engine & Subscribe Banner (FFmpeg)', file: 'test_video_engine.js' },
+  { name: '9. Frontend React AST & Modal Smoke Tests', file: 'test_frontend_smoke.js' },
 ];
 
 let passedCount = 0;
 const startTime = Date.now();
 
-// Preflight check: ensure backend is ready
-try {
-  execSync('node -e "fetch(\'http://localhost:3001/api/status\').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"', { timeout: 4000 });
-} catch {
-  console.log('⏳ Waiting for backend server on http://localhost:3001...');
-  execSync('node -e "setTimeout(()=>process.exit(0), 1500)"');
+function ensureServerReady() {
+  for (let i = 0; i < 15; i++) {
+    try {
+      execSync('node -e "fetch(\'http://localhost:3001/api/status\').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"', { timeout: 2000, stdio: 'ignore' });
+      return true;
+    } catch {
+      try { execSync('node -e "setTimeout(()=>process.exit(0), 500)"', { stdio: 'ignore' }); } catch {}
+    }
+  }
+  return false;
 }
 
+ensureServerReady();
+
 for (const suite of testSuites) {
+  ensureServerReady();
   const suitePath = path.join(__dirname, suite.file);
   console.log(`▶ Running Suite: ${suite.name}...`);
   try {

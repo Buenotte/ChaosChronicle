@@ -9,8 +9,6 @@ const router = express.Router();
 const MODELS = {
   gemini:   'google/gemini-2.5-flash',
   deepseek: 'deepseek/deepseek-chat',
-  qwen:     'qwen/qwen-2.5-72b-instruct',
-  free:     'openrouter/free',
 };
 
 const STYLES = {

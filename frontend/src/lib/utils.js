@@ -13,10 +13,8 @@ export const CATEGORIES = [
 ]
 
 export const AI_MODELS = [
-  { id: 'gemini',   name: '✨ Gemini 3.7 Flash',         icon: '⚡' },
-  { id: 'deepseek', name: '🧠 DeepSeek V3 / R1',         icon: '🌊' },
-  { id: 'qwen',     name: '🦁 Qwen 2.5 72B',             icon: '👑' },
-  { id: 'free',     name: '🎁 OpenRouter Free Router',   icon: '🆓' },
+  { id: 'gemini',   name: '✨ Gemini 2.5 Flash (Рекомендуется)', icon: '⚡' },
+  { id: 'deepseek', name: '🧠 DeepSeek Chat / V3',               icon: '🌊' },
 ]
 
 export const FEUILLETON_STYLES = [

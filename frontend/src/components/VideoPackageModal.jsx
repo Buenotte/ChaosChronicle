@@ -32,29 +32,23 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
   const [audioState, setAudioState] = useState({ hasAudio: !!pkg.hasAudio, audioUrl: pkg.audioUrl })
   const [videoState, setVideoState] = useState({ hasVideo: !!pkg.hasVideo, videoUrl: pkg.videoUrl })
 
-  useEffect(() => {
-    setAudioState({ hasAudio: !!pkg.hasAudio, audioUrl: pkg.audioUrl })
-    setVideoState({ hasVideo: !!pkg.hasVideo, videoUrl: pkg.videoUrl })
-    setIsPlaying(false)
-    setCurrentTime(0)
-  }, [pkg])
-
-  const togglePlay = () => { if (videoRef.current) { if (isPlaying) videoRef.current.pause(); else videoRef.current.play(); setIsPlaying(!isPlaying); } }
-  const handleTimeUpdate = () => { if (videoRef.current) { setCurrentTime(videoRef.current.currentTime); setIsPlaying(!videoRef.current.paused); } }
-  const handleLoadedMetadata = () => { if (videoRef.current) setDuration(videoRef.current.duration); }
-  const seekVideo = (e) => { const time = parseFloat(e.target.value); if (videoRef.current) { videoRef.current.currentTime = time; setCurrentTime(time); } }
-
   const [isMaximized, setIsMaximized] = useState(false)
   const [currentThumbnail, setCurrentThumbnail] = useState(
     pkg.hasThumbnail ? (pkg.thumbnailUrl || (pkg.folderName ? `/news-static/${pkg.folderName}/thumbnail/thumbnail.jpg` : null)) : null
   )
 
   useEffect(() => {
-    const thumb = pkg.hasThumbnail
-      ? (pkg.thumbnailUrl || (pkg.folderName ? `/news-static/${pkg.folderName}/thumbnail/thumbnail.jpg?t=${Date.now()}` : null))
-      : null
-    setCurrentThumbnail(thumb)
+    setAudioState({ hasAudio: !!pkg.hasAudio, audioUrl: pkg.audioUrl })
+    setVideoState({ hasVideo: !!pkg.hasVideo, videoUrl: pkg.videoUrl })
+    setIsPlaying(false)
+    setCurrentTime(0)
+    setCurrentThumbnail(pkg.hasThumbnail ? (pkg.thumbnailUrl || (pkg.folderName ? `/news-static/${pkg.folderName}/thumbnail/thumbnail.jpg?t=${Date.now()}` : null)) : null)
   }, [pkg])
+
+  const togglePlay = () => { if (videoRef.current) { if (isPlaying) videoRef.current.pause(); else videoRef.current.play(); setIsPlaying(!isPlaying); } }
+  const handleTimeUpdate = () => { if (videoRef.current) { setCurrentTime(videoRef.current.currentTime); setIsPlaying(!videoRef.current.paused); } }
+  const handleLoadedMetadata = () => { if (videoRef.current) setDuration(videoRef.current.duration); }
+  const seekVideo = (e) => { const time = parseFloat(e.target.value); if (videoRef.current) { videoRef.current.currentTime = time; setCurrentTime(time); } }
 
   const handleSaveAsNative = async () => {
     if (!currentThumbnail) return
@@ -77,24 +71,38 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
 
   const handleGenerateAudio = async () => {
     if (!hasTxt) return toast.error('❌ Текст сценария отсутствует. Сначала создайте текст в разделе «1»!')
+    const toastId = toast.loading('🎙️ Генерация аудио-озвучки...')
     try {
       setGeneratingAudio(true)
-      const toastId = toast.loading('🎙️ Генерация аудио-озвучки...')
       const res = await fetch('/api/generate-audio', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ bundleDir: pkg.bundleDir, folderName: pkg.folderName, voice: selectedVoice }),
       })
+      if (!res.ok) {
+        let errMsg = `Ошибка сервера (${res.status})`
+        try {
+          const errData = await res.json()
+          if (errData?.error) errMsg = errData.error
+        } catch {
+          const textErr = await res.text().catch(() => '')
+          if (textErr) errMsg = textErr.slice(0, 100)
+        }
+        throw new Error(errMsg)
+      }
       const data = await res.json()
-      if (data.success) {
+      if (data?.success) {
         setAudioState({ hasAudio: true, audioUrl: data.audioUrl })
         toast.success('🎙️ Озвучка успешно сгенерирована!', { id: toastId })
         if (onRefresh) onRefresh()
       } else {
-        toast.error('Ошибка генерации аудио: ' + data.error, { id: toastId })
+        toast.error('❌ Ошибка генерации аудио: ' + (data?.error || 'Неизвестная ошибка'), { id: toastId })
       }
     } catch (err) {
-      toast.error('Ошибка генерации аудио: ' + err.message)
+      toast.error('❌ Ошибка генерации аудио', {
+        id: toastId,
+        description: err.message || 'Сервер бэкенда недоступен (порт 3001)',
+      })
     } finally {
       setGeneratingAudio(false)
     }
@@ -137,16 +145,15 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
       })
       const data = await res.json()
       if (data.success) {
-        setVideoProgress(100)
-        setProgressLog('Видео успешно создано!')
+        setVideoProgress(100); setProgressLog('Видео успешно создано!')
         setVideoState({ hasVideo: true, videoUrl: data.videoUrl })
         toast.success('🎬 Финальное видео 16:9 готово!', { id: toastId })
         if (onRefresh) onRefresh()
       } else {
-        toast.error('Ошибка рендеринга видео: ' + data.error, { id: toastId })
+        toast.error('❌ Ошибка рендеринга видео: ' + (data.error || 'Не удалось создать видео'), { id: toastId })
       }
     } catch (err) {
-      toast.error('Ошибка рендеринга видео: ' + err.message)
+      toast.error('❌ Ошибка рендеринга видео', { id: toastId, description: err.message })
     } finally {
       if (evtSource) { try { evtSource.close() } catch {} }
       setGeneratingVideo(false)
@@ -154,8 +161,8 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
   }
 
   const handleGenerateAiThumbnail = async () => {
+    const toastId = toast.loading('🤖 Создание впечатляющей обложки 16:9...')
     try {
-      const toastId = toast.loading('🤖 Создание впечатляющей обложки 16:9...')
       const res = await fetch('/api/set-thumbnail', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -164,18 +171,18 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
       const data = await res.json()
       if (data.success) {
         setCurrentThumbnail(`${data.thumbnailUrl}&t=${Date.now()}`)
-        toast.success('✨ Впечатляющая обложка 16:9 создана и сохранена!', { id: toastId })
+        toast.success('✨ Обложка 16:9 создана и сохранена!', { id: toastId })
       } else {
-        toast.error('Ошибка генерации обложки: ' + data.error, { id: toastId })
+        toast.error('❌ Ошибка генерации обложки: ' + (data.error || 'Ошибка ИИ'), { id: toastId })
       }
     } catch (err) {
-      toast.error('Ошибка генерации обложки: ' + err.message)
+      toast.error('❌ Ошибка генерации обложки', { id: toastId, description: err.message })
     }
   }
 
   const handleSelectPhotoAsThumbnail = async (photoUrl) => {
+    const toastId = toast.loading('🖼️ Применение фото для обложки...')
     try {
-      const toastId = toast.loading('🖼️ Применение фото для обложки...')
       const res = await fetch('/api/set-thumbnail', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -187,10 +194,10 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
         toast.success('✨ Фото установлено фоном обложки!', { id: toastId })
         if (onRefresh) onRefresh()
       } else {
-        toast.error('Ошибка: ' + (data.error || 'Не удалось обновить'), { id: toastId })
+        toast.error('❌ Ошибка: ' + (data.error || 'Не удалось обновить'), { id: toastId })
       }
     } catch (err) {
-      toast.error('Ошибка: ' + err.message)
+      toast.error('❌ Ошибка установки фото', { id: toastId, description: err.message })
     }
   }
 
@@ -200,12 +207,7 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
   const [showYouTubeModal, setShowYouTubeModal] = useState(false)
 
   useEffect(() => {
-    try {
-      const modalParam = new URLSearchParams(window.location.search).get('modal')
-      if (modalParam === 'thumbnail') {
-        setShowSettingsModal(true)
-      }
-    } catch {}
+    try { if (new URLSearchParams(window.location.search).get('modal') === 'thumbnail') setShowSettingsModal(true) } catch {}
   }, [])
 
   const handleOpenSettings = () => {
@@ -261,11 +263,7 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
         <TitleVariantsModal
           pkg={pkg}
           onClose={() => setShowTitleVariantsModal(false)}
-          onTitleSaved={(newTitle, newThumb) => {
-            pkg.title = newTitle
-            if (newThumb) setCurrentThumbnail(newThumb)
-            if (onRefresh) onRefresh()
-          }}
+          onTitleSaved={(newTitle, newThumb) => { pkg.title = newTitle; if (newThumb) setCurrentThumbnail(newThumb); if (onRefresh) onRefresh() }}
         />
       )}
 

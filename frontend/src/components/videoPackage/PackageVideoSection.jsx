@@ -46,6 +46,20 @@ export default function PackageVideoSection({
         4. Финальное видео 16:9 (FFmpeg):
       </h3>
 
+      {/* 🎬 Live-Fortschrittsbalken beim Rendern (immer sichtbar bei Erstellung & Neuerstellung) */}
+      {generatingVideo && (
+        <div style={{ background: '#181c27', padding: '0.85rem 1rem', borderRadius: '8px', border: '1px solid #10b981', marginBottom: '0.75rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.45rem', fontSize: '0.84rem', fontWeight: 600, color: '#e8eaf0' }}>
+            <span>🎬 Рендеринг видео 16:9 (FFmpeg)...</span>
+            <span style={{ color: '#10b981' }}>{videoProgress}%</span>
+          </div>
+          <div style={{ height: '8px', background: '#27272a', borderRadius: '4px', overflow: 'hidden' }}>
+            <div style={{ width: `${videoProgress}%`, height: '100%', background: '#10b981', transition: 'width 0.3s ease-out' }} />
+          </div>
+          {progressLog && <p style={{ fontSize: '0.76rem', color: '#9ca3af', marginTop: '0.45rem', fontFamily: 'monospace' }}>{progressLog}</p>}
+        </div>
+      )}
+
       {videoState.hasVideo ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           <div className="video-player-box" style={{ position: 'relative' }}>
@@ -205,18 +219,6 @@ export default function PackageVideoSection({
             </div>
           )}
 
-          {generatingVideo ? (
-            <div style={{ background: '#181c27', padding: '1rem', borderRadius: '8px', border: '1px solid #1e2436' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.85rem' }}>
-                <span>🎬 Рендеринг видео...</span>
-                <span>{videoProgress}%</span>
-              </div>
-              <div style={{ height: '8px', background: '#27272a', borderRadius: '4px', overflow: 'hidden' }}>
-                <div style={{ width: `${videoProgress}%`, height: '100%', background: '#10b981', transition: 'width 0.3s' }} />
-              </div>
-              {progressLog && <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.5rem' }}>{progressLog}</p>}
-            </div>
-          ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
                 <select
