@@ -57,48 +57,89 @@ export async function saveNewsPhotos({ title = 'News', bundleDir: inputBundleDir
     fs.mkdirSync(photosDir, { recursive: true });
   }
 
-  const activeFilenames = new Set();
-  const savedPhotos = [];
-
+  // 1. Zuerst alle Bilddaten in den Speicher laden (verhindert Überschreib-Kollisionen beim Umsortieren)
+  const preparedBuffers = [];
   for (let i = 0; i < photos.length; i++) {
-    const imgUrl = typeof photos[i] === 'string' ? photos[i] : photos[i]?.url;
+    const rawPhoto = photos[i];
+    const imgUrl = typeof rawPhoto === 'string' ? rawPhoto : (rawPhoto?.url || rawPhoto?.src || '');
     if (!imgUrl) continue;
+    let ext = imgUrl.match(/\.(jpg|jpeg|png|webp|avif)/i)?.[1]?.toLowerCase() || 'jpg';
+    if (ext === 'jpeg') ext = 'jpg';
 
-    const ext = imgUrl.match(/\.(jpg|jpeg|png|webp)/i)?.[1] || 'jpg';
-    const targetFilename = `photo_${String(i + 1).padStart(2, '0')}.${ext}`;
-    const targetPath = path.join(photosDir, targetFilename);
-
-    if (imgUrl.startsWith('/news-static/')) {
-      const relativePath = decodeURIComponent(imgUrl.replace(/^\/news-static\//, ''));
+    // A. Lokale Datei
+    const cleanUrl = imgUrl.replace(/^https?:\/\/[^\/]+/, '');
+    if (cleanUrl.startsWith('/news-static/')) {
+      const relativePath = decodeURIComponent(cleanUrl.replace(/^\/news-static\//, ''));
       const fullLocalPath = path.resolve(newsDir, relativePath);
+      const directLocalPath = path.resolve(photosDir, path.basename(relativePath));
       if (fs.existsSync(fullLocalPath)) {
-        if (fullLocalPath !== targetPath) {
+        try {
           const buf = fs.readFileSync(fullLocalPath);
-          fs.writeFileSync(targetPath, buf);
-        }
-        activeFilenames.add(targetFilename);
-        savedPhotos.push(`photos/${targetFilename}`);
-        continue;
+          preparedBuffers.push({ buf, ext });
+          continue;
+        } catch {}
+      } else if (fs.existsSync(directLocalPath)) {
+        try {
+          const buf = fs.readFileSync(directLocalPath);
+          preparedBuffers.push({ buf, ext });
+          continue;
+        } catch {}
       }
     }
 
+    // B. Base64 Data URL
+    if (imgUrl.startsWith('data:image/')) {
+      try {
+        const matches = imgUrl.match(/^data:image\/([a-zA-Z0-9]+);base64,(.+)$/);
+        if (matches) {
+          const dataExt = matches[1] === 'jpeg' ? 'jpg' : matches[1];
+          const buf = Buffer.from(matches[2], 'base64');
+          preparedBuffers.push({ buf, ext: dataExt });
+          continue;
+        }
+      } catch {}
+    }
+
+    // C. Web-Download mit robustem Header & Fallback
     try {
-      const imgRes = await fetch(imgUrl, {
+      let imgRes = await fetch(imgUrl, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+          'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
         },
-        signal: AbortSignal.timeout(6000),
+        signal: AbortSignal.timeout(12000),
       });
 
-      if (imgRes.ok) {
-        const buffer = Buffer.from(await imgRes.arrayBuffer());
-        fs.writeFileSync(targetPath, buffer);
-        activeFilenames.add(targetFilename);
-        savedPhotos.push(`photos/${targetFilename}`);
+      if (!imgRes.ok) {
+        // Fallback-Versuch ohne spezifischen Accept-Header
+        try {
+          imgRes = await fetch(imgUrl, { signal: AbortSignal.timeout(8000) });
+        } catch {}
+      }
+
+      if (imgRes && imgRes.ok) {
+        const buf = Buffer.from(await imgRes.arrayBuffer());
+        if (buf.length > 0) {
+          preparedBuffers.push({ buf, ext });
+        }
+      } else {
+        console.warn(`[Photos] HTTP ${imgRes?.status || 'ERR'} beim Download: ${imgUrl.slice(0, 80)}`);
       }
     } catch (err) {
-      console.error(`Fehler beim Download von Bild ${imgUrl}:`, err.message);
+      console.error(`[Photos] Fehler beim Download von Bild ${imgUrl.slice(0, 80)}:`, err.message);
     }
+  }
+
+  // 2. Ziel-Dateien in der neuen exakten Reihenfolge photo_01, photo_02... schreiben
+  const activeFilenames = new Set();
+  const savedPhotos = [];
+  for (let i = 0; i < preparedBuffers.length; i++) {
+    const { buf, ext } = preparedBuffers[i];
+    const targetFilename = `photo_${String(i + 1).padStart(2, '0')}.${ext}`;
+    const targetPath = path.join(photosDir, targetFilename);
+    fs.writeFileSync(targetPath, buf);
+    activeFilenames.add(targetFilename);
+    savedPhotos.push(`photos/${targetFilename}`);
   }
 
   // Lösche nur Dateien, die nicht mehr in der aktiven Auswahl sind

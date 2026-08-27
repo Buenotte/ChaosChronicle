@@ -98,14 +98,18 @@ router.get('/api/news-photos', async (req, res) => {
     const { title = '', articleId = '', url = '', query = '', searchQuery = '', folderName = '', bundleDir: inputBundleDir = '', forceLive = 'false', page = '1', engine = 'all' } = req.query;
     const effectiveQuery = query || searchQuery || '';
     const isForceLive = forceLive === 'true' || forceLive === '1' || !!effectiveQuery || engine !== 'all';
-
     const newsDir = path.resolve(__dirname, '../../news');
-    if (!isForceLive && fs.existsSync(newsDir)) {
-      let targetFolder = inputBundleDir;
-      if (!targetFolder && folderName) {
-        targetFolder = path.join(newsDir, folderName);
+    const seen = new Set();
+    const photos = [];
+    let detectedBundleDir = inputBundleDir;
+    let detectedFolderName = folderName;
+
+    // 1. Lokale Fotos von der Festplatte IMMER zuerst laden
+    if (fs.existsSync(newsDir)) {
+      if (!detectedBundleDir && detectedFolderName) {
+        detectedBundleDir = path.join(newsDir, detectedFolderName);
       }
-      if (!targetFolder && title) {
+      if (!detectedBundleDir && title) {
         const cleanQuery = title.toLowerCase().replace(/[^a-z0-9а-яё]/gi, '');
         const dirs = fs.readdirSync(newsDir, { withFileTypes: true });
         for (const d of dirs) {
@@ -127,40 +131,49 @@ router.get('/api/news-photos', async (req, res) => {
             (mTitle && (cleanQuery.includes(mTitle.slice(0, 12)) || mTitle.includes(cleanQuery.slice(0, 12)))) ||
             (fClean && (cleanQuery.includes(fClean.slice(0, 12)) || fClean.includes(cleanQuery.slice(0, 12))))
           ) {
-            targetFolder = pDir;
+            detectedBundleDir = pDir;
+            detectedFolderName = d.name;
             break;
           }
         }
       }
 
-      if (targetFolder && fs.existsSync(targetFolder)) {
-        const existingPhotosDir = path.join(targetFolder, 'photos');
+      if (detectedBundleDir && fs.existsSync(detectedBundleDir)) {
+        const existingPhotosDir = path.join(detectedBundleDir, 'photos');
         if (fs.existsSync(existingPhotosDir)) {
-          const existingFiles = fs.readdirSync(existingPhotosDir).filter(f => /\.(jpg|jpeg|png|webp)/i.test(f));
-          if (existingFiles.length > 0) {
-            const folderBase = path.basename(targetFolder);
-            const localPhotos = existingFiles.map((f) => ({
-              url: `/news-static/${folderBase}/photos/${f}`,
-              source: `Сохранено: ${folderBase}/photos/${f}`,
-              articleTitle: title,
-              isSavedLocal: true,
-              quality: 'local',
-            }));
-            return res.json({
-              success: true,
-              count: localPhotos.length,
-              isLocal: true,
-              bundleDir: targetFolder,
-              folderName: folderBase,
-              photos: localPhotos,
-            });
+          const existingFiles = fs.readdirSync(existingPhotosDir)
+            .filter(f => /\.(jpg|jpeg|png|webp|avif)/i.test(f))
+            .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+          const folderBase = path.basename(detectedBundleDir);
+          detectedFolderName = folderBase;
+          for (const f of existingFiles) {
+            const localUrl = `/news-static/${folderBase}/photos/${f}`;
+            if (!seen.has(localUrl)) {
+              seen.add(localUrl);
+              photos.push({
+                url: localUrl,
+                source: `На диске: photos/${f}`,
+                articleTitle: title,
+                isSavedLocal: true,
+                quality: 'local',
+              });
+            }
           }
         }
       }
     }
 
-    const seen = new Set();
-    const photos = [];
+    // Wenn keine Live-Suche und bereits lokale Fotos vorhanden sind -> sofort zurückgeben
+    if (!isForceLive && photos.length > 0) {
+      return res.json({
+        success: true,
+        count: photos.length,
+        isLocal: true,
+        bundleDir: detectedBundleDir,
+        folderName: detectedFolderName,
+        photos,
+      });
+    }
 
     const titleClean = cleanText(title);
     const stopWords = new Set(['в', 'на', 'и', 'с', 'по', 'за', 'из', 'от', 'для', 'что', 'как', 'это', 'был', 'были', 'над', 'под', 'об', 'или', 'но', 'после', 'около']);

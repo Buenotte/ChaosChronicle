@@ -13,7 +13,7 @@ export const CATEGORIES = [
 ]
 
 export const AI_MODELS = [
-  { id: 'gemini',   name: '✨ Gemini 2.5 Flash (Рекомендуется)', icon: '⚡' },
+  { id: 'gemini',   name: '✨ Gemini 3.7 Flash (Рекомендуется)', icon: '⚡' },
   { id: 'deepseek', name: '🧠 DeepSeek Chat / V3',               icon: '🌊' },
 ]
 
