@@ -2,11 +2,24 @@ import assert from 'assert';
 
 console.log('🧪 [TEST 2/5] Running Golobutsky Title Generator Tests...');
 
+async function fetchWithRetry(url, options, maxRetries = 3) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      const res = await fetch(url, options);
+      if (res.ok) return res;
+    } catch (err) {
+      if (i === maxRetries - 1) throw err;
+      await new Promise(r => setTimeout(r, 1500));
+    }
+  }
+  return fetch(url, options);
+}
+
 async function runTitleTests() {
   const sampleNews = 'В Белгороде после атаки дронов загорелся военный склад';
 
   // 1. Generate Single Punchy Title
-  const punchyRes = await fetch('http://localhost:3001/api/generate-punchy-title', {
+  const punchyRes = await fetchWithRetry('http://localhost:3001/api/generate-punchy-title', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -21,7 +34,7 @@ async function runTitleTests() {
   console.log(`  ✅ Single Punchy Title: "${punchyData.title}"`);
 
   // 2. Generate 10 Title Variants
-  const variantsRes = await fetch('http://localhost:3001/api/generate-title-variants', {
+  const variantsRes = await fetchWithRetry('http://localhost:3001/api/generate-title-variants', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

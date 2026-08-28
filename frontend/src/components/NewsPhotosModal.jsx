@@ -18,6 +18,7 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
   const [savingSingleIndex, setSavingSingleIndex] = useState(null)
   const [savedCount, setSavedCount] = useState(null)
   const [lightboxUrl, setLightboxUrl] = useState(null)
+  const [isFullscreen, setIsFullscreen] = useState(false)
 
   useEffect(() => {
     setItems(photos || [])
@@ -260,7 +261,7 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
       <div
         className="modal-content"
         onClick={e => e.stopPropagation()}
-        style={{ maxWidth: '960px', width: '95%', maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}
+        style={isFullscreen ? { maxWidth: '100vw', width: '100vw', height: '100vh', maxHeight: '100vh', borderRadius: 0, margin: 0, display: 'flex', flexDirection: 'column' } : { maxWidth: '1020px', width: '96%', maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}
       >
         <div className="modal-header">
           <div>
@@ -275,7 +276,7 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
               {savedCount !== null && <span className="saved-status-badge">🟢 {savedCount} сохранено в news/photos/</span>}
             </div>
           </div>
-          <div className="modal-header-actions" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <div className="modal-header-actions" style={{ display: 'flex', gap: '0.45rem', alignItems: 'center' }}>
             {items.length > 0 && (
               <button
                 className="save-bundle-btn"
@@ -286,6 +287,14 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
                 {savingPhotos ? '⏳ Скачивание...' : `💾 Сохранить ${items.length} фото`}
               </button>
             )}
+            <button
+              type="button"
+              onClick={() => setIsFullscreen(prev => !prev)}
+              style={{ background: isFullscreen ? '#2563eb' : '#1e293b', border: '1px solid #475569', color: '#fff', borderRadius: '6px', padding: '0.4rem 0.6rem', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+              title={isFullscreen ? 'Свернуть в окно' : 'Развернуть на весь экран'}
+            >
+              {isFullscreen ? '🗗 В окно' : '⛶ Во весь экран'}
+            </button>
             <button className="modal-close" onClick={onClose}>✕</button>
           </div>
         </div>
@@ -340,7 +349,7 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
                   ⭐ Бросьте сюда, чтобы сделать #1 (Самым первым в видео)
                 </div>
               )}
-              <div className="multi-source-photos-grid">
+              <div className={`multi-source-photos-grid ${isFullscreen ? 'fullscreen-grid' : ''}`}>
                 {items.map((photo, i) => (
                   <PhotoCardItem
                     key={i}

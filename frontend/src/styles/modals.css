@@ -147,9 +147,13 @@
   gap: 0.65rem;
 }
 
-.multi-source-photos-grid.large {
-  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-  gap: 0.85rem;
+.multi-source-photos-grid.fullscreen-grid {
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.9rem;
+}
+
+.multi-source-photos-grid.fullscreen-grid .photo-card-img-wrap {
+  height: 160px;
 }
 
 .photo-card-item {
