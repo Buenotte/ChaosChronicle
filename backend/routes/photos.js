@@ -6,7 +6,7 @@ import { newsCache } from './news.js';
 import { generateGolubuzkiTitle } from './feuilleton.js';
 import { cleanText, scrapeArticlePhotos, searchLiveNewsPhotos } from '../services/imageSearchService.js';
 import { customFontsDir, overlayRussianHeadlineOnThumbnail } from '../services/thumbnailOverlayService.js';
-import { processSetThumbnail } from '../services/thumbnailService.js';
+import { processSetThumbnail, getDefaultThumbnailStyle, saveDefaultThumbnailStyle } from '../services/thumbnailService.js';
 import { saveNewsPhotos, saveSingleNewsPhoto, deleteNewsPhoto } from '../services/photoStorageService.js';
 
 export { overlayRussianHeadlineOnThumbnail };
@@ -347,6 +347,21 @@ router.get('/api/thumbnail-style', (req, res) => {
       }
     }
     res.json({ success: false, style: null });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/default-thumbnail-style
+router.get('/api/default-thumbnail-style', (req, res) => {
+  res.json({ success: true, style: getDefaultThumbnailStyle() });
+});
+
+// POST /api/save-default-thumbnail-style
+router.post('/api/save-default-thumbnail-style', (req, res) => {
+  try {
+    const saved = saveDefaultThumbnailStyle(req.body);
+    res.json({ success: true, style: saved });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

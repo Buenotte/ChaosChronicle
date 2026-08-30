@@ -14,7 +14,6 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
   const [fontFamilyName, setFontFamilyName] = useState(cfg.fontFamilyName || 'Impact, sans-serif')
   const [customFonts, setCustomFonts] = useState([])
   const [uploadingFont, setUploadingFont] = useState(false)
-
   const [fontSize, setFontSize] = useState(cfg.fontSize || 'auto')
   const [customSizeNum, setCustomSizeNum] = useState(cfg.fontSize && cfg.fontSize !== 'auto' ? Number(cfg.fontSize) : 82)
   const [isItalic, setIsItalic] = useState(!!cfg.isItalic)
@@ -27,7 +26,7 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
   const [borderWidth, setBorderWidth] = useState(cfg.borderWidth !== undefined ? Number(cfg.borderWidth) : 9)
   const [shadowDistance, setShadowDistance] = useState(cfg.shadowDistance !== undefined ? Number(cfg.shadowDistance) : 4)
   const [position, setPosition] = useState(cfg.position || 'center')
-  const [offsetY, setOffsetY] = useState(cfg.offsetY !== undefined && cfg.offsetY !== null ? Number(cfg.offsetY) : (cfg.position === 'top' ? 12 : cfg.position === 'bottom' ? 85 : 50))
+  const [offsetY, setOffsetY] = useState(cfg.offsetY !== undefined && cfg.offsetY !== null ? Number(cfg.offsetY) : 50)
   const [hasBox, setHasBox] = useState(!!cfg.hasBox)
   const [boxStyle, setBoxStyle] = useState(cfg.boxStyle || (cfg.hasBox ? 'dark_soft' : 'none'))
   const [boxOpacity, setBoxOpacity] = useState(cfg.boxOpacity !== undefined ? Number(cfg.boxOpacity) : 75)
@@ -37,50 +36,87 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
 
   useEffect(() => {
     fetchCustomFonts()
-    if (pkg?.folderName) {
-      fetchThumbnailStyle()
-    }
+    if (pkg?.folderName) fetchThumbnailStyle()
   }, [pkg?.folderName])
 
   const resolveFontFamily = (fontId, customList = []) => {
     const builtin = BUILTIN_FONTS.find(f => f.id === fontId)
     if (builtin) return builtin.family
     const custom = customList.find(c => c.id === fontId)
-    if (custom) return `"${custom.name}", sans-serif`
-    return 'Impact, sans-serif'
+    return custom ? `"${custom.name}", sans-serif` : 'Impact, sans-serif'
+  }
+
+  const applyStyleObject = (c) => {
+    if (!c) return
+    if (c.text) setText(c.text)
+    if (c.font) { setFont(c.font); setFontFamilyName(c.fontFamilyName || resolveFontFamily(c.font, customFonts)); }
+    if (c.fontSize !== undefined) { setFontSize(c.fontSize); if (c.fontSize !== 'auto') setCustomSizeNum(Number(c.fontSize)); }
+    if (c.fontColor) setFontColor(c.fontColor)
+    if (c.lineColors !== undefined) setLineColors(Array.isArray(c.lineColors) ? c.lineColors : null)
+    if (c.lineFontSizes !== undefined) setLineFontSizes(Array.isArray(c.lineFontSizes) ? c.lineFontSizes : null)
+    if (c.borderColor) setBorderColor(c.borderColor)
+    if (c.borderWidth !== undefined) setBorderWidth(Number(c.borderWidth))
+    if (c.shadowDistance !== undefined) setShadowDistance(Number(c.shadowDistance))
+    if (c.lineSpacing !== undefined) setLineSpacing(Number(c.lineSpacing))
+    if (c.isItalic !== undefined) setIsItalic(Boolean(c.isItalic))
+    if (c.tiltAngle !== undefined) setTiltAngle(Number(c.tiltAngle))
+    if (c.position) setPosition(c.position)
+    if (c.offsetY !== undefined && c.offsetY !== null) setOffsetY(Number(c.offsetY))
+    else if (c.position === 'top') setOffsetY(12)
+    else if (c.position === 'bottom') setOffsetY(85)
+    else if (c.position === 'center') setOffsetY(50)
+    if (c.hasBox !== undefined) setHasBox(Boolean(c.hasBox))
+    if (c.boxStyle !== undefined) setBoxStyle(c.boxStyle)
+    else if (c.hasBox) setBoxStyle('dark_soft')
+    if (c.boxOpacity !== undefined) setBoxOpacity(Number(c.boxOpacity))
+    if (c.photoUrl) setSelectedBgPhoto(c.photoUrl)
   }
 
   const fetchThumbnailStyle = async () => {
-    if (!pkg?.folderName) return
     try {
-      const res = await fetch(`/api/thumbnail-style?folderName=${encodeURIComponent(pkg.folderName)}`)
+      if (pkg?.folderName) {
+        const res = await fetch(`/api/thumbnail-style?folderName=${encodeURIComponent(pkg.folderName)}`)
+        const data = await res.json()
+        if (data.success && data.style && data.style.font) {
+          applyStyleObject(data.style)
+          return
+        }
+      }
+      const defRes = await fetch('/api/default-thumbnail-style')
+      const defData = await defRes.json()
+      if (defData.success && defData.style) applyStyleObject(defData.style)
+    } catch {}
+  }
+
+  const handleSaveAsDefault = async () => {
+    try {
+      const headlineConfig = {
+        font, fontFamilyName, fontSize: fontSize === 'auto' ? 'auto' : String(customSizeNum),
+        fontColor, lineColors, lineFontSizes, borderColor, borderWidth: Number(borderWidth),
+        shadowDistance: Number(shadowDistance), lineSpacing: Number(lineSpacing),
+        isItalic, tiltAngle: Number(tiltAngle) || 0, position, offsetY: Number(offsetY),
+        hasBox: boxStyle !== 'none', boxStyle, boxOpacity: Number(boxOpacity) || 75,
+      }
+      const res = await fetch('/api/save-default-thumbnail-style', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(headlineConfig),
+      })
+      const data = await res.json()
+      if (data.success) toast.success('⭐ Текущие настройки сохранены как шаблон по умолчанию!')
+      else toast.error('Не удалось сохранить шаблон: ' + (data.error || 'Ошибка'))
+    } catch (err) { toast.error('Ошибка сохранения шаблона: ' + err.message) }
+  }
+
+  const handleResetToDefault = async () => {
+    try {
+      const res = await fetch('/api/default-thumbnail-style')
       const data = await res.json()
       if (data.success && data.style) {
-        const c = data.style
-        if (c.text) setText(c.text)
-        if (c.font) { setFont(c.font); setFontFamilyName(c.fontFamilyName || resolveFontFamily(c.font, customFonts)); }
-        if (c.fontSize !== undefined) { setFontSize(c.fontSize); if (c.fontSize !== 'auto') setCustomSizeNum(Number(c.fontSize)); }
-        if (c.fontColor) setFontColor(c.fontColor)
-        if (c.lineColors !== undefined) setLineColors(Array.isArray(c.lineColors) ? c.lineColors : null)
-        if (c.lineFontSizes !== undefined) setLineFontSizes(Array.isArray(c.lineFontSizes) ? c.lineFontSizes : null)
-        if (c.borderColor) setBorderColor(c.borderColor)
-        if (c.borderWidth !== undefined) setBorderWidth(Number(c.borderWidth))
-        if (c.shadowDistance !== undefined) setShadowDistance(Number(c.shadowDistance))
-        if (c.lineSpacing !== undefined) setLineSpacing(Number(c.lineSpacing))
-        if (c.isItalic !== undefined) setIsItalic(Boolean(c.isItalic))
-        if (c.tiltAngle !== undefined) setTiltAngle(Number(c.tiltAngle))
-        if (c.position) setPosition(c.position)
-        if (c.offsetY !== undefined && c.offsetY !== null) setOffsetY(Number(c.offsetY))
-        else if (c.position === 'top') setOffsetY(12)
-        else if (c.position === 'bottom') setOffsetY(85)
-        else if (c.position === 'center') setOffsetY(50)
-        if (c.hasBox !== undefined) setHasBox(Boolean(c.hasBox))
-        if (c.boxStyle !== undefined) setBoxStyle(c.boxStyle)
-        else if (c.hasBox) setBoxStyle('dark_soft')
-        if (c.boxOpacity !== undefined) setBoxOpacity(Number(c.boxOpacity))
-        if (c.photoUrl) setSelectedBgPhoto(c.photoUrl)
+        applyStyleObject(data.style)
+        toast.success('🔄 Применен стандартный шаблон оформления!')
       }
-    } catch {}
+    } catch (err) { toast.error('Ошибка: ' + err.message) }
   }
 
   const fetchCustomFonts = async () => {
@@ -119,46 +155,26 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
           if (data.success && data.font) {
             try { const ff = new FontFace(data.font.name, `url(${data.font.url})`); await ff.load(); document.fonts.add(ff); } catch {}
             setCustomFonts(prev => [data.font, ...prev.filter(f => f.id !== data.font.id)])
-            setFont(data.font.id)
-            setFontFamilyName(`"${data.font.name}", sans-serif`)
+            setFont(data.font.id); setFontFamilyName(`"${data.font.name}", sans-serif`)
             toast.success(`🔤 Шрифт "${data.font.name}" успешно применен!`, { id: toastId })
-          } else {
-            toast.error('Ошибка загрузки шрифта: ' + (data.error || 'Неизвестная ошибка'), { id: toastId })
-          }
-        } catch (postErr) {
-          toast.error('Ошибка отправки шрифта: ' + postErr.message, { id: toastId })
-        } finally {
-          setUploadingFont(false)
-        }
+          } else { toast.error('Ошибка загрузки шрифта: ' + (data.error || 'Неизвестная ошибка'), { id: toastId }) }
+        } catch (postErr) { toast.error('Ошибка отправки шрифта: ' + postErr.message, { id: toastId }) }
+        finally { setUploadingFont(false) }
       }
       reader.readAsDataURL(file)
-    } catch (err) {
-      setUploadingFont(false)
-      toast.error('Ошибка чтения файла шрифта: ' + err.message)
-    }
+    } catch (err) { setUploadingFont(false); toast.error('Ошибка чтения файла: ' + err.message) }
   }
 
   const handleDeleteFont = async (fontId, fontName) => {
     try {
-      const res = await fetch('/api/delete-font', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fontId }),
-      })
+      const res = await fetch('/api/delete-font', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fontId }) })
       const data = await res.json()
       if (data.success) {
         toast.success(`🗑️ Шрифт "${fontName}" удален`)
         setCustomFonts(prev => prev.filter(f => f.id !== fontId))
-        if (font === fontId) {
-          setFont('impact')
-          setFontFamilyName('Impact, "Arial Black", sans-serif')
-        }
-      } else {
-        toast.error('Ошибка удаления: ' + (data.error || 'Неизвестная ошибка'))
-      }
-    } catch (err) {
-      toast.error('Ошибка удаления: ' + err.message)
-    }
+        if (font === fontId) { setFont('impact'); setFontFamilyName('Impact, "Arial Black", sans-serif'); }
+      } else { toast.error('Ошибка удаления: ' + (data.error || 'Неизвестная ошибка')) }
+    } catch (err) { toast.error('Ошибка удаления: ' + err.message) }
   }
 
   const handleGeneratePunchyTitle = async () => {
@@ -167,21 +183,15 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
       const res = await fetch('/api/generate-punchy-title', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: pkg.original_title || pkg.title || text,
-          summary: pkg.summary || ''
-        }),
+        body: JSON.stringify({ title: pkg.original_title || pkg.title || text, summary: pkg.summary || '' }),
       })
       const data = await res.json()
       if (data.success && data.title) {
         setText(data.title)
         toast.success(`⚡ Заголовок в стиле Голобуцкого создан: "${data.title}"`)
       }
-    } catch (e) {
-      toast.error('Ошибка генерации заголовка: ' + e.message)
-    } finally {
-      setGeneratingTitle(false)
-    }
+    } catch (e) { toast.error('Ошибка генерации заголовка: ' + e.message) }
+    finally { setGeneratingTitle(false) }
   }
 
   const handleApply = async () => {
@@ -200,29 +210,20 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
         hasBox: boxStyle !== 'none', boxStyle, boxOpacity: Number(boxOpacity) || 75,
       }
       const res = await fetch('/api/set-thumbnail', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mode: 'apply_headline', bundleDir: pkg.bundleDir, folderName: pkg.folderName, photoUrl, headlineConfig }),
       })
       const data = await res.json()
       if (data.success) {
         toast.success('✨ Обложка и стиль сохранены!', { id: toastId })
         if (onUpdated) onUpdated(`${data.thumbnailUrl}&t=${Date.now()}`)
-      } else {
-        toast.error('Ошибка: ' + (data.error || 'Не удалось обновить'), { id: toastId })
-      }
-    } catch (err) {
-      toast.error('Ошибка сохранения: ' + err.message)
-    } finally {
-      setSaving(false)
-    }
+      } else { toast.error('Ошибка: ' + (data.error || 'Не удалось обновить'), { id: toastId }) }
+    } catch (err) { toast.error('Ошибка сохранения: ' + err.message) }
+    finally { setSaving(false) }
   }
 
   const formatPreviewLines = (raw) => {
-    if (typeof raw === 'string' && raw.includes('\n')) {
-      const manual = raw.split('\n').map(l => l.trim().toUpperCase()).filter(Boolean)
-      if (manual.length > 0) return manual
-    }
+    if (typeof raw === 'string' && raw.includes('\n')) return raw.split('\n').map(l => l.trim().toUpperCase()).filter(Boolean)
     const words = String(raw || '').replace(/[\r\n\t]/g, ' ').replace(/["'«»`]/g, '').trim().split(/\s+/).filter(Boolean)
     if (!words.length) return ['ЗАГОЛОВОК ОБЛОЖКИ']
     let lines = [], cur = ''
@@ -238,16 +239,10 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
   const activeColorHex = fontColor?.startsWith('#') ? fontColor : (COLORS.find(c => c.id === fontColor)?.hex || '#FFE600')
   const activeStrokeHex = borderColor?.startsWith('#') ? borderColor : (STROKE_COLORS.find(c => c.id === borderColor)?.hex || '#000000')
   const calcLiveFontSize = (overrideSize = null) => {
-    if (overrideSize !== null && overrideSize !== undefined && !isNaN(Number(overrideSize)) && Number(overrideSize) > 0) {
-      return (Number(overrideSize) * 0.52) + 'px'
-    }
-    if (fontSize !== 'auto') {
-      return (Number(customSizeNum) * 0.52) + 'px'
-    }
+    if (overrideSize !== null && overrideSize !== undefined && !isNaN(Number(overrideSize)) && Number(overrideSize) > 0) return (Number(overrideSize) * 0.52) + 'px'
+    if (fontSize !== 'auto') return (Number(customSizeNum) * 0.52) + 'px'
     const longest = Math.max(...previewLines.map(l => l.length), 8)
-    const maxFit = Math.floor(1160 / (longest * 0.65))
-    const clamped = Math.min(Math.max(maxFit, 48), 92)
-    return (clamped * 0.52) + 'px'
+    return (Math.min(Math.max(Math.floor(1160 / (longest * 0.65)), 48), 92) * 0.52) + 'px'
   }
 
   const rawBackgroundSrc = pkg?.folderName ? `/news-static/${pkg.folderName}/thumbnail/raw_background.jpg?t=${Date.now()}` : null
@@ -372,11 +367,17 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
           </div>
 
           {/* Кнопки действий */}
-          <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.75rem', borderTop: '1px solid #27272a', paddingTop: '1rem', flexWrap: 'wrap' }}>
-            <button className="copy-btn" disabled={saving} style={{ background: '#10b981', flex: 1, minWidth: '240px', padding: '0.75rem', fontSize: '0.95rem', fontWeight: 700 }} onClick={handleApply}>
-              {saving ? '⏳ Сохранение...' : '💾 Применить стиль и сохранить обложку'}
+          <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.65rem', borderTop: '1px solid #27272a', paddingTop: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <button className="copy-btn" disabled={saving} style={{ background: '#10b981', flex: 1, minWidth: '220px', padding: '0.75rem', fontSize: '0.95rem', fontWeight: 700 }} onClick={handleApply}>
+              {saving ? '⏳ Сохранение...' : '💾 Применить и сохранить обложку'}
             </button>
-            <button className="copy-btn" style={{ background: '#3f3f46', padding: '0.75rem 1.4rem', fontWeight: 600 }} onClick={onClose}>
+            <button type="button" className="copy-btn" style={{ background: '#8b5cf6', padding: '0.75rem 1rem', fontWeight: 600 }} onClick={handleSaveAsDefault} title="Сделать этот шрифт, цвета и оформление стандартными для всех новых пакетов">
+              ⭐ Сохранить как шаблон по умолчанию
+            </button>
+            <button type="button" className="copy-btn" style={{ background: '#3b82f6', padding: '0.75rem 0.9rem', fontWeight: 600 }} onClick={handleResetToDefault} title="Загрузить стандартный шаблон по умолчанию">
+              🔄 К шаблону
+            </button>
+            <button className="copy-btn" style={{ background: '#3f3f46', padding: '0.75rem 1.2rem', fontWeight: 600 }} onClick={onClose}>
               ✕ Закрыть
             </button>
           </div>

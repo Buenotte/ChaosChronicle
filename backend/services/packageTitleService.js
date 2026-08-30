@@ -3,6 +3,7 @@ import path from 'path';
 import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import { overlayRussianHeadlineOnThumbnail } from './thumbnailOverlayService.js';
+import { getDefaultThumbnailStyle } from './thumbnailService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -191,25 +192,38 @@ export function updatePackageTitle(bundleDir, newTitle, updateThumbnail = true, 
           fs.copyFileSync(thumbPath, rawBg);
         } else {
           const photosDir = path.join(bundleDir, 'photos');
+          let renderedFromPhoto = false;
           if (fs.existsSync(photosDir)) {
-            const photoList = fs.readdirSync(photosDir).filter(f => /\.(jpg|jpeg|png|webp)$/i.test(f));
+            const photoList = fs.readdirSync(photosDir).filter(f => /\.(jpg|jpeg|png|webp|avif)$/i.test(f));
             if (photoList.length > 0) {
               const firstPic = path.join(photosDir, photoList[0]);
               try {
                 execSync(`ffmpeg -y -i "${firstPic}" -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720[v]" -map "[v]" -q:v 2 "${rawBg}"`, { timeout: 10000 });
+                renderedFromPhoto = true;
               } catch {
-                fs.copyFileSync(firstPic, rawBg);
+                try { fs.copyFileSync(firstPic, rawBg); renderedFromPhoto = true; } catch {}
               }
             }
+          }
+          if (!renderedFromPhoto) {
+            try {
+              execSync(`ffmpeg -y -f lavfi -i color=c=0x0f172a:s=1280x720:d=1 -frames:v 1 -q:v 2 "${rawBg}"`, { timeout: 8000 });
+            } catch {}
           }
         }
       }
 
       if (fs.existsSync(rawBg)) {
         fs.copyFileSync(rawBg, thumbPath);
-        const existingStyle = fs.existsSync(path.join(thumbDir, 'style.json'))
-          ? JSON.parse(fs.readFileSync(path.join(thumbDir, 'style.json'), 'utf-8'))
-          : (manifest.headlineConfig || {});
+        let existingStyle = {};
+        if (fs.existsSync(path.join(thumbDir, 'style.json'))) {
+          try { existingStyle = JSON.parse(fs.readFileSync(path.join(thumbDir, 'style.json'), 'utf-8')); } catch {}
+        } else if (manifest.headlineConfig) {
+          existingStyle = manifest.headlineConfig;
+        }
+        if (!existingStyle.font) {
+          existingStyle = { ...getDefaultThumbnailStyle(), ...existingStyle };
+        }
         const mergedStyle = { ...existingStyle, ...titleOptions, text: cleanTitle };
 
         fs.writeFileSync(path.join(thumbDir, 'style.json'), JSON.stringify(mergedStyle, null, 2), 'utf-8');

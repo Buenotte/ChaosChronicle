@@ -10,6 +10,27 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const newsDir = path.resolve(__dirname, '../../news');
 
+export function getDefaultThumbnailStyle() {
+  const defPath = path.resolve(__dirname, '../default_thumbnail_style.json');
+  if (fs.existsSync(defPath)) {
+    try { return JSON.parse(fs.readFileSync(defPath, 'utf-8')); } catch {}
+  }
+  return {
+    font: 'impact', fontFamilyName: 'Impact, sans-serif', fontSize: 'auto', customSizeNum: 82,
+    lineFontSizes: null, fontColor: 'yellow', lineColors: null, borderColor: 'black', borderWidth: 9,
+    shadowDistance: 4, lineSpacing: 1.15, isItalic: false, tiltAngle: 0, position: 'center', offsetY: 50,
+    hasBox: false, boxStyle: 'none', boxOpacity: 75,
+  };
+}
+
+export function saveDefaultThumbnailStyle(style = {}) {
+  const defPath = path.resolve(__dirname, '../default_thumbnail_style.json');
+  const clean = { ...getDefaultThumbnailStyle(), ...style };
+  delete clean.text; delete clean.photoUrl; delete clean.updatedAt;
+  fs.writeFileSync(defPath, JSON.stringify(clean, null, 2), 'utf-8');
+  return clean;
+}
+
 export async function processSetThumbnail({
   photoUrl,
   bundleDir: inputBundleDir,
@@ -61,7 +82,21 @@ export async function processSetThumbnail({
     fullNewsTitle = path.basename(targetFolder).replace(/^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}_/, '').replace(/_/g, ' ');
   }
 
-  let titleToRender = headlineConfig?.text;
+  let savedStyle = {};
+  if (fs.existsSync(styleJsonPath)) {
+    try { savedStyle = JSON.parse(fs.readFileSync(styleJsonPath, 'utf-8')); } catch {}
+  }
+  if (!savedStyle.font && fs.existsSync(jsonPath)) {
+    try {
+      const manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+      if (manifest.headlineConfig) savedStyle = { ...manifest.headlineConfig, ...savedStyle };
+    } catch {}
+  }
+  if (!savedStyle.font) {
+    savedStyle = { ...getDefaultThumbnailStyle(), ...savedStyle };
+  }
+
+  let titleToRender = (headlineConfig && headlineConfig.text) || savedStyle.text;
   if (!titleToRender) {
     const wordCount = fullNewsTitle.split(/\s+/).filter(Boolean).length;
     if (wordCount > 6) {
@@ -71,31 +106,34 @@ export async function processSetThumbnail({
     }
   }
 
+  const effectiveConfig = { ...savedStyle, ...(headlineConfig || {}) };
+
+  const styleData = {
+    text: titleToRender,
+    font: effectiveConfig.font || 'impact',
+    fontFamilyName: effectiveConfig.fontFamilyName || 'Impact, sans-serif',
+    fontSize: effectiveConfig.fontSize || 'auto',
+    customSizeNum: effectiveConfig.fontSize !== 'auto' && effectiveConfig.fontSize ? Number(effectiveConfig.fontSize) : (effectiveConfig.customSizeNum || 82),
+    lineFontSizes: Array.isArray(effectiveConfig.lineFontSizes) ? effectiveConfig.lineFontSizes : null,
+    fontColor: effectiveConfig.fontColor || 'yellow',
+    lineColors: Array.isArray(effectiveConfig.lineColors) ? effectiveConfig.lineColors : null,
+    borderColor: effectiveConfig.borderColor || 'black',
+    borderWidth: effectiveConfig.borderWidth !== undefined ? Number(effectiveConfig.borderWidth) : 9,
+    shadowDistance: effectiveConfig.shadowDistance !== undefined ? Number(effectiveConfig.shadowDistance) : 4,
+    lineSpacing: effectiveConfig.lineSpacing !== undefined ? Number(effectiveConfig.lineSpacing) : 1.15,
+    isItalic: !!effectiveConfig.isItalic,
+    tiltAngle: Number(effectiveConfig.tiltAngle) || 0,
+    position: effectiveConfig.position || 'center',
+    offsetY: effectiveConfig.offsetY !== undefined && effectiveConfig.offsetY !== null ? Number(effectiveConfig.offsetY) : 50,
+    hasBox: !!effectiveConfig.hasBox,
+    boxStyle: effectiveConfig.boxStyle || (effectiveConfig.hasBox ? 'dark_soft' : 'none'),
+    boxOpacity: effectiveConfig.boxOpacity !== undefined ? Number(effectiveConfig.boxOpacity) : 75,
+    photoUrl: photoUrl || effectiveConfig.photoUrl || null,
+    updatedAt: new Date().toISOString(),
+  };
+
   // Funktion zum Speichern von style.json und project.json
   const saveStyleAndManifest = () => {
-    const styleData = {
-      text: titleToRender,
-      font: headlineConfig.font || 'impact',
-      fontFamilyName: headlineConfig.fontFamilyName || 'Impact, sans-serif',
-      fontSize: headlineConfig.fontSize || 'auto',
-      customSizeNum: headlineConfig.fontSize !== 'auto' && headlineConfig.fontSize ? Number(headlineConfig.fontSize) : 82,
-      lineFontSizes: Array.isArray(headlineConfig.lineFontSizes) ? headlineConfig.lineFontSizes : null,
-      fontColor: headlineConfig.fontColor || 'yellow',
-      lineColors: Array.isArray(headlineConfig.lineColors) ? headlineConfig.lineColors : null,
-      borderColor: headlineConfig.borderColor || 'black',
-      borderWidth: headlineConfig.borderWidth !== undefined ? Number(headlineConfig.borderWidth) : 9,
-      shadowDistance: headlineConfig.shadowDistance !== undefined ? Number(headlineConfig.shadowDistance) : 4,
-      lineSpacing: headlineConfig.lineSpacing !== undefined ? Number(headlineConfig.lineSpacing) : 1.15,
-      isItalic: !!headlineConfig.isItalic,
-      tiltAngle: Number(headlineConfig.tiltAngle) || 0,
-      position: headlineConfig.position || 'center',
-      offsetY: headlineConfig.offsetY !== undefined && headlineConfig.offsetY !== null ? Number(headlineConfig.offsetY) : 50,
-      hasBox: !!headlineConfig.hasBox,
-      boxStyle: headlineConfig.boxStyle || (headlineConfig.hasBox ? 'dark_soft' : 'none'),
-      boxOpacity: headlineConfig.boxOpacity !== undefined ? Number(headlineConfig.boxOpacity) : 75,
-      photoUrl: photoUrl || null,
-      updatedAt: new Date().toISOString(),
-    };
     fs.writeFileSync(styleJsonPath, JSON.stringify(styleData, null, 2), 'utf-8');
 
     if (fs.existsSync(jsonPath)) {
@@ -144,15 +182,15 @@ export async function processSetThumbnail({
         }
       }
     }
-    overlayRussianHeadlineOnThumbnail(destSub, titleToRender, headlineConfig);
+    overlayRussianHeadlineOnThumbnail(destSub, titleToRender, styleData);
 
-    const savedStyle = saveStyleAndManifest();
+    const finalStyle = saveStyleAndManifest();
 
     return {
       success: true,
       thumbnailUrl: `/news-static/${path.basename(targetFolder)}/thumbnail/thumbnail.jpg?t=${Date.now()}`,
       folderName: path.basename(targetFolder),
-      style: savedStyle,
+      style: finalStyle,
     };
   }
 
@@ -205,7 +243,7 @@ export async function processSetThumbnail({
     }
 
     fs.copyFileSync(destSub, rawBackgroundPath);
-    overlayRussianHeadlineOnThumbnail(destSub, titleToRender, headlineConfig);
+    overlayRussianHeadlineOnThumbnail(destSub, titleToRender, styleData);
   } else {
     let sourceFile = null;
     if (photoUrl && photoUrl.startsWith('/news-static/')) {
@@ -224,15 +262,15 @@ export async function processSetThumbnail({
     }
 
     fs.copyFileSync(destSub, rawBackgroundPath);
-    overlayRussianHeadlineOnThumbnail(destSub, titleToRender, headlineConfig);
+    overlayRussianHeadlineOnThumbnail(destSub, titleToRender, styleData);
   }
 
-  const savedStyle = saveStyleAndManifest();
+  const finalStyle = saveStyleAndManifest();
 
   return {
     success: true,
     thumbnailUrl: `/news-static/${path.basename(targetFolder)}/thumbnail/thumbnail.jpg?t=${Date.now()}`,
     folderName: path.basename(targetFolder),
-    style: savedStyle,
+    style: finalStyle,
   };
 }

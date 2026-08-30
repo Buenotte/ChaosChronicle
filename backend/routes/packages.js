@@ -254,34 +254,19 @@ router.post('/api/delete-package', (req, res) => {
     if (!bundleDir || !fs.existsSync(bundleDir)) return res.status(404).json({ success: false, error: 'Папка не найдена' });
     fs.rmSync(bundleDir, { recursive: true, force: true });
     res.json({ success: true, deleted: path.basename(bundleDir) });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-// GET /api/package-script-text?folderName=...&bundleDir=...
+// GET /api/package-script-text
 router.get('/api/package-script-text', (req, res) => {
   try {
-    const { folderName, bundleDir: inputBundleDir } = req.query;
     const newsDir = path.resolve(__dirname, '../../news');
-    const targetDir = inputBundleDir || (folderName ? path.join(newsDir, folderName) : null);
-    if (!targetDir || !fs.existsSync(targetDir)) {
-      return res.status(404).json({ success: false, error: 'Папка не найдена' });
-    }
-
-    const txtPath = path.join(targetDir, 'script.txt');
-    const mdPath = path.join(targetDir, 'script.md');
-    let text = '';
-    if (fs.existsSync(txtPath)) {
-      text = fs.readFileSync(txtPath, 'utf-8');
-    } else if (fs.existsSync(mdPath)) {
-      text = fs.readFileSync(mdPath, 'utf-8');
-    }
-
+    const targetDir = req.query.bundleDir || (req.query.folderName ? path.join(newsDir, req.query.folderName) : null);
+    if (!targetDir || !fs.existsSync(targetDir)) return res.status(404).json({ success: false, error: 'Папка не найдена' });
+    const txtPath = path.join(targetDir, 'script.txt'), mdPath = path.join(targetDir, 'script.md');
+    const text = fs.existsSync(txtPath) ? fs.readFileSync(txtPath, 'utf-8') : (fs.existsSync(mdPath) ? fs.readFileSync(mdPath, 'utf-8') : '');
     res.json({ success: true, text, folderName: path.basename(targetDir) });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // POST /api/save-script-text
@@ -299,17 +284,8 @@ router.post('/api/save-script-text', async (req, res) => {
         fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
       } catch {}
     }
-
-    res.json({
-      success: true,
-      bundleDir,
-      folderName: path.basename(bundleDir),
-      text,
-    });
-  } catch (err) {
-    console.error('Save script error:', err.message);
-    res.status(500).json({ success: false, error: err.message });
-  }
+    res.json({ success: true, bundleDir, folderName: path.basename(bundleDir), text });
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // POST /api/generate-title-variants
@@ -318,10 +294,7 @@ router.post('/api/generate-title-variants', async (req, res) => {
     const { title = '', summary = '', text = '', bundleDir, folderName, forceRegenerate = false, style = 'golubuzki' } = req.body;
     const result = await generateTitleVariants(title, summary, bundleDir, folderName, forceRegenerate, style, text);
     res.json({ success: true, ...result });
-  } catch (err) {
-    console.error('Error generating title variants:', err.message);
-    res.status(500).json({ success: false, error: err.message });
-  }
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // POST /api/update-package-title
@@ -334,8 +307,33 @@ router.post('/api/update-package-title', async (req, res) => {
     if (!targetFolder && folderName) {
       targetFolder = path.join(newsDir, folderName);
     }
-    if (!targetFolder || !fs.existsSync(targetFolder)) {
-      return res.status(404).json({ success: false, error: 'Папка пакета не найдена' });
+    if (!targetFolder && fs.existsSync(newsDir)) {
+      const matchTitle = (req.body.title || req.body.originalTitle || newTitle || '').toLowerCase().replace(/[^a-z0-9а-яё]/gi, '');
+      if (matchTitle) {
+        const dirs = fs.readdirSync(newsDir, { withFileTypes: true });
+        for (const d of dirs) {
+          if (!d.isDirectory()) continue;
+          const pDir = path.join(newsDir, d.name);
+          const jsonPath = path.join(pDir, 'project.json');
+          if (fs.existsSync(jsonPath)) {
+            try {
+              const m = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+              const mT = (m.title || '').toLowerCase().replace(/[^a-z0-9а-яё]/gi, '');
+              const mO = (m.original_title || '').toLowerCase().replace(/[^a-z0-9а-яё]/gi, '');
+              if ((mO && matchTitle.includes(mO.slice(0, 12))) || (mT && matchTitle.includes(mT.slice(0, 12)))) {
+                targetFolder = pDir;
+                break;
+              }
+            } catch {}
+          }
+        }
+      }
+    }
+    if (!targetFolder) {
+      const dateStr = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 16);
+      const safeTitle = (newTitle || 'News').replace(/[^a-zA-Z0-9а-яА-ЯёЁ]/g, '_').slice(0, 60);
+      targetFolder = path.join(newsDir, `${dateStr}_${safeTitle}`);
+      fs.mkdirSync(targetFolder, { recursive: true });
     }
     if (!newTitle || !newTitle.trim()) {
       return res.status(400).json({ success: false, error: 'Заголовок не может быть пустым' });
