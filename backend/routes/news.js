@@ -26,17 +26,28 @@ export const FEEDS = [
   { url: 'https://verstka.media/feed', category: 'rossija', source: 'Вёрстка' },
   { url: 'https://www.agents.media/feed/', category: 'rossija', source: 'Агентство' },
 
+  // 🤡 Абсурд & Скрепы (Курьезы, доносы, маразм, шапито и запреты из РФ)
+  { url: 'https://news.google.com/rss/search?q=(site:theins.ru+OR+site:verstka.media+OR+site:holod.media+OR+site:ru.themoscowtimes.com)+(%D0%B4%D0%B5%D0%BF%D1%83%D1%82%D0%B0%D1%82+OR+%D0%B3%D0%BE%D1%81%D0%B4%D1%83%D0%BC%D0%B0+OR+%D0%B7%D0%B0%D0%BF%D1%80%D0%B5%D1%82%D0%B8%D1%82%D1%8C+OR+%D0%B4%D0%BE%D0%BD%D0%BE%D1%81+OR+%D1%81%D0%BA%D1%80%D0%B5%D0%BF%D1%8B+OR+%D1%88%D0%B0%D0%BF%D0%B8%D1%82%D0%BE+OR+%D0%B0%D0%B1%D1%81%D1%83%D1%80%D0%B4+OR+%D0%BC%D0%B0%D1%80%D0%B0%D0%B7%D0%BC)+-%D0%B0%D1%82%D0%B0%D0%BA%D0%BE%D0%B2%D0%B0%D0%BB%D0%B8+-%D0%B0%D1%8D%D1%80%D0%BE%D0%B4%D1%80%D0%BE%D0%BC+-%D0%BD%D0%BF%D0%B7+-%D0%BF%D0%BE%D0%B3%D0%B8%D0%B1%D0%BB%D0%B8+-%D0%BE%D0%B1%D1%81%D1%82%D1%80%D0%B5%D0%BB+when:7d&hl=ru&gl=UA&ceid=UA:ru', category: 'absurd', source: 'The Moscow Times / Холод / Вёрстка' },
+  { url: 'https://news.google.com/rss/search?q=(site:zona.media+OR+site:meduza.io)+(%D0%B4%D0%BE%D0%BD%D0%BE%D1%81+OR+%D0%B0%D0%B1%D1%81%D1%83%D1%80%D0%B4+OR+%D1%88%D1%82%D1%80%D0%B0%D1%84+OR+%D0%BA%D1%83%D1%80%D1%8C%D0%B5%D0%B7+OR+%D0%B4%D0%B8%D1%81%D0%BA%D1%80%D0%B5%D0%B4%D0%B8%D1%82%D0%B0%D1%86%D0%B8%D1%8F+OR+%D1%88%D0%B0%D0%BF%D0%B8%D1%82%D0%BE)+-%D0%B0%D1%82%D0%B0%D0%BA%D0%BE%D0%B2%D0%B0%D0%BB%D0%B8+-%D0%B0%D1%8D%D1%80%D0%BE%D0%B4%D1%80%D0%BE%D0%BC+-%D0%BD%D0%BF%D0%B7+-%D0%BF%D0%BE%D0%B3%D0%B8%D0%B1%D0%BB%D0%B8+when:7d&hl=ru&gl=UA&ceid=UA:ru', category: 'absurd', source: 'Медиазона / Meduza' },
+  { url: 'https://news.google.com/rss/search?q=(site:novayagazeta.eu+OR+site:svoboda.org)+(%D1%81%D0%BA%D1%80%D0%B5%D0%BF%D1%8B+OR+%D0%BF%D0%B0%D1%82%D1%80%D0%B8%D0%BE%D1%82%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%BE%D0%B5+%D0%B2%D0%BE%D1%81%D0%BF%D0%B8%D1%82%D0%B0%D0%BD%D0%B8%D0%B5+OR+%D0%B4%D0%BE%D0%BD%D0%BE%D1%81%D1%8B+OR+%D0%BC%D0%B0%D1%80%D0%B0%D0%B7%D0%BC)+-%D0%B0%D1%82%D0%B0%D0%BA%D0%BE%D0%B2%D0%B0%D0%BB%D0%B8+-%D0%B0%D1%8D%D1%80%D0%BE%D0%B4%D1%80%D0%BE%D0%BC+-%D0%BD%D0%BF%D0%B7+when:7d&hl=ru&gl=UA&ceid=UA:ru', category: 'absurd', source: 'Новая газета / Радио Свобода' },
+
   // 🏛️ Политика
+  { url: 'https://news.google.com/rss/search?q=site:svoboda.org+(%D0%BF%D0%BE%D0%BB%D0%B8%D1%82%D0%B8%D0%BA%D0%B0+OR+%D0%B2%D0%BB%D0%B0%D1%81%D1%82%D1%8C+OR+%D0%BA%D1%80%D0%B5%D0%BC%D0%BB%D1%8C)+when:7d&hl=ru&gl=UA&ceid=UA:ru', category: 'politika', source: 'Радио Свобода' },
+  { url: 'https://news.google.com/rss/search?q=site:ru.themoscowtimes.com+(%D0%BF%D0%BE%D0%BB%D0%B8%D1%82%D0%B8%D0%BA%D0%B0+OR+%D0%B2%D0%BB%D0%B0%D1%81%D1%82%D1%8C)+when:7d&hl=ru&gl=UA&ceid=UA:ru', category: 'politika', source: 'The Moscow Times' },
+  { url: 'https://news.google.com/rss/search?q=site:novayagazeta.eu+(%D0%BF%D0%BE%D0%BB%D0%B8%D1%82%D0%B8%D0%BA%D0%B0+OR+%D0%B2%D0%BB%D0%B0%D1%81%D1%82%D1%8C+OR+%D0%B2%D1%8B%D0%B1%D0%BE%D1%80%D1%8B)+when:7d&hl=ru&gl=UA&ceid=UA:ru', category: 'politika', source: 'Новая газета Европа' },
   { url: 'https://rss.dw.com/rdf/rss-ru-pol', category: 'politika', source: 'DW Политика' },
+  { url: 'https://ru.euronews.com/rss?format=mrss&level=theme&name=news', category: 'politika', source: 'Euronews' },
 
   // 📈 Экономика (Строго независимые и международные издания)
-  { url: 'https://news.google.com/rss/search?q=site:thebell.io&hl=ru&gl=UA&ceid=UA:ru', category: 'ekonomika', source: 'The Bell' },
-  { url: 'https://news.google.com/rss/search?q=site:ru.themoscowtimes.com+(%D1%8D%D0%BA%D0%BE%D0%BD%D0%BE%D0%BC%D0%B8%D0%BA%D0%B0+OR+%D0%B1%D0%B8%D0%B7%D0%BD%D0%B5%D1%81+OR+%D1%81%D0%B0%D0%BD%D0%BA%D1%86%D0%B8%D0%B8+OR+%D1%80%D1%83%D0%B1%D0%BB%D1%8C)&hl=ru&gl=UA&ceid=UA:ru', category: 'ekonomika', source: 'The Moscow Times Экономика' },
-  { url: 'https://news.google.com/rss/search?q=site:novayagazeta.eu+(%D1%8D%D0%BA%D0%BE%D0%BD%D0%BE%D0%BC%D0%B8%D0%BA%D0%B0+OR+%D0%B1%D0%B8%D0%B7%D0%BD%D0%B5%D1%81+OR+%D1%81%D0%B0%D0%BD%D0%BA%D1%86%D0%B8%D0%B8+OR+%D1%80%D1%83%D0%B1%D0%BB%D1%8C)&hl=ru&gl=UA&ceid=UA:ru', category: 'ekonomika', source: 'Новая газета Европа' },
-  { url: 'https://news.google.com/rss/search?q=site:svoboda.org+(%D1%8D%D0%BA%D0%BE%D0%BD%D0%BE%D0%BC%D0%B8%D0%BA%D0%B0+OR+%D1%81%D0%B0%D0%BD%D0%BA%D1%86%D0%B8%D0%B8+OR+%D1%80%D1%83%D0%B1%D0%BB%D1%8C+OR+%D0%BD%D0%B5%D1%84%D1%82%D1%8C)&hl=ru&gl=UA&ceid=UA:ru', category: 'ekonomika', source: 'Радио Свобода' },
+  { url: 'https://news.google.com/rss/search?q=site:thebell.io+when:7d&hl=ru&gl=UA&ceid=UA:ru', category: 'ekonomika', source: 'The Bell' },
+  { url: 'https://news.google.com/rss/search?q=site:ru.themoscowtimes.com+(%D1%8D%D0%BA%D0%BE%D0%BD%D0%BE%D0%BC%D0%B8%D0%BA%D0%B0+OR+%D0%B1%D0%B8%D0%B7%D0%BD%D0%B5%D1%81+OR+%D1%81%D0%B0%D0%BD%D0%BA%D1%86%D0%B8%D0%B8+OR+%D1%80%D1%83%D0%B1%D0%BB%D1%8C)+when:7d&hl=ru&gl=UA&ceid=UA:ru', category: 'ekonomika', source: 'The Moscow Times Экономика' },
+  { url: 'https://news.google.com/rss/search?q=site:novayagazeta.eu+(%D1%8D%D0%BA%D0%BE%D0%BD%D0%BE%D0%BC%D0%B8%D0%BA%D0%B0+OR+%D0%B1%D0%B8%D0%B7%D0%BD%D0%B5%D1%81+OR+%D1%81%D0%B0%D0%BD%D0%BA%D1%86%D0%B8%D0%B8+OR+%D1%80%D1%83%D0%B1%D0%BB%D1%8C)+when:7d&hl=ru&gl=UA&ceid=UA:ru', category: 'ekonomika', source: 'Новая газета Европа' },
+  { url: 'https://news.google.com/rss/search?q=site:svoboda.org+(%D1%8D%D0%BA%D0%BE%D0%BD%D0%BE%D0%BC%D0%B8%D0%BA%D0%B0+OR+%D1%81%D0%B0%D0%BD%D0%BA%D1%86%D0%B8%D0%B8+OR+%D1%80%D1%83%D0%B1%D0%BB%D1%8C+OR+%D0%BD%D0%B5%D1%84%D1%82%D1%8C)+when:7d&hl=ru&gl=UA&ceid=UA:ru', category: 'ekonomika', source: 'Радио Свобода' },
   { url: 'https://rss.dw.com/rdf/rss-ru-eco', category: 'ekonomika', source: 'DW Экономика' },
 
   // 🎭 Культура & Общество
+  { url: 'https://news.google.com/rss/search?q=site:svoboda.org+(%D0%BA%D1%83%D0%BB%D1%8C%D1%82%D1%83%D1%80%D0%B0+OR+%D0%BA%D0%B8%D0%BD%D0%BE+OR+%D0%BC%D1%83%D0%B7%D1%8B%D0%BA%D0%B0+OR+%D0%B8%D1%81%D0%BA%D1%83%D1%81%D1%81%D1%82%D0%B2%D0%BE+OR+%D0%BA%D0%BD%D0%B8%D0%B3%D0%B8)+when:7d&hl=ru&gl=UA&ceid=UA:ru', category: 'kultura', source: 'Радио Свобода' },
+  { url: 'https://news.google.com/rss/search?q=site:meduza.io+(%D0%BA%D1%83%D0%BB%D1%8C%D1%82%D1%83%D1%80%D0%B0+OR+%D0%BA%D0%B8%D0%BD%D0%BE+OR+%D0%BC%D1%83%D0%B7%D1%8B%D0%BA%D0%B0+OR+%D1%81%D0%B5%D1%80%D0%B8%D0%B0%D0%BB%D1%8B)+when:7d&hl=ru&gl=UA&ceid=UA:ru', category: 'kultura', source: 'Meduza' },
   { url: 'https://rss.dw.com/rdf/rss-ru-cul', category: 'kultura', source: 'DW Культура' },
 
   // 🤖 Технологии & Наука
@@ -44,13 +55,15 @@ export const FEEDS = [
   { url: 'https://3dnews.ru/news/rss/', category: 'tekh', source: '3DNews' },
 
   // 🌍 Мир
-  { url: 'https://rss.dw.com/rdf/rss-ru-all', category: 'mir', source: 'DW Мир' },
+  { url: 'https://news.google.com/rss/search?q=site:bbc.com/russian+(%D0%BC%D0%B8%D1%80+OR+%D1%81%D1%88%D0%B0+OR+%D0%B5%D0%B2%D1%80%D0%BE%D0%BF%D0%B0+OR+%D0%BD%D0%B0%D1%82%D0%BE+OR+%D0%BA%D0%B8%D1%82%D0%B0%D0%B9+OR+%D0%B1%D0%BB%D0%B8%D0%B6%D0%BD%D0%B8%D0%B9+%D0%B2%D0%BE%D1%81%D1%82%D0%BE%D0%BA)+when:7d&hl=ru&gl=UA&ceid=UA:ru', category: 'mir', source: 'BBC Русская служба' },
+  { url: 'https://news.google.com/rss/search?q=site:svoboda.org+(%D0%BC%D0%B8%D1%80+OR+%D1%81%D1%88%D0%B0+OR+%D0%B5%D0%B2%D1%80%D0%BE%D0%BF%D0%B0+OR+%D0%BD%D0%B0%D1%82%D0%BE+OR+%D0%BA%D0%B8%D1%82%D0%B0%D0%B9+OR+%D0%B8%D0%B7%D1%80%D0%B0%D0%B8%D0%BB%D1%8C)+when:7d&hl=ru&gl=UA&ceid=UA:ru', category: 'mir', source: 'Радио Свобода' },
+  { url: 'https://news.google.com/rss/search?q=site:dw.com/ru+(%D0%BC%D0%B8%D1%80+OR+%D1%81%D1%88%D0%B0+OR+%D0%B5%D0%B2%D1%80%D0%BE%D0%BF%D0%B0+OR+%D0%BD%D0%B0%D1%82%D0%BE+OR+%D0%BA%D0%B8%D1%82%D0%B0%D0%B9+OR+%D0%B8%D0%B7%D1%80%D0%B0%D0%B8%D0%BB%D1%8C)+when:7d&hl=ru&gl=UA&ceid=UA:ru', category: 'mir', source: 'DW Мир' },
 
   // 🇺🇦 Война в Украине
   { url: 'https://www.pravda.com.ua/rus/rss/', category: 'ukraina', source: 'Украинская правда' },
   { url: 'https://www.rbc.ua/static/rss/newsline.rus.rss.xml', category: 'ukraina', source: 'РБК-Украина' },
   { url: 'https://nv.ua/rss/all.xml', category: 'ukraina', source: 'New Voice (NV)' },
-  { url: 'https://news.google.com/rss/search?q=site:svoboda.org+OR+site:radiosvoboda.org&hl=ru&gl=UA&ceid=UA:ru', category: 'ukraina', source: 'Радио Свобода' },
+  { url: 'https://news.google.com/rss/search?q=(site:svoboda.org+OR+site:radiosvoboda.org)+when:7d&hl=ru&gl=UA&ceid=UA:ru', category: 'ukraina', source: 'Радио Свобода' },
   { url: 'https://rss.dw.com/rdf/rss-ru-ukr', category: 'ukraina', source: 'DW Украина' },
 ];
 
@@ -186,13 +199,13 @@ let lastFetch = 0;
 if (fs.existsSync(cacheFilePath)) {
   try {
     const cachedData = JSON.parse(fs.readFileSync(cacheFilePath, 'utf-8'));
-    newsCache = cachedData.articles || [];
+    const maxAgeMs = 7 * 24 * 60 * 60 * 1000;
+    newsCache = (cachedData.articles || []).filter(a => !a.pubDate || (Date.now() - new Date(a.pubDate).getTime()) <= maxAgeMs);
     lastFetch = cachedData.lastFetch || 0;
-    console.log(`📦 ${newsCache.length} Nachrichten aus lokalem Festplatten-Cache geladen (cache_news.json).`);
+    console.log(`📦 ${newsCache.length} frische Nachrichten (max. 7 Tage) aus Festplatten-Cache geladen.`);
     // Hintergrund-Ergänzung für fehlende Bilder
     const missingCount = newsCache.filter(a => !a.imageUrl && a.url).length;
     if (missingCount > 0) {
-      console.log(`🔍 Lade Web-Originalfotos für ${missingCount} Nachrichten im Hintergrund nach...`);
       enrichArticlesWithOgImages(newsCache).then(enriched => {
         const withImg = enriched.filter(a => a.imageUrl).length;
         console.log(`✨ Fotos angereichert: ${withImg}/${enriched.length} Nachrichten haben jetzt Original-Bilder!`);
@@ -208,12 +221,19 @@ export async function fetchAllFeeds(forceRefresh = false) {
     return newsCache;
   }
 
-  console.log(forceRefresh ? '↻ Nachrichten werden auf Button-Klick neu im Internet gesucht...' : '📰 Erste Nachrichten-Suche...');
+  console.log(forceRefresh ? '↻ Nachrichten werden neu im Internet gesucht...' : '📰 Erste Nachrichten-Suche...');
+  const now = Date.now();
+  const maxAgeMs = 7 * 24 * 60 * 60 * 1000; // Maximal 7 Tage (1 Woche)
 
   const results = await Promise.allSettled(
     FEEDS.map(async (feed) => {
       const parsed = await parser.parseURL(feed.url);
-      return parsed.items.slice(0, 15).map((item, idx) => {
+      return parsed.items.slice(0, 15).filter(item => {
+        const d = item.pubDate || item.isoDate;
+        if (!d) return true;
+        const time = new Date(d).getTime();
+        return !isNaN(time) && (now - time) <= maxAgeMs;
+      }).map((item, idx) => {
         const imgData = extractImages(item);
         return {
           id: `${feed.source}-${idx}-${Date.now()}`,

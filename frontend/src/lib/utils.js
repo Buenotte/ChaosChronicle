@@ -3,6 +3,7 @@
 export const CATEGORIES = [
   { key: 'vse',       label: '🌐 Все новости',        color: '#6b7280' },
   { key: 'saved',     label: '💾 Сохранённые',       color: '#10b981' },
+  { key: 'absurd',    label: '🤡 Абсурд & Скрепы',    color: '#ec4899' },
   { key: 'ukraina',   label: '🇺🇦 Украина',           color: '#facc15' },
   { key: 'rossija',   label: '🇷🇺 Россия',            color: '#f43f5e' },
   { key: 'politika',  label: '🏛️ Политика',           color: '#ef4444' },
