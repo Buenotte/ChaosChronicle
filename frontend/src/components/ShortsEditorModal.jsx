@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import toast from 'react-hot-toast'
+import { toast } from 'sonner'
 
 export const SHORTS_FONTS = [
   { id: 'impact', name: 'Impact (Классика)', family: 'Impact, sans-serif' },

@@ -270,9 +270,8 @@ export default function PackageVideoSection({
                 setSubBannerTime={setSubBannerTime}
               />
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        )}
     </div>
   )
 }
