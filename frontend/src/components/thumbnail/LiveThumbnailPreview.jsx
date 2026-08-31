@@ -53,6 +53,7 @@ export default function LiveThumbnailPreview({
           background: '#09090b',
           boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
           border: '2px solid #3f3f46',
+          containerType: 'inline-size',
         }}
       >
         {/* Фоновое чистое изображение */}
@@ -96,8 +97,8 @@ export default function LiveThumbnailPreview({
                 transform: `translate(-50%, -${yPct}%) rotate(${angle}deg) ${isItalic && !fontFamilyName.includes('Georgia') ? 'skewX(-8deg)' : ''}`,
                 transformOrigin: 'center center',
                 transition: 'transform 0.15s ease, top 0.15s ease',
-                WebkitTextStroke: `${Math.round(borderWidth * 0.45)}px ${activeStrokeHex}`,
-                textShadow: `${Math.round(shadowDistance * 0.45)}px ${Math.round(shadowDistance * 0.45)}px ${Math.round(shadowDistance * 0.45)}px rgba(0,0,0,0.92)`,
+                WebkitTextStroke: `${((borderWidth / 1280) * 100).toFixed(3)}cqw ${activeStrokeHex}`,
+                textShadow: `${((shadowDistance / 1280) * 100).toFixed(3)}cqw ${((shadowDistance / 1280) * 100).toFixed(3)}cqw ${((shadowDistance / 1280) * 100).toFixed(3)}cqw rgba(0,0,0,0.92)`,
                 background: (boxStyle === 'dark_solid' ? `rgba(0,0,0,${alpha})` : (boxStyle === 'dark_soft' || (hasBox && boxStyle === 'none') ? `rgba(0,0,0,${alpha})` : (boxStyle === 'red_accent' ? `rgba(220,38,38,${alpha})` : (boxStyle === 'yellow_highlight' ? `rgba(245,158,11,${alpha})` : (boxStyle === 'blue_cyber' ? `rgba(15,23,42,${alpha})` : (boxStyle === 'purple_glass' ? `rgba(59,7,100,${alpha})` : 'transparent')))))),
                 border: boxStyle === 'blue_cyber' ? '2px solid #0284c7' : (boxStyle === 'purple_glass' ? '1px solid #c084fc' : (boxStyle === 'dark_solid' ? '1px solid #27272a' : 'none')),
                 padding: (boxStyle !== 'none' && boxStyle !== 'per_line') || hasBox ? '8px 18px' : '0',

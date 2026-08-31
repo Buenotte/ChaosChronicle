@@ -269,8 +269,12 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
           pkg={pkg}
           currentThumbnail={currentThumbnail}
           onClose={handleCloseSettings}
-          onUpdated={(newUrl) => {
+          onUpdated={(newUrl, newStyle) => {
             setCurrentThumbnail(newUrl)
+            if (newStyle) {
+              pkg.headlineConfig = newStyle
+              if (newStyle.text) pkg.title = newStyle.text
+            }
             if (onRefresh) onRefresh()
           }}
         />

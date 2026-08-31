@@ -187,30 +187,23 @@ export function updatePackageTitle(bundleDir, newTitle, updateThumbnail = true, 
     try {
       if (!fs.existsSync(thumbDir)) fs.mkdirSync(thumbDir, { recursive: true });
 
-      if (!fs.existsSync(rawBg)) {
-        if (fs.existsSync(thumbPath)) {
-          fs.copyFileSync(thumbPath, rawBg);
-        } else {
-          const photosDir = path.join(bundleDir, 'photos');
-          let renderedFromPhoto = false;
-          if (fs.existsSync(photosDir)) {
-            const photoList = fs.readdirSync(photosDir).filter(f => /\.(jpg|jpeg|png|webp|avif)$/i.test(f));
-            if (photoList.length > 0) {
-              const firstPic = path.join(photosDir, photoList[0]);
-              try {
-                execSync(`ffmpeg -y -i "${firstPic}" -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720[v]" -map "[v]" -q:v 2 "${rawBg}"`, { timeout: 10000 });
-                renderedFromPhoto = true;
-              } catch {
-                try { fs.copyFileSync(firstPic, rawBg); renderedFromPhoto = true; } catch {}
-              }
-            }
-          }
-          if (!renderedFromPhoto) {
-            try {
-              execSync(`ffmpeg -y -f lavfi -i color=c=0x0f172a:s=1280x720:d=1 -frames:v 1 -q:v 2 "${rawBg}"`, { timeout: 8000 });
-            } catch {}
-          }
+      const photosDir = path.join(bundleDir, 'photos');
+      let cleanSourcePic = null;
+      if (fs.existsSync(photosDir)) {
+        const photoList = fs.readdirSync(photosDir).filter(f => /\.(jpg|jpeg|png|webp|avif)$/i.test(f));
+        if (photoList.length > 0) cleanSourcePic = path.join(photosDir, photoList[0]);
+      }
+
+      if (cleanSourcePic && fs.existsSync(cleanSourcePic)) {
+        try {
+          execSync(`ffmpeg -y -i "${cleanSourcePic}" -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720[v]" -map "[v]" -q:v 2 "${rawBg}"`, { timeout: 10000 });
+        } catch {
+          try { fs.copyFileSync(cleanSourcePic, rawBg); } catch {}
         }
+      } else if (!fs.existsSync(rawBg)) {
+        try {
+          execSync(`ffmpeg -y -f lavfi -i color=c=0x0f172a:s=1280x720:d=1 -frames:v 1 -q:v 2 "${rawBg}"`, { timeout: 8000 });
+        } catch {}
       }
 
       if (fs.existsSync(rawBg)) {

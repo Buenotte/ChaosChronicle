@@ -228,7 +228,8 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
       toast.dismiss(toastId)
       if (data.success) {
         toast.success('✨ Обложка и стиль сохранены!')
-        if (onUpdated) onUpdated(`${data.thumbnailUrl}&t=${Date.now()}`)
+        const freshThumbUrl = `${data.thumbnailUrl.split('?')[0]}?t=${Date.now()}`
+        if (onUpdated) onUpdated(freshThumbUrl, data.style)
       } else {
         toast.error('Ошибка: ' + (data.error || 'Не удалось обновить'))
       }
@@ -258,10 +259,16 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
   const activeColorHex = fontColor?.startsWith('#') ? fontColor : (COLORS.find(c => c.id === fontColor)?.hex || '#FFE600')
   const activeStrokeHex = borderColor?.startsWith('#') ? borderColor : (STROKE_COLORS.find(c => c.id === borderColor)?.hex || '#000000')
   const calcLiveFontSize = (overrideSize = null) => {
-    if (overrideSize !== null && overrideSize !== undefined && !isNaN(Number(overrideSize)) && Number(overrideSize) > 0) return (Number(overrideSize) * 0.52) + 'px'
-    if (fontSize !== 'auto') return (Number(customSizeNum) * 0.52) + 'px'
-    const longest = Math.max(...previewLines.map(l => l.length), 8)
-    return (Math.min(Math.max(Math.floor(1160 / (longest * 0.65)), 48), 92) * 0.52) + 'px'
+    let sz = 78
+    if (overrideSize !== null && overrideSize !== undefined && !isNaN(Number(overrideSize)) && Number(overrideSize) > 0) {
+      sz = Math.min(Math.max(Number(overrideSize), 32), 160)
+    } else if (fontSize !== 'auto' && !isNaN(Number(customSizeNum))) {
+      sz = Math.min(Math.max(Number(customSizeNum), 32), 160)
+    } else {
+      const longest = Math.max(...previewLines.map(l => l.length), 8)
+      sz = Math.min(Math.max(Math.floor(1160 / (longest * 0.65)), 48), 92)
+    }
+    return ((sz / 1280) * 100).toFixed(3) + 'cqw'
   }
 
   const rawBackgroundSrc = pkg?.folderName ? `/news-static/${pkg.folderName}/thumbnail/raw_background.jpg?t=${Date.now()}` : null

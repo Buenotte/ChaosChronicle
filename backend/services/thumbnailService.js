@@ -154,10 +154,21 @@ export async function processSetThumbnail({
 
   // A) Nur Headline neu formatieren oder gewähltes Foto als Hintergrund verwenden
   if (mode === 'apply_headline') {
+    const targetPhoto = photoUrl || effectiveConfig.photoUrl;
     let sourceFile = null;
-    if (photoUrl && photoUrl.startsWith('/news-static/')) {
-      const cleanSubPath = photoUrl.replace('/news-static/', '').split('?')[0];
+    if (targetPhoto && targetPhoto.startsWith('/news-static/')) {
+      const cleanSubPath = targetPhoto.replace('/news-static/', '').split('?')[0];
       sourceFile = path.join(newsDir, decodeURIComponent(cleanSubPath));
+    } else if (targetPhoto && targetPhoto.startsWith('photos/')) {
+      sourceFile = path.join(targetFolder, targetPhoto);
+    }
+
+    if (!sourceFile || !fs.existsSync(sourceFile)) {
+      const photosDir = path.join(targetFolder, 'photos');
+      if (fs.existsSync(photosDir)) {
+        const photoList = fs.readdirSync(photosDir).filter(f => /\.(jpg|jpeg|png|webp|avif)$/i.test(f));
+        if (photoList.length > 0) sourceFile = path.join(photosDir, photoList[0]);
+      }
     }
 
     if (sourceFile && fs.existsSync(sourceFile)) {
@@ -170,20 +181,6 @@ export async function processSetThumbnail({
       fs.copyFileSync(destSub, rawBackgroundPath);
     } else if (fs.existsSync(rawBackgroundPath)) {
       fs.copyFileSync(rawBackgroundPath, destSub);
-    } else if (fs.existsSync(destSub)) {
-      fs.copyFileSync(destSub, rawBackgroundPath);
-    } else {
-      const photosDir = path.join(targetFolder, 'photos');
-      if (fs.existsSync(photosDir)) {
-        const photoList = fs.readdirSync(photosDir).filter(f => /\.(jpg|jpeg|png|webp)$/i.test(f));
-        if (photoList.length > 0) {
-          const firstPic = path.join(photosDir, photoList[0]);
-          try {
-            execSync(`ffmpeg -y -i "${firstPic}" -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720[v]" -map "[v]" -q:v 2 "${destSub}"`, { timeout: 10000 });
-          } catch { fs.copyFileSync(firstPic, destSub); }
-          fs.copyFileSync(destSub, rawBackgroundPath);
-        }
-      }
     }
     overlayRussianHeadlineOnThumbnail(destSub, titleToRender, styleData);
 
