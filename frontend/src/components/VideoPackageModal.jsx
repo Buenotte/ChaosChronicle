@@ -4,10 +4,12 @@ import ImageLightboxModal from './ImageLightboxModal'
 import ThumbnailSettingsModal from './ThumbnailSettingsModal'
 import TitleVariantsModal from './TitleVariantsModal'
 import YouTubeMetadataModal from './YouTubeMetadataModal'
+import ShortsEditorModal from './ShortsEditorModal'
 import PackageHeader from './videoPackage/PackageHeader'
 import PackageThumbnailSection from './videoPackage/PackageThumbnailSection'
 import PackageAudioSection from './videoPackage/PackageAudioSection'
 import PackageVideoSection from './videoPackage/PackageVideoSection'
+import PackageShortsSection from './videoPackage/PackageShortsSection'
 import PackageYouTubeSection from './videoPackage/PackageYouTubeSection'
 
 export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText, onOpenAudio, onOpenVideo, onClose, onRefresh }) {
@@ -15,24 +17,16 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
 
   const videoRef = useRef(null)
   const [isPlaying, setIsPlaying] = useState(false)
-  const [currentTime, setCurrentTime] = useState(0)
-  const [duration, setDuration] = useState(0)
-
-  const [generatingAudio, setGeneratingAudio] = useState(false)
-  const [generatingVideo, setGeneratingVideo] = useState(false)
-  const [videoProgress, setVideoProgress] = useState(0)
-  const [progressLog, setProgressLog] = useState('')
-
-  const [selectedVoice, setSelectedVoice] = useState('el_adam')
-  const [selectedTransition, setSelectedTransition] = useState('concat')
-  const [includeSubBanner, setIncludeSubBanner] = useState(true)
-  const [subBannerTime, setSubBannerTime] = useState(25)
-  const [bannerStyle, setBannerStyle] = useState('modern_dark')
+  const [currentTime, setCurrentTime] = useState(0), [duration, setDuration] = useState(0)
+  const [generatingAudio, setGeneratingAudio] = useState(false), [generatingVideo, setGeneratingVideo] = useState(false)
+  const [videoProgress, setVideoProgress] = useState(0), [progressLog, setProgressLog] = useState('')
+  const [selectedVoice, setSelectedVoice] = useState('el_adam'), [selectedTransition, setSelectedTransition] = useState('concat')
+  const [includeSubBanner, setIncludeSubBanner] = useState(true), [subBannerTime, setSubBannerTime] = useState(25), [bannerStyle, setBannerStyle] = useState('modern_dark')
 
   const [audioState, setAudioState] = useState({ hasAudio: !!pkg.hasAudio, audioUrl: pkg.audioUrl })
   const [videoState, setVideoState] = useState({ hasVideo: !!pkg.hasVideo, videoUrl: pkg.videoUrl })
-
-  const [isMaximized, setIsMaximized] = useState(false)
+  const [shortState, setShortState] = useState({ hasShort: !!pkg.hasShort, shortUrl: pkg.folderName ? `/news-static/${pkg.folderName}/short.mp4` : null })
+  const [generatingShort, setGeneratingShort] = useState(false), [showShortsEditorModal, setShowShortsEditorModal] = useState(false), [isMaximized, setIsMaximized] = useState(false)
   const [currentThumbnail, setCurrentThumbnail] = useState(
     pkg.hasThumbnail ? (pkg.thumbnailUrl || (pkg.folderName ? `/news-static/${pkg.folderName}/thumbnail/thumbnail.jpg` : null)) : null
   )
@@ -40,6 +34,7 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
   useEffect(() => {
     setAudioState({ hasAudio: !!pkg.hasAudio, audioUrl: pkg.audioUrl })
     setVideoState({ hasVideo: !!pkg.hasVideo, videoUrl: pkg.videoUrl })
+    setShortState({ hasShort: !!pkg.hasShort, shortUrl: pkg.folderName ? `/news-static/${pkg.folderName}/short.mp4?t=${Date.now()}` : null })
     setIsPlaying(false)
     setCurrentTime(0)
     setCurrentThumbnail(pkg.hasThumbnail ? (pkg.thumbnailUrl || (pkg.folderName ? `/news-static/${pkg.folderName}/thumbnail/thumbnail.jpg?t=${Date.now()}` : null)) : null)
@@ -58,8 +53,7 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
       if (window.showSaveFilePicker) {
         try {
           const handle = await window.showSaveFilePicker({ suggestedName: defaultName, types: [{ description: 'JPEG Image', accept: { 'image/jpeg': ['.jpg'] } }] })
-          const writable = await handle.createWritable()
-          await writable.write(blob); await writable.close()
+          const writable = await handle.createWritable(); await writable.write(blob); await writable.close()
           return toast.success('💾 Обложка сохранена!')
         } catch (e) { if (e.name === 'AbortError') return }
       }
@@ -75,37 +69,20 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
     try {
       setGeneratingAudio(true)
       const res = await fetch('/api/generate-audio', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ bundleDir: pkg.bundleDir, folderName: pkg.folderName, voice: selectedVoice }),
       })
-      if (!res.ok) {
-        let errMsg = `Ошибка сервера (${res.status})`
-        try {
-          const errData = await res.json()
-          if (errData?.error) errMsg = errData.error
-        } catch {
-          const textErr = await res.text().catch(() => '')
-          if (textErr) errMsg = textErr.slice(0, 100)
-        }
-        throw new Error(errMsg)
-      }
       const data = await res.json()
       if (data?.success) {
         setAudioState({ hasAudio: true, audioUrl: data.audioUrl })
         toast.success('🎙️ Озвучка успешно сгенерирована!', { id: toastId })
         if (onRefresh) onRefresh()
       } else {
-        toast.error('❌ Ошибка генерации аудио: ' + (data?.error || 'Неизвестная ошибка'), { id: toastId })
+        toast.error('❌ Ошибка: ' + (data?.error || 'Неизвестная ошибка'), { id: toastId })
       }
     } catch (err) {
-      toast.error('❌ Ошибка генерации аудио', {
-        id: toastId,
-        description: err.message || 'Сервер бэкенда недоступен (порт 3001)',
-      })
-    } finally {
-      setGeneratingAudio(false)
-    }
+      toast.error('❌ Ошибка аудио: ' + err.message, { id: toastId })
+    } finally { setGeneratingAudio(false) }
   }
 
   const handleGenerateVideo = async () => {
@@ -157,6 +134,49 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
     } finally {
       if (evtSource) { try { evtSource.close() } catch {} }
       setGeneratingVideo(false)
+    }
+  }
+
+  const [shortsConfig, setShortsConfig] = useState(pkg.shortsConfig || null)
+
+  const handleGenerateShort = async (shortOpts = {}) => {
+    if (!audioState.hasAudio) {
+      return toast.error('❌ Аудио-озвучка не найдена!', {
+        description: 'Сначала сгенерируйте аудио в разделе 3 («3. Голосовая озвучка») перед созданием Shorts.'
+      })
+    }
+    const toastId = toast.loading('📱 Монтаж YouTube Shorts 9:16 (16 сек)...')
+    try {
+      setGeneratingShort(true)
+      const mergedOpts = { ...(shortsConfig || {}), ...shortOpts }
+      const res = await fetch('/api/render-short', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bundleDir: pkg.bundleDir, folderName: pkg.folderName, duration: 16, hookTitle: pkg.title || '', ...mergedOpts
+        }),
+      })
+      const data = await res.json()
+      toast.dismiss(toastId)
+      if (data.success) {
+        const freshUrl = `${data.shortUrl.split('?')[0]}?t=${Date.now()}`
+        setShortState({ hasShort: true, shortUrl: freshUrl })
+        if (data.shortsConfig) {
+          setShortsConfig(data.shortsConfig)
+          pkg.shortsConfig = data.shortsConfig
+        }
+        pkg.hasShort = true
+        pkg.shortUrl = freshUrl
+        toast.success('✨ Вертикальный YouTube Short 9:16 готов!')
+        if (onRefresh) onRefresh()
+        return data
+      } else {
+        toast.error('❌ Ошибка: ' + (data.error || 'Ошибка'))
+      }
+    } catch (e) {
+      toast.dismiss(toastId); toast.error('Ошибка: ' + e.message)
+    } finally {
+      setGeneratingShort(false)
     }
   }
 
@@ -223,8 +243,7 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
     if (!window.confirm(`Вы уверены, что хотите удалить пакет "${pkg.title || pkg.folderName}"?`)) return
     try {
       const res = await fetch('/api/delete-package', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ folderName: pkg.folderName, bundleDir: pkg.bundleDir }),
       })
       const data = await res.json()
@@ -235,9 +254,7 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
       } else {
         toast.error('Ошибка удаления: ' + (data.error || 'Не удалось удалить'))
       }
-    } catch (err) {
-      toast.error('Ошибка удаления: ' + err.message)
-    }
+    } catch (err) { toast.error('Ошибка удаления: ' + err.message) }
   }
 
   const hasTxt = pkg.hasScriptTxt || pkg.hasScriptMd || (pkg.scriptTxt && pkg.scriptTxt.length > 10)
@@ -279,22 +296,13 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
         onClick={e => e.stopPropagation()}
       >
         <PackageHeader
-          pkg={pkg}
-          hasTxt={hasTxt}
-          actualPhotoCount={actualPhotoCount}
-          audioState={audioState}
-          videoState={videoState}
-          currentThumbnail={currentThumbnail}
-          isMaximized={isMaximized}
-          setIsMaximized={setIsMaximized}
-          onOpenTitleVariants={() => setShowTitleVariantsModal(true)}
-          onOpenScript={() => onOpenScriptText && onOpenScriptText(pkg)}
-          onOpenPhotos={() => onOpenPhotos && onOpenPhotos(pkg)}
+          pkg={pkg} hasTxt={hasTxt} actualPhotoCount={actualPhotoCount} audioState={audioState}
+          videoState={videoState} currentThumbnail={currentThumbnail} isMaximized={isMaximized}
+          setIsMaximized={setIsMaximized} onOpenTitleVariants={() => setShowTitleVariantsModal(true)}
+          onOpenScript={() => onOpenScriptText && onOpenScriptText(pkg)} onOpenPhotos={() => onOpenPhotos && onOpenPhotos(pkg)}
           onDeletePackage={handleDeletePackage}
           onTitleSaved={(newTitle, newThumb) => {
-            pkg.title = newTitle
-            if (newThumb) setCurrentThumbnail(newThumb)
-            if (onRefresh) onRefresh()
+            pkg.title = newTitle; if (newThumb) setCurrentThumbnail(newThumb); if (onRefresh) onRefresh()
           }}
           onClose={onClose}
         />
@@ -304,26 +312,16 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
           <div style={{ marginBottom: '1.25rem' }}>
             <h3 style={{ fontSize: '0.95rem', color: '#9ca3af', marginBottom: '0.5rem' }}>1. Заголовок и сценарий:</h3>
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-              <button className="copy-btn" style={{ background: '#3b82f6' }} onClick={() => onOpenScriptText(pkg)}>
-                📜 Открыть и редактировать текст
-              </button>
-              <button className="copy-btn" style={{ background: '#ec4899', fontWeight: 600 }} onClick={() => setShowTitleVariantsModal(true)}>
-                ⚡ Выбрать из 10 заголовков (Голобуцкий)
-              </button>
+              <button className="copy-btn" style={{ background: '#3b82f6' }} onClick={() => onOpenScriptText(pkg)}>📜 Открыть и редактировать текст</button>
+              <button className="copy-btn" style={{ background: '#ec4899', fontWeight: 600 }} onClick={() => setShowTitleVariantsModal(true)}>⚡ Выбрать из 10 заголовков (Голобуцкий)</button>
             </div>
           </div>
 
           {/* 1.5 Обложка (Thumbnail) */}
           <PackageThumbnailSection
-            actualPhotoCount={actualPhotoCount}
-            currentThumbnail={currentThumbnail}
-            photoUrls={pkg.photoUrls || []}
-            folderName={pkg.folderName}
-            onGenerateAiThumbnail={handleGenerateAiThumbnail}
-            onSelectBgPhoto={handleSelectPhotoAsThumbnail}
-            onOpenSettingsModal={handleOpenSettings}
-            onOpenLightbox={() => setLightboxUrl(currentThumbnail)}
-            onSaveAsNative={handleSaveAsNative}
+            actualPhotoCount={actualPhotoCount} currentThumbnail={currentThumbnail} photoUrls={pkg.photoUrls || []} folderName={pkg.folderName}
+            onGenerateAiThumbnail={handleGenerateAiThumbnail} onSelectBgPhoto={handleSelectPhotoAsThumbnail}
+            onOpenSettingsModal={handleOpenSettings} onOpenLightbox={() => setLightboxUrl(currentThumbnail)} onSaveAsNative={handleSaveAsNative}
           />
 
           {/* 2. Фотографии */}
@@ -347,32 +345,23 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
             onOpenAudioModal={() => onOpenAudio(pkg)}
           />
 
-          {/* 4. Видео */}
+          {/* 4. Видео 16:9 */}
           <PackageVideoSection
-            videoState={videoState}
-            actualPhotoCount={actualPhotoCount}
-            audioState={audioState}
-            generatingVideo={generatingVideo}
-            videoProgress={videoProgress}
-            progressLog={progressLog}
-            selectedTransition={selectedTransition}
-            setSelectedTransition={setSelectedTransition}
-            includeSubBanner={includeSubBanner}
-            setIncludeSubBanner={setIncludeSubBanner}
-            subBannerTime={subBannerTime}
-            setSubBannerTime={setSubBannerTime}
-            bannerStyle={bannerStyle}
-            setBannerStyle={setBannerStyle}
-            videoRef={videoRef}
-            isPlaying={isPlaying}
-            currentTime={currentTime}
-            duration={duration}
-            togglePlay={togglePlay}
-            seekVideo={seekVideo}
-            onGenerateVideo={handleGenerateVideo}
-            onOpenVideoModal={() => onOpenVideo(pkg)}
-            onTimeUpdate={handleTimeUpdate}
-            onLoadedMetadata={handleLoadedMetadata}
+            videoState={videoState} actualPhotoCount={actualPhotoCount} audioState={audioState}
+            generatingVideo={generatingVideo} videoProgress={videoProgress} progressLog={progressLog}
+            selectedTransition={selectedTransition} setSelectedTransition={setSelectedTransition}
+            includeSubBanner={includeSubBanner} setIncludeSubBanner={setIncludeSubBanner}
+            subBannerTime={subBannerTime} setSubBannerTime={setSubBannerTime}
+            bannerStyle={bannerStyle} setBannerStyle={setBannerStyle}
+            videoRef={videoRef} isPlaying={isPlaying} currentTime={currentTime} duration={duration}
+            togglePlay={togglePlay} seekVideo={seekVideo} onGenerateVideo={handleGenerateVideo}
+            onOpenVideoModal={() => onOpenVideo(pkg)} onTimeUpdate={handleTimeUpdate} onLoadedMetadata={handleLoadedMetadata}
+          />
+
+          {/* 4.5 YouTube Shorts 9:16 (16 сек) */}
+          <PackageShortsSection
+            shortState={shortState} generatingShort={generatingShort} audioState={audioState} actualPhotoCount={actualPhotoCount}
+            onOpenShortsEditor={() => setShowShortsEditorModal(true)} onGenerateQuickShort={() => handleGenerateShort()}
           />
 
           {/* 5. YouTube Метаданные */}
@@ -380,11 +369,15 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
         </div>
       </div>
 
-      {showYouTubeModal && (
-        <YouTubeMetadataModal
-          pkg={pkg}
-          onClose={() => setShowYouTubeModal(false)}
+      {showShortsEditorModal && (
+        <ShortsEditorModal
+          pkg={pkg} previewPhotoUrl={pkg.photoUrls?.[0] || currentThumbnail} shortState={shortState}
+          generatingShort={generatingShort} onGenerateShort={(opts) => handleGenerateShort(opts)} onClose={() => setShowShortsEditorModal(false)}
         />
+      )}
+
+      {showYouTubeModal && (
+        <YouTubeMetadataModal pkg={pkg} onClose={() => setShowYouTubeModal(false)} />
       )}
     </div>
   )

@@ -216,6 +216,9 @@ router.get('/api/saved-packages', async (req, res) => {
         const hasScriptTxt = fs.existsSync(txtPath);
         const hasScriptMd = fs.existsSync(mdPath);
         const hasAudio = fs.existsSync(audioPath);
+        const shortPath = path.join(bundleDir, 'short.mp4');
+        const hasShort = fs.existsSync(shortPath);
+        const shortUrl = hasShort ? `/news-static/${entry.name}/short.mp4?t=${fs.statSync(shortPath).mtimeMs}` : null;
         const photosCount = photoFiles.length;
 
         const styleJsonPath = path.join(bundleDir, 'thumbnail', 'style.json');
@@ -225,15 +228,16 @@ router.get('/api/saved-packages', async (req, res) => {
         }
         if (!thumbnailStyle && manifest.headlineConfig) thumbnailStyle = manifest.headlineConfig;
 
-        const artifactCount = (hasScriptTxt ? 1 : 0) + (hasScriptMd ? 1 : 0) + (hasAudio ? 1 : 0) + (hasVideo ? 1 : 0) + (photosCount > 0 ? 1 : 0) + (hasThumbnail ? 1 : 0);
+        const artifactCount = (hasScriptTxt ? 1 : 0) + (hasScriptMd ? 1 : 0) + (hasAudio ? 1 : 0) + (hasVideo ? 1 : 0) + (hasShort ? 1 : 0) + (photosCount > 0 ? 1 : 0) + (hasThumbnail ? 1 : 0);
         packages.push({
           folderName: entry.name, bundleDir, title: packageTitle, original_title: manifest.original_title || packageTitle,
           url: manifest.url || manifest.original_url || manifest.link || null, date: manifest.date || null,
           model: manifest.model || 'gemini', style: manifest.style || manifest.feuilletonStyle || 'clickbait',
-          source: manifest.source || '', hasAudio, hasVideo, hasScriptTxt, hasScriptMd,
+          source: manifest.source || '', hasAudio, hasVideo, hasShort, shortUrl, hasScriptTxt, hasScriptMd,
           photosCount, photoUrls: photoFiles, hasThumbnail, thumbnailUrl, thumbnail_updated_at: thumbnailUpdatedAt,
           artifactCount, hasAnyArtifact: artifactCount > 0, headlineConfig: thumbnailStyle,
           title_variants: manifest.title_variants || [], audioUrl: hasAudio ? `/news-static/${entry.name}/audio.mp3` : null, videoUrl,
+          shortsConfig: manifest.shortsConfig || null,
           scriptTxt: hasScriptTxt ? fs.readFileSync(txtPath, 'utf-8') : '', scriptMd: hasScriptMd ? fs.readFileSync(mdPath, 'utf-8') : '',
         });
       }

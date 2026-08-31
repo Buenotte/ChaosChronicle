@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { exec, execSync, spawn } from 'child_process';
+import { processRenderShort } from '../services/shortsVideoService.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const router = express.Router();
@@ -294,5 +295,16 @@ const handleGenerateVideo = async (req, res) => {
 
 router.post('/api/generate-video', handleGenerateVideo);
 router.post('/api/render-video', handleGenerateVideo);
+
+// POST /api/render-short
+router.post('/api/render-short', async (req, res) => {
+  try {
+    const result = await processRenderShort(req.body);
+    res.json(result);
+  } catch (err) {
+    console.error('Render short error:', err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 export default router;

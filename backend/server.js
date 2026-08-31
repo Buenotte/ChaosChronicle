@@ -7,7 +7,7 @@ import cors from 'cors';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
-// Route Module
+// Route Modules
 import newsRoutes from './routes/news.js';
 import photosRoutes from './routes/photos.js';
 import feuilletonRoutes from './routes/feuilleton.js';
