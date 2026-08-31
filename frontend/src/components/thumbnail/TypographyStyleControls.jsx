@@ -204,7 +204,7 @@ export default function TypographyStyleControls({
                     key={c.id}
                     type="button"
                     title={c.label}
-                    onClick={() => { setFontColor(c.id); if (setLineColors) setLineColors(null); }}
+                    onClick={() => { setFontColor(c.id); if (setLineColors) setLineColors(null); if (setWordColors) setWordColors(null); }}
                     style={{
                       width: '36px',
                       height: '36px',

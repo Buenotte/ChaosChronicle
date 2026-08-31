@@ -224,7 +224,19 @@ export function updatePackageTitle(bundleDir, newTitle, updateThumbnail = true, 
         if (!existingStyle.font) {
           existingStyle = { ...getDefaultThumbnailStyle(), ...existingStyle };
         }
-        const mergedStyle = { ...existingStyle, ...titleOptions, text: cleanTitle };
+        // If title changed and word styles weren't explicitly provided, clear stale word overrides
+        const wordCount = cleanTitle.split(/\s+/).filter(Boolean).length;
+        const prevWordCount = (existingStyle.text || '').split(/\s+/).filter(Boolean).length;
+        const preserveWords = titleOptions.wordColors || (wordCount === prevWordCount ? existingStyle.wordColors : null);
+        const preserveWordSizes = titleOptions.wordFontSizes || (wordCount === prevWordCount ? existingStyle.wordFontSizes : null);
+
+        const mergedStyle = {
+          ...existingStyle,
+          ...titleOptions,
+          text: cleanTitle,
+          wordColors: preserveWords || null,
+          wordFontSizes: preserveWordSizes || null,
+        };
 
         fs.writeFileSync(path.join(thumbDir, 'style.json'), JSON.stringify(mergedStyle, null, 2), 'utf-8');
 

@@ -37,7 +37,7 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
     setShortState({ hasShort: !!pkg.hasShort, shortUrl: pkg.folderName ? `/news-static/${pkg.folderName}/short.mp4?t=${Date.now()}` : null })
     setIsPlaying(false)
     setCurrentTime(0)
-    setCurrentThumbnail(pkg.hasThumbnail ? (pkg.thumbnailUrl || (pkg.folderName ? `/news-static/${pkg.folderName}/thumbnail/thumbnail.jpg?t=${Date.now()}` : null)) : null)
+    setCurrentThumbnail(pkg.hasThumbnail && pkg.folderName ? `/news-static/${pkg.folderName}/thumbnail/thumbnail.jpg?t=${Date.now()}` : (pkg.thumbnailUrl || null))
   }, [pkg])
 
   const togglePlay = () => { if (videoRef.current) { if (isPlaying) videoRef.current.pause(); else videoRef.current.play(); setIsPlaying(!isPlaying); } }
@@ -320,6 +320,7 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
           {/* 1.5 Обложка (Thumbnail) */}
           <PackageThumbnailSection
             actualPhotoCount={actualPhotoCount} currentThumbnail={currentThumbnail} photoUrls={pkg.photoUrls || []} folderName={pkg.folderName}
+            headlineText={pkg.headlineConfig?.text || pkg.title}
             onGenerateAiThumbnail={handleGenerateAiThumbnail} onSelectBgPhoto={handleSelectPhotoAsThumbnail}
             onOpenSettingsModal={handleOpenSettings} onOpenLightbox={() => setLightboxUrl(currentThumbnail)} onSaveAsNative={handleSaveAsNative}
           />

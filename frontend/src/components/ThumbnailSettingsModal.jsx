@@ -55,9 +55,14 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
     if (c.fontSize !== undefined) { setFontSize(c.fontSize); if (c.fontSize !== 'auto') setCustomSizeNum(Number(c.fontSize)); }
     if (c.fontColor) setFontColor(c.fontColor)
     if (c.lineColors !== undefined) setLineColors(Array.isArray(c.lineColors) ? c.lineColors : null)
-    if (c.lineFontSizes !== undefined) setLineFontSizes(Array.isArray(c.lineFontSizes) ? c.lineFontSizes : null)
-    if (c.wordColors !== undefined) setWordColors(Array.isArray(c.wordColors) ? c.wordColors : null)
-    if (c.wordFontSizes !== undefined) setWordFontSizes(Array.isArray(c.wordFontSizes) ? c.wordFontSizes : null)
+    const targetText = c.text || text || pkg?.title || ''
+    const currentWords = targetText.replace(/[\r\n\t]/g, ' ').trim().split(/\s+/).filter(Boolean)
+    if (c.wordColors !== undefined) {
+      setWordColors(Array.isArray(c.wordColors) && c.wordColors.length === currentWords.length ? c.wordColors : null)
+    }
+    if (c.wordFontSizes !== undefined) {
+      setWordFontSizes(Array.isArray(c.wordFontSizes) && c.wordFontSizes.length === currentWords.length ? c.wordFontSizes : null)
+    }
     if (c.borderColor) setBorderColor(c.borderColor)
     if (c.borderWidth !== undefined) setBorderWidth(Number(c.borderWidth))
     if (c.shadowDistance !== undefined) setShadowDistance(Number(c.shadowDistance))

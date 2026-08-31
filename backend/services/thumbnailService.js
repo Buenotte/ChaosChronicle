@@ -156,8 +156,8 @@ export async function processSetThumbnail({
   if (mode === 'apply_headline') {
     let sourceFile = null;
     if (photoUrl && photoUrl.startsWith('/news-static/')) {
-      const subPath = photoUrl.replace('/news-static/', '');
-      sourceFile = path.join(newsDir, decodeURIComponent(subPath));
+      const cleanSubPath = photoUrl.replace('/news-static/', '').split('?')[0];
+      sourceFile = path.join(newsDir, decodeURIComponent(cleanSubPath));
     }
 
     if (sourceFile && fs.existsSync(sourceFile)) {
@@ -250,12 +250,17 @@ export async function processSetThumbnail({
   } else {
     let sourceFile = null;
     if (photoUrl && photoUrl.startsWith('/news-static/')) {
-      const subPath = photoUrl.replace('/news-static/', '');
-      sourceFile = path.join(newsDir, decodeURIComponent(subPath));
+      const cleanSubPath = photoUrl.replace('/news-static/', '').split('?')[0];
+      sourceFile = path.join(newsDir, decodeURIComponent(cleanSubPath));
     }
 
     if (sourceFile && fs.existsSync(sourceFile)) {
-      fs.copyFileSync(sourceFile, destSub);
+      const scaleCmd = `ffmpeg -y -i "${sourceFile}" -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720[v]" -map "[v]" -q:v 2 "${destSub}"`;
+      try {
+        execSync(scaleCmd, { timeout: 10000 });
+      } catch {
+        fs.copyFileSync(sourceFile, destSub);
+      }
     } else if (photoUrl && photoUrl.startsWith('http')) {
       const imgRes = await fetch(photoUrl, { signal: AbortSignal.timeout(6000) });
       if (imgRes.ok) {

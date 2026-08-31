@@ -215,81 +215,33 @@ export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, optio
       yellow_highlight: `:box=1:boxcolor=#f59e0b@${op}:boxborderw=20`,
       blue_cyber: `:box=1:boxcolor=#0f172a@${op}:boxborderw=22`,
       purple_glass: `:box=1:boxcolor=#3b0764@${op}:boxborderw=22`,
-      per_line: `:box=1:boxcolor=black@${op}:boxborderw=14`,
     };
     const chosenBox = options.boxStyle || (hasBox ? 'dark_soft' : 'none');
     const boxParam = BOX_MAP[chosenBox] || (hasBox ? `:box=1:boxcolor=black@${op}:boxborderw=20` : ':box=0');
     const numAngle = Number(tiltAngle) || 0;
 
-    const hasWordStyles = (Array.isArray(options.wordColors) && options.wordColors.some(Boolean)) ||
-                          (Array.isArray(options.wordFontSizes) && options.wordFontSizes.some(s => s && Number(s) > 0));
+    const drawtextFilters = cleanLines.map((line, idx) => {
+      const safeText = line
+        .replace(/\\/g, '\\\\')
+        .replace(/'/g, "'\\''")
+        .replace(/:/g, '\\:')
+        .replace(/%/g, '\\%');
+      const yPos = startY + lineHeights.slice(0, idx).reduce((sum, h) => sum + h, 0);
+      const lineSize = (lineSizesList[idx] && Number(lineSizesList[idx]) > 0) ? Math.min(Math.max(Number(lineSizesList[idx]), 32), 160) : finalFontSize;
+      const lineCol = toFfmpegColor(lineColorsList[idx] || colorVal);
+      return `drawtext=fontfile='${safeFontPath}':text='${safeText}':fontsize=${lineSize}:fontcolor=${lineCol}:bordercolor=${bColor}:borderw=${bWidth}:shadowcolor=${sColor}:shadowx=${sDist}:shadowy=${sDist}${boxParam}:x=(w-text_w)/2:y=${yPos}`;
+    });
 
     const tempOut = path.join(path.dirname(imagePath), 'temp_rendered_thumb.jpg');
 
-    if (hasWordStyles) {
-      const fontNameMap = { impact: 'Impact', arialbd: 'Arial', segoeuib: 'Segoe UI', tahomabd: 'Tahoma', trebucbd: 'Trebuchet MS', verdanab: 'Verdana', georgiab: 'Georgia' };
-      let assFontName = fontNameMap[font] || (font && getTtfFamilyName(font));
-      if (!assFontName && options.fontFamilyName) {
-        assFontName = String(options.fontFamilyName).replace(/["']/g, '').split(',')[0].replace(/_/g, ' ').trim();
-      }
-      if (!assFontName && font) {
-        assFontName = String(font).replace(/\.[^.]+$/, '').replace(/_/g, ' ').trim();
-      }
-      if (!assFontName) assFontName = 'Impact';
-
-      const assPrimaryCol = toAssColor(colorVal);
-      const assOutlineCol = toAssColor(bColor);
-
-      let wordCounter = 0;
-      const assLines = cleanLines.map((line, lIdx) => {
-        const words = line.split(/\s+/).filter(Boolean);
-        const lineBaseSz = (lineSizesList[lIdx] && Number(lineSizesList[lIdx]) > 0) ? Number(lineSizesList[lIdx]) : finalFontSize;
-        const lineCol = lineColorsList[lIdx] || colorVal;
-        return words.map(w => {
-          const curIdx = wordCounter++;
-          const wCol = (options.wordColors && options.wordColors[curIdx]) ? options.wordColors[curIdx] : lineCol;
-          const wSz = (options.wordFontSizes && options.wordFontSizes[curIdx] && Number(options.wordFontSizes[curIdx]) > 0)
-            ? Number(options.wordFontSizes[curIdx])
-            : lineBaseSz;
-          return `{\\c${toAssColor(wCol)}\\fs${wSz}}${w}`;
-        }).join(' ');
-      });
-
-      const assDialogue = `{\\an8\\pos(640,${startY})${numAngle !== 0 ? `\\frz${-numAngle}` : ''}}${assLines.join('\\N')}`;
-      const assContent = `[Script Info]\nScriptType: v4.00+\nPlayResX: 1280\nPlayResY: 720\n\n[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\nStyle: Title,${assFontName},${finalFontSize},${assPrimaryCol},&H000000FF,${assOutlineCol},&H90000000,0,${isItalic ? -1 : 0},0,0,100,100,0,0,1,${bWidth},${sDist},8,10,10,10,1\n\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\nDialogue: 0,0:00:00.00,0:00:05.00,Title,,0,0,0,,${assDialogue}\n`;
-
-      const assTempFile = path.join(path.dirname(imagePath), `temp_thumb_${Date.now()}.ass`);
-      fs.writeFileSync(assTempFile, assContent, 'utf-8');
-      try {
-        const safeAssPath = assTempFile.replace(/\\/g, '/').replace(/:/g, '\\:');
-        const safeCustomFontsDir = customFontsDir.replace(/\\/g, '/').replace(/:/g, '\\:');
-        const vf = `scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720,subtitles=filename='${safeAssPath}':fontsdir='${safeCustomFontsDir}'`;
-        execFileSync('ffmpeg', ['-y', '-i', imagePath, '-vf', vf, '-frames:v', '1', '-q:v', '2', tempOut]);
-      } finally {
-        try { fs.unlinkSync(assTempFile); } catch {}
-      }
+    if (numAngle !== 0) {
+      const rad = (numAngle * Math.PI / 180).toFixed(6);
+      const textFiltersStr = drawtextFilters.join(',');
+      const filterComplex = `[0:v]scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720[base];color=c=black@0.0:s=1280x720:d=1,format=rgba,${textFiltersStr},rotate=${rad}:c=none:ow='rotw(${rad})':oh='roth(${rad})'[txt];[base][txt]overlay=(W-w)/2:(H-h)/2`;
+      execFileSync('ffmpeg', ['-y', '-i', imagePath, '-filter_complex', filterComplex, '-frames:v', '1', '-q:v', '2', tempOut]);
     } else {
-      const drawtextFilters = cleanLines.map((line, idx) => {
-        const safeText = line
-          .replace(/\\/g, '\\\\')
-          .replace(/'/g, "'\\''")
-          .replace(/:/g, '\\:')
-          .replace(/%/g, '\\%');
-        const yPos = startY + lineHeights.slice(0, idx).reduce((sum, h) => sum + h, 0);
-        const lineSize = (lineSizesList[idx] && Number(lineSizesList[idx]) > 0) ? Math.min(Math.max(Number(lineSizesList[idx]), 32), 160) : finalFontSize;
-        const lineCol = toFfmpegColor(lineColorsList[idx] || colorVal);
-        return `drawtext=fontfile='${safeFontPath}':text='${safeText}':fontsize=${lineSize}:fontcolor=${lineCol}:bordercolor=${bColor}:borderw=${bWidth}:shadowcolor=${sColor}:shadowx=${sDist}:shadowy=${sDist}${boxParam}:x=(w-text_w)/2:y=${yPos}`;
-      });
-
-      if (numAngle !== 0) {
-        const rad = (numAngle * Math.PI / 180).toFixed(6);
-        const textFiltersStr = drawtextFilters.join(',');
-        const filterComplex = `[0:v]scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720[base];color=c=black@0.0:s=1280x720:d=1,format=rgba,${textFiltersStr},rotate=${rad}:c=none:ow='rotw(${rad})':oh='roth(${rad})'[txt];[base][txt]overlay=(W-w)/2:(H-h)/2`;
-        execFileSync('ffmpeg', ['-y', '-i', imagePath, '-filter_complex', filterComplex, '-frames:v', '1', '-q:v', '2', tempOut]);
-      } else {
-        const fullFilter = `scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720,${drawtextFilters.join(',')}`;
-        execFileSync('ffmpeg', ['-y', '-i', imagePath, '-vf', fullFilter, '-q:v', '2', tempOut]);
-      }
+      const fullFilter = `scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720,${drawtextFilters.join(',')}`;
+      execFileSync('ffmpeg', ['-y', '-i', imagePath, '-vf', fullFilter, '-q:v', '2', tempOut]);
     }
 
     if (fs.existsSync(tempOut) && fs.statSync(tempOut).size > 5000) {

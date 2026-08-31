@@ -3,6 +3,7 @@ export default function PackageThumbnailSection({
   currentThumbnail,
   photoUrls = [],
   folderName,
+  headlineText = '',
   onGenerateAiThumbnail,
   onSelectBgPhoto,
   onOpenSettingsModal,
@@ -81,9 +82,14 @@ export default function PackageThumbnailSection({
                 title="Нажмите для увеличения"
               />
               <div style={{ padding: '0.45rem 0.75rem', background: '#18181b', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem' }}>
-                <span style={{ fontSize: '0.75rem', color: '#f472b6', fontWeight: 600 }}>
-                  ✨ 16:9 YouTube Widescreen
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', maxWidth: '340px' }}>
+                  <span style={{ fontSize: '0.72rem', color: '#f472b6', fontWeight: 700, flexShrink: 0 }}>
+                    🏷️ Заголовок:
+                  </span>
+                  <span style={{ fontSize: '0.75rem', color: '#e2e8f0', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={headlineText}>
+                    {headlineText || 'Без заголовка'}
+                  </span>
+                </div>
                 <div style={{ display: 'flex', gap: '0.4rem' }}>
                   <button
                     className="copy-btn"

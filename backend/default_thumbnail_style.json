@@ -1,20 +1,14 @@
 {
   "font": "Saxonia_Antiqua_Bold.ttf",
   "fontFamilyName": "\"Saxonia_Antiqua_Bold\", sans-serif",
-  "fontSize": "auto",
+  "fontSize": "139",
   "customSizeNum": 82,
-  "lineFontSizes": [
-    129,
-    131
-  ],
+  "lineFontSizes": null,
   "fontColor": "yellow",
-  "lineColors": [
-    "green",
-    "yellow"
-  ],
+  "lineColors": null,
   "borderColor": "black",
-  "borderWidth": 4,
-  "shadowDistance": 11,
+  "borderWidth": 2,
+  "shadowDistance": 12,
   "lineSpacing": 1.15,
   "isItalic": false,
   "tiltAngle": 0,
@@ -22,5 +16,19 @@
   "offsetY": 50,
   "hasBox": false,
   "boxStyle": "none",
-  "boxOpacity": 75
+  "boxOpacity": 75,
+  "wordColors": [
+    "red",
+    "yellow",
+    "white",
+    "white",
+    "red"
+  ],
+  "wordFontSizes": [
+    149,
+    134,
+    143,
+    140,
+    160
+  ]
 }
