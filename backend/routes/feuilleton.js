@@ -57,12 +57,13 @@ ${styleGuide ? `\nПОДРОБНОЕ РУКОВОДСТВО ПО СТИЛЮ:\n${
 
 СТРОЖАЙШИЕ ПРАВИЛА ДЛЯ АУДИО-ОЗВУЧКИ (TTS):
 1. ПИШИ ТОЛЬКО ЧИСТЫЙ ПРОИЗНОСИМЫЙ ТЕКСТ ДИКТОРА от первого до последнего слова.
-2. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО НАЧИНАТЬ ТЕКСТ С ПРИВЕТСТВИЙ («Привет, друзья!», «С вами ChaosChronicle», «Доброго времени суток», «Здравствуйте», «Приветствую»). Начинай СРАЗУ с инфоповода, саркастического хука или хлесткого факта!
-3. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО писать заголовки блоков (например: НЕ ПИШИ "**Блок 1: ...**"), НЕ ПИШИ тайминги "(0:00 – 0:45)".
-4. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО использовать плейсхолдеры в квадратных скобках [B-Roll:...], [Название_канала]. Называй канал "ChaosChronicle".
-5. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО писать шаблонные концовки-клише «Работаем дальше. Без иллюзий.», «Работаем дальше», «Без иллюзий».
-6. ТРЕБОВАНИЕ К РАЗНООБРАЗИЮ: Каждый текст должен иметь уникальную композицию и подачу, отталкиваясь от конкретных технических и новостных деталей данной статьи. Избегай шаблонных повторов одних и тех же фраз!
-7. Текст должен звучать слитно, ритмично и мощно для записи голосовым ИИ.`;
+2. 💥 ПЕРВЫЕ 3 СЕКУНДЫ (ВЗРЫВНОЙ ХУК): Первое предложение монолога (7–12 слов) ОБЯЗАНО быть максимально интригующим, шоковым или парадоксальным открывающим хуком, цепляющим зрителя YouTube с первой секунды!
+3. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО НАЧИНАТЬ ТЕКСТ С ПРИВЕТСТВИЙ («Привет, друзья!», «С вами ChaosChronicle», «Доброго времени суток», «Здравствуйте», «Приветствую»). Начинай СРАЗУ с убойного хука!
+4. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО писать заголовки блоков (например: НЕ ПИШИ "**Блок 1: ...**"), НЕ ПИШИ тайминги "(0:00 – 0:45)".
+5. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО использовать плейсхолдеры в квадратных скобках [B-Roll:...], [Название_канала]. Называй канал "ChaosChronicle".
+6. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО писать шаблонные концовки-клише «Работаем дальше. Без иллюзий.», «Работаем дальше», «Без иллюзий».
+7. ТРЕБОВАНИЕ К РАЗНООБРАЗИЮ: Каждый текст должен иметь уникальную композицию и подачу, отталкиваясь от конкретных деталей. Избегай повторов одних и тех же фраз!
+8. Текст должен звучать слитно, ритмично и мощно для записи голосовым ИИ.`;
 
   const userInstruction = `ТЕМА НОВОСТИ: ${newsTitle}\nКОНТЕКСТ/ФАКТЫ: ${newsSummary || ''}\n\nНапиши полный, готовый монолог фельетона в стиле ${styleConfig.label} (БЕЗ вступительных приветствий, сразу с сути):`;
 
@@ -269,6 +270,84 @@ router.post('/api/generate-feuilleton', async (req, res) => {
     });
   } catch (err) {
     console.error('Feuilleton error:', err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ── Генератор 5 вирусных 3-секундных хуков для YouTube ──
+export async function generateYouTubeHooks(newsTitle, newsSummary = '', scriptText = '', styleKey = 'golubuzki') {
+  const context = scriptText && scriptText.trim() ? scriptText.slice(0, 1000) : (newsSummary || newsTitle);
+  const sysInst = `Ты — топ-сценарист вирусных YouTube-видео и эксперт по удержанию аудитории в первые 3 секунды (Retention Rate).
+Твоя задача — создать ровно 5 мощных, кинематографичных вариантов первого открывающего предложения (3-секундный хук) для видео-монолога на русском языке.
+
+ТРЕБОВАНИЯ:
+1. Длина каждого хука: СТРОГО 7–13 слов (время чтения диктором: 2.5–4.0 секунды).
+2. Без приветствий, без клише, без вступительной воды. Сразу максимальное эмоциональное напряжение, интрига, шок или парадокс.
+3. Формат ответа: СТРОГО валидный JSON-массив из 5 объектов:
+[
+  { "id": "shock", "type": "⚡ Шок & Инсайд", "hook": "Текст хука..." },
+  { "id": "question", "type": "❓ Провокационный вопрос", "hook": "Текст хука..." },
+  { "id": "satire", "type": "🎭 Едкая сатира / Сарказм", "hook": "Текст хука..." },
+  { "id": "urgency", "type": "⏳ Высокие ставки / Угроза", "hook": "Текст хука..." },
+  { "id": "punch", "type": "💥 Прямой факт-удар", "hook": "Текст хука..." }
+]`;
+
+  const userInst = `ТЕМА: ${newsTitle}\nКОНТЕКСТ:\n"""\n${context}\n"""\n\nСоздай 5 вирусных 3-секундных хуков в формате JSON:`;
+
+  try {
+    let raw = await callGeminiDirect(sysInst, userInst, 800);
+    if (!raw) {
+      const apiKey = process.env.OPENROUTER_API_KEY;
+      if (apiKey && !apiKey.includes('HIER')) {
+        const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            messages: [{ role: 'system', content: sysInst }, { role: 'user', content: userInst }],
+            max_tokens: 800,
+            temperature: 0.85,
+          }),
+        });
+        if (res.ok) {
+          const d = await res.json();
+          raw = d.choices?.[0]?.message?.content || '';
+        }
+      }
+    }
+
+    if (raw) {
+      const jsonMatch = raw.match(/\[\s*\{[\s\S]*\}\s*\]/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    }
+  } catch (e) {
+    console.warn('generateYouTubeHooks error:', e.message);
+  }
+
+  const shortTitle = (newsTitle || 'главной новости').replace(/["'«»`]/g, '').slice(0, 40);
+  return [
+    { id: 'shock', type: '⚡ Шок & Инсайд', hook: `То, что сейчас скрывают о «${shortTitle}», повергло в панику кремлевских чиновников.` },
+    { id: 'question', type: '❓ Провокационный вопрос', hook: `Вы действительно верите официальным сказкам пропаганды о «${shortTitle}»?` },
+    { id: 'satire', type: '🎭 Едкая сатира / Сарказм', hook: `Очередной «плановый успех» бункера внезапно превратился в самый громкий провал года.` },
+    { id: 'urgency', type: '⏳ Высокие ставки / Угроза', hook: `Последствия событий вокруг «${shortTitle}» ударят по каждому буквально на днях.` },
+    { id: 'punch', type: '💥 Прямой факт-удар', hook: `Факты на столе: все бравурные заявления генералов только что разбились вдребезги.` },
+  ];
+}
+
+// POST /api/generate-hooks
+router.post('/api/generate-hooks', async (req, res) => {
+  try {
+    const { title = '', summary = '', text = '', style = 'golubuzki' } = req.body;
+    if (!title && !text) {
+      return res.status(400).json({ success: false, error: 'Title or text required' });
+    }
+    const hooks = await generateYouTubeHooks(title, summary, text, style);
+    res.json({ success: true, hooks });
+  } catch (err) {
+    console.error('Hooks generation error:', err.message);
     res.status(500).json({ success: false, error: err.message });
   }
 });

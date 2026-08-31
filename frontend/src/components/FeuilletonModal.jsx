@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { FEUILLETON_STYLES, AI_MODELS } from '../lib/utils'
+import ScriptHookGenerator from './script/ScriptHookGenerator'
 
 export default function FeuilletonModal({ feuilleton, onOpenPhotos, onClose, onRefreshPackages }) {
   if (!feuilleton) return null
@@ -268,6 +269,14 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onClose, onR
                 🔄 {regenerating ? '⏳ Генерация...' : 'Сгенерировать заново'}
               </button>
             </div>
+
+            {/* ⚡ 3-секундные вирусные хуки для YouTube */}
+            <ScriptHookGenerator
+              title={feuilleton.originalTitle || feuilleton.title || currentTitle}
+              summary={feuilleton.summary || ''}
+              currentText={currentText}
+              onApplyHook={(newText) => { setCurrentText(newText); setSavedInfo(null); }}
+            />
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', flex: 1 }}>
               <label style={{ fontSize: '0.84rem', fontWeight: 600, color: '#9ca3af' }}>📜 Текст монолога диктора (для голосовой озвучки ElevenLabs / EdgeTTS):</label>

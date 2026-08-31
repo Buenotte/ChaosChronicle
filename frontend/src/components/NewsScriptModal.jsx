@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 import { FEUILLETON_STYLES, AI_MODELS } from '../lib/utils'
+import ScriptHookGenerator from './script/ScriptHookGenerator'
 
 export default function NewsScriptModal({ pkg, onClose, onSaved }) {
   if (!pkg) return null
@@ -266,6 +267,14 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
               🔄 {regenerating ? '⏳ Генерация...' : 'Сгенерировать (AI)'}
             </button>
           </div>
+
+          {/* ⚡ 3-секундные вирусные хуки для YouTube */}
+          <ScriptHookGenerator
+            title={pkg.original_title || pkg.title}
+            summary={pkg.summary || ''}
+            currentText={text}
+            onApplyHook={(newText) => setText(newText)}
+          />
 
           {/* Text Editor */}
           <div className="script-editor-wrap">
