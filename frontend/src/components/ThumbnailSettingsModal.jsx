@@ -199,9 +199,9 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
   }
 
   const handleApply = async () => {
+    const toastId = toast.loading('🎨 Сохранение обложки и стиля...')
     try {
       setSaving(true)
-      const toastId = toast.loading('🎨 Сохранение обложки и стиля...')
       const photoUrl = selectedBgPhoto ? (selectedBgPhoto.startsWith('/news-static/') ? selectedBgPhoto : `/news-static/${pkg.folderName}/${selectedBgPhoto}`) : null
       const headlineConfig = {
         text, font, fontFamilyName,
@@ -220,12 +220,19 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
         body: JSON.stringify({ mode: 'apply_headline', bundleDir: pkg.bundleDir, folderName: pkg.folderName, photoUrl, headlineConfig }),
       })
       const data = await res.json()
+      toast.dismiss(toastId)
       if (data.success) {
-        toast.success('✨ Обложка и стиль сохранены!', { id: toastId })
+        toast.success('✨ Обложка и стиль сохранены!')
         if (onUpdated) onUpdated(`${data.thumbnailUrl}&t=${Date.now()}`)
-      } else { toast.error('Ошибка: ' + (data.error || 'Не удалось обновить'), { id: toastId }) }
-    } catch (err) { toast.error('Ошибка сохранения: ' + err.message) }
-    finally { setSaving(false) }
+      } else {
+        toast.error('Ошибка: ' + (data.error || 'Не удалось обновить'))
+      }
+    } catch (err) {
+      toast.dismiss(toastId)
+      toast.error('Ошибка сохранения: ' + err.message)
+    } finally {
+      setSaving(false)
+    }
   }
 
   const formatPreviewLines = (raw) => {
@@ -277,35 +284,17 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
 
           {/* 👁️ Живой предпросмотр */}
           <LiveThumbnailPreview
-            previewSrc={currentBgSrc}
-            position={position}
-            offsetY={offsetY}
-            fontFamilyName={fontFamilyName}
-            calcLiveFontSize={calcLiveFontSize}
-            lineSpacing={lineSpacing}
-            lineColors={lineColors}
-            lineFontSizes={lineFontSizes}
-            wordColors={wordColors}
-            wordFontSizes={wordFontSizes}
-            activeColorHex={activeColorHex}
-            borderWidth={borderWidth}
-            activeStrokeHex={activeStrokeHex}
-            shadowDistance={shadowDistance}
-            hasBox={hasBox}
-            boxStyle={boxStyle}
-            boxOpacity={boxOpacity}
-            isItalic={isItalic}
-            tiltAngle={tiltAngle}
-            previewLines={previewLines}
+            previewSrc={currentBgSrc} position={position} offsetY={offsetY} fontFamilyName={fontFamilyName}
+            calcLiveFontSize={calcLiveFontSize} lineSpacing={lineSpacing} lineColors={lineColors} lineFontSizes={lineFontSizes}
+            wordColors={wordColors} wordFontSizes={wordFontSizes} activeColorHex={activeColorHex} borderWidth={borderWidth}
+            activeStrokeHex={activeStrokeHex} shadowDistance={shadowDistance} hasBox={hasBox} boxStyle={boxStyle}
+            boxOpacity={boxOpacity} isItalic={isItalic} tiltAngle={tiltAngle} previewLines={previewLines}
           />
 
           {/* 🖼️ Выбор фона из фото пакета */}
           <BackgroundPhotoSelector
-            photoList={photoList}
-            folderName={pkg.folderName}
-            selectedBgPhoto={selectedBgPhoto}
-            onSelectPhoto={(p) => setSelectedBgPhoto(p)}
-            onResetToDefault={() => setSelectedBgPhoto(null)}
+            photoList={photoList} folderName={pkg.folderName} selectedBgPhoto={selectedBgPhoto}
+            onSelectPhoto={(p) => setSelectedBgPhoto(p)} onResetToDefault={() => setSelectedBgPhoto(null)}
           />
 
           {/* 📝 Текст заголовка */}
@@ -373,10 +362,10 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
             <button className="copy-btn" disabled={saving} style={{ background: '#10b981', flex: 1, minWidth: '220px', padding: '0.75rem', fontSize: '0.95rem', fontWeight: 700 }} onClick={handleApply}>
               {saving ? '⏳ Сохранение...' : '💾 Применить и сохранить обложку'}
             </button>
-            <button type="button" className="copy-btn" style={{ background: '#8b5cf6', padding: '0.75rem 1rem', fontWeight: 600 }} onClick={handleSaveAsDefault} title="Сделать этот шрифт, цвета и оформление стандартными для всех новых пакетов">
-              ⭐ Сохранить как шаблон по умолчанию
+            <button type="button" className="copy-btn" style={{ background: '#8b5cf6', padding: '0.75rem 1rem', fontWeight: 600 }} onClick={handleSaveAsDefault} title="Сделать оформление шаблоном по умолчанию">
+              ⭐ Шаблон по умолчанию
             </button>
-            <button type="button" className="copy-btn" style={{ background: '#3b82f6', padding: '0.75rem 0.9rem', fontWeight: 600 }} onClick={handleResetToDefault} title="Загрузить стандартный шаблон по умолчанию">
+            <button type="button" className="copy-btn" style={{ background: '#3b82f6', padding: '0.75rem 0.9rem', fontWeight: 600 }} onClick={handleResetToDefault} title="Загрузить шаблон по умолчанию">
               🔄 К шаблону
             </button>
             <button className="copy-btn" style={{ background: '#3f3f46', padding: '0.75rem 1.2rem', fontWeight: 600 }} onClick={onClose}>

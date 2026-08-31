@@ -17,7 +17,8 @@ export function getDefaultThumbnailStyle() {
   }
   return {
     font: 'impact', fontFamilyName: 'Impact, sans-serif', fontSize: 'auto', customSizeNum: 82,
-    lineFontSizes: null, fontColor: 'yellow', lineColors: null, borderColor: 'black', borderWidth: 9,
+    lineFontSizes: null, fontColor: 'yellow', lineColors: null, wordColors: null, wordFontSizes: null,
+    borderColor: 'black', borderWidth: 9,
     shadowDistance: 4, lineSpacing: 1.15, isItalic: false, tiltAngle: 0, position: 'center', offsetY: 50,
     hasBox: false, boxStyle: 'none', boxOpacity: 75,
   };
@@ -117,6 +118,8 @@ export async function processSetThumbnail({
     lineFontSizes: Array.isArray(effectiveConfig.lineFontSizes) ? effectiveConfig.lineFontSizes : null,
     fontColor: effectiveConfig.fontColor || 'yellow',
     lineColors: Array.isArray(effectiveConfig.lineColors) ? effectiveConfig.lineColors : null,
+    wordColors: Array.isArray(effectiveConfig.wordColors) ? effectiveConfig.wordColors : null,
+    wordFontSizes: Array.isArray(effectiveConfig.wordFontSizes) ? effectiveConfig.wordFontSizes : null,
     borderColor: effectiveConfig.borderColor || 'black',
     borderWidth: effectiveConfig.borderWidth !== undefined ? Number(effectiveConfig.borderWidth) : 9,
     shadowDistance: effectiveConfig.shadowDistance !== undefined ? Number(effectiveConfig.shadowDistance) : 4,

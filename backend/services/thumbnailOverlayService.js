@@ -34,6 +34,44 @@ const ITALIC_FONT_MAP = {
   'georgiab': 'georgiaz',
 };
 
+export function getTtfFamilyName(fontName) {
+  try {
+    const fullPath = path.join(customFontsDir, fontName);
+    if (!fs.existsSync(fullPath)) return null;
+    const buf = fs.readFileSync(fullPath);
+    const numTables = buf.readUInt16BE(4);
+    let nameTableOffset = 0;
+    for (let i = 0; i < numTables; i++) {
+      if (buf.toString('ascii', 12 + i * 16, 12 + i * 16 + 4) === 'name') {
+        nameTableOffset = buf.readUInt32BE(12 + i * 16 + 8);
+        break;
+      }
+    }
+    if (!nameTableOffset) return null;
+    const count = buf.readUInt16BE(nameTableOffset + 2);
+    const stringOffset = nameTableOffset + buf.readUInt16BE(nameTableOffset + 4);
+    for (let i = 0; i < count; i++) {
+      const rec = nameTableOffset + 6 + i * 12;
+      const pid = buf.readUInt16BE(rec);
+      const nid = buf.readUInt16BE(rec + 6);
+      if (nid === 1) {
+        const len = buf.readUInt16BE(rec + 8);
+        const off = buf.readUInt16BE(rec + 10);
+        let raw = '';
+        if (pid === 3 || pid === 0) {
+          const sl = Buffer.from(buf.subarray(stringOffset + off, stringOffset + off + len));
+          sl.swap16();
+          raw = sl.toString('utf16le').replace(/\0/g, '').trim();
+        } else if (pid === 1) {
+          raw = buf.toString('latin1', stringOffset + off, stringOffset + off + len).replace(/\0/g, '').trim();
+        }
+        if (raw) return raw.replace(/\s+(Bold|Regular|Italic|Medium|Light|SemiBold|Black|ExtraBold)$/i, '').trim();
+      }
+    }
+  } catch {}
+  return null;
+}
+
 export function formatTitleLines(russianTitle, inputLines = null) {
   if (Array.isArray(inputLines) && inputLines.length > 0) {
     return inputLines
@@ -190,7 +228,15 @@ export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, optio
 
     if (hasWordStyles) {
       const fontNameMap = { impact: 'Impact', arialbd: 'Arial', segoeuib: 'Segoe UI', tahomabd: 'Tahoma', trebucbd: 'Trebuchet MS', verdanab: 'Verdana', georgiab: 'Georgia' };
-      const assFontName = fontNameMap[font] || options.fontFamilyName?.replace(/["',].*$/, '').trim() || 'Impact';
+      let assFontName = fontNameMap[font] || (font && getTtfFamilyName(font));
+      if (!assFontName && options.fontFamilyName) {
+        assFontName = String(options.fontFamilyName).replace(/["']/g, '').split(',')[0].replace(/_/g, ' ').trim();
+      }
+      if (!assFontName && font) {
+        assFontName = String(font).replace(/\.[^.]+$/, '').replace(/_/g, ' ').trim();
+      }
+      if (!assFontName) assFontName = 'Impact';
+
       const assPrimaryCol = toAssColor(colorVal);
       const assOutlineCol = toAssColor(bColor);
 
@@ -210,12 +256,14 @@ export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, optio
       });
 
       const assDialogue = `{\\an8\\pos(640,${startY})${numAngle !== 0 ? `\\frz${-numAngle}` : ''}}${assLines.join('\\N')}`;
-      const assContent = `[Script Info]\nScriptType: v4.00+\nPlayResX: 1280\nPlayResY: 720\n\n[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\nStyle: Title,${assFontName},${finalFontSize},${assPrimaryCol},&H000000FF,${assOutlineCol},&H90000000,-1,${isItalic ? -1 : 0},0,0,100,100,0,0,1,${bWidth},${sDist},8,10,10,10,1\n\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\nDialogue: 0,0:00:00.00,0:00:05.00,Title,,0,0,0,,${assDialogue}\n`;
+      const assContent = `[Script Info]\nScriptType: v4.00+\nPlayResX: 1280\nPlayResY: 720\n\n[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\nStyle: Title,${assFontName},${finalFontSize},${assPrimaryCol},&H000000FF,${assOutlineCol},&H90000000,0,${isItalic ? -1 : 0},0,0,100,100,0,0,1,${bWidth},${sDist},8,10,10,10,1\n\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\nDialogue: 0,0:00:00.00,0:00:05.00,Title,,0,0,0,,${assDialogue}\n`;
 
       const assTempFile = path.join(path.dirname(imagePath), `temp_thumb_${Date.now()}.ass`);
       fs.writeFileSync(assTempFile, assContent, 'utf-8');
       try {
-        const vf = `scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720,subtitles=filename='${assTempFile.replace(/\\/g, '/')}'`;
+        const safeAssPath = assTempFile.replace(/\\/g, '/').replace(/:/g, '\\:');
+        const safeCustomFontsDir = customFontsDir.replace(/\\/g, '/').replace(/:/g, '\\:');
+        const vf = `scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720,subtitles=filename='${safeAssPath}':fontsdir='${safeCustomFontsDir}'`;
         execFileSync('ffmpeg', ['-y', '-i', imagePath, '-vf', vf, '-frames:v', '1', '-q:v', '2', tempOut]);
       } finally {
         try { fs.unlinkSync(assTempFile); } catch {}
