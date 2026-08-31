@@ -19,6 +19,7 @@ const testSuites = [
   { name: '7. Edge-TTS Audio Generation', file: 'test_audio_service.js' },
   { name: '8. Video Engine & Subscribe Banner (FFmpeg)', file: 'test_video_engine.js' },
   { name: '9. Frontend React AST & Modal Smoke Tests', file: 'test_frontend_smoke.js' },
+  { name: '10. YouTube Shorts 9:16 Studio & FFmpeg Pipeline', file: 'test_shorts_engine.js' },
 ];
 
 let passedCount = 0;
