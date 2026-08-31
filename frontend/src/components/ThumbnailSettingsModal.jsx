@@ -22,6 +22,8 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
   const [fontColor, setFontColor] = useState(cfg.fontColor || 'yellow')
   const [lineColors, setLineColors] = useState(Array.isArray(cfg.lineColors) ? cfg.lineColors : null)
   const [lineFontSizes, setLineFontSizes] = useState(Array.isArray(cfg.lineFontSizes) ? cfg.lineFontSizes : null)
+  const [wordColors, setWordColors] = useState(Array.isArray(cfg.wordColors) ? cfg.wordColors : null)
+  const [wordFontSizes, setWordFontSizes] = useState(Array.isArray(cfg.wordFontSizes) ? cfg.wordFontSizes : null)
   const [borderColor, setBorderColor] = useState(cfg.borderColor || 'black')
   const [borderWidth, setBorderWidth] = useState(cfg.borderWidth !== undefined ? Number(cfg.borderWidth) : 9)
   const [shadowDistance, setShadowDistance] = useState(cfg.shadowDistance !== undefined ? Number(cfg.shadowDistance) : 4)
@@ -54,6 +56,8 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
     if (c.fontColor) setFontColor(c.fontColor)
     if (c.lineColors !== undefined) setLineColors(Array.isArray(c.lineColors) ? c.lineColors : null)
     if (c.lineFontSizes !== undefined) setLineFontSizes(Array.isArray(c.lineFontSizes) ? c.lineFontSizes : null)
+    if (c.wordColors !== undefined) setWordColors(Array.isArray(c.wordColors) ? c.wordColors : null)
+    if (c.wordFontSizes !== undefined) setWordFontSizes(Array.isArray(c.wordFontSizes) ? c.wordFontSizes : null)
     if (c.borderColor) setBorderColor(c.borderColor)
     if (c.borderWidth !== undefined) setBorderWidth(Number(c.borderWidth))
     if (c.shadowDistance !== undefined) setShadowDistance(Number(c.shadowDistance))
@@ -92,7 +96,7 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
     try {
       const headlineConfig = {
         font, fontFamilyName, fontSize: fontSize === 'auto' ? 'auto' : String(customSizeNum),
-        fontColor, lineColors, lineFontSizes, borderColor, borderWidth: Number(borderWidth),
+        fontColor, lineColors, lineFontSizes, wordColors, wordFontSizes, borderColor, borderWidth: Number(borderWidth),
         shadowDistance: Number(shadowDistance), lineSpacing: Number(lineSpacing),
         isItalic, tiltAngle: Number(tiltAngle) || 0, position, offsetY: Number(offsetY),
         hasBox: boxStyle !== 'none', boxStyle, boxOpacity: Number(boxOpacity) || 75,
@@ -205,6 +209,8 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
         isItalic, tiltAngle: Number(tiltAngle) || 0, lineSpacing: Number(lineSpacing) || 1.15,
         fontColor, lineColors: Array.isArray(lineColors) ? lineColors : null,
         lineFontSizes: Array.isArray(lineFontSizes) ? lineFontSizes : null,
+        wordColors: Array.isArray(wordColors) ? wordColors : null,
+        wordFontSizes: Array.isArray(wordFontSizes) ? wordFontSizes : null,
         borderColor, borderWidth: Number(borderWidth), shadowDistance: Number(shadowDistance),
         position, offsetY: offsetY !== undefined && offsetY !== null ? Number(offsetY) : 50,
         hasBox: boxStyle !== 'none', boxStyle, boxOpacity: Number(boxOpacity) || 75,
@@ -236,6 +242,7 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
   }
 
   const previewLines = formatPreviewLines(text)
+  const allWords = String(text || '').replace(/[\r\n\t]/g, ' ').replace(/["'«»`]/g, '').trim().split(/\s+/).filter(Boolean)
   const activeColorHex = fontColor?.startsWith('#') ? fontColor : (COLORS.find(c => c.id === fontColor)?.hex || '#FFE600')
   const activeStrokeHex = borderColor?.startsWith('#') ? borderColor : (STROKE_COLORS.find(c => c.id === borderColor)?.hex || '#000000')
   const calcLiveFontSize = (overrideSize = null) => {
@@ -255,12 +262,8 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
       <div className="modal-content" style={{ maxWidth: '960px', width: '96vw', maxHeight: '92vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <div>
-            <h2 className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem' }}>
-              🎨 Настройка заголовка, шрифта, контура и фона
-            </h2>
-            <p style={{ fontSize: '0.8rem', color: '#9ca3af', margin: '0.25rem 0 0 0' }}>
-              Живая визуализация 16:9 • Выбор любого фото для фона • Настройка шрифта
-            </p>
+            <h2 className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem' }}>🎨 Настройка заголовка, шрифта, контура и фона</h2>
+            <p style={{ fontSize: '0.8rem', color: '#9ca3af', margin: '0.25rem 0 0 0' }}>Живая визуализация 16:9 • Выбор любого фото для фона • Настройка каждого слова и строки</p>
           </div>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
@@ -268,12 +271,8 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
         <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           {/* Исходная новость */}
           <div style={{ background: '#18181b', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px solid #27272a' }}>
-            <span style={{ fontSize: '0.75rem', color: '#a1a1aa', display: 'block', fontWeight: 600, marginBottom: '0.2rem' }}>
-              📰 ПОЛНАЯ ТЕМА НОВОСТИ:
-            </span>
-            <span style={{ fontSize: '0.9rem', color: '#f4f4f5', fontWeight: 600 }}>
-              {pkg.original_title || pkg.title}
-            </span>
+            <span style={{ fontSize: '0.75rem', color: '#a1a1aa', display: 'block', fontWeight: 600, marginBottom: '0.2rem' }}>📰 ПОЛНАЯ ТЕМА НОВОСТИ:</span>
+            <span style={{ fontSize: '0.9rem', color: '#f4f4f5', fontWeight: 600 }}>{pkg.original_title || pkg.title}</span>
           </div>
 
           {/* 👁️ Живой предпросмотр */}
@@ -286,6 +285,8 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
             lineSpacing={lineSpacing}
             lineColors={lineColors}
             lineFontSizes={lineFontSizes}
+            wordColors={wordColors}
+            wordFontSizes={wordFontSizes}
             activeColorHex={activeColorHex}
             borderWidth={borderWidth}
             activeStrokeHex={activeStrokeHex}
@@ -358,6 +359,7 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
               fontSize={fontSize} setFontSize={setFontSize} customSizeNum={customSizeNum} setCustomSizeNum={setCustomSizeNum}
               lineSpacing={lineSpacing} setLineSpacing={setLineSpacing} previewLines={previewLines}
               lineColors={lineColors} setLineColors={setLineColors} lineFontSizes={lineFontSizes} setLineFontSizes={setLineFontSizes}
+              words={allWords} wordColors={wordColors} setWordColors={setWordColors} wordFontSizes={wordFontSizes} setWordFontSizes={setWordFontSizes}
               isItalic={isItalic} setIsItalic={setIsItalic} tiltAngle={tiltAngle} setTiltAngle={setTiltAngle}
               fontColor={fontColor} setFontColor={setFontColor} borderColor={borderColor} setBorderColor={setBorderColor}
               borderWidth={borderWidth} setBorderWidth={setBorderWidth} shadowDistance={shadowDistance} setShadowDistance={setShadowDistance}

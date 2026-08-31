@@ -11,6 +11,8 @@ export default function LiveThumbnailPreview({
   lineSpacing = 1.15,
   lineColors = null,
   lineFontSizes = null,
+  wordColors = null,
+  wordFontSizes = null,
   activeColorHex,
   borderWidth,
   activeStrokeHex,
@@ -26,6 +28,8 @@ export default function LiveThumbnailPreview({
   const yPct = (offsetY !== undefined && offsetY !== null && !isNaN(Number(offsetY)))
     ? Math.max(0, Math.min(100, Number(offsetY)))
     : (position === 'top' ? 12 : position === 'bottom' ? 85 : 50)
+
+  let runningWordIndex = 0
 
   return (
     <div>
@@ -73,6 +77,7 @@ export default function LiveThumbnailPreview({
         {/* Накладываемый живой текст с точной имитацией FFmpeg (позиция Y, наклон, курсив, обводка, тень) */}
         {(() => {
           const alpha = ((Number(boxOpacity) >= 10 ? Number(boxOpacity) : 75) / 100).toFixed(2)
+          runningWordIndex = 0
           return (
             <div
               style={{
@@ -108,6 +113,11 @@ export default function LiveThumbnailPreview({
                 const lineSize = (lineFontSizes && lineFontSizes[idx] && Number(lineFontSizes[idx]) > 0)
                   ? calcLiveFontSize(lineFontSizes[idx])
                   : calcLiveFontSize()
+
+                const lineWords = line.split(/\s+/).filter(Boolean)
+                const startIdx = runningWordIndex
+                runningWordIndex += lineWords.length
+
                 return (
                   <div
                     key={idx}
@@ -122,7 +132,27 @@ export default function LiveThumbnailPreview({
                       display: boxStyle === 'per_line' ? 'inline-block' : 'block',
                     }}
                   >
-                    {line}
+                    {lineWords.map((word, wIdx) => {
+                      const curWordIdx = startIdx + wIdx
+                      const wordCol = (wordColors && wordColors[curWordIdx]) ? wordColors[curWordIdx] : null
+                      const wordHex = wordCol ? (COLOR_MAP[wordCol] || (wordCol.startsWith('#') ? wordCol : lineHex)) : lineHex
+                      const wordSz = (wordFontSizes && wordFontSizes[curWordIdx] && Number(wordFontSizes[curWordIdx]) > 0)
+                        ? calcLiveFontSize(wordFontSizes[curWordIdx])
+                        : lineSize
+                      return (
+                        <span
+                          key={wIdx}
+                          style={{
+                            color: wordHex,
+                            fontSize: wordSz,
+                            display: 'inline-block',
+                            margin: '0 0.16em',
+                          }}
+                        >
+                          {word}
+                        </span>
+                      )
+                    })}
                   </div>
                 )
               })}

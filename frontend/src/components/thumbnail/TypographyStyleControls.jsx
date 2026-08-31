@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import PerLineStyleControls from './PerLineStyleControls'
+import PerWordStyleControls from './PerWordStyleControls'
 
 export const COLORS = [
   { id: 'yellow', hex: '#FFE600', label: 'Желтый' },
@@ -39,6 +41,11 @@ export default function TypographyStyleControls({
   setLineColors = null,
   lineFontSizes = null,
   setLineFontSizes = null,
+  words = [],
+  wordColors = null,
+  setWordColors = null,
+  wordFontSizes = null,
+  setWordFontSizes = null,
   isItalic,
   setIsItalic,
   tiltAngle,
@@ -62,6 +69,8 @@ export default function TypographyStyleControls({
   boxOpacity = 75,
   setBoxOpacity,
 }) {
+  const [customMode, setCustomMode] = useState('words')
+
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
       {/* КОЛОНКА 1: РАЗМЕР, ИНТЕРВАЛ, КУРСИВ, НАКЛОН И ПОЗИЦИЯ */}
@@ -72,79 +81,43 @@ export default function TypographyStyleControls({
             📏 Размер шрифта: {fontSize === 'auto' ? 'Авто (Адаптивный)' : `${customSizeNum}px`}
           </label>
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            <button
-              type="button"
-              onClick={() => setFontSize('auto')}
-              style={{ padding: '0.4rem 0.75rem', borderRadius: '6px', background: fontSize === 'auto' ? '#3b82f6' : '#27272a', color: '#fff', border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}
-            >
+            <button type="button" onClick={() => setFontSize('auto')} style={{ padding: '0.4rem 0.75rem', borderRadius: '6px', background: fontSize === 'auto' ? '#3b82f6' : '#27272a', color: '#fff', border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}>
               Авто
             </button>
-            <input
-              type="range"
-              min="45"
-              max="160"
-              value={customSizeNum}
-              onChange={e => { setCustomSizeNum(Number(e.target.value)); setFontSize(e.target.value); }}
-              style={{ flex: 1, accentColor: '#3b82f6', cursor: 'pointer' }}
-            />
+            <input type="range" min="45" max="160" value={customSizeNum} onChange={e => { setCustomSizeNum(Number(e.target.value)); setFontSize(e.target.value); }} style={{ flex: 1, accentColor: '#3b82f6', cursor: 'pointer' }} />
             <span style={{ fontSize: '0.85rem', color: '#fff', minWidth: '45px', textAlign: 'right', fontWeight: 700 }}>
               {fontSize === 'auto' ? 'Auto' : `${customSizeNum}px`}
             </span>
           </div>
         </div>
 
-        {/* ↕️ Межстрочный интервал (Line Height / Abstand zwischen Zeilen) */}
+        {/* ↕️ Межстрочный интервал */}
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-            <label style={{ fontSize: '0.85rem', color: '#9ca3af', fontWeight: 600 }}>
-              ↕️ Межстрочный интервал: {Number(lineSpacing).toFixed(2)}x
-            </label>
+            <label style={{ fontSize: '0.85rem', color: '#9ca3af', fontWeight: 600 }}>↕️ Межстрочный интервал: {Number(lineSpacing).toFixed(2)}x</label>
             {setLineSpacing && Number(lineSpacing) !== 1.15 && (
-              <button
-                type="button"
-                onClick={() => setLineSpacing(1.15)}
-                style={{ background: 'none', border: 'none', color: '#38bdf8', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline' }}
-              >
-                Сброс (1.15x)
-              </button>
+              <button type="button" onClick={() => setLineSpacing(1.15)} style={{ background: 'none', border: 'none', color: '#38bdf8', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline' }}>Сброс (1.15x)</button>
             )}
           </div>
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
             <span style={{ fontSize: '0.72rem', color: '#71717a' }}>0.7x</span>
-            <input
-              type="range"
-              min="0.70"
-              max="1.70"
-              step="0.05"
-              value={lineSpacing}
-              onChange={e => setLineSpacing && setLineSpacing(Number(e.target.value))}
-              style={{ flex: 1, accentColor: '#38bdf8', cursor: 'pointer' }}
-            />
-            <span style={{ fontSize: '0.85rem', color: '#38bdf8', minWidth: '45px', textAlign: 'right', fontWeight: 700 }}>
-              {Number(lineSpacing).toFixed(2)}x
-            </span>
+            <input type="range" min="0.70" max="1.70" step="0.05" value={lineSpacing} onChange={e => setLineSpacing && setLineSpacing(Number(e.target.value))} style={{ flex: 1, accentColor: '#38bdf8', cursor: 'pointer' }} />
+            <span style={{ fontSize: '0.85rem', color: '#38bdf8', minWidth: '45px', textAlign: 'right', fontWeight: 700 }}>{Number(lineSpacing).toFixed(2)}x</span>
           </div>
         </div>
 
-        {/* ✍️ КУРСИВ И 📐 НАКЛОН / ДИНАМИКА (BEUGEN) */}
+        {/* ✍️ КУРСИВ И 📐 НАКЛОН */}
         <div style={{ background: '#18181b', padding: '0.65rem', borderRadius: '8px', border: '1px solid #27272a', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <label style={{ fontSize: '0.82rem', color: '#f4f4f5', fontWeight: 700 }}>✍️ Начертание:</label>
-            <button
-              type="button"
-              onClick={() => setIsItalic(!isItalic)}
-              style={{ padding: '0.3rem 0.75rem', borderRadius: '6px', background: isItalic ? 'linear-gradient(135deg, #ec4899, #8b5cf6)' : '#27272a', color: '#fff', border: isItalic ? '1px solid #f472b6' : '1px solid #3f3f46', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, fontStyle: 'italic' }}
-            >
+            <button type="button" onClick={() => setIsItalic(!isItalic)} style={{ padding: '0.3rem 0.75rem', borderRadius: '6px', background: isItalic ? 'linear-gradient(135deg, #ec4899, #8b5cf6)' : '#27272a', color: '#fff', border: isItalic ? '1px solid #f472b6' : '1px solid #3f3f46', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, fontStyle: 'italic' }}>
               {isItalic ? '✓ Курсив ВКЛ' : 'Курсив (Italic)'}
             </button>
           </div>
-
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
               <label style={{ fontSize: '0.8rem', color: '#d4d4d8', fontWeight: 600 }}>📐 Угол наклона: {tiltAngle}°</label>
-              {tiltAngle !== 0 && (
-                <button type="button" onClick={() => setTiltAngle(0)} style={{ background: 'none', border: 'none', color: '#ec4899', fontSize: '0.72rem', cursor: 'pointer', textDecoration: 'underline' }}>Сброс (0°)</button>
-              )}
+              {tiltAngle !== 0 && (<button type="button" onClick={() => setTiltAngle(0)} style={{ background: 'none', border: 'none', color: '#ec4899', fontSize: '0.72rem', cursor: 'pointer', textDecoration: 'underline' }}>Сброс (0°)</button>)}
             </div>
             <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
               <span style={{ fontSize: '0.7rem', color: '#71717a' }}>-15°</span>
@@ -260,17 +233,55 @@ export default function TypographyStyleControls({
             </div>
           </div>
 
-          {/* 📑 Построчная кастомизация: размеры и цвета */}
-          <PerLineStyleControls
-            previewLines={previewLines}
-            lineColors={lineColors}
-            setLineColors={setLineColors}
-            fontColor={fontColor}
-            lineFontSizes={lineFontSizes}
-            setLineFontSizes={setLineFontSizes}
-            customSizeNum={customSizeNum}
-            fontSize={fontSize}
-          />
+          {/* Переключатель режима кастомизации: По словам vs Построчно */}
+          <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.1rem' }}>
+            <button
+              type="button"
+              onClick={() => setCustomMode('words')}
+              style={{
+                flex: 1, padding: '0.4rem 0.6rem', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 700,
+                background: customMode === 'words' ? '#f43f5e' : '#18181b', color: '#fff',
+                border: customMode === 'words' ? '1px solid #fda4af' : '1px solid #27272a', cursor: 'pointer'
+              }}
+            >
+              🔤 По словам {words.length > 0 ? `(${words.length})` : ''}
+            </button>
+            <button
+              type="button"
+              onClick={() => setCustomMode('lines')}
+              style={{
+                flex: 1, padding: '0.4rem 0.6rem', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 700,
+                background: customMode === 'lines' ? '#38bdf8' : '#18181b', color: '#fff',
+                border: customMode === 'lines' ? '1px solid #7dd3fc' : '1px solid #27272a', cursor: 'pointer'
+              }}
+            >
+              📑 Построчно {previewLines.length > 0 ? `(${previewLines.length})` : ''}
+            </button>
+          </div>
+
+          {customMode === 'words' ? (
+            <PerWordStyleControls
+              words={words}
+              wordColors={wordColors}
+              setWordColors={setWordColors}
+              wordFontSizes={wordFontSizes}
+              setWordFontSizes={setWordFontSizes}
+              fontColor={fontColor}
+              customSizeNum={customSizeNum}
+              fontSize={fontSize}
+            />
+          ) : (
+            <PerLineStyleControls
+              previewLines={previewLines}
+              lineColors={lineColors}
+              setLineColors={setLineColors}
+              fontColor={fontColor}
+              lineFontSizes={lineFontSizes}
+              setLineFontSizes={setLineFontSizes}
+              customSizeNum={customSizeNum}
+              fontSize={fontSize}
+            />
+          )}
         </div>
 
         {/* 🔲 КОНТУР / ОБВОДКА (STROKE) */}
@@ -312,40 +323,16 @@ export default function TypographyStyleControls({
         {/* ⬛ КОНТРАСТНАЯ ПЛАШКА ПОД ТЕКСТОМ (BOX STYLES) */}
         <div style={{ background: '#18181b', padding: '0.75rem', borderRadius: '8px', border: '1px solid #27272a' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-            <label style={{ fontSize: '0.85rem', color: '#f4f4f5', fontWeight: 700 }}>
-              ⬛ Контрастная плашка под текстом:
-            </label>
+            <label style={{ fontSize: '0.85rem', color: '#f4f4f5', fontWeight: 700 }}>⬛ Контрастная плашка под текстом:</label>
             {boxStyle !== 'none' && setBoxStyle && (
-              <button
-                type="button"
-                onClick={() => { setBoxStyle('none'); if (setHasBox) setHasBox(false); }}
-                style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.72rem', cursor: 'pointer', textDecoration: 'underline' }}
-              >
-                Убрать плашку
-              </button>
+              <button type="button" onClick={() => { setBoxStyle('none'); if (setHasBox) setHasBox(false); }} style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.72rem', cursor: 'pointer', textDecoration: 'underline' }}>Убрать плашку</button>
             )}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.35rem' }}>
             {BOX_STYLES.map(bs => {
               const isCur = (boxStyle === bs.id) || (!boxStyle && bs.id === 'none' && !hasBox) || (hasBox && bs.id === 'dark_soft' && !boxStyle)
               return (
-                <button
-                  key={bs.id}
-                  type="button"
-                  onClick={() => {
-                    if (setBoxStyle) setBoxStyle(bs.id);
-                    if (setHasBox) setHasBox(bs.id !== 'none');
-                  }}
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    padding: '0.35rem 0.2rem', borderRadius: '6px', fontSize: '0.68rem',
-                    fontWeight: isCur ? 700 : 400,
-                    background: isCur ? '#27272a' : '#09090b',
-                    border: isCur ? `2px solid ${bs.border || '#3b82f6'}` : '1px solid #27272a',
-                    color: isCur ? '#fff' : '#a1a1aa',
-                    cursor: 'pointer',
-                  }}
-                >
+                <button key={bs.id} type="button" onClick={() => { if (setBoxStyle) setBoxStyle(bs.id); if (setHasBox) setHasBox(bs.id !== 'none'); }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.35rem 0.2rem', borderRadius: '6px', fontSize: '0.68rem', fontWeight: isCur ? 700 : 400, background: isCur ? '#27272a' : '#09090b', border: isCur ? `2px solid ${bs.border || '#3b82f6'}` : '1px solid #27272a', color: isCur ? '#fff' : '#a1a1aa', cursor: 'pointer' }}>
                   {bs.label}
                 </button>
               )
@@ -354,28 +341,9 @@ export default function TypographyStyleControls({
 
           {/* Ползунок прозрачности плашки */}
           {boxStyle !== 'none' && setBoxOpacity && (
-            <div style={{ marginTop: '0.6rem', paddingTop: '0.5rem', borderTop: '1px solid #27272a' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-                <label style={{ fontSize: '0.78rem', color: '#a1a1aa', fontWeight: 600 }}>
-                  Прозрачность / Непрозрачность:
-                </label>
-                <span style={{ fontSize: '0.8rem', color: '#38bdf8', fontWeight: 700 }}>
-                  {boxOpacity}%
-                </span>
-              </div>
-              <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.7rem', color: '#71717a' }}>10%</span>
-                <input
-                  type="range"
-                  min="10"
-                  max="100"
-                  step="5"
-                  value={boxOpacity}
-                  onChange={e => setBoxOpacity(Number(e.target.value))}
-                  style={{ flex: 1, accentColor: '#38bdf8', cursor: 'pointer' }}
-                />
-                <span style={{ fontSize: '0.7rem', color: '#71717a' }}>100%</span>
-              </div>
+            <div style={{ marginTop: '0.5rem', paddingTop: '0.4rem', borderTop: '1px solid #27272a', display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.75rem', color: '#a1a1aa', minWidth: '95px' }}>Прозрачность: {boxOpacity}%</span>
+              <input type="range" min="10" max="100" step="5" value={boxOpacity} onChange={e => setBoxOpacity(Number(e.target.value))} style={{ flex: 1, accentColor: '#38bdf8', cursor: 'pointer' }} />
             </div>
           )}
         </div>
