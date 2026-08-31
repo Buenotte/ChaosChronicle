@@ -80,6 +80,33 @@ export default function App() {
     }
   }, [])
 
+  useEffect(() => {
+    const loadFonts = async () => {
+      try {
+        const res = await fetch('/api/custom-fonts')
+        const data = await res.json()
+        if (data.success && Array.isArray(data.fonts)) {
+          data.fonts.forEach(async (f) => {
+            try {
+              const aliases = [
+                f.name,
+                f.name.replace(/_/g, ' '),
+                f.name.replace(/[-_]?(Regular|Bold)/gi, '').replace(/_/g, ' ').trim(),
+              ]
+              const unique = [...new Set(aliases.filter(Boolean))]
+              for (const alias of unique) {
+                const fontFace = new FontFace(alias, `url(${f.url})`)
+                await fontFace.load()
+                document.fonts.add(fontFace)
+              }
+            } catch {}
+          })
+        }
+      } catch {}
+    }
+    loadFonts()
+  }, [])
+
   const fetchSavedPackages = useCallback(async () => {
     try {
       const res = await fetch('/api/saved-packages')

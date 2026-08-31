@@ -3,7 +3,8 @@ import assert from 'assert';
 console.log('🧪 [TEST] Running Custom Fonts Service Tests...');
 
 async function runFontsTests() {
-  // 1. Get Custom Fonts List
+  try {
+    // 1. Get Custom Fonts List
   const listRes = await fetch('http://localhost:3001/api/custom-fonts');
   assert.strictEqual(listRes.status, 200, 'Custom fonts list API must return 200');
   const listData = await listRes.json();
@@ -26,7 +27,22 @@ async function runFontsTests() {
   const uploadData = await uploadRes.json();
   assert.ok(uploadData.success, 'Upload font must return success');
   assert.strictEqual(uploadData.font.name, 'TestFont');
-  console.log('  ✅ POST /api/upload-font passed');
+    // 3. Clean up uploaded dummy test font
+    const delRes = await fetch('http://localhost:3001/api/delete-font', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename: 'test_font.ttf' }),
+    });
+    console.log('  ✅ Cleaned up temporary test font');
+  } finally {
+    // Fallback direct cleanup if needed
+    try {
+      const fs = await import('fs');
+      const path = await import('path');
+      const testFile = path.resolve('backend/custom_fonts/test_font.ttf');
+      if (fs.existsSync(testFile)) fs.unlinkSync(testFile);
+    } catch {}
+  }
 }
 
 runFontsTests()

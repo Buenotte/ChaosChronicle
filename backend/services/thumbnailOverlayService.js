@@ -259,12 +259,26 @@ export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, optio
       const assDialogue = `{\\an8\\pos(640,${startY})${numAngle !== 0 ? `\\frz${-numAngle}` : ''}}${assLines.join('\\N')}`;
       const assContent = `[Script Info]\nScriptType: v4.00+\nPlayResX: 1280\nPlayResY: 720\n\n[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\nStyle: Title,${assFontName},${finalFontSize},&H0000E6FF,&H000000FF,${assOutlineCol},&H90000000,-1,${isItalic ? -1 : 0},0,0,100,100,0,0,1,${bWidth},${sDist},8,10,10,10,1\n\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\nDialogue: 0,0:00:00.00,0:00:05.00,Title,,0,0,0,,${assDialogue}\n`;
 
+      const BOX_COLOR_HEX_MAP = {
+        dark_soft: 'black',
+        dark_solid: 'black',
+        red_accent: '#dc2626',
+        yellow_highlight: '#f59e0b',
+        blue_cyber: '#0f172a',
+        purple_glass: '#3b0764',
+        per_line: 'black',
+      };
+      const boxColor = BOX_COLOR_HEX_MAP[chosenBox] || 'black';
+      const drawBoxFilter = (chosenBox !== 'none' || hasBox)
+        ? `,drawbox=x=(iw-1120)/2:y=${Math.max(10, startY - 25)}:w=1120:h=${totalTextHeight + 50}:color=${boxColor}@${op}:t=fill`
+        : '';
+
       const assTempFile = path.join(path.dirname(imagePath), `temp_thumb_${Date.now()}.ass`);
       fs.writeFileSync(assTempFile, assContent, 'utf-8');
       try {
         const safeAssPath = assTempFile.replace(/\\/g, '/').replace(/:/g, '\\:');
         const safeCustomFontsDir = customFontsDir.replace(/\\/g, '/').replace(/:/g, '\\:');
-        const vf = `scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720,subtitles=filename='${safeAssPath}':fontsdir='${safeCustomFontsDir}'`;
+        const vf = `scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720${drawBoxFilter},subtitles=filename='${safeAssPath}':fontsdir='${safeCustomFontsDir}'`;
         execFileSync('ffmpeg', ['-y', '-i', imagePath, '-vf', vf, '-frames:v', '1', '-q:v', '2', tempOut]);
       } finally {
         try { fs.unlinkSync(assTempFile); } catch {}
