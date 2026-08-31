@@ -1,58 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
 import { toast } from 'sonner'
-
-export const SHORTS_FONTS = [
-  { id: 'impact', name: 'Impact (Классика)', family: 'Impact, sans-serif' },
-  { id: 'arial_black', name: 'Arial Black (Жирный)', family: '"Arial Black", sans-serif' },
-  { id: 'Buran_USSR.ttf', name: 'Buran USSR (Плакат)', family: '"Buran USSR", Impact, sans-serif' },
-  { id: 'RussoOne-Regular.ttf', name: 'Russo One (Современный)', family: '"Russo One", sans-serif' },
-  { id: 'DelaGothicOne-Regular.ttf', name: 'Dela Gothic (Монолит)', family: '"Dela Gothic One", sans-serif' },
-  { id: 'RubikMonoOne-Regular.ttf', name: 'Rubik Mono (Плотный)', family: '"Rubik Mono One", sans-serif' },
-  { id: 'Saxonia_Antiqua_Bold.ttf', name: 'Saxonia Antiqua Bold', family: '"Saxonia Antiqua", serif' },
-]
-
-export const TEXT_COLORS = [
-  { id: 'yellow', hex: '#FFE600', label: 'Желтый' },
-  { id: 'white', hex: '#FFFFFF', label: 'Белый' },
-  { id: 'red', hex: '#FF2A2A', label: 'Красный' },
-  { id: 'cyan', hex: '#00F0FF', label: 'Голубой' },
-  { id: 'green', hex: '#00FF66', label: 'Зеленый' },
-  { id: 'orange', hex: '#FF8C00', label: 'Оранжевый' },
-]
-
-export const BOX_COLORS = [
-  { id: 'black', hex: '#000000', label: 'Черный' },
-  { id: 'red', hex: '#FF2A2A', label: 'Красный' },
-  { id: 'blue', hex: '#1D4ED8', label: 'Синий' },
-  { id: 'yellow', hex: '#FFE600', label: 'Желтый' },
-  { id: 'purple', hex: '#7C3AED', label: 'Фиолетовый' },
-]
-
-export const SHADOW_PRESETS = [
-  { id: 'hard', name: '🌑 3D Тень', css: '3px 3px 0px #000, 0 3px 8px rgba(0,0,0,0.9)' },
-  { id: 'soft', name: '🌫️ Мягкая', css: '0 4px 12px rgba(0,0,0,0.8)' },
-  { id: 'glow_red', name: '🔴 Неон Красный', css: '0 0 16px #ff0033, 0 0 8px #ff0033' },
-  { id: 'glow_yellow', name: '🟡 Неон Желтый', css: '0 0 16px #ffe600, 0 0 8px #ffe600' },
-  { id: 'glow_cyan', name: '🔵 Неон Голубой', css: '0 0 16px #00f0ff, 0 0 8px #00f0ff' },
-  { id: 'none', name: '🚫 Без тени', css: 'none' },
-]
-
-export function wrapShortsText(rawText, maxChars = 12) {
-  const inputLines = String(rawText || '').split('\n')
-  const wrappedLines = []
-  for (const line of inputLines) {
-    const words = line.trim().split(/\s+/).filter(Boolean)
-    if (words.length === 0) continue
-    let cur = ''
-    for (const w of words) {
-      if (!cur) cur = w
-      else if ((cur + ' ' + w).length <= maxChars) cur += ' ' + w
-      else { wrappedLines.push(cur); cur = w }
-    }
-    if (cur) wrappedLines.push(cur)
-  }
-  return wrappedLines.join('\n')
-}
+import BackgroundPhotoSelector from './thumbnail/BackgroundPhotoSelector'
+import ShortsCustomPlayer from './shorts/ShortsCustomPlayer'
+import ShortsTypographyControls, { STROKE_COLORS, SHADOW_COLORS } from './shorts/ShortsTypographyControls'
+import { SHORTS_FONTS, TEXT_COLORS, BOX_COLORS, wrapShortsText } from './shorts/shortsConfig'
 
 export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortState, generatingShort, onGenerateShort, onClose }) {
   const cfg = pkg?.shortsConfig || {}
@@ -60,14 +11,28 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
   const [font, setFont] = useState(cfg.font || 'impact')
   const [fontSize, setFontSize] = useState(cfg.fontSize || 110)
   const [fontColor, setFontColor] = useState(cfg.fontColor || 'yellow')
+  const [strokeWidth, setStrokeWidth] = useState(cfg.strokeWidth ?? 8)
+  const [strokeColor, setStrokeColor] = useState(cfg.strokeColor || 'black')
+  const [shadowDistance, setShadowDistance] = useState(cfg.shadowDistance ?? 4)
+  const [shadowColor, setShadowColor] = useState(cfg.shadowColor || 'black')
   const [shadowStyle, setShadowStyle] = useState(cfg.shadowStyle || 'hard')
+  const [wordColors, setWordColors] = useState(cfg.wordColors || null)
+  const [wordFontSizes, setWordFontSizes] = useState(cfg.wordFontSizes || null)
   const [boxEnabled, setBoxEnabled] = useState(cfg.boxEnabled ?? true)
   const [boxColor, setBoxColor] = useState(cfg.boxColor || 'black')
   const [boxOpacity, setBoxOpacity] = useState(cfg.boxOpacity ?? 75)
   const [posY, setPosY] = useState(cfg.posY || 200)
+  const [selectedPhoto, setSelectedPhoto] = useState(cfg.selectedPhoto || null)
   const [isDragging, setIsDragging] = useState(false)
   const [viewMode, setViewMode] = useState(shortState?.hasShort ? 'video' : 'editor')
+  const [realFrameUrl, setRealFrameUrl] = useState(null)
+  const [renderingFrame, setRenderingFrame] = useState(false)
   const previewRef = useRef(null)
+
+  const photoList = Array.isArray(pkg?.photoUrls) && pkg.photoUrls.length > 0 ? pkg.photoUrls : (Array.isArray(pkg?.photos) ? pkg.photos : [])
+  const currentBgSrc = selectedPhoto
+    ? (selectedPhoto.startsWith('/news-static/') ? selectedPhoto : `/news-static/${pkg?.folderName}/${selectedPhoto}`)
+    : (previewPhotoUrl || (photoList[0] ? (photoList[0].startsWith('/news-static/') ? photoList[0] : `/news-static/${pkg?.folderName}/${photoList[0]}`) : ''))
 
   useEffect(() => {
     if (shortState?.hasShort && shortState?.shortUrl) setViewMode('video')
@@ -75,17 +40,44 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
 
   const activeColorHex = TEXT_COLORS.find(c => c.id === fontColor)?.hex || '#FFE600'
   const activeBoxHex = BOX_COLORS.find(c => c.id === boxColor)?.hex || '#000000'
+  const activeStrokeHex = STROKE_COLORS.find(c => c.id === strokeColor)?.hex || '#000000'
+  const activeShadowHex = SHADOW_COLORS.find(c => c.id === shadowColor)?.hex || '#000000'
   const activeFontFamily = SHORTS_FONTS.find(f => f.id === font)?.family || 'Impact, sans-serif'
-  const activeShadowCss = SHADOW_PRESETS.find(s => s.id === shadowStyle)?.css || '3px 3px 0px #000'
+  const activeShadowCss = shadowDistance > 0 ? `${((shadowDistance / 1080) * 240).toFixed(2)}px ${((shadowDistance / 1080) * 240).toFixed(2)}px 0px ${activeShadowHex}` : 'none'
 
   const maxChars = Math.max(4, Math.floor(920 / ((Number(fontSize) || 110) * 0.58)))
   const displayText = wrapShortsText(text, maxChars) || 'ТЕКСТ ТИЗЕРА'
+  const wordsList = displayText.split(/\s+/).filter(Boolean)
+
+  const handleInstantFramePreview = async () => {
+    try {
+      setRenderingFrame(true)
+      const res = await fetch('/api/preview-short-frame', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bundleDir: pkg.bundleDir, folderName: pkg.folderName, selectedPhoto, hookTitle: text, font, fontSize: Number(fontSize) || 110, fontColor, strokeWidth: Number(strokeWidth) || 0, strokeColor, shadowDistance: Number(shadowDistance) || 0, shadowColor, shadowStyle, wordColors, wordFontSizes, boxEnabled: !!boxEnabled, boxColor, boxOpacity: boxEnabled ? Number(boxOpacity) || 75 : 0, posY: Number(posY) || 200,
+        }),
+      })
+      const data = await res.json()
+      if (data.success && data.frameUrl) {
+        setRealFrameUrl(`${data.frameUrl.split('?')[0]}?t=${Date.now()}`)
+        setViewMode('frame')
+        toast.success('⚡ Точный FFmpeg кадр готов!', { duration: 1200 })
+      }
+    } catch (e) {
+      toast.error('Ошибка: ' + e.message)
+    } finally {
+      setRenderingFrame(false)
+    }
+  }
 
   const handleApply = async () => {
     if (!onGenerateShort) return
     const res = await onGenerateShort({
-      hookTitle: text, font, fontSize: Number(fontSize) || 110, fontColor, strokeWidth: 8,
-      shadowStyle, boxEnabled: !!boxEnabled, boxColor, boxOpacity: boxEnabled ? Number(boxOpacity) || 75 : 0, posY: Number(posY) || 200,
+      hookTitle: text, font, fontSize: Number(fontSize) || 110, fontColor, strokeWidth: Number(strokeWidth) || 0, strokeColor, shadowDistance: Number(shadowDistance) || 0, shadowColor,
+      shadowStyle, wordColors, wordFontSizes, boxEnabled: !!boxEnabled, boxColor, boxOpacity: boxEnabled ? Number(boxOpacity) || 75 : 0, posY: Number(posY) || 200,
+      selectedPhoto,
     })
     if (res?.success) setViewMode('video')
   }
@@ -109,100 +101,135 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
           <button className="close-btn" onClick={onClose}>✕</button>
         </div>
 
-        <div className="modal-body" style={{ display: 'flex', gap: '1.5rem', padding: '1.25rem', overflowY: 'auto', flexWrap: 'wrap' }}>
-          {/* Левая панель */}
-          <div style={{ flex: 1, minWidth: '280px', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-              <label style={{ fontSize: '0.86rem', fontWeight: 700, color: '#f43f5e' }}>✏️ Текст тизера на Shorts (Enter для переноса):</label>
-              <textarea rows={2} value={text} onChange={e => { setText(e.target.value); setViewMode('editor') }} placeholder="Введите текст тизера..." style={{ background: '#111827', border: '1px solid #374151', color: '#fff', borderRadius: '8px', padding: '0.55rem 0.85rem', fontSize: '0.88rem', resize: 'vertical' }} />
-            </div>
+        <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1.25rem', overflowY: 'auto' }}>
+          {/* 🖼️ Выбор фото для фона Shorts */}
+          <BackgroundPhotoSelector
+            photoList={photoList}
+            folderName={pkg?.folderName}
+            selectedBgPhoto={selectedPhoto}
+            onSelectPhoto={(p) => { setSelectedPhoto(p); setViewMode('editor') }}
+            onResetToDefault={() => { setSelectedPhoto(null); setViewMode('editor') }}
+          />
 
-            <div>
-              <label style={{ fontSize: '0.78rem', color: '#9ca3af', display: 'block', marginBottom: '0.3rem' }}>📍 Размещение текста на экране:</label>
-              <div style={{ display: 'flex', gap: '0.45rem' }}>
-                <button type="button" onClick={() => { setPosY(140); setViewMode('editor') }} style={{ flex: 1, background: posY <= 350 ? '#f43f5e' : '#1f2937', color: '#fff', border: '1px solid #374151', borderRadius: '6px', padding: '0.4rem', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600 }}>🔝 Вверху</button>
-                <button type="button" onClick={() => { setPosY(720); setViewMode('editor') }} style={{ flex: 1, background: posY > 350 && posY < 1100 ? '#f43f5e' : '#1f2937', color: '#fff', border: '1px solid #374151', borderRadius: '6px', padding: '0.4rem', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600 }}>🎯 В центре</button>
-                <button type="button" onClick={() => { setPosY(1300); setViewMode('editor') }} style={{ flex: 1, background: posY >= 1100 ? '#f43f5e' : '#1f2937', color: '#fff', border: '1px solid #374151', borderRadius: '6px', padding: '0.4rem', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600 }}>🔻 Внизу</button>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 260px', gap: '1.25rem', alignItems: 'start' }}>
+            {/* Левая панель */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', minWidth: 0 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                <label style={{ fontSize: '0.86rem', fontWeight: 700, color: '#f43f5e' }}>✏️ Текст тизера на Shorts (Enter для переноса):</label>
+                <textarea rows={2} value={text} onChange={e => { setText(e.target.value); setViewMode('editor') }} placeholder="Введите текст тизера..." style={{ background: '#111827', border: '1px solid #374151', color: '#fff', borderRadius: '8px', padding: '0.55rem 0.85rem', fontSize: '0.88rem', resize: 'vertical', width: '100%', boxSizing: 'border-box' }} />
               </div>
-            </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem' }}>
               <div>
-                <label style={{ fontSize: '0.78rem', color: '#9ca3af', display: 'block', marginBottom: '0.25rem' }}>🔤 Шрифт:</label>
-                <select value={font} onChange={e => { setFont(e.target.value); setViewMode('editor') }} style={{ width: '100%', background: '#111827', border: '1px solid #374151', color: '#fff', borderRadius: '6px', padding: '0.4rem', fontSize: '0.8rem' }}>
-                  {SHORTS_FONTS.map(f => (<option key={f.id} value={f.id}>{f.name}</option>))}
-                </select>
-              </div>
-              <div>
-                <label style={{ fontSize: '0.78rem', color: '#9ca3af', display: 'block', marginBottom: '0.25rem' }}>🎨 Цвет букв:</label>
-                <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center', marginTop: '0.15rem' }}>
-                  {TEXT_COLORS.map(c => (<button key={c.id} type="button" onClick={() => { setFontColor(c.id); setViewMode('editor') }} style={{ width: '22px', height: '22px', borderRadius: '50%', background: c.hex, border: fontColor === c.id ? '2px solid #fff' : '1px solid rgba(0,0,0,0.5)', cursor: 'pointer', boxShadow: fontColor === c.id ? '0 0 8px #fff' : 'none' }} title={c.label} />))}
+                <label style={{ fontSize: '0.78rem', color: '#9ca3af', display: 'block', marginBottom: '0.3rem' }}>📍 Размещение текста на экране:</label>
+                <div style={{ display: 'flex', gap: '0.45rem' }}>
+                  <button type="button" onClick={() => { setPosY(140); setViewMode('editor') }} style={{ flex: 1, background: posY <= 350 ? '#f43f5e' : '#1f2937', color: '#fff', border: '1px solid #374151', borderRadius: '6px', padding: '0.4rem', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600 }}>🔝 Вверху</button>
+                  <button type="button" onClick={() => { setPosY(720); setViewMode('editor') }} style={{ flex: 1, background: posY > 350 && posY < 1100 ? '#f43f5e' : '#1f2937', color: '#fff', border: '1px solid #374151', borderRadius: '6px', padding: '0.4rem', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600 }}>🎯 В центре</button>
+                  <button type="button" onClick={() => { setPosY(1300); setViewMode('editor') }} style={{ flex: 1, background: posY >= 1100 ? '#f43f5e' : '#1f2937', color: '#fff', border: '1px solid #374151', borderRadius: '6px', padding: '0.4rem', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600 }}>🔻 Внизу</button>
                 </div>
               </div>
-            </div>
 
-            {/* Тени и Свечение */}
-            <div>
-              <label style={{ fontSize: '0.78rem', color: '#9ca3af', display: 'block', marginBottom: '0.25rem' }}>✨ Стиль тени и свечения:</label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.35rem' }}>
-                {SHADOW_PRESETS.map(s => (
-                  <button key={s.id} type="button" onClick={() => { setShadowStyle(s.id); setViewMode('editor') }} style={{ background: shadowStyle === s.id ? '#f43f5e' : '#1f2937', color: '#fff', border: '1px solid #374151', borderRadius: '4px', padding: '0.35rem 0.2rem', fontSize: '0.74rem', cursor: 'pointer', fontWeight: 600 }}>
-                    {s.name}
-                  </button>
-                ))}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem' }}>
+                <div>
+                  <label style={{ fontSize: '0.78rem', color: '#9ca3af', display: 'block', marginBottom: '0.25rem' }}>🔤 Шрифт:</label>
+                  <select value={font} onChange={e => { setFont(e.target.value); setViewMode('editor') }} style={{ width: '100%', background: '#111827', border: '1px solid #374151', color: '#fff', borderRadius: '6px', padding: '0.4rem', fontSize: '0.8rem' }}>
+                    {SHORTS_FONTS.map(f => (<option key={f.id} value={f.id}>{f.name}</option>))}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.78rem', color: '#9ca3af', display: 'block', marginBottom: '0.25rem' }}>🎨 Цвет букв:</label>
+                  <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center', marginTop: '0.15rem' }}>
+                    {TEXT_COLORS.map(c => (<button key={c.id} type="button" onClick={() => { setFontColor(c.id); setViewMode('editor') }} style={{ width: '22px', height: '22px', borderRadius: '50%', background: c.hex, border: fontColor === c.id ? '2px solid #fff' : '1px solid rgba(0,0,0,0.5)', cursor: 'pointer', boxShadow: fontColor === c.id ? '0 0 8px #fff' : 'none' }} title={c.label} />))}
+                  </div>
+                </div>
               </div>
-            </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem' }}>
-              <div>
-                <label style={{ fontSize: '0.78rem', color: '#9ca3af', display: 'block', marginBottom: '0.2rem' }}>📏 Размер ({fontSize}px):</label>
-                <input type="range" min="40" max="220" value={fontSize} onChange={e => { setFontSize(Number(e.target.value)); setViewMode('editor') }} style={{ width: '100%' }} />
-              </div>
-              <div>
-                <label style={{ fontSize: '0.78rem', color: '#9ca3af', display: 'block', marginBottom: '0.2rem' }}>📍 Высота Y ({posY}px):</label>
-                <input type="range" min="40" max="1750" value={posY} onChange={e => { setPosY(Number(e.target.value)); setViewMode('editor') }} style={{ width: '100%' }} />
-              </div>
-            </div>
+              {/* Контур, Тень и Пословная настройка */}
+              <ShortsTypographyControls
+                strokeWidth={strokeWidth}
+                setStrokeWidth={setStrokeWidth}
+                strokeColor={strokeColor}
+                setStrokeColor={setStrokeColor}
+                shadowDistance={shadowDistance}
+                setShadowDistance={setShadowDistance}
+                shadowColor={shadowColor}
+                setShadowColor={setShadowColor}
+                words={wordsList}
+                wordColors={wordColors}
+                setWordColors={setWordColors}
+                wordFontSizes={wordFontSizes}
+                setWordFontSizes={setWordFontSizes}
+                fontColor={fontColor}
+                fontSize={fontSize}
+                onDirty={() => setViewMode('editor')}
+              />
 
-            {/* Плашка фона */}
-            <div style={{ background: '#111827', border: '1px solid #1f2937', borderRadius: '8px', padding: '0.65rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#f3f4f6' }}>🔲 Фон/Плашка под текстом:</span>
-                <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.78rem', color: boxEnabled ? '#10b981' : '#9ca3af' }}>
-                  <input type="checkbox" checked={boxEnabled} onChange={e => { setBoxEnabled(e.target.checked); setViewMode('editor') }} style={{ accentColor: '#f43f5e', cursor: 'pointer' }} />
-                  {boxEnabled ? 'ВКЛЮЧЕН' : 'ОТКЛЮЧЕН'}
-                </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem' }}>
+                <div>
+                  <label style={{ fontSize: '0.78rem', color: '#9ca3af', display: 'block', marginBottom: '0.2rem' }}>📏 Размер ({fontSize}px):</label>
+                  <input type="range" min="40" max="220" value={fontSize} onChange={e => { setFontSize(Number(e.target.value)); setViewMode('editor') }} style={{ width: '100%' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.78rem', color: '#9ca3af', display: 'block', marginBottom: '0.2rem' }}>📍 Высота Y ({posY}px):</label>
+                  <input type="range" min="40" max="1750" value={posY} onChange={e => { setPosY(Number(e.target.value)); setViewMode('editor') }} style={{ width: '100%' }} />
+                </div>
               </div>
-              {boxEnabled && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem', alignItems: 'center', paddingTop: '0.3rem', borderTop: '1px solid #1f2937' }}>
-                  <div>
-                    <label style={{ fontSize: '0.74rem', color: '#9ca3af', display: 'block', marginBottom: '0.2rem' }}>Цвет фона:</label>
-                    <div style={{ display: 'flex', gap: '0.3rem' }}>
-                      {BOX_COLORS.map(b => (<button key={b.id} type="button" onClick={() => { setBoxColor(b.id); setViewMode('editor') }} style={{ width: '20px', height: '20px', borderRadius: '4px', background: b.hex, border: boxColor === b.id ? '2px solid #f43f5e' : '1px solid rgba(255,255,255,0.2)', cursor: 'pointer', boxShadow: boxColor === b.id ? '0 0 6px #f43f5e' : 'none' }} title={b.label} />))}
+
+              {/* Плашка фона */}
+              <div style={{ background: '#111827', border: '1px solid #1f2937', borderRadius: '8px', padding: '0.65rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#f3f4f6' }}>🔲 Фон/Плашка под текстом:</span>
+                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.78rem', color: boxEnabled ? '#10b981' : '#9ca3af' }}>
+                    <input type="checkbox" checked={boxEnabled} onChange={e => { setBoxEnabled(e.target.checked); setViewMode('editor') }} style={{ accentColor: '#f43f5e', cursor: 'pointer' }} />
+                    {boxEnabled ? 'ВКЛЮЧЕН' : 'ОТКЛЮЧЕН'}
+                  </label>
+                </div>
+                {boxEnabled && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem', alignItems: 'center', paddingTop: '0.3rem', borderTop: '1px solid #1f2937' }}>
+                    <div>
+                      <label style={{ fontSize: '0.74rem', color: '#9ca3af', display: 'block', marginBottom: '0.2rem' }}>Цвет фона:</label>
+                      <div style={{ display: 'flex', gap: '0.3rem' }}>
+                        {BOX_COLORS.map(b => (<button key={b.id} type="button" onClick={() => { setBoxColor(b.id); setViewMode('editor') }} style={{ width: '20px', height: '20px', borderRadius: '4px', background: b.hex, border: boxColor === b.id ? '2px solid #f43f5e' : '1px solid rgba(255,255,255,0.2)', cursor: 'pointer', boxShadow: boxColor === b.id ? '0 0 6px #f43f5e' : 'none' }} title={b.label} />))}
+                      </div>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.74rem', color: '#9ca3af', display: 'block', marginBottom: '0.2rem' }}>Прозрачность ({boxOpacity}%):</label>
+                      <input type="range" min="10" max="100" value={boxOpacity} onChange={e => { setBoxOpacity(Number(e.target.value)); setViewMode('editor') }} style={{ width: '100%' }} />
                     </div>
                   </div>
-                  <div>
-                    <label style={{ fontSize: '0.74rem', color: '#9ca3af', display: 'block', marginBottom: '0.2rem' }}>Прозрачность ({boxOpacity}%):</label>
-                    <input type="range" min="10" max="100" value={boxOpacity} onChange={e => { setBoxOpacity(Number(e.target.value)); setViewMode('editor') }} style={{ width: '100%' }} />
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
-          </div>
 
           {/* Правая панель: Большой экран 9:16 */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.55rem', flexShrink: 0, margin: '0 auto' }}>
-            <div style={{ display: 'flex', gap: '0.4rem', background: '#111827', padding: '4px', borderRadius: '8px', border: '1px solid #1f2937' }}>
+            <div style={{ display: 'flex', gap: '0.35rem', background: '#111827', padding: '4px', borderRadius: '8px', border: '1px solid #1f2937', flexWrap: 'wrap', justifyContent: 'center' }}>
               <button
                 type="button"
                 onClick={() => setViewMode('editor')}
                 style={{
                   background: viewMode === 'editor' ? '#f43f5e' : 'transparent',
-                  color: '#fff', border: 'none', borderRadius: '6px', padding: '0.4rem 0.85rem', fontSize: '0.82rem', cursor: 'pointer', fontWeight: 700,
+                  color: '#fff', border: 'none', borderRadius: '6px', padding: '0.35rem 0.65rem', fontSize: '0.78rem', cursor: 'pointer', fontWeight: 700,
                   boxShadow: viewMode === 'editor' ? '0 2px 8px rgba(244,63,94,0.4)' : 'none',
                 }}
               >
-                ✏️ Редактировать макет
+                👁️ CSS
+              </button>
+              <button
+                type="button"
+                disabled={renderingFrame}
+                onClick={() => {
+                  if (viewMode === 'frame') handleInstantFramePreview()
+                  else if (realFrameUrl) setViewMode('frame')
+                  else handleInstantFramePreview()
+                }}
+                style={{
+                  background: viewMode === 'frame' ? '#3b82f6' : 'transparent',
+                  color: '#fff', border: 'none', borderRadius: '6px', padding: '0.35rem 0.65rem', fontSize: '0.78rem', cursor: 'pointer', fontWeight: 700,
+                  boxShadow: viewMode === 'frame' ? '0 2px 8px rgba(59,130,246,0.4)' : 'none',
+                }}
+                title="Сгенерировать точный кадр через FFmpeg за 0.03 сек"
+              >
+                {renderingFrame ? '⏳ FFmpeg...' : '⚡ FFmpeg'}
               </button>
               <button
                 type="button"
@@ -210,11 +237,11 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
                 onClick={() => setViewMode('video')}
                 style={{
                   background: viewMode === 'video' ? '#10b981' : 'transparent',
-                  color: !shortState?.hasShort ? '#6b7280' : '#fff', border: 'none', borderRadius: '6px', padding: '0.4rem 0.85rem', fontSize: '0.82rem', cursor: shortState?.hasShort ? 'pointer' : 'not-allowed', fontWeight: 700,
+                  color: !shortState?.hasShort ? '#6b7280' : '#fff', border: 'none', borderRadius: '6px', padding: '0.35rem 0.65rem', fontSize: '0.78rem', cursor: shortState?.hasShort ? 'pointer' : 'not-allowed', fontWeight: 700,
                   boxShadow: viewMode === 'video' ? '0 2px 8px rgba(16,185,129,0.4)' : 'none',
                 }}
               >
-                ▶ Смотреть видео {shortState?.hasShort ? '✨' : ''}
+                ▶ Видео {shortState?.hasShort ? '✨' : ''}
               </button>
             </div>
 
@@ -229,34 +256,77 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
               }}
             >
               {viewMode === 'video' && shortState?.hasShort ? (
+                <ShortsCustomPlayer src={shortState.shortUrl} onEditMode={() => setViewMode('editor')} />
+              ) : viewMode === 'frame' && realFrameUrl ? (
                 <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-                  <video
-                    key={shortState.shortUrl}
-                    src={shortState.shortUrl}
-                    controls
-                    preload="metadata"
-                    playsInline
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  />
+                  <img src={realFrameUrl} alt="FFmpeg Rendered Frame" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
                   <button
                     type="button"
-                    onClick={() => setViewMode('editor')}
+                    onClick={handleInstantFramePreview}
                     style={{
                       position: 'absolute', top: '10px', right: '10px', zIndex: 30,
-                      background: 'rgba(0,0,0,0.75)', color: '#f43f5e', border: '1px solid #f43f5e',
+                      background: 'rgba(0,0,0,0.75)', color: '#3b82f6', border: '1px solid #3b82f6',
                       borderRadius: '6px', padding: '0.3rem 0.6rem', fontSize: '0.74rem', cursor: 'pointer', fontWeight: 700,
                     }}
                   >
-                    ✏️ Изменить
+                    🔄 Обновить
                   </button>
                 </div>
               ) : (
                 <>
-                  {previewPhotoUrl && (<img src={previewPhotoUrl} alt="Shorts Preview" draggable={false} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 1, pointerEvents: 'none' }} />)}
-                  <div style={{ position: 'absolute', top: `${(posY / 1920) * 100}%`, left: '50%', transform: 'translateX(-50%)', width: '92%', textAlign: 'center', zIndex: 10, pointerEvents: 'none' }}>
-                    <span style={{ display: 'inline-block', fontFamily: activeFontFamily, fontSize: `${(fontSize / 1080) * 240}px`, color: activeColorHex, lineHeight: 1.15, fontWeight: 900, textTransform: 'uppercase', WebkitTextStroke: '1px #000', textShadow: activeShadowCss, background: boxEnabled ? `${activeBoxHex}${Math.round((boxOpacity / 100) * 255).toString(16).padStart(2, '0')}` : 'transparent', padding: boxEnabled ? '6px 10px' : '0', borderRadius: '6px', whiteSpace: 'pre-wrap', textAlign: 'center' }}>
-                      {displayText}
-                    </span>
+                  {currentBgSrc && (<img src={currentBgSrc} alt="Shorts Preview" draggable={false} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 1, pointerEvents: 'none' }} />)}
+                  <div style={{
+                    position: 'absolute', top: `${(posY / 1920) * 100}%`, left: '50%', transform: 'translateX(-50%)',
+                    width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center',
+                    gap: `${((fontSize * 0.15) / 1080) * 240}px`, textAlign: 'center', zIndex: 10, pointerEvents: 'none',
+                  }}>
+                    {(() => {
+                      let wordGlobalIdx = 0
+                      return displayText.split('\n').map((line, lIdx) => {
+                        const lineWords = line.split(/\s+/).filter(Boolean)
+                        return (
+                          <span
+                            key={lIdx}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'baseline',
+                              fontFamily: activeFontFamily,
+                              lineHeight: 1,
+                              fontWeight: 900,
+                              textTransform: 'uppercase',
+                              WebkitTextStroke: strokeWidth > 0 ? `${((strokeWidth / 1080) * 240).toFixed(2)}px ${activeStrokeHex}` : 'none',
+                              textShadow: activeShadowCss,
+                              background: boxEnabled ? `${activeBoxHex}${Math.round((boxOpacity / 100) * 255).toString(16).padStart(2, '0')}` : 'transparent',
+                              padding: boxEnabled ? '2px 8px' : '0',
+                              borderRadius: '4px',
+                              textAlign: 'center',
+                            }}
+                          >
+                            {lineWords.map((w, wSubIdx) => {
+                              const curIdx = wordGlobalIdx++
+                              const wCol = (wordColors && wordColors[curIdx]) ? wordColors[curIdx] : fontColor
+                              const wColHex = TEXT_COLORS.find(c => c.id === wCol)?.hex || activeColorHex
+                              const wSz = (wordFontSizes && wordFontSizes[curIdx] && Number(wordFontSizes[curIdx]) > 0)
+                                ? Number(wordFontSizes[curIdx])
+                                : Number(fontSize)
+                              return (
+                                <span
+                                  key={wSubIdx}
+                                  style={{
+                                    color: wColHex,
+                                    fontSize: `${(wSz / 1080) * 240}px`,
+                                    margin: '0 0.12em',
+                                    display: 'inline-block',
+                                  }}
+                                >
+                                  {w}
+                                </span>
+                              )
+                            })}
+                          </span>
+                        )
+                      })
+                    })()}
                   </div>
                   <div style={{ position: 'absolute', bottom: '10px', left: '12px', zIndex: 12, fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)', pointerEvents: 'none' }}>
                     ▶ YouTube Shorts (9:16)
@@ -264,6 +334,7 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
                 </>
               )}
             </div>
+          </div>
           </div>
         </div>
 

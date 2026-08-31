@@ -2,6 +2,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { execFileSync, execSync } from 'child_process';
+import { buildAssShortsSubtitle, FFMPEG_SHORTS_COLOR_MAP } from './shortsAssService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,24 +19,26 @@ export function getAudioDurationSeconds(audioPath) {
 }
 
 export function wrapShortsText(rawText, maxChars = 12) {
-  const inputLines = String(rawText || '').split('\n');
-  const wrappedLines = [];
-  for (const line of inputLines) {
-    const words = line.trim().split(/\s+/).filter(Boolean);
-    if (words.length === 0) continue;
-    let cur = '';
-    for (const w of words) {
-      if (!cur) {
-        cur = w;
-      } else if ((cur + ' ' + w).length <= maxChars) {
-        cur += ' ' + w;
-      } else {
-        wrappedLines.push(cur);
-        cur = w;
-      }
-    }
-    if (cur) wrappedLines.push(cur);
+  if (typeof rawText === 'string' && rawText.includes('\n')) {
+    const userLines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
+    if (userLines.length > 0) return userLines.join('\n');
   }
+  const words = String(rawText || '').replace(/[\r\n\t]/g, ' ').replace(/["'«»`]/g, '').trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return '';
+  const wrappedLines = [];
+  let cur = '';
+  for (let i = 0; i < words.length; i++) {
+    const w = words[i];
+    if (!cur) {
+      cur = w;
+    } else if ((cur + ' ' + w).length <= maxChars) {
+      cur += ' ' + w;
+    } else {
+      wrappedLines.push(cur);
+      cur = w;
+    }
+  }
+  if (cur) wrappedLines.push(cur);
   return wrappedLines.join('\n');
 }
 
@@ -47,12 +50,18 @@ export async function processRenderShort({
   font: reqFont = 'impact',
   fontSize = 90,
   fontColor = 'yellow',
+  strokeWidth = 8,
+  strokeColor = 'black',
+  shadowDistance = 4,
+  shadowColor = 'black',
+  wordColors = null,
+  wordFontSizes = null,
   posY = 240,
-  strokeWidth = 7,
   shadowStyle = 'hard',
   boxEnabled = true,
   boxColor = 'black',
   boxOpacity = 75,
+  selectedPhoto = null,
 }) {
   let targetFolder = inputBundleDir;
   if (!targetFolder && folderName) targetFolder = path.join(newsDir, folderName);
@@ -96,8 +105,16 @@ export async function processRenderShort({
     throw new Error('В пакете нет фотографий для монтажа Shorts');
   }
 
-  // Берем первые 4–5 фото
-  const selectedPhotos = availablePhotos.slice(0, 5);
+  // Берем фото с учетом выбранного главного фото
+  let selectedPhotos = availablePhotos;
+  if (selectedPhoto) {
+    const customPhotoName = path.basename(selectedPhoto);
+    const customPath = path.join(photosDir, customPhotoName);
+    if (fs.existsSync(customPath)) {
+      selectedPhotos = [customPath, ...availablePhotos.filter(p => path.basename(p) !== customPhotoName)];
+    }
+  }
+  selectedPhotos = selectedPhotos.slice(0, 5);
   const photoCount = selectedPhotos.length;
   const perPhotoDur = targetDur / photoCount;
 
@@ -148,24 +165,18 @@ export async function processRenderShort({
   };
   const effectiveColor = hexColorMap[fontColor] || fontColor || '#FFE600';
   const effectivePosY = Math.max(20, Math.min(Number(posY) || 240, 1800));
-  const effectiveStroke = Math.max(0, Math.min(Number(strokeWidth) || 7, 28));
+  const effectiveStroke = Math.max(0, Math.min(Number(strokeWidth) ?? 8, 28));
+  const effectiveStrokeColor = hexColorMap[strokeColor] || strokeColor || '#000000';
+  const effectiveShadowDist = Math.max(0, Math.min(Number(shadowDistance) ?? 4, 30));
+  const shadowHex = hexColorMap[shadowColor] || shadowColor || '#000000';
+  let shadowParams = effectiveShadowDist > 0
+    ? `shadowcolor=${shadowHex}@0.92:shadowx=${effectiveShadowDist}:shadowy=${effectiveShadowDist}:`
+    : 'shadowcolor=black@0:shadowx=0:shadowy=0:';
+
   const effectiveBoxOp = Math.max(0, Math.min(Number(boxOpacity) ?? 75, 100)) / 100;
   const isBoxOn = boxEnabled !== false && boxEnabled !== 'false' && effectiveBoxOp > 0;
   const effectiveBoxColor = hexColorMap[boxColor] || boxColor || '#000000';
   const boxFilterPart = isBoxOn ? `box=1:boxcolor=${effectiveBoxColor}@${effectiveBoxOp}:boxborderw=20:` : 'box=0:';
-
-  let shadowParams = 'shadowcolor=black@0.9:shadowx=5:shadowy=5:';
-  if (shadowStyle === 'soft') {
-    shadowParams = 'shadowcolor=black@0.55:shadowx=3:shadowy=3:';
-  } else if (shadowStyle === 'glow_red') {
-    shadowParams = 'shadowcolor=0xFF0033@0.95:shadowx=0:shadowy=0:';
-  } else if (shadowStyle === 'glow_yellow') {
-    shadowParams = 'shadowcolor=0xFFE600@0.95:shadowx=0:shadowy=0:';
-  } else if (shadowStyle === 'glow_cyan') {
-    shadowParams = 'shadowcolor=0x00F0FF@0.95:shadowx=0:shadowy=0:';
-  } else if (shadowStyle === 'none') {
-    shadowParams = 'shadowcolor=black@0:shadowx=0:shadowy=0:';
-  }
 
   // Сборка 9:16 видео через единый сверхбыстрый проход FFmpeg (Concat Demuxer)
   const concatListFile = path.join(targetFolder, `temp_short_photos_${Date.now()}.txt`);
@@ -179,9 +190,34 @@ export async function processRenderShort({
     concatContent += `file '${selectedPhotos[selectedPhotos.length - 1].replace(/\\/g, '/')}'\n`;
     fs.writeFileSync(concatListFile, concatContent, 'utf-8');
 
-    // Фильтры: масштабирование 1080x1920 + заголовок
-    const drawtext = `drawtext=fontfile='${fontPath}':text='${safeDrawText}':fontsize=${effectiveSize}:line_spacing=18:fontcolor=${effectiveColor}:bordercolor=black:borderw=${effectiveStroke}:${shadowParams}${boxFilterPart}x=(w-text_w)/2:y=${effectivePosY}`;
-    const vf = `scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,${drawtext}`;
+    // Фильтры: масштабирование 1080x1920 + наложение текста
+    const hasWordStyles = (
+      (Array.isArray(wordColors) && wordColors.some(Boolean)) ||
+      (Array.isArray(wordFontSizes) && wordFontSizes.some(s => s && Number(s) > 0))
+    );
+
+    let vf = '';
+    let assFile = null;
+    if (hasWordStyles) {
+      const assContent = buildAssShortsSubtitle(wrappedText, {
+        font: reqFont, fontSize: effectiveSize, fontColor, strokeWidth: effectiveStroke, strokeColor: effectiveStrokeColor,
+        shadowDistance: effectiveShadowDist, shadowColor, posY: effectivePosY, wordColors, wordFontSizes
+      });
+      assFile = path.join(targetFolder, `temp_short_ass_${Date.now()}.ass`);
+      fs.writeFileSync(assFile, assContent, 'utf-8');
+      const safeAssPath = assFile.replace(/\\/g, '/').replace(/:/g, '\\:');
+      const safeCustomFontsDir = customFontsDir.replace(/\\/g, '/').replace(/:/g, '\\:');
+      vf = `scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,subtitles=filename='${safeAssPath}':fontsdir='${safeCustomFontsDir}'`;
+    } else {
+      const lines = wrappedText.split('\n').filter(Boolean);
+      const lineStep = Math.round(effectiveSize * 1.18);
+      const drawtextFilters = lines.map((line, idx) => {
+        const safeLine = line.replace(/["'«»`]/g, '').trim().replace(/'/g, "'\\''").replace(/:/g, '\\:');
+        const curY = effectivePosY + (idx * lineStep);
+        return `drawtext=fontfile='${fontPath}':text='${safeLine}':fontsize=${effectiveSize}:fontcolor=${effectiveColor}:bordercolor=${effectiveStrokeColor}:borderw=${effectiveStroke}:${shadowParams}${boxFilterPart}x=(w-text_w)/2:y=${curY}`;
+      }).join(',');
+      vf = `scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,${drawtextFilters}`;
+    }
 
     const fadeOutStart = Math.max(0, targetDur - 0.4);
     const af = `atrim=0:${targetDur},asetpts=PTS-STARTPTS,afade=t=out:st=${fadeOutStart}:d=0.4`;
@@ -215,10 +251,16 @@ export async function processRenderShort({
     fontColor,
     posY: effectivePosY,
     strokeWidth: effectiveStroke,
+    strokeColor: effectiveStrokeColor,
+    shadowDistance: effectiveShadowDist,
+    shadowColor,
+    wordColors,
+    wordFontSizes,
     shadowStyle,
     boxEnabled,
     boxColor,
     boxOpacity,
+    selectedPhoto,
   };
 
   // Обновляем project.json
@@ -243,4 +285,80 @@ export async function processRenderShort({
     duration: targetDur,
     shortsConfig,
   };
+}
+
+export async function processPreviewShortFrame(options) {
+  const { bundleDir: inputBundleDir, folderName, selectedPhoto, hookTitle = '', font: reqFont = 'impact', fontSize = 90, fontColor = 'yellow', strokeWidth = 8, strokeColor = 'black', shadowDistance = 4, shadowColor = 'black', wordColors = null, wordFontSizes = null, posY = 240, shadowStyle = 'hard', boxEnabled = true, boxColor = 'black', boxOpacity = 75 } = options;
+  let targetFolder = inputBundleDir || (folderName ? path.join(newsDir, folderName) : null);
+  if (!targetFolder || !fs.existsSync(targetFolder)) throw new Error('Папка не найдена');
+  const photosDir = path.join(targetFolder, 'photos');
+  let basePhoto = selectedPhoto ? path.join(photosDir, path.basename(selectedPhoto)) : null;
+  if (!basePhoto || !fs.existsSync(basePhoto)) {
+    const files = fs.existsSync(photosDir) ? fs.readdirSync(photosDir).filter(f => /\.(jpg|jpeg|png|webp)$/i.test(f)) : [];
+    basePhoto = files[0] ? path.join(photosDir, files[0]) : path.join(targetFolder, 'thumbnail', 'thumbnail.jpg');
+  }
+  if (!fs.existsSync(basePhoto)) throw new Error('Фото не найдено');
+
+  const effectiveSize = Math.max(30, Math.min(Number(fontSize) || 90, 240));
+  const maxChars = Math.max(4, Math.floor(920 / (effectiveSize * 0.58)));
+  const wrappedText = wrapShortsText(hookTitle || path.basename(targetFolder).replace(/^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}_/, '').replace(/_/g, ' '), maxChars);
+
+  const customFontsDir = path.resolve(__dirname, '../custom_fonts');
+  let fontPath = 'C\\:/Windows/Fonts/impact.ttf';
+  if (reqFont === 'arial_black') fontPath = 'C\\:/Windows/Fonts/ariblk.ttf';
+  else if (reqFont && reqFont.endsWith('.ttf') && fs.existsSync(path.join(customFontsDir, reqFont))) {
+    fontPath = path.join(customFontsDir, reqFont).replace(/\\/g, '/').replace(/:/g, '\\:');
+  }
+
+  const hexColorMap = { yellow: '#FFE600', white: '#FFFFFF', red: '#FF2A2A', cyan: '#00F0FF', green: '#00FF66', orange: '#FF8C00', black: '#000000', blue: '#1D4ED8', purple: '#7C3AED' };
+  const effectiveColor = hexColorMap[fontColor] || fontColor || '#FFE600';
+  const effectivePosY = Math.max(20, Math.min(Number(posY) || 240, 1800));
+  const effectiveStroke = Math.max(0, Math.min(Number(strokeWidth) ?? 8, 28));
+  const effectiveStrokeColor = hexColorMap[strokeColor] || strokeColor || '#000000';
+  const effectiveShadowDist = Math.max(0, Math.min(Number(shadowDistance) ?? 4, 30));
+  const shadowHex = hexColorMap[shadowColor] || shadowColor || '#000000';
+  let shadowParams = effectiveShadowDist > 0
+    ? `shadowcolor=${shadowHex}@0.92:shadowx=${effectiveShadowDist}:shadowy=${effectiveShadowDist}:`
+    : 'shadowcolor=black@0:shadowx=0:shadowy=0:';
+
+  const effectiveBoxOp = Math.max(0, Math.min(Number(boxOpacity) ?? 75, 100)) / 100;
+  const isBoxOn = boxEnabled !== false && boxEnabled !== 'false' && effectiveBoxOp > 0;
+  const effectiveBoxColor = hexColorMap[boxColor] || boxColor || '#000000';
+  const boxFilterPart = isBoxOn ? `box=1:boxcolor=${effectiveBoxColor}@${effectiveBoxOp}:boxborderw=20:` : 'box=0:';
+
+  const hasWordStyles = (
+    (Array.isArray(wordColors) && wordColors.some(Boolean)) ||
+    (Array.isArray(wordFontSizes) && wordFontSizes.some(s => s && Number(s) > 0))
+  );
+
+  let vf = '';
+  let assFile = null;
+  const previewOut = path.join(targetFolder, 'preview_short_frame.jpg');
+  try {
+    if (hasWordStyles) {
+      const assContent = buildAssShortsSubtitle(wrappedText, {
+        font: reqFont, fontSize: effectiveSize, fontColor, strokeWidth: effectiveStroke, strokeColor: effectiveStrokeColor,
+        shadowDistance: effectiveShadowDist, shadowColor, posY: effectivePosY, wordColors, wordFontSizes
+      });
+      assFile = path.join(targetFolder, `temp_preview_short_ass_${Date.now()}.ass`);
+      fs.writeFileSync(assFile, assContent, 'utf-8');
+      const safeAssPath = assFile.replace(/\\/g, '/').replace(/:/g, '\\:');
+      const safeCustomFontsDir = customFontsDir.replace(/\\/g, '/').replace(/:/g, '\\:');
+      vf = `scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,subtitles=filename='${safeAssPath}':fontsdir='${safeCustomFontsDir}'`;
+    } else {
+      const lines = wrappedText.split('\n').filter(Boolean);
+      const lineStep = Math.round(effectiveSize * 1.18);
+      const drawtextFilters = lines.map((line, idx) => {
+        const safeLine = line.replace(/["'«»`]/g, '').trim().replace(/'/g, "'\\''").replace(/:/g, '\\:');
+        const curY = effectivePosY + (idx * lineStep);
+        return `drawtext=fontfile='${fontPath}':text='${safeLine}':fontsize=${effectiveSize}:fontcolor=${effectiveColor}:bordercolor=${effectiveStrokeColor}:borderw=${effectiveStroke}:${shadowParams}${boxFilterPart}x=(w-text_w)/2:y=${curY}`;
+      }).join(',');
+      vf = `scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,${drawtextFilters}`;
+    }
+    execFileSync('ffmpeg', ['-y', '-i', basePhoto, '-vf', vf, '-frames:v', '1', '-q:v', '2', previewOut]);
+  } finally {
+    try { if (assFile && fs.existsSync(assFile)) fs.unlinkSync(assFile); } catch {}
+  }
+  const resFolder = path.basename(targetFolder);
+  return { success: true, frameUrl: `/news-static/${resFolder}/preview_short_frame.jpg?t=${Date.now()}` };
 }
