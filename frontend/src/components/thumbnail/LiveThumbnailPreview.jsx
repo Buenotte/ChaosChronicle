@@ -42,20 +42,20 @@ export default function LiveThumbnailPreview({
         </span>
       </div>
 
-      <div
-        style={{
-          position: 'relative',
-          width: '100%',
-          aspectRatio: '16/9',
-          maxHeight: '360px',
-          borderRadius: '10px',
-          overflow: 'hidden',
-          background: '#09090b',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
-          border: '2px solid #3f3f46',
-          containerType: 'inline-size',
-        }}
-      >
+      <div style={{ maxWidth: '640px', margin: '0 auto', width: '100%' }}>
+        <div
+          style={{
+            position: 'relative',
+            width: '100%',
+            aspectRatio: '16/9',
+            borderRadius: '10px',
+            overflow: 'hidden',
+            background: '#09090b',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
+            border: '2px solid #3f3f46',
+            containerType: 'inline-size',
+          }}
+        >
         {/* Фоновое чистое изображение */}
         <img
           src={previewSrc}
@@ -160,6 +160,7 @@ export default function LiveThumbnailPreview({
             </div>
           )
         })()}
+        </div>
       </div>
     </div>
   )
