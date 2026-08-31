@@ -23,6 +23,11 @@ export default function LiveThumbnailPreview({
   isItalic,
   tiltAngle,
   previewLines,
+  previewMode = 'css',
+  setPreviewMode,
+  realThumbnailUrl = null,
+  onTriggerRealRender = null,
+  renderingPreview = false,
 }) {
   const angle = Number(tiltAngle) || 0
   const yPct = (offsetY !== undefined && offsetY !== null && !isNaN(Number(offsetY)))
@@ -33,13 +38,59 @@ export default function LiveThumbnailPreview({
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-        <label style={{ fontSize: '0.85rem', color: '#ec4899', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-          👁️ ЖИВОЙ ПРЕДПРОСМОТР ОБЛОЖКИ (16:9):
-        </label>
-        <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
-          {isItalic ? '✍️ Курсив ' : ''}{angle !== 0 ? `📐 Угол: ${angle}° ` : ''}• Позиция Y: {yPct}%
-        </span>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem', flexWrap: 'wrap', gap: '0.4rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <label style={{ fontSize: '0.85rem', color: '#ec4899', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+            👁️ ПРЕДПРОСМОТР (16:9):
+          </label>
+          <div style={{ display: 'flex', background: '#18181b', borderRadius: '6px', padding: '2px', border: '1px solid #334155' }}>
+            <button
+              type="button"
+              onClick={() => setPreviewMode && setPreviewMode('css')}
+              style={{
+                background: previewMode === 'css' ? '#ec4899' : 'transparent',
+                color: previewMode === 'css' ? '#fff' : '#94a3b8',
+                border: 'none', borderRadius: '4px', padding: '0.2rem 0.55rem',
+                fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer'
+              }}
+            >
+              👁️ Живой CSS
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (setPreviewMode) setPreviewMode('real');
+                if (!realThumbnailUrl && onTriggerRealRender) onTriggerRealRender();
+              }}
+              style={{
+                background: previewMode === 'real' ? '#3b82f6' : 'transparent',
+                color: previewMode === 'real' ? '#fff' : '#94a3b8',
+                border: 'none', borderRadius: '4px', padding: '0.2rem 0.55rem',
+                fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer'
+              }}
+            >
+              ⚡ FFmpeg рендер
+            </button>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          {onTriggerRealRender && (
+            <button
+              type="button"
+              disabled={renderingPreview}
+              onClick={onTriggerRealRender}
+              className="copy-btn"
+              style={{ background: '#3b82f6', fontSize: '0.72rem', padding: '0.2rem 0.6rem', fontWeight: 700 }}
+              title="Мгновенно выполнить реальный рендер через FFmpeg (0.05 сек)"
+            >
+              {renderingPreview ? '⏳ Рендер...' : '⚡ Обновить FFmpeg'}
+            </button>
+          )}
+          <span style={{ fontSize: '0.74rem', color: '#9ca3af' }}>
+            {isItalic ? '✍️ Курсив ' : ''}{angle !== 0 ? `📐 ${angle}° ` : ''}• Y: {yPct}%
+          </span>
+        </div>
       </div>
 
       <div style={{ maxWidth: '640px', margin: '0 auto', width: '100%' }}>
@@ -56,24 +107,38 @@ export default function LiveThumbnailPreview({
             containerType: 'inline-size',
           }}
         >
-        {/* Фоновое чистое изображение */}
-        <img
-          src={previewSrc}
-          alt="Thumbnail Preview"
-          style={{
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            filter: 'brightness(0.85)',
-          }}
-          onError={(e) => {
-            if (e.target.src.includes('raw_background.jpg')) {
-              e.target.src = previewSrc.replace('raw_background.jpg', 'thumbnail.jpg');
-            }
-          }}
-        />
+        {previewMode === 'real' && realThumbnailUrl ? (
+          <img
+            src={realThumbnailUrl}
+            alt="Real Rendered Thumbnail"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+            }}
+          />
+        ) : (
+          <>
+            {/* Фоновое чистое изображение */}
+            <img
+              src={previewSrc}
+              alt="Thumbnail Preview"
+              style={{
+                position: 'absolute',
+                inset: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                filter: 'brightness(0.85)',
+              }}
+              onError={(e) => {
+                if (e.target.src.includes('raw_background.jpg')) {
+                  e.target.src = previewSrc.replace('raw_background.jpg', 'thumbnail.jpg');
+                }
+              }}
+            />
 
         {/* Накладываемый живой текст с точной имитацией FFmpeg (позиция Y, наклон, курсив, обводка, тень) */}
         {(() => {
@@ -147,7 +212,7 @@ export default function LiveThumbnailPreview({
                             color: wordHex,
                             fontSize: wordSz,
                             display: 'inline-block',
-                            margin: '0 0.16em',
+                            margin: '0 0.05em',
                           }}
                         >
                           {word}
@@ -160,6 +225,8 @@ export default function LiveThumbnailPreview({
             </div>
           )
         })()}
+          </>
+        )}
         </div>
       </div>
     </div>

@@ -16,8 +16,7 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
   const [uploadingFont, setUploadingFont] = useState(false)
   const [fontSize, setFontSize] = useState(cfg.fontSize || 'auto')
   const [customSizeNum, setCustomSizeNum] = useState(cfg.fontSize && cfg.fontSize !== 'auto' ? Number(cfg.fontSize) : 82)
-  const [isItalic, setIsItalic] = useState(!!cfg.isItalic)
-  const [tiltAngle, setTiltAngle] = useState(Number(cfg.tiltAngle) || 0)
+  const [isItalic, setIsItalic] = useState(!!cfg.isItalic), [tiltAngle, setTiltAngle] = useState(Number(cfg.tiltAngle) || 0)
   const [lineSpacing, setLineSpacing] = useState(cfg.lineSpacing !== undefined ? Number(cfg.lineSpacing) : 1.15)
   const [fontColor, setFontColor] = useState(cfg.fontColor || 'yellow')
   const [lineColors, setLineColors] = useState(Array.isArray(cfg.lineColors) ? cfg.lineColors : null)
@@ -29,12 +28,41 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
   const [shadowDistance, setShadowDistance] = useState(cfg.shadowDistance !== undefined ? Number(cfg.shadowDistance) : 4)
   const [position, setPosition] = useState(cfg.position || 'center')
   const [offsetY, setOffsetY] = useState(cfg.offsetY !== undefined && cfg.offsetY !== null ? Number(cfg.offsetY) : 50)
-  const [hasBox, setHasBox] = useState(!!cfg.hasBox)
-  const [boxStyle, setBoxStyle] = useState(cfg.boxStyle || (cfg.hasBox ? 'dark_soft' : 'none'))
+  const [hasBox, setHasBox] = useState(!!cfg.hasBox), [boxStyle, setBoxStyle] = useState(cfg.boxStyle || (cfg.hasBox ? 'dark_soft' : 'none'))
   const [boxOpacity, setBoxOpacity] = useState(cfg.boxOpacity !== undefined ? Number(cfg.boxOpacity) : 75)
-  const [selectedBgPhoto, setSelectedBgPhoto] = useState(null)
-  const [saving, setSaving] = useState(false)
-  const [generatingTitle, setGeneratingTitle] = useState(false)
+  const [selectedBgPhoto, setSelectedBgPhoto] = useState(null), [saving, setSaving] = useState(false), [generatingTitle, setGeneratingTitle] = useState(false)
+  const [realThumbnailUrl, setRealThumbnailUrl] = useState(null), [previewMode, setPreviewMode] = useState('css'), [renderingPreview, setRenderingPreview] = useState(false)
+
+  const getHeadlineConfig = () => ({
+    text, font, fontFamilyName,
+    fontSize: fontSize === 'auto' ? 'auto' : Number(customSizeNum),
+    isItalic, tiltAngle: Number(tiltAngle) || 0, lineSpacing: Number(lineSpacing) || 1.15,
+    fontColor, lineColors: Array.isArray(lineColors) ? lineColors : null,
+    lineFontSizes: Array.isArray(lineFontSizes) ? lineFontSizes : null,
+    wordColors: Array.isArray(wordColors) ? wordColors : null,
+    wordFontSizes: Array.isArray(wordFontSizes) ? wordFontSizes : null,
+    borderColor, borderWidth: Number(borderWidth), shadowDistance: Number(shadowDistance),
+    position, offsetY: offsetY !== undefined && offsetY !== null ? Number(offsetY) : 50,
+    hasBox: boxStyle !== 'none', boxStyle, boxOpacity: Number(boxOpacity) || 75,
+  })
+
+  const handleInstantRealRender = async () => {
+    try {
+      setRenderingPreview(true)
+      const photoUrl = selectedBgPhoto ? (selectedBgPhoto.startsWith('/news-static/') ? selectedBgPhoto : `/news-static/${pkg.folderName}/${selectedBgPhoto}`) : null
+      const res = await fetch('/api/set-thumbnail', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'apply_headline', bundleDir: pkg.bundleDir, folderName: pkg.folderName, photoUrl, headlineConfig: getHeadlineConfig() }),
+      })
+      const data = await res.json()
+      if (data.success && data.thumbnailUrl) {
+        setRealThumbnailUrl(`${data.thumbnailUrl.split('?')[0]}?t=${Date.now()}`)
+        setPreviewMode('real')
+        toast.success('⚡ Реальный рендер готов!', { duration: 1200 })
+      }
+    } catch (err) { toast.error('Ошибка: ' + err.message) }
+    finally { setRenderingPreview(false) }
+  }
 
   useEffect(() => {
     fetchCustomFonts()
@@ -57,12 +85,8 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
     if (c.lineColors !== undefined) setLineColors(Array.isArray(c.lineColors) ? c.lineColors : null)
     const targetText = c.text || text || pkg?.title || ''
     const currentWords = targetText.replace(/[\r\n\t]/g, ' ').trim().split(/\s+/).filter(Boolean)
-    if (c.wordColors !== undefined) {
-      setWordColors(Array.isArray(c.wordColors) && c.wordColors.length === currentWords.length ? c.wordColors : null)
-    }
-    if (c.wordFontSizes !== undefined) {
-      setWordFontSizes(Array.isArray(c.wordFontSizes) && c.wordFontSizes.length === currentWords.length ? c.wordFontSizes : null)
-    }
+    if (c.wordColors !== undefined) setWordColors(Array.isArray(c.wordColors) && c.wordColors.length === currentWords.length ? c.wordColors : null)
+    if (c.wordFontSizes !== undefined) setWordFontSizes(Array.isArray(c.wordFontSizes) && c.wordFontSizes.length === currentWords.length ? c.wordFontSizes : null)
     if (c.borderColor) setBorderColor(c.borderColor)
     if (c.borderWidth !== undefined) setBorderWidth(Number(c.borderWidth))
     if (c.shadowDistance !== undefined) setShadowDistance(Number(c.shadowDistance))
@@ -99,22 +123,14 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
 
   const handleSaveAsDefault = async () => {
     try {
-      const headlineConfig = {
-        font, fontFamilyName, fontSize: fontSize === 'auto' ? 'auto' : String(customSizeNum),
-        fontColor, lineColors, lineFontSizes, wordColors, wordFontSizes, borderColor, borderWidth: Number(borderWidth),
-        shadowDistance: Number(shadowDistance), lineSpacing: Number(lineSpacing),
-        isItalic, tiltAngle: Number(tiltAngle) || 0, position, offsetY: Number(offsetY),
-        hasBox: boxStyle !== 'none', boxStyle, boxOpacity: Number(boxOpacity) || 75,
-      }
       const res = await fetch('/api/save-default-thumbnail-style', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(headlineConfig),
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(getHeadlineConfig()),
       })
       const data = await res.json()
       if (data.success) toast.success('⭐ Текущие настройки сохранены как шаблон по умолчанию!')
       else toast.error('Не удалось сохранить шаблон: ' + (data.error || 'Ошибка'))
-    } catch (err) { toast.error('Ошибка сохранения шаблона: ' + err.message) }
+    } catch (err) { toast.error('Ошибка: ' + err.message) }
   }
 
   const handleResetToDefault = async () => {
@@ -135,11 +151,7 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
       if (data.success && Array.isArray(data.fonts)) {
         setCustomFonts(data.fonts)
         data.fonts.forEach(async (f) => {
-          try {
-            const fontFace = new FontFace(f.name, `url(${f.url})`)
-            await fontFace.load()
-            document.fonts.add(fontFace)
-          } catch {}
+          try { const fontFace = new FontFace(f.name, `url(${f.url})`); await fontFace.load(); document.fonts.add(fontFace); } catch {}
         })
       }
     } catch {}
@@ -156,8 +168,7 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
         try {
           const base64Data = reader.result.split(',')[1]
           const res = await fetch('/api/upload-font', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ filename: file.name, fontName: file.name.replace(/\.[^.]+$/, ''), base64Data }),
           })
           const data = await res.json()
@@ -166,7 +177,7 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
             setCustomFonts(prev => [data.font, ...prev.filter(f => f.id !== data.font.id)])
             setFont(data.font.id); setFontFamilyName(`"${data.font.name}", sans-serif`)
             toast.success(`🔤 Шрифт "${data.font.name}" успешно применен!`, { id: toastId })
-          } else { toast.error('Ошибка загрузки шрифта: ' + (data.error || 'Неизвестная ошибка'), { id: toastId }) }
+          } else { toast.error('Ошибка загрузки: ' + (data.error || 'Неизвестная ошибка'), { id: toastId }) }
         } catch (postErr) { toast.error('Ошибка отправки шрифта: ' + postErr.message, { id: toastId }) }
         finally { setUploadingFont(false) }
       }
@@ -190,16 +201,12 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
     try {
       setGeneratingTitle(true)
       const res = await fetch('/api/generate-punchy-title', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: pkg.original_title || pkg.title || text, summary: pkg.summary || '' }),
       })
       const data = await res.json()
-      if (data.success && data.title) {
-        setText(data.title)
-        toast.success(`⚡ Заголовок в стиле Голобуцкого создан: "${data.title}"`)
-      }
-    } catch (e) { toast.error('Ошибка генерации заголовка: ' + e.message) }
+      if (data.success && data.title) { setText(data.title); toast.success(`⚡ Заголовок создан: "${data.title}"`); }
+    } catch (e) { toast.error('Ошибка генерации: ' + e.message) }
     finally { setGeneratingTitle(false) }
   }
 
@@ -208,21 +215,9 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
     try {
       setSaving(true)
       const photoUrl = selectedBgPhoto ? (selectedBgPhoto.startsWith('/news-static/') ? selectedBgPhoto : `/news-static/${pkg.folderName}/${selectedBgPhoto}`) : null
-      const headlineConfig = {
-        text, font, fontFamilyName,
-        fontSize: fontSize === 'auto' ? 'auto' : Number(customSizeNum),
-        isItalic, tiltAngle: Number(tiltAngle) || 0, lineSpacing: Number(lineSpacing) || 1.15,
-        fontColor, lineColors: Array.isArray(lineColors) ? lineColors : null,
-        lineFontSizes: Array.isArray(lineFontSizes) ? lineFontSizes : null,
-        wordColors: Array.isArray(wordColors) ? wordColors : null,
-        wordFontSizes: Array.isArray(wordFontSizes) ? wordFontSizes : null,
-        borderColor, borderWidth: Number(borderWidth), shadowDistance: Number(shadowDistance),
-        position, offsetY: offsetY !== undefined && offsetY !== null ? Number(offsetY) : 50,
-        hasBox: boxStyle !== 'none', boxStyle, boxOpacity: Number(boxOpacity) || 75,
-      }
       const res = await fetch('/api/set-thumbnail', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: 'apply_headline', bundleDir: pkg.bundleDir, folderName: pkg.folderName, photoUrl, headlineConfig }),
+        body: JSON.stringify({ mode: 'apply_headline', bundleDir: pkg.bundleDir, folderName: pkg.folderName, photoUrl, headlineConfig: getHeadlineConfig() }),
       })
       const data = await res.json()
       toast.dismiss(toastId)
@@ -268,7 +263,8 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
       const longest = Math.max(...previewLines.map(l => l.length), 8)
       sz = Math.min(Math.max(Math.floor(1160 / (longest * 0.65)), 48), 92)
     }
-    return ((sz / 1280) * 100).toFixed(3) + 'cqw'
+    // LibASS font scale parity (points to CSS pixels on 1280x720 canvas: ~0.72)
+    return (((sz * 0.72) / 1280) * 100).toFixed(3) + 'cqw'
   }
 
   const rawBackgroundSrc = pkg?.folderName ? `/news-static/${pkg.folderName}/thumbnail/raw_background.jpg?t=${Date.now()}` : null
@@ -301,6 +297,8 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
             wordColors={wordColors} wordFontSizes={wordFontSizes} activeColorHex={activeColorHex} borderWidth={borderWidth}
             activeStrokeHex={activeStrokeHex} shadowDistance={shadowDistance} hasBox={hasBox} boxStyle={boxStyle}
             boxOpacity={boxOpacity} isItalic={isItalic} tiltAngle={tiltAngle} previewLines={previewLines}
+            previewMode={previewMode} setPreviewMode={setPreviewMode} realThumbnailUrl={realThumbnailUrl}
+            onTriggerRealRender={handleInstantRealRender} renderingPreview={renderingPreview}
           />
 
           {/* 🖼️ Выбор фона из фото пакета */}
