@@ -111,6 +111,11 @@ export default function ScriptHookGenerator({ title, summary, currentText, onApp
             {hooks.map((h, idx) => (
               <div
                 key={idx}
+                draggable="true"
+                onDragStart={(e) => {
+                  e.dataTransfer.setData('text/plain', h.hook)
+                  e.dataTransfer.effectAllowed = 'copy'
+                }}
                 style={{
                   background: '#131d33',
                   border: '1px solid #1e293b',
@@ -120,11 +125,14 @@ export default function ScriptHookGenerator({ title, summary, currentText, onApp
                   justifyContent: 'space-between',
                   alignItems: 'center',
                   gap: '0.6rem',
+                  cursor: 'grab',
                 }}
+                title="🖐️ Зажмите мышкой и перетащите этот хук в поле текста диктора"
               >
                 <div style={{ flex: 1 }}>
-                  <div style={{ display: 'inline-block', fontSize: '0.68rem', fontWeight: 700, padding: '0.1rem 0.45rem', borderRadius: '4px', background: 'rgba(239, 68, 68, 0.2)', color: '#f87171', marginBottom: '0.25rem' }}>
-                    {h.type}
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.68rem', fontWeight: 700, padding: '0.1rem 0.45rem', borderRadius: '4px', background: 'rgba(239, 68, 68, 0.2)', color: '#f87171', marginBottom: '0.25rem' }}>
+                    <span>{h.type}</span>
+                    <span style={{ color: '#94a3b8', fontSize: '0.65rem' }}>🖐️ drag</span>
                   </div>
                   <div style={{ fontSize: '0.85rem', color: '#f1f5f9', fontWeight: 600, lineHeight: 1.35 }}>
                     «{h.hook}»

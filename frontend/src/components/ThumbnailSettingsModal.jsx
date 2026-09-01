@@ -28,6 +28,8 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
   const [shadowDistance, setShadowDistance] = useState(cfg.shadowDistance !== undefined ? Number(cfg.shadowDistance) : 4)
   const [position, setPosition] = useState(cfg.position || 'center')
   const [offsetY, setOffsetY] = useState(cfg.offsetY !== undefined && cfg.offsetY !== null ? Number(cfg.offsetY) : 50)
+  const [offsetX, setOffsetX] = useState(cfg.offsetX !== undefined && cfg.offsetX !== null ? Number(cfg.offsetX) : 50)
+  const [textAlign, setTextAlign] = useState(cfg.textAlign || 'center')
   const [hasBox, setHasBox] = useState(!!cfg.hasBox), [boxStyle, setBoxStyle] = useState(cfg.boxStyle || (cfg.hasBox ? 'dark_soft' : 'none'))
   const [boxOpacity, setBoxOpacity] = useState(cfg.boxOpacity !== undefined ? Number(cfg.boxOpacity) : 75)
   const [selectedBgPhoto, setSelectedBgPhoto] = useState(null), [saving, setSaving] = useState(false), [generatingTitle, setGeneratingTitle] = useState(false)
@@ -43,6 +45,8 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
     wordFontSizes: Array.isArray(wordFontSizes) ? wordFontSizes : null,
     borderColor, borderWidth: Number(borderWidth), shadowDistance: Number(shadowDistance),
     position, offsetY: offsetY !== undefined && offsetY !== null ? Number(offsetY) : 50,
+    offsetX: offsetX !== undefined && offsetX !== null ? Number(offsetX) : 50,
+    textAlign: textAlign || 'center',
     hasBox: boxStyle !== 'none', boxStyle, boxOpacity: Number(boxOpacity) || 75,
   })
 
@@ -87,22 +91,16 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
     const currentWords = targetText.replace(/[\r\n\t]/g, ' ').trim().split(/\s+/).filter(Boolean)
     if (c.wordColors !== undefined) setWordColors(Array.isArray(c.wordColors) && c.wordColors.length === currentWords.length ? c.wordColors : null)
     if (c.wordFontSizes !== undefined) setWordFontSizes(Array.isArray(c.wordFontSizes) && c.wordFontSizes.length === currentWords.length ? c.wordFontSizes : null)
-    if (c.borderColor) setBorderColor(c.borderColor)
-    if (c.borderWidth !== undefined) setBorderWidth(Number(c.borderWidth))
-    if (c.shadowDistance !== undefined) setShadowDistance(Number(c.shadowDistance))
-    if (c.lineSpacing !== undefined) setLineSpacing(Number(c.lineSpacing))
-    if (c.isItalic !== undefined) setIsItalic(Boolean(c.isItalic))
-    if (c.tiltAngle !== undefined) setTiltAngle(Number(c.tiltAngle))
+    if (c.borderColor) setBorderColor(c.borderColor); if (c.borderWidth !== undefined) setBorderWidth(Number(c.borderWidth))
+    if (c.shadowDistance !== undefined) setShadowDistance(Number(c.shadowDistance)); if (c.lineSpacing !== undefined) setLineSpacing(Number(c.lineSpacing))
+    if (c.isItalic !== undefined) setIsItalic(Boolean(c.isItalic)); if (c.tiltAngle !== undefined) setTiltAngle(Number(c.tiltAngle))
     if (c.position) setPosition(c.position)
     if (c.offsetY !== undefined && c.offsetY !== null) setOffsetY(Number(c.offsetY))
-    else if (c.position === 'top') setOffsetY(12)
-    else if (c.position === 'bottom') setOffsetY(85)
-    else if (c.position === 'center') setOffsetY(50)
-    if (c.hasBox !== undefined) setHasBox(Boolean(c.hasBox))
-    if (c.boxStyle !== undefined) setBoxStyle(c.boxStyle)
-    else if (c.hasBox) setBoxStyle('dark_soft')
-    if (c.boxOpacity !== undefined) setBoxOpacity(Number(c.boxOpacity))
-    if (c.photoUrl) setSelectedBgPhoto(c.photoUrl)
+    else if (c.position === 'top') setOffsetY(12); else if (c.position === 'bottom') setOffsetY(85); else if (c.position === 'center') setOffsetY(50)
+    setOffsetX(c.offsetX !== undefined && c.offsetX !== null ? Number(c.offsetX) : 50)
+    if (c.textAlign) setTextAlign(c.textAlign)
+    if (c.hasBox !== undefined) setHasBox(Boolean(c.hasBox)); if (c.boxStyle !== undefined) setBoxStyle(c.boxStyle); else if (c.hasBox) setBoxStyle('dark_soft')
+    if (c.boxOpacity !== undefined) setBoxOpacity(Number(c.boxOpacity)); if (c.photoUrl) setSelectedBgPhoto(c.photoUrl)
   }
 
   const fetchThumbnailStyle = async () => {
@@ -237,15 +235,20 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
   }
 
   const formatPreviewLines = (raw) => {
-    if (typeof raw === 'string' && raw.includes('\n')) return raw.split('\n').map(l => l.trim().toUpperCase()).filter(Boolean)
-    const words = String(raw || '').replace(/[\r\n\t]/g, ' ').replace(/["'«»`]/g, '').trim().split(/\s+/).filter(Boolean)
+    const str = String(raw || '')
+    if (str.includes('\n') || str.includes('\r')) {
+      const manual = str.split(/\r?\n|\r/).map(l => l.trim().toUpperCase()).filter(Boolean)
+      if (manual.length > 0) return manual
+    }
+    const words = str.replace(/[\r\n\t]/g, ' ').replace(/["'«»`]/g, '').trim().split(/\s+/).filter(Boolean)
     if (!words.length) return ['ЗАГОЛОВОК ОБЛОЖКИ']
+    if (words.length <= 4) return words.map(w => w.toUpperCase())
     let lines = [], cur = ''
     for (const w of words) {
-      if ((cur + ' ' + w).trim().length <= 15) cur = (cur + ' ' + w).trim()
-      else { if (cur) lines.push(cur); cur = w; if (lines.length >= 3) break }
+      if ((cur + ' ' + w).trim().length <= 16) cur = (cur + ' ' + w).trim()
+      else { if (cur) lines.push(cur); cur = w; if (lines.length >= 4) break }
     }
-    if (cur && lines.length < 3) lines.push(cur)
+    if (cur && lines.length < 4) lines.push(cur)
     return lines.map(l => l.toUpperCase())
   }
 
@@ -255,15 +258,9 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
   const activeStrokeHex = borderColor?.startsWith('#') ? borderColor : (STROKE_COLORS.find(c => c.id === borderColor)?.hex || '#000000')
   const calcLiveFontSize = (overrideSize = null) => {
     let sz = 78
-    if (overrideSize !== null && overrideSize !== undefined && !isNaN(Number(overrideSize)) && Number(overrideSize) > 0) {
-      sz = Math.min(Math.max(Number(overrideSize), 32), 160)
-    } else if (fontSize !== 'auto' && !isNaN(Number(customSizeNum))) {
-      sz = Math.min(Math.max(Number(customSizeNum), 32), 160)
-    } else {
-      const longest = Math.max(...previewLines.map(l => l.length), 8)
-      sz = Math.min(Math.max(Math.floor(1160 / (longest * 0.65)), 48), 92)
-    }
-    // LibASS font scale parity (points to CSS pixels on 1280x720 canvas: ~0.72)
+    if (overrideSize !== null && overrideSize !== undefined && !isNaN(Number(overrideSize)) && Number(overrideSize) > 0) sz = Math.min(Math.max(Number(overrideSize), 32), 160)
+    else if (fontSize !== 'auto' && !isNaN(Number(customSizeNum))) sz = Math.min(Math.max(Number(customSizeNum), 32), 160)
+    else { const longest = Math.max(...previewLines.map(l => l.length), 8); sz = Math.min(Math.max(Math.floor(1160 / (longest * 0.65)), 48), 92); }
     return (((sz * 0.72) / 1280) * 100).toFixed(3) + 'cqw'
   }
 
@@ -292,11 +289,13 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
 
           {/* 👁️ Живой предпросмотр */}
           <LiveThumbnailPreview
-            previewSrc={currentBgSrc} position={position} offsetY={offsetY} fontFamilyName={fontFamilyName}
-            calcLiveFontSize={calcLiveFontSize} lineSpacing={lineSpacing} lineColors={lineColors} lineFontSizes={lineFontSizes}
-            wordColors={wordColors} wordFontSizes={wordFontSizes} activeColorHex={activeColorHex} borderWidth={borderWidth}
-            activeStrokeHex={activeStrokeHex} shadowDistance={shadowDistance} hasBox={hasBox} boxStyle={boxStyle}
-            boxOpacity={boxOpacity} isItalic={isItalic} tiltAngle={tiltAngle} previewLines={previewLines}
+            previewSrc={currentBgSrc} position={position} offsetY={offsetY} offsetX={offsetX} textAlign={textAlign}
+            onOffsetYChange={(newY) => { setOffsetY(newY); setPosition('custom'); }}
+            onOffsetXChange={(newX) => { setOffsetX(newX); setPosition('custom'); }}
+            fontFamilyName={fontFamilyName} calcLiveFontSize={calcLiveFontSize} lineSpacing={lineSpacing} lineColors={lineColors}
+            lineFontSizes={lineFontSizes} wordColors={wordColors} wordFontSizes={wordFontSizes} activeColorHex={activeColorHex}
+            borderWidth={borderWidth} activeStrokeHex={activeStrokeHex} shadowDistance={shadowDistance} hasBox={hasBox}
+            boxStyle={boxStyle} boxOpacity={boxOpacity} isItalic={isItalic} tiltAngle={tiltAngle} previewLines={previewLines}
             previewMode={previewMode} setPreviewMode={setPreviewMode} realThumbnailUrl={realThumbnailUrl}
             onTriggerRealRender={handleInstantRealRender} renderingPreview={renderingPreview}
           />
@@ -362,7 +361,8 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
               isItalic={isItalic} setIsItalic={setIsItalic} tiltAngle={tiltAngle} setTiltAngle={setTiltAngle}
               fontColor={fontColor} setFontColor={setFontColor} borderColor={borderColor} setBorderColor={setBorderColor}
               borderWidth={borderWidth} setBorderWidth={setBorderWidth} shadowDistance={shadowDistance} setShadowDistance={setShadowDistance}
-              position={position} setPosition={setPosition} offsetY={offsetY} setOffsetY={setOffsetY}
+              position={position} setPosition={setPosition} offsetY={offsetY} setOffsetY={setOffsetY} offsetX={offsetX} setOffsetX={setOffsetX}
+              textAlign={textAlign} setTextAlign={setTextAlign}
               hasBox={hasBox} setHasBox={setHasBox} boxStyle={boxStyle} setBoxStyle={setBoxStyle} boxOpacity={boxOpacity} setBoxOpacity={setBoxOpacity}
             />
           </div>

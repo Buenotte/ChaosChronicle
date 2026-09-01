@@ -39,7 +39,7 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
 
   // Drag Event Handlers
   const handleMouseDown = (e) => {
-    if (e.target.closest('.modal-close') || e.target.closest('button') || e.target.closest('textarea')) return
+    if (e.target.closest('.modal-close') || e.target.closest('button') || e.target.closest('textarea') || e.target.closest('.draggable-title-chip')) return
     setIsDragging(true)
     dragRef.current = {
       startX: e.clientX,
@@ -278,19 +278,70 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
 
           {/* Text Editor */}
           <div className="script-editor-wrap">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-              <label className="section-title" style={{ margin: 0, fontSize: '0.86rem', fontWeight: 700, color: '#94a3b8' }}>
-                📝 Текст для озвучки (редактируемый):
-              </label>
-              <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
-                Слов: {text.split(/\s+/).filter(Boolean).length} | ~{Math.round((text.split(/\s+/).filter(Boolean).length / 140) * 10) / 10} мин.
-              </span>
+            {/* Draggable Title Chip & Fast Insert */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem', flexWrap: 'wrap', gap: '0.4rem' }}>
+              <div
+                className="draggable-title-chip"
+                draggable="true"
+                onDragStart={(e) => {
+                  e.dataTransfer.setData('text/plain', pkg.title || '')
+                  e.dataTransfer.effectAllowed = 'copy'
+                }}
+                style={{
+                  cursor: 'grab',
+                  background: 'linear-gradient(135deg, #1e293b, #0f172a)',
+                  border: '1px dashed #6366f1',
+                  padding: '0.28rem 0.65rem',
+                  borderRadius: '6px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  color: '#e2e8f0',
+                  userSelect: 'none',
+                }}
+                title="🖐️ Зажмите мышкой и перетащите заголовок в любое место текста"
+              >
+                <span style={{ fontSize: '0.8rem' }}>🖐️ Заголовок:</span>
+                <span style={{ color: '#38bdf8', maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  «{pkg.title}»
+                </span>
+                <span style={{ fontSize: '0.68rem', background: '#4f46e5', color: '#fff', padding: '0.08rem 0.35rem', borderRadius: '4px' }}>
+                  drag ↘
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  className="copy-btn"
+                  onClick={() => {
+                    const titleToAdd = pkg.title ? pkg.title.trim() : ''
+                    if (titleToAdd) {
+                      setText(`${titleToAdd}\n\n${text.trim()}`)
+                      toast.success('📌 Заголовок добавлен в начало текста!')
+                    }
+                  }}
+                  style={{ fontSize: '0.74rem', padding: '0.25rem 0.55rem', background: '#334155', border: '1px solid #475569' }}
+                  title="Вставить заголовок в самую первую строчку текста"
+                >
+                  ➕ В начало
+                </button>
+                <span style={{ fontSize: '0.76rem', color: '#64748b' }}>
+                  Слов: {text.split(/\s+/).filter(Boolean).length} | ~{Math.round((text.split(/\s+/).filter(Boolean).length / 140) * 10) / 10} мин.
+                </span>
+              </div>
             </div>
+
             <textarea
               className="script-editor-textarea"
               value={text}
               onChange={e => setText(e.target.value)}
-              placeholder="Введите или отредактируйте текст..."
+              onDrop={() => {
+                toast.success('🎯 Элемент успешно перетащен в текст!')
+              }}
+              placeholder="Введите текст (можно перетаскивать мышкой заголовок и хуки прямо сюда)..."
               rows={12}
             />
           </div>

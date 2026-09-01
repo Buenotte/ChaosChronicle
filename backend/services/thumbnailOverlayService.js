@@ -78,15 +78,16 @@ export function formatTitleLines(russianTitle, inputLines = null) {
       .map(l => String(l).replace(/[\r\n\t]/g, ' ').trim().toUpperCase())
       .filter(Boolean);
   }
-  if (typeof russianTitle === 'string' && russianTitle.includes('\n')) {
-    const manualLines = russianTitle
-      .split('\n')
-      .map(l => String(l).replace(/\r/g, '').replace(/["'«»`]/g, '').trim().toUpperCase())
+  const str = String(russianTitle || '');
+  if (str.includes('\n') || str.includes('\r')) {
+    const manualLines = str
+      .split(/\r?\n|\r/)
+      .map(l => String(l).replace(/["'«»`]/g, '').trim().toUpperCase())
       .filter(Boolean);
     if (manualLines.length > 0) return manualLines;
   }
 
-  const clean = String(russianTitle || '')
+  const clean = str
     .replace(/\r/g, '')
     .replace(/[\n\t]/g, ' ')
     .replace(/["'«»`]/g, '')
@@ -97,9 +98,13 @@ export function formatTitleLines(russianTitle, inputLines = null) {
   if (!clean) return [];
 
   const words = clean.split(' ');
+  if (words.length <= 4) {
+    return words.map(w => w.trim().toUpperCase());
+  }
+
   let lines = [];
   let curLine = '';
-  const targetCharsPerLine = 15;
+  const targetCharsPerLine = 16;
 
   for (const w of words) {
     if ((curLine + ' ' + w).trim().length <= targetCharsPerLine) {
@@ -107,10 +112,10 @@ export function formatTitleLines(russianTitle, inputLines = null) {
     } else {
       if (curLine) lines.push(curLine);
       curLine = w;
-      if (lines.length >= 3) break;
+      if (lines.length >= 4) break;
     }
   }
-  if (curLine && lines.length < 3) lines.push(curLine);
+  if (curLine && lines.length < 4) lines.push(curLine);
   return lines.map(l => l.trim().toUpperCase()).filter(Boolean);
 }
 
@@ -185,6 +190,11 @@ export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, optio
       startY = 40;
     }
 
+    const posX = (options.offsetX !== undefined && options.offsetX !== null && !isNaN(Number(options.offsetX)))
+      ? Math.max(5, Math.min(95, Number(options.offsetX)))
+      : 50;
+    const startX = Math.round((posX / 100) * 1280);
+
     const FFMPEG_COLOR_MAP = {
       yellow: '#FFE600', gold: '#F59E0B', white: '#FFFFFF', red: '#FF2A2A',
       coral: '#FF5722', orange: '#FF8C00', lime: '#A6FF00', green: '#00FF66',
@@ -256,8 +266,9 @@ export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, optio
         }).join(' ');
       });
 
-      const assDialogue = `{\\an8\\pos(640,${startY})${numAngle !== 0 ? `\\frz${-numAngle}` : ''}}${assLines.join('\\N')}`;
-      const assContent = `[Script Info]\nScriptType: v4.00+\nPlayResX: 1280\nPlayResY: 720\n\n[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\nStyle: Title,${assFontName},${finalFontSize},&H0000E6FF,&H000000FF,${assOutlineCol},&H90000000,-1,${isItalic ? -1 : 0},0,0,100,100,0,0,1,${bWidth},${sDist},8,10,10,10,1\n\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\nDialogue: 0,0:00:00.00,0:00:05.00,Title,,0,0,0,,${assDialogue}\n`;
+      const alignNum = options.textAlign === 'left' ? 7 : (options.textAlign === 'right' ? 9 : 8);
+      const assDialogue = `{\\an${alignNum}\\pos(${startX},${startY})${numAngle !== 0 ? `\\frz${-numAngle}` : ''}}${assLines.join('\\N')}`;
+      const assContent = `[Script Info]\nScriptType: v4.00+\nPlayResX: 1280\nPlayResY: 720\n\n[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\nStyle: Title,${assFontName},${finalFontSize},&H0000E6FF,&H000000FF,${assOutlineCol},&H90000000,-1,${isItalic ? -1 : 0},0,0,100,100,0,0,1,${bWidth},${sDist},${alignNum},10,10,10,1\n\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\nDialogue: 0,0:00:00.00,0:00:05.00,Title,,0,0,0,,${assDialogue}\n`;
 
       const BOX_COLOR_HEX_MAP = {
         dark_soft: 'black',
@@ -270,7 +281,7 @@ export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, optio
       };
       const boxColor = BOX_COLOR_HEX_MAP[chosenBox] || 'black';
       const drawBoxFilter = (chosenBox !== 'none' || hasBox)
-        ? `,drawbox=x=(iw-1120)/2:y=${Math.max(10, startY - 25)}:w=1120:h=${totalTextHeight + 50}:color=${boxColor}@${op}:t=fill`
+        ? `,drawbox=x=${Math.max(10, startX - 560)}:y=${Math.max(10, startY - 25)}:w=1120:h=${totalTextHeight + 50}:color=${boxColor}@${op}:t=fill`
         : '';
 
       const assTempFile = path.join(path.dirname(imagePath), `temp_thumb_${Date.now()}.ass`);
@@ -284,6 +295,7 @@ export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, optio
         try { fs.unlinkSync(assTempFile); } catch {}
       }
     } else {
+      const xFormula = options.textAlign === 'left' ? `${startX}` : (options.textAlign === 'right' ? `${startX}-text_w` : `${startX}-(text_w/2)`);
       const drawtextFilters = cleanLines.map((line, idx) => {
         const lineMaxFit = Math.floor(1160 / (Math.max(line.length, 6) * 0.62));
         let lineSize = (lineSizesList[idx] && Number(lineSizesList[idx]) > 0) ? Number(lineSizesList[idx]) : finalFontSize;
@@ -297,7 +309,7 @@ export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, optio
           .replace(/%/g, '\\%');
         const yPos = startY + lineHeights.slice(0, idx).reduce((sum, h) => sum + h, 0);
 
-        return `drawtext=fontfile='${safeFontPath}':text='${safeText}':fontsize=${lineSize}:fontcolor=${lineCol}:bordercolor=${bColor}:borderw=${bWidth}:shadowcolor=${sColor}:shadowx=${sDist}:shadowy=${sDist}${boxParam}:x=(w-text_w)/2:y=${yPos}`;
+        return `drawtext=fontfile='${safeFontPath}':text='${safeText}':fontsize=${lineSize}:fontcolor=${lineCol}:bordercolor=${bColor}:borderw=${bWidth}:shadowcolor=${sColor}:shadowx=${sDist}:shadowy=${sDist}${boxParam}:x=${xFormula}:y=${yPos}`;
       });
 
       if (numAngle !== 0) {

@@ -30,44 +30,16 @@ export const BOX_STYLES = [
 ]
 
 export default function TypographyStyleControls({
-  fontSize,
-  setFontSize,
-  customSizeNum,
-  setCustomSizeNum,
-  lineSpacing = 1.15,
-  setLineSpacing,
-  previewLines = [],
-  lineColors = null,
-  setLineColors = null,
-  lineFontSizes = null,
-  setLineFontSizes = null,
-  words = [],
-  wordColors = null,
-  setWordColors = null,
-  wordFontSizes = null,
-  setWordFontSizes = null,
-  isItalic,
-  setIsItalic,
-  tiltAngle,
-  setTiltAngle,
-  fontColor,
-  setFontColor,
-  borderColor,
-  setBorderColor,
-  borderWidth,
-  setBorderWidth,
-  shadowDistance,
-  setShadowDistance,
-  position,
-  setPosition,
-  offsetY = 50,
-  setOffsetY = null,
-  hasBox,
-  setHasBox,
-  boxStyle = 'none',
-  setBoxStyle,
-  boxOpacity = 75,
-  setBoxOpacity,
+  fontSize, setFontSize, customSizeNum, setCustomSizeNum,
+  lineSpacing = 1.15, setLineSpacing, previewLines = [],
+  lineColors = null, setLineColors = null, lineFontSizes = null, setLineFontSizes = null,
+  words = [], wordColors = null, setWordColors = null, wordFontSizes = null, setWordFontSizes = null,
+  isItalic, setIsItalic, tiltAngle, setTiltAngle,
+  fontColor, setFontColor, borderColor, setBorderColor,
+  borderWidth, setBorderWidth, shadowDistance, setShadowDistance,
+  position, setPosition, offsetY = 50, setOffsetY = null, offsetX = 50, setOffsetX = null,
+  textAlign = 'center', setTextAlign = null,
+  hasBox, setHasBox, boxStyle = 'none', setBoxStyle, boxOpacity = 75, setBoxOpacity,
 }) {
   const [customMode, setCustomMode] = useState('words')
 
@@ -127,51 +99,86 @@ export default function TypographyStyleControls({
           </div>
         </div>
 
-        {/* Позиция заголовка: пресеты + плавный слайдер Y */}
+        {/* Позиция заголовка: пресеты + плавные слайдеры X / Y */}
         <div style={{ background: '#18181b', padding: '0.6rem', borderRadius: '8px', border: '1px solid #27272a', display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <label style={{ fontSize: '0.82rem', color: '#f4f4f5', fontWeight: 700 }}>📍 Расположение по вертикали:</label>
-            <span style={{ fontSize: '0.78rem', color: '#38bdf8', fontWeight: 700 }}>
-              Y: {offsetY !== undefined && offsetY !== null ? offsetY : (position === 'top' ? 12 : position === 'bottom' ? 85 : 50)}%
+            <label style={{ fontSize: '0.82rem', color: '#f4f4f5', fontWeight: 700 }}>📍 Расположение (2D Drag):</label>
+            <span style={{ fontSize: '0.76rem', color: '#38bdf8', fontWeight: 700 }}>
+              X: {offsetX !== undefined && offsetX !== null ? offsetX : 50}% • Y: {offsetY !== undefined && offsetY !== null ? offsetY : 50}%
             </span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.4rem' }}>
-            {[{ id: 'top', label: '⬆️ Вверху', y: 12 }, { id: 'center', label: '🎯 По центру', y: 50 }, { id: 'bottom', label: '⬇️ Внизу', y: 85 }].map(p => {
-              const curY = offsetY !== undefined && offsetY !== null ? Number(offsetY) : (position === 'top' ? 12 : position === 'bottom' ? 85 : 50)
-              const isMatch = position === p.id && Math.abs(curY - p.y) <= 8
-              return (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => { setPosition(p.id); if (setOffsetY) setOffsetY(p.y); }}
-                  style={{ padding: '0.35rem', borderRadius: '6px', background: isMatch ? '#3b82f6' : '#09090b', border: isMatch ? '1px solid #60a5fa' : '1px solid #27272a', color: '#fff', cursor: 'pointer', fontSize: '0.76rem', fontWeight: 600 }}
-                >
-                  {p.label}
-                </button>
-              )
-            })}
+          {/* Выравнивание строк (Linksbündig / Zentriert / Rechtsbündig) */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+            <span style={{ fontSize: '0.72rem', color: '#a1a1aa', fontWeight: 600 }}>Выравнивание текста:</span>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.35rem' }}>
+              {[
+                { id: 'left', label: '⬅️ Слева', title: 'По левому краю (linksbündig)' },
+                { id: 'center', label: '🎯 Центр', title: 'По центру (zentriert)' },
+                { id: 'right', label: '➡️ Справа', title: 'По правому краю (rechtsbündig)' },
+              ].map(a => {
+                const isActive = (textAlign || 'center') === a.id
+                return (
+                  <button
+                    key={a.id}
+                    type="button"
+                    title={a.title}
+                    onClick={() => setTextAlign && setTextAlign(a.id)}
+                    style={{
+                      padding: '0.3rem', borderRadius: '6px',
+                      background: isActive ? '#ec4899' : '#09090b',
+                      border: isActive ? '1px solid #f472b6' : '1px solid #27272a',
+                      color: '#fff', cursor: 'pointer', fontSize: '0.74rem', fontWeight: 600
+                    }}
+                  >
+                    {a.label}
+                  </button>
+                )
+              })}
+            </div>
           </div>
 
-          {setOffsetY && (
-            <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', marginTop: '0.1rem' }}>
-              <span style={{ fontSize: '0.7rem', color: '#71717a' }}>0%</span>
+          {/* Быстрые пресеты X / Y */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.35rem' }}>
+            {[{ label: '📐 Слева', x: 28, y: 50 }, { label: '🎯 Центр', x: 50, y: 50 }, { label: '📐 Справа', x: 72, y: 50 }].map((p, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => { if (setOffsetX) setOffsetX(p.x); if (setOffsetY) setOffsetY(p.y); setPosition('custom'); }}
+                style={{ padding: '0.3rem', borderRadius: '6px', background: (offsetX === p.x) ? '#3b82f6' : '#09090b', border: (offsetX === p.x) ? '1px solid #60a5fa' : '1px solid #27272a', color: '#fff', cursor: 'pointer', fontSize: '0.74rem', fontWeight: 600 }}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Слайдер X (Горизонталь) */}
+          {setOffsetX && (
+            <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.7rem', color: '#a1a1aa', width: '18px' }}>X:</span>
               <input
-                type="range"
-                min="0"
-                max="100"
-                step="1"
-                value={offsetY !== undefined && offsetY !== null ? Number(offsetY) : (position === 'top' ? 12 : position === 'bottom' ? 85 : 50)}
-                onChange={e => {
-                  const val = Number(e.target.value)
-                  setOffsetY(val)
-                  if (val <= 25) setPosition('top')
-                  else if (val >= 75) setPosition('bottom')
-                  else setPosition('center')
-                }}
+                type="range" min="5" max="95" step="1"
+                value={offsetX !== undefined && offsetX !== null ? Number(offsetX) : 50}
+                onChange={e => { setOffsetX(Number(e.target.value)); setPosition('custom'); }}
                 style={{ flex: 1, accentColor: '#38bdf8', cursor: 'pointer', height: '4px' }}
+                title="Позиция по горизонтали (X)"
               />
-              <span style={{ fontSize: '0.7rem', color: '#71717a' }}>100%</span>
+              <span style={{ fontSize: '0.7rem', color: '#71717a' }}>{offsetX}%</span>
+            </div>
+          )}
+
+          {/* Слайдер Y (Вертикаль) */}
+          {setOffsetY && (
+            <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.7rem', color: '#a1a1aa', width: '18px' }}>Y:</span>
+              <input
+                type="range" min="5" max="95" step="1"
+                value={offsetY !== undefined && offsetY !== null ? Number(offsetY) : 50}
+                onChange={e => { setOffsetY(Number(e.target.value)); setPosition('custom'); }}
+                style={{ flex: 1, accentColor: '#ec4899', cursor: 'pointer', height: '4px' }}
+                title="Позиция по вертикали (Y)"
+              />
+              <span style={{ fontSize: '0.7rem', color: '#71717a' }}>{offsetY}%</span>
             </div>
           )}
         </div>
