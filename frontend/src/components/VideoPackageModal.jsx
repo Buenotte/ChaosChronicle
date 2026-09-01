@@ -121,16 +121,18 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
         }),
       })
       const data = await res.json()
+      toast.dismiss(toastId)
       if (data.success) {
         setVideoProgress(100); setProgressLog('Видео успешно создано!')
         setVideoState({ hasVideo: true, videoUrl: data.videoUrl })
-        toast.success('🎬 Финальное видео 16:9 готово!', { id: toastId })
+        toast.success('🎬 Финальное видео 16:9 готово!')
         if (onRefresh) onRefresh()
       } else {
-        toast.error('❌ Ошибка рендеринга видео: ' + (data.error || 'Не удалось создать видео'), { id: toastId })
+        toast.error('❌ Ошибка: ' + (data.error || 'Не удалось создать видео'))
       }
     } catch (err) {
-      toast.error('❌ Ошибка рендеринга видео', { id: toastId, description: err.message })
+      toast.dismiss(toastId)
+      toast.error('❌ Ошибка рендеринга видео', { description: err.message })
     } finally {
       if (evtSource) { try { evtSource.close() } catch {} }
       setGeneratingVideo(false)

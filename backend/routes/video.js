@@ -2,7 +2,7 @@ import express from 'express';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import { exec, execSync, spawn } from 'child_process';
+import { exec, execSync, execFile, spawn } from 'child_process';
 import { processRenderShort, processPreviewShortFrame } from '../services/shortsVideoService.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -106,10 +106,8 @@ const handleGenerateVideo = async (req, res) => {
 
     broadcastProgress(5, 'probing', 'Определение длительности аудио...');
 
-    const probeCmd = `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${audioPath}"`;
-
-    exec(probeCmd, async (probeErr, stdout) => {
-      let audioDuration = parseFloat(stdout.trim());
+    execFile('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'default=noprint_wrappers=1:nokey=1', audioPath], async (probeErr, stdout) => {
+      let audioDuration = parseFloat((stdout || '').trim());
       if (isNaN(audioDuration) || audioDuration <= 0) {
         audioDuration = 180;
       }
@@ -130,8 +128,7 @@ const handleGenerateVideo = async (req, res) => {
             return resolve(outFrame.replace(/\\/g, '/'));
           }
         } catch {}
-        const normCmd = `ffmpeg -y -v error -threads 2 -i "${srcFile}" -vf "${blurFilter}" -q:v 2 "${outFrame}"`;
-        exec(normCmd, (err) => {
+        execFile('ffmpeg', ['-y', '-v', 'error', '-threads', '2', '-i', srcFile, '-vf', blurFilter, '-q:v', '2', outFrame], (err) => {
           if (!err && fs.existsSync(outFrame)) resolve(outFrame.replace(/\\/g, '/'));
           else resolve(null);
         });
