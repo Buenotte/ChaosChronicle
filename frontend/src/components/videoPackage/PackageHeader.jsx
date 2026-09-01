@@ -8,6 +8,7 @@ export default function PackageHeader({
   audioState,
   videoState,
   shortState,
+  youtubeState,
   currentThumbnail,
   isMaximized,
   setIsMaximized,
@@ -15,6 +16,7 @@ export default function PackageHeader({
   onOpenScript,
   onOpenPhotos,
   onOpenShorts,
+  onOpenYouTube,
   onDeletePackage,
   onTitleSaved,
   onClose,
@@ -62,6 +64,28 @@ export default function PackageHeader({
     (pkg?.title_variants && pkg.title_variants.length > 0) ||
     pkg?.title_updated_at ||
     (pkg?.title && pkg.title !== 'Ohne Titel' && pkg.title !== (pkg?.original_title || ''))
+  )
+
+  const hasYouTube = Boolean(
+    youtubeState?.hasYouTube ||
+    pkg?.hasYouTubeMetadata ||
+    (pkg?.youtubeMetadata && (
+      pkg.youtubeMetadata.description ||
+      pkg.youtubeMetadata.clickbait?.description ||
+      pkg.youtubeMetadata.golubuzki?.description ||
+      pkg.youtubeMetadata.title
+    ))
+  )
+
+  const hasFacebook = Boolean(
+    youtubeState?.hasFacebook ||
+    pkg?.hasFacebookPost ||
+    (pkg?.facebookPosts && Object.keys(pkg.facebookPosts).length > 0) ||
+    (pkg?.youtubeMetadata && (
+      pkg.youtubeMetadata.facebookPost ||
+      pkg.youtubeMetadata.clickbait?.facebookPost ||
+      pkg.youtubeMetadata.golubuzki?.facebookPost
+    ))
   )
 
   return (
@@ -219,6 +243,24 @@ export default function PackageHeader({
             title="9:16 YouTube Shorts (short.mp4) — нажмите, чтобы открыть студию Shorts"
           >
             ⚡ short.mp4 {shortState?.hasShort ? '✅' : '❌'}
+          </button>
+
+          <button
+            type="button"
+            className={`saved-status-badge ${hasYouTube ? 'active' : 'inactive'} ${onOpenYouTube ? 'clickable' : ''}`}
+            onClick={onOpenYouTube}
+            title="Метаданные YouTube (заголовок, описание, теги) — нажмите, чтобы открыть"
+          >
+            📺 YouTube инфо {hasYouTube ? '✅' : '❌'}
+          </button>
+
+          <button
+            type="button"
+            className={`saved-status-badge ${hasFacebook ? 'active' : 'inactive'} ${onOpenYouTube ? 'clickable' : ''}`}
+            onClick={onOpenYouTube}
+            title="Готовый вирусный пост для Facebook — нажмите, чтобы открыть"
+          >
+            📱 FB пост {hasFacebook ? '✅' : '❌'}
           </button>
         </div>
       </div>

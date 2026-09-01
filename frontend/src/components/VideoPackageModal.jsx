@@ -26,6 +26,7 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
   const [audioState, setAudioState] = useState({ hasAudio: !!pkg.hasAudio, audioUrl: pkg.audioUrl })
   const [videoState, setVideoState] = useState({ hasVideo: !!pkg.hasVideo, videoUrl: pkg.videoUrl })
   const [shortState, setShortState] = useState({ hasShort: !!pkg.hasShort, shortUrl: pkg.folderName ? `/news-static/${pkg.folderName}/short.mp4` : null })
+  const [youtubeState, setYoutubeState] = useState({ hasYouTube: !!pkg.hasYouTubeMetadata, hasFacebook: !!pkg.hasFacebookPost })
   const [generatingShort, setGeneratingShort] = useState(false), [showShortsEditorModal, setShowShortsEditorModal] = useState(false), [isMaximized, setIsMaximized] = useState(false)
   const [currentThumbnail, setCurrentThumbnail] = useState(
     pkg.hasThumbnail ? (pkg.thumbnailUrl || (pkg.folderName ? `/news-static/${pkg.folderName}/thumbnail/thumbnail.jpg` : null)) : null
@@ -35,6 +36,10 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
     setAudioState({ hasAudio: !!pkg.hasAudio, audioUrl: pkg.audioUrl })
     setVideoState({ hasVideo: !!pkg.hasVideo, videoUrl: pkg.videoUrl })
     setShortState({ hasShort: !!pkg.hasShort, shortUrl: pkg.folderName ? `/news-static/${pkg.folderName}/short.mp4?t=${Date.now()}` : null })
+    setYoutubeState({
+      hasYouTube: Boolean(pkg.hasYouTubeMetadata || pkg.youtubeMetadata?.description || pkg.youtubeMetadata?.title || pkg.youtubeMetadata?.clickbait?.description || pkg.youtubeMetadata?.golubuzki?.description),
+      hasFacebook: Boolean(pkg.hasFacebookPost || (pkg.facebookPosts && Object.keys(pkg.facebookPosts).length > 0) || pkg.youtubeMetadata?.facebookPost || pkg.youtubeMetadata?.clickbait?.facebookPost || pkg.youtubeMetadata?.golubuzki?.facebookPost)
+    })
     setIsPlaying(false)
     setCurrentTime(0)
     setCurrentThumbnail(pkg.hasThumbnail && pkg.folderName ? `/news-static/${pkg.folderName}/thumbnail/thumbnail.jpg?t=${Date.now()}` : (pkg.thumbnailUrl || null))
@@ -48,8 +53,7 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
   const handleSaveAsNative = async () => {
     if (!currentThumbnail) return
     try {
-      const blob = await (await fetch(currentThumbnail)).blob()
-      const defaultName = `thumbnail_${pkg.folderName || 'cover'}.jpg`
+      const blob = await (await fetch(currentThumbnail)).blob(), defaultName = `thumbnail_${pkg.folderName || 'cover'}.jpg`
       if (window.showSaveFilePicker) {
         try {
           const handle = await window.showSaveFilePicker({ suggestedName: defaultName, types: [{ description: 'JPEG Image', accept: { 'image/jpeg': ['.jpg'] } }] })
@@ -74,15 +78,11 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
       })
       const data = await res.json()
       if (data?.success) {
-        setAudioState({ hasAudio: true, audioUrl: data.audioUrl })
-        toast.success('🎙️ Озвучка успешно сгенерирована!', { id: toastId })
+        setAudioState({ hasAudio: true, audioUrl: data.audioUrl }); toast.success('🎙️ Озвучка успешно сгенерирована!', { id: toastId })
         if (onRefresh) onRefresh()
-      } else {
-        toast.error('❌ Ошибка: ' + (data?.error || 'Неизвестная ошибка'), { id: toastId })
-      }
-    } catch (err) {
-      toast.error('❌ Ошибка аудио: ' + err.message, { id: toastId })
-    } finally { setGeneratingAudio(false) }
+      } else { toast.error('❌ Ошибка: ' + (data?.error || 'Неизвестная ошибка'), { id: toastId }) }
+    } catch (err) { toast.error('❌ Ошибка аудио: ' + err.message, { id: toastId }) }
+    finally { setGeneratingAudio(false) }
   }
 
   const handleGenerateVideo = async () => {
@@ -184,41 +184,28 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
     const toastId = toast.loading('🤖 Создание впечатляющей обложки 16:9...')
     try {
       const res = await fetch('/api/set-thumbnail', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mode: 'generate_ai', bundleDir: pkg.bundleDir, folderName: pkg.folderName, headlineConfig: { text: pkg.title } }),
       })
       const data = await res.json()
-      if (data.success) {
-        setCurrentThumbnail(`${data.thumbnailUrl}&t=${Date.now()}`)
-        toast.success('✨ Обложка 16:9 создана и сохранена!', { id: toastId })
-      } else {
-        toast.error('❌ Ошибка генерации обложки: ' + (data.error || 'Ошибка ИИ'), { id: toastId })
-      }
-    } catch (err) {
-      toast.error('❌ Ошибка генерации обложки', { id: toastId, description: err.message })
-    }
+      if (data.success) { setCurrentThumbnail(`${data.thumbnailUrl}&t=${Date.now()}`); toast.success('✨ Обложка 16:9 создана и сохранена!', { id: toastId }) }
+      else { toast.error('❌ Ошибка генерации: ' + (data.error || 'Ошибка ИИ'), { id: toastId }) }
+    } catch (err) { toast.error('❌ Ошибка генерации', { id: toastId, description: err.message }) }
   }
 
   const handleSelectPhotoAsThumbnail = async (photoUrl) => {
     const toastId = toast.loading('🖼️ Применение фото для обложки...')
     try {
       const res = await fetch('/api/set-thumbnail', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ photoUrl, bundleDir: pkg.bundleDir, folderName: pkg.folderName, headlineConfig: { text: pkg.title } }),
       })
       const data = await res.json()
       if (data.success) {
-        setCurrentThumbnail(`${data.thumbnailUrl}&t=${Date.now()}`)
-        toast.success('✨ Фото установлено фоном обложки!', { id: toastId })
+        setCurrentThumbnail(`${data.thumbnailUrl}&t=${Date.now()}`); toast.success('✨ Фото установлено фоном обложки!', { id: toastId })
         if (onRefresh) onRefresh()
-      } else {
-        toast.error('❌ Ошибка: ' + (data.error || 'Не удалось обновить'), { id: toastId })
-      }
-    } catch (err) {
-      toast.error('❌ Ошибка установки фото', { id: toastId, description: err.message })
-    }
+      } else { toast.error('❌ Ошибка: ' + (data.error || 'Не удалось обновить'), { id: toastId }) }
+    } catch (err) { toast.error('❌ Ошибка установки фото', { id: toastId, description: err.message }) }
   }
 
   const [lightboxUrl, setLightboxUrl] = useState(null)
@@ -301,10 +288,11 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
       >
         <PackageHeader
           pkg={pkg} hasTxt={hasTxt} actualPhotoCount={actualPhotoCount} audioState={audioState}
-          videoState={videoState} shortState={shortState} currentThumbnail={currentThumbnail} isMaximized={isMaximized}
+          videoState={videoState} shortState={shortState} youtubeState={youtubeState} currentThumbnail={currentThumbnail} isMaximized={isMaximized}
           setIsMaximized={setIsMaximized} onOpenTitleVariants={() => setShowTitleVariantsModal(true)}
           onOpenScript={() => onOpenScriptText && onOpenScriptText(pkg)} onOpenPhotos={() => onOpenPhotos && onOpenPhotos(pkg)}
-          onOpenShorts={() => setShowShortsEditorModal(true)} onDeletePackage={handleDeletePackage}
+          onOpenShorts={() => setShowShortsEditorModal(true)} onOpenYouTube={() => setShowYouTubeModal(true)}
+          onDeletePackage={handleDeletePackage}
           onTitleSaved={(newTitle, newThumb) => {
             pkg.title = newTitle; if (newThumb) setCurrentThumbnail(newThumb); if (onRefresh) onRefresh()
           }}
@@ -382,7 +370,17 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
       )}
 
       {showYouTubeModal && (
-        <YouTubeMetadataModal pkg={pkg} onClose={() => setShowYouTubeModal(false)} />
+        <YouTubeMetadataModal
+          pkg={pkg}
+          onSaved={(data) => {
+            const hasYt = Boolean(data?.description || data?.title)
+            const hasFb = Boolean(data?.facebookPost)
+            setYoutubeState({ hasYouTube: hasYt, hasFacebook: hasFb })
+            pkg.hasYouTubeMetadata = hasYt; pkg.hasFacebookPost = hasFb
+            if (onRefresh) onRefresh()
+          }}
+          onClose={() => { setShowYouTubeModal(false); if (onRefresh) onRefresh(); }}
+        />
       )}
     </div>
   )

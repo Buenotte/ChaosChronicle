@@ -135,6 +135,16 @@ export default function NewsCard({ article, index, onGenerate, onOpenPhotos, isG
                 ⚡ Shorts ✅
               </span>
             )}
+            {savedPkg.hasYouTubeMetadata && (
+              <span className="artifact-pill youtube" title="YouTube метаданные готовы">
+                📺 YouTube ✅
+              </span>
+            )}
+            {savedPkg.hasFacebookPost && (
+              <span className="artifact-pill fb" title="Facebook пост готов">
+                📱 FB ✅
+              </span>
+            )}
           </div>
         )}
 

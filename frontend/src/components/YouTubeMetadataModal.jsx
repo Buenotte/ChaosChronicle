@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 import { FEUILLETON_STYLES, AI_MODELS } from '../lib/utils'
 
-export default function YouTubeMetadataModal({ pkg, onClose }) {
+export default function YouTubeMetadataModal({ pkg, onSaved, onClose }) {
   if (!pkg) return null
 
   const fileInputRef = useRef(null)
@@ -103,6 +103,7 @@ export default function YouTubeMetadataModal({ pkg, onClose }) {
       const data = await res.json()
       if (data.success) {
         toast.success('💾 Метаданные успешно сохранены в проект (JSON)!')
+        if (onSaved) onSaved({ title, description, tags, hashtags, facebookPost })
       } else {
         toast.error('Ошибка сохранения: ' + (data.error || 'Неизвестная ошибка'))
       }

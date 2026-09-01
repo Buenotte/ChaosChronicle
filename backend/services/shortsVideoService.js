@@ -232,6 +232,8 @@ export async function processRenderShort({
       '-af', af,
       '-c:v', 'libx264',
       '-preset', 'ultrafast',
+      '-tune', 'stillimage',
+      '-threads', '0',
       '-crf', '22',
       '-c:a', 'aac',
       '-b:a', '192k',
