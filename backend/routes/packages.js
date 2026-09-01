@@ -281,10 +281,18 @@ router.get('/api/package-script-text', (req, res) => {
 // POST /api/save-script-text
 router.post('/api/save-script-text', async (req, res) => {
   try {
-    const { bundleDir, text } = req.body;
-    if (!bundleDir || !fs.existsSync(bundleDir)) return res.status(404).json({ success: false, error: 'Папка не найдена' });
-    fs.writeFileSync(path.join(bundleDir, 'script.txt'), text, 'utf-8');
-    const jsonPath = path.join(bundleDir, 'project.json');
+    const { bundleDir: inputBundleDir, folderName, text } = req.body;
+    const newsDir = path.resolve(__dirname, '../../news');
+    let targetDir = inputBundleDir || (folderName ? path.join(newsDir, folderName) : null);
+    if (!targetDir || !fs.existsSync(targetDir)) {
+      if (folderName && fs.existsSync(newsDir)) {
+        const candidate = path.join(newsDir, folderName);
+        if (fs.existsSync(candidate)) targetDir = candidate;
+      }
+    }
+    if (!targetDir || !fs.existsSync(targetDir)) return res.status(404).json({ success: false, error: 'Папка пакета не найдена на диске' });
+    fs.writeFileSync(path.join(targetDir, 'script.txt'), text, 'utf-8');
+    const jsonPath = path.join(targetDir, 'project.json');
     if (fs.existsSync(jsonPath)) {
       try {
         const manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
@@ -293,7 +301,7 @@ router.post('/api/save-script-text', async (req, res) => {
         fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
       } catch {}
     }
-    res.json({ success: true, bundleDir, folderName: path.basename(bundleDir), text });
+    res.json({ success: true, bundleDir: targetDir, folderName: path.basename(targetDir), text });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
@@ -311,28 +319,20 @@ router.post('/api/update-package-title', async (req, res) => {
   try {
     const { bundleDir: inputBundleDir, folderName, newTitle, updateThumbnail = true, lineSpacing, lineColors, fontSize, fontColor, font } = req.body;
     const newsDir = path.resolve(__dirname, '../../news');
-    let targetFolder = inputBundleDir;
+    let targetFolder = inputBundleDir || (folderName ? path.join(newsDir, folderName) : null);
 
-    if (!targetFolder && folderName) {
-      targetFolder = path.join(newsDir, folderName);
-    }
     if (!targetFolder && fs.existsSync(newsDir)) {
       const matchTitle = (req.body.title || req.body.originalTitle || newTitle || '').toLowerCase().replace(/[^a-z0-9а-яё]/gi, '');
       if (matchTitle) {
         const dirs = fs.readdirSync(newsDir, { withFileTypes: true });
         for (const d of dirs) {
           if (!d.isDirectory()) continue;
-          const pDir = path.join(newsDir, d.name);
-          const jsonPath = path.join(pDir, 'project.json');
+          const pDir = path.join(newsDir, d.name), jsonPath = path.join(pDir, 'project.json');
           if (fs.existsSync(jsonPath)) {
             try {
               const m = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
-              const mT = (m.title || '').toLowerCase().replace(/[^a-z0-9а-яё]/gi, '');
-              const mO = (m.original_title || '').toLowerCase().replace(/[^a-z0-9а-яё]/gi, '');
-              if ((mO && matchTitle.includes(mO.slice(0, 12))) || (mT && matchTitle.includes(mT.slice(0, 12)))) {
-                targetFolder = pDir;
-                break;
-              }
+              const mT = (m.title || '').toLowerCase().replace(/[^a-z0-9а-яё]/gi, ''), mO = (m.original_title || '').toLowerCase().replace(/[^a-z0-9а-яё]/gi, '');
+              if ((mO && matchTitle.includes(mO.slice(0, 12))) || (mT && matchTitle.includes(mT.slice(0, 12)))) { targetFolder = pDir; break; }
             } catch {}
           }
         }
@@ -344,9 +344,7 @@ router.post('/api/update-package-title', async (req, res) => {
       targetFolder = path.join(newsDir, `${dateStr}_${safeTitle}`);
       fs.mkdirSync(targetFolder, { recursive: true });
     }
-    if (!newTitle || !newTitle.trim()) {
-      return res.status(400).json({ success: false, error: 'Заголовок не может быть пустым' });
-    }
+    if (!newTitle || !newTitle.trim()) return res.status(400).json({ success: false, error: 'Заголовок не может быть пустым' });
 
     const titleOptions = {};
     if (lineSpacing !== undefined) titleOptions.lineSpacing = Number(lineSpacing);
@@ -355,8 +353,7 @@ router.post('/api/update-package-title', async (req, res) => {
     if (fontColor !== undefined) titleOptions.fontColor = fontColor;
     if (font !== undefined) titleOptions.font = font;
 
-    const result = updatePackageTitle(targetFolder, newTitle, updateThumbnail, titleOptions);
-    res.json(result);
+    res.json(updatePackageTitle(targetFolder, newTitle, updateThumbnail, titleOptions));
   } catch (err) {
     console.error('Update package title error:', err.message);
     res.status(500).json({ success: false, error: err.message });
