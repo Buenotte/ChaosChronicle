@@ -130,6 +130,11 @@ export default function NewsCard({ article, index, onGenerate, onOpenPhotos, isG
                 🎬 Видео ✅
               </span>
             )}
+            {savedPkg.hasShort && (
+              <span className="artifact-pill shorts" title="9:16 Shorts видео срендерено (short.mp4)">
+                ⚡ Shorts ✅
+              </span>
+            )}
           </div>
         )}
 

@@ -301,10 +301,10 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
       >
         <PackageHeader
           pkg={pkg} hasTxt={hasTxt} actualPhotoCount={actualPhotoCount} audioState={audioState}
-          videoState={videoState} currentThumbnail={currentThumbnail} isMaximized={isMaximized}
+          videoState={videoState} shortState={shortState} currentThumbnail={currentThumbnail} isMaximized={isMaximized}
           setIsMaximized={setIsMaximized} onOpenTitleVariants={() => setShowTitleVariantsModal(true)}
           onOpenScript={() => onOpenScriptText && onOpenScriptText(pkg)} onOpenPhotos={() => onOpenPhotos && onOpenPhotos(pkg)}
-          onDeletePackage={handleDeletePackage}
+          onOpenShorts={() => setShowShortsEditorModal(true)} onDeletePackage={handleDeletePackage}
           onTitleSaved={(newTitle, newThumb) => {
             pkg.title = newTitle; if (newThumb) setCurrentThumbnail(newThumb); if (onRefresh) onRefresh()
           }}

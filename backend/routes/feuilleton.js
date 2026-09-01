@@ -12,6 +12,11 @@ const MODELS = {
 };
 
 const STYLES = {
+  clickbait: {
+    file: 'clickbait_style.txt',
+    label: '🔥 Кликбейт & YouTube Топ (CTR 20%+)',
+    focus: 'Ультра-вирусный темп, мощный шок-фактор, парадоксальные контрасты, хлесткие панчлайны каждые 15 секунд, открытые петли интриги и визуальные мемы.',
+  },
   golubuzki: {
     file: 'golubuzki_style.txt',
     label: '🎭 Алексей Голобуцкий',

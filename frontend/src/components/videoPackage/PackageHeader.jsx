@@ -7,12 +7,14 @@ export default function PackageHeader({
   actualPhotoCount,
   audioState,
   videoState,
+  shortState,
   currentThumbnail,
   isMaximized,
   setIsMaximized,
   onOpenTitleVariants,
   onOpenScript,
   onOpenPhotos,
+  onOpenShorts,
   onDeletePackage,
   onTitleSaved,
   onClose,
@@ -209,6 +211,15 @@ export default function PackageHeader({
           >
             ✨ thumbnail.jpg {currentThumbnail ? '✅' : '❌'}
           </span>
+
+          <button
+            type="button"
+            className={`saved-status-badge ${shortState?.hasShort ? 'active' : 'inactive'} ${onOpenShorts ? 'clickable' : ''}`}
+            onClick={onOpenShorts}
+            title="9:16 YouTube Shorts (short.mp4) — нажмите, чтобы открыть студию Shorts"
+          >
+            ⚡ short.mp4 {shortState?.hasShort ? '✅' : '❌'}
+          </button>
         </div>
       </div>
       <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
