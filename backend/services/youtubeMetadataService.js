@@ -128,14 +128,14 @@ export async function generateYouTubeMetadata({
 
   const chosenModel = MODEL_MAP[model] || model || 'google/gemini-2.5-flash';
 
-  let systemPrompt = `Ты — ведущий медиа-продюсер канала Chaos Chronicle.
-На основе новости создай метаданные для YouTube и Facebook в авторском стиле: ${styleCfg.label}
+  let systemPrompt = `Ты — ведущий YouTube-продюсер канала Chaos Chronicle.
+На основе новости создай вирусные метаданные для YouTube и Facebook в авторском стиле: ${styleCfg.label}
 ФОКУС: ${styleCfg.focus}
 ПОЗИЦИЯ: СТРОГО НА СТОРОНЕ УКРАИНЫ.
-СТРОГИЕ ПРАВИЛА: БЕЗ слова «сатира», БЕЗ имен блогеров в тегах/хэштегах.`;
+ПРАВИЛО ВИРУСНОСТИ: Используй парадоксы, яркие контрасты (например "Зерно в Арктику: как Россия прячет флот от дронов") и живые метафоры. БЕЗ слова «сатира», БЕЗ имен блогеров в тегах/хэштегах.`;
 
   if (section === 'title') {
-    systemPrompt += `\nСоздай ТОЛЬКО 1 убойный, супер-кликабельный YouTube-заголовок (до 75 символов) с эмодзи в конце | Chaos Chronicle.
+    systemPrompt += `\nСоздай ТОЛЬКО 1 убойный, супер-кликабельный YouTube-заголовок (до 75 символов) с интригой/парадоксом и эмодзи | Chaos Chronicle.
 Ответь СТРОГО JSON: { "title": "..." }`;
   } else if (section === 'description') {
     systemPrompt += `\nСоздай ТОЛЬКО описание для YouTube БЕЗ приветствий (суть, 3 тезиса ⚡, призыв 🔔, хэштеги), а также keywords теги и хэштеги.
