@@ -5,24 +5,40 @@ export const FFMPEG_SHORTS_COLOR_MAP = {
 
 export const toShortsHex = (c) => (c && FFMPEG_SHORTS_COLOR_MAP[c]) ? FFMPEG_SHORTS_COLOR_MAP[c] : (c || '#FFE600');
 
-export const toShortsAssColor = (col) => {
+export const toShortsAssTagColor = (col) => {
   const hex = toShortsHex(col).replace('#', '').trim();
   return hex.length === 6 ? `&H00${hex.slice(4, 6)}${hex.slice(2, 4)}${hex.slice(0, 2)}&` : '&H0000E6FF&';
 };
 
+export const toShortsAssStyleColor = (col, alpha = '00') => {
+  const hex = toShortsHex(col).replace('#', '').trim();
+  return hex.length === 6 ? `&H${alpha}${hex.slice(4, 6)}${hex.slice(2, 4)}${hex.slice(0, 2)}` : `&H${alpha}00E6FF`;
+};
+
 export function buildAssShortsSubtitle(wrappedText, options) {
   const {
-    font: reqFont, fontSize = 90, fontColor = 'yellow', strokeWidth = 8, strokeColor = 'black',
+    font: reqFont, fontSize = 110, fontColor = 'yellow', strokeWidth = 8, strokeColor = 'black',
     shadowDistance = 4, shadowColor = 'black', posY = 200, wordColors, wordFontSizes,
   } = options;
 
-  const fontNameMap = { impact: 'Impact', arial_black: 'Arial Black' };
+  const fontNameMap = {
+    impact: 'Impact',
+    arial_black: 'Arial Black',
+    'Saxonia_Antiqua_Bold.ttf': 'Saxonia Antiqua',
+    'SeymourOne-Regular.ttf': 'Seymour One',
+    'StalinistOne-Regular.ttf': 'Stalinist One',
+    'Unbounded-Black.ttf': 'Unbounded',
+    'Buran_USSR.ttf': 'Buran USSR',
+    'RussoOne-Regular.ttf': 'Russo One',
+    'DelaGothicOne-Regular.ttf': 'Dela Gothic One',
+    'RubikMonoOne-Regular.ttf': 'Rubik Mono One',
+  };
   let assFontName = fontNameMap[reqFont] || (reqFont ? String(reqFont).replace(/\.[^.]+$/, '').replace(/_/g, ' ').trim() : 'Impact');
-  const assOutlineCol = toShortsAssColor(strokeColor || 'black');
-  const assShadowCol = toShortsAssColor(shadowColor || 'black');
+  const assOutlineCol = toShortsAssStyleColor(strokeColor || 'black', '00');
+  const assShadowCol = toShortsAssStyleColor(shadowColor || 'black', '80');
   const bWidth = Number(strokeWidth) >= 0 ? Number(strokeWidth) : 8;
   const sDist = Number(shadowDistance) >= 0 ? Number(shadowDistance) : 4;
-  const baseSize = Math.max(30, Math.min(Number(fontSize) || 90, 240));
+  const baseSize = Math.max(30, Math.min(Number(fontSize) || 110, 240));
 
   const lines = wrappedText.split('\n').filter(Boolean);
   let wordIdx = 0;
@@ -34,7 +50,7 @@ export function buildAssShortsSubtitle(wrappedText, options) {
       const wSz = (wordFontSizes && wordFontSizes[curIdx] && Number(wordFontSizes[curIdx]) > 0)
         ? Number(wordFontSizes[curIdx])
         : baseSize;
-      return `{\\c${toShortsAssColor(wCol)}\\fs${wSz}}${w}`;
+      return `{\\c${toShortsAssTagColor(wCol)}\\fs${wSz}\\bord${bWidth}\\3c${toShortsAssTagColor(strokeColor || 'black')}\\shad${sDist}\\4c${toShortsAssTagColor(shadowColor || 'black')}}${w}`;
     }).join(' ');
   });
 

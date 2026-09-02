@@ -191,33 +191,20 @@ export async function processRenderShort({
     fs.writeFileSync(concatListFile, concatContent, 'utf-8');
 
     // Фильтры: масштабирование 1080x1920 + наложение текста
-    const hasWordStyles = (
-      (Array.isArray(wordColors) && wordColors.some(Boolean)) ||
-      (Array.isArray(wordFontSizes) && wordFontSizes.some(s => s && Number(s) > 0))
-    );
-
-    let vf = '';
-    let assFile = null;
-    if (hasWordStyles) {
-      const assContent = buildAssShortsSubtitle(wrappedText, {
-        font: reqFont, fontSize: effectiveSize, fontColor, strokeWidth: effectiveStroke, strokeColor: effectiveStrokeColor,
-        shadowDistance: effectiveShadowDist, shadowColor, posY: effectivePosY, wordColors, wordFontSizes
-      });
-      assFile = path.join(targetFolder, `temp_short_ass_${Date.now()}.ass`);
-      fs.writeFileSync(assFile, assContent, 'utf-8');
-      const safeAssPath = assFile.replace(/\\/g, '/').replace(/:/g, '\\:');
-      const safeCustomFontsDir = customFontsDir.replace(/\\/g, '/').replace(/:/g, '\\:');
-      vf = `scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,subtitles=filename='${safeAssPath}':fontsdir='${safeCustomFontsDir}'`;
-    } else {
-      const lines = wrappedText.split('\n').filter(Boolean);
-      const lineStep = Math.round(effectiveSize * 1.18);
-      const drawtextFilters = lines.map((line, idx) => {
-        const safeLine = line.replace(/["'«»`]/g, '').trim().replace(/'/g, "'\\''").replace(/:/g, '\\:');
-        const curY = effectivePosY + (idx * lineStep);
-        return `drawtext=fontfile='${fontPath}':text='${safeLine}':fontsize=${effectiveSize}:fontcolor=${effectiveColor}:bordercolor=${effectiveStrokeColor}:borderw=${effectiveStroke}:${shadowParams}${boxFilterPart}x=(w-text_w)/2:y=${curY}`;
-      }).join(',');
-      vf = `scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,${drawtextFilters}`;
-    }
+    // LibASS + Drawbox для 100% точного рендеринга шрифтов, размеров и контуров
+    const assContent = buildAssShortsSubtitle(wrappedText, {
+      font: reqFont, fontSize: effectiveSize, fontColor, strokeWidth: effectiveStroke, strokeColor: effectiveStrokeColor,
+      shadowDistance: effectiveShadowDist, shadowColor, posY: effectivePosY, wordColors, wordFontSizes
+    });
+    const assFile = path.join(targetFolder, `temp_short_ass_${Date.now()}.ass`);
+    fs.writeFileSync(assFile, assContent, 'utf-8');
+    const safeAssPath = assFile.replace(/\\/g, '/').replace(/:/g, '\\:');
+    const safeCustomFontsDir = customFontsDir.replace(/\\/g, '/').replace(/:/g, '\\:');
+    const linesCount = wrappedText.split('\n').filter(Boolean).length;
+    const boxH = Math.round(linesCount * (effectiveSize * 1.18) + 40);
+    const boxY = Math.max(10, effectivePosY - 20);
+    const drawBoxFilter = isBoxOn ? `,drawbox=x=30:y=${boxY}:w=1020:h=${boxH}:color=${effectiveBoxColor}@${effectiveBoxOp}:t=fill` : '';
+    const vf = `scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1${drawBoxFilter},subtitles=filename='${safeAssPath}':fontsdir='${safeCustomFontsDir}'`;
 
     const fadeOutStart = Math.max(0, targetDur - 0.4);
     const af = `atrim=0:${targetDur},asetpts=PTS-STARTPTS,afade=t=out:st=${fadeOutStart}:d=0.4`;
@@ -328,35 +315,21 @@ export async function processPreviewShortFrame(options) {
   const effectiveBoxColor = hexColorMap[boxColor] || boxColor || '#000000';
   const boxFilterPart = isBoxOn ? `box=1:boxcolor=${effectiveBoxColor}@${effectiveBoxOp}:boxborderw=20:` : 'box=0:';
 
-  const hasWordStyles = (
-    (Array.isArray(wordColors) && wordColors.some(Boolean)) ||
-    (Array.isArray(wordFontSizes) && wordFontSizes.some(s => s && Number(s) > 0))
-  );
-
-  let vf = '';
   let assFile = null;
-  const previewOut = path.join(targetFolder, 'preview_short_frame.jpg');
   try {
-    if (hasWordStyles) {
-      const assContent = buildAssShortsSubtitle(wrappedText, {
-        font: reqFont, fontSize: effectiveSize, fontColor, strokeWidth: effectiveStroke, strokeColor: effectiveStrokeColor,
-        shadowDistance: effectiveShadowDist, shadowColor, posY: effectivePosY, wordColors, wordFontSizes
-      });
-      assFile = path.join(targetFolder, `temp_preview_short_ass_${Date.now()}.ass`);
-      fs.writeFileSync(assFile, assContent, 'utf-8');
-      const safeAssPath = assFile.replace(/\\/g, '/').replace(/:/g, '\\:');
-      const safeCustomFontsDir = customFontsDir.replace(/\\/g, '/').replace(/:/g, '\\:');
-      vf = `scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,subtitles=filename='${safeAssPath}':fontsdir='${safeCustomFontsDir}'`;
-    } else {
-      const lines = wrappedText.split('\n').filter(Boolean);
-      const lineStep = Math.round(effectiveSize * 1.18);
-      const drawtextFilters = lines.map((line, idx) => {
-        const safeLine = line.replace(/["'«»`]/g, '').trim().replace(/'/g, "'\\''").replace(/:/g, '\\:');
-        const curY = effectivePosY + (idx * lineStep);
-        return `drawtext=fontfile='${fontPath}':text='${safeLine}':fontsize=${effectiveSize}:fontcolor=${effectiveColor}:bordercolor=${effectiveStrokeColor}:borderw=${effectiveStroke}:${shadowParams}${boxFilterPart}x=(w-text_w)/2:y=${curY}`;
-      }).join(',');
-      vf = `scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,${drawtextFilters}`;
-    }
+    const assContent = buildAssShortsSubtitle(wrappedText, {
+      font: reqFont, fontSize: effectiveSize, fontColor, strokeWidth: effectiveStroke, strokeColor: effectiveStrokeColor,
+      shadowDistance: effectiveShadowDist, shadowColor, posY: effectivePosY, wordColors, wordFontSizes
+    });
+    assFile = path.join(targetFolder, `temp_preview_short_ass_${Date.now()}.ass`);
+    fs.writeFileSync(assFile, assContent, 'utf-8');
+    const safeAssPath = assFile.replace(/\\/g, '/').replace(/:/g, '\\:');
+    const safeCustomFontsDir = customFontsDir.replace(/\\/g, '/').replace(/:/g, '\\:');
+    const linesCount = wrappedText.split('\n').filter(Boolean).length;
+    const boxH = Math.round(linesCount * (effectiveSize * 1.18) + 40);
+    const boxY = Math.max(10, effectivePosY - 20);
+    const drawBoxFilter = isBoxOn ? `,drawbox=x=30:y=${boxY}:w=1020:h=${boxH}:color=${effectiveBoxColor}@${effectiveBoxOp}:t=fill` : '';
+    const vf = `scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1${drawBoxFilter},subtitles=filename='${safeAssPath}':fontsdir='${safeCustomFontsDir}'`;
     execFileSync('ffmpeg', ['-y', '-i', basePhoto, '-vf', vf, '-frames:v', '1', '-q:v', '2', previewOut]);
   } finally {
     try { if (assFile && fs.existsSync(assFile)) fs.unlinkSync(assFile); } catch {}
