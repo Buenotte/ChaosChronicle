@@ -71,68 +71,74 @@ export async function generateTitleVariants(title = '', summary = '', bundleDir 
     };
   }
 
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey || apiKey.includes('HIER')) {
-    return {
-      resolvedTitle: effectiveTitle,
-      variants: existingVariants.length > 0 ? existingVariants : [
-        effectiveTitle.slice(0, 30),
-        `УДАР ПО ${effectiveTitle.slice(0, 20)}`,
-        `САМОЛИКВИДАЦИЯ: ${effectiveTitle.slice(0, 15)}`,
-      ],
-      style,
-    };
-  }
-
-  const selectedStyleConfig = TITLE_STYLES[style] || TITLE_STYLES.clickbait;
-  const systemPrompt = `Ты — лучший в мире YouTube-продюсер и эксперт по вирусным обложкам, хукам Shorts и кликабельным заголовкам (CTR 20%+) в стиле: ${selectedStyleConfig.name}.
+  try {
+    const selectedStyleConfig = TITLE_STYLES[style] || TITLE_STYLES.clickbait;
+  const systemPrompt = `Ты — главный YouTube-продюсер ChaosChronicle и эксперт по ультра-гротескным, вирусным заголовкам (CTR 20%+) в стиле: ${selectedStyleConfig.name}.
 ОСОБЕННОСТИ СТИЛЯ: ${selectedStyleConfig.desc}
 
-Твоя задача: Создать РОВНО 10 РАЗНЫХ супер-кликабельных, цепляющих и убойных YouTube-заголовков/хуков, которые мгновенно заставляют зрителя кликнуть!
+Твоя задача: Создать РОВНО 10 РАЗНЫХ супер-кликабельных, гротескных и убойных YouTube-заголовков на основе фактов.
 
-СТРОГИЕ ПРАВИЛА И СТРУКТУРА:
-1. ДЛИНА: СТРОГО 4-5 СЛОВ (идеально для обложек, тизеров Shorts и ленты).
-2. 💥 ФОРМУЛА ВИРУСНОГО ПАРАДОКСА (Когнитивный диссонанс):
-   - Обязательно создавай заголовки со столкновением несовместимого (например: "ЗЕРНО УХОДИТ В АРКТИКУ", "ФЛОТ ПРЯЧЕТСЯ ВО ЛЬДАХ", "ТАНКИ НА СОБАЧЬИХ УПРЯЖКАХ", "КУКУРУЗА ДЛЯ СЕВЕРНОГО ПОЛЮСА").
-   - Интрига и вопрос (ЧТО СКРЫВАЮТ?, КУДА БЕЖИТ ФЛОТ?, КТО ОТВЕТИТ?)
-   - Шок-фактор и срыв покровов (ТАКОГО НЕ ОЖИДАЛИ, ПРИКАЗ БЫЛ ОТДАН, СРОЧНЫЙ ПОБЕГ)
-   - Конкретика темы (называй место, суть события, главных действующих лиц)
-   - Жесткая эмоциональная оценка, высмеивание и ирония.
+СТРОГИЕ ПРАВИЛА:
+1. ДЛИНА: СТРОГО 4-5 СЛОВ (идеально для обложек и ленты).
+2. 💥 ФОРМУЛА ВИРУСНОГО ГРОТЕСКА И ПАРАДОКСА:
+   - Столкновение несовместимого (например: "ЗЕРНО УХОДИТ В АРКТИКУ", "ФЛОТ ПРЯЧЕТСЯ ВО ЛЬДАХ", "ВОЕНРУК ВЗРЫВАЕТ КЛЕТКУ ГРАНАТОЙ").
+   - Конкретика темы, сарказм и хлесткие слова.
 3. БЕЗ кавычек, БЕЗ нумерации, БЕЗ точек на конце.
-4. ВЫВОД: Выведи РОВНО 10 строк, по одному заголовку на строку (капсом UPPERCASE). Никаких вводных слов или пояснений.`;
+4. ВЫВОД: Выведи РОВНО 10 строк, по одному заголовку на строку (капсом UPPERCASE).`;
 
   const contextBody = scriptContent ? `\n\nДЕТАЛИ ИЗ СЦЕНАРИЯ:\n"""\n${scriptContent.slice(0, 1200)}\n"""` : '';
-  const userPrompt = `НОВОСТЬ / ТЕМА:\n"${effectiveTitle}"${contextBody}\n\nСгенерируй 10 убойных, парадоксальных и супер-кликабельных заголовков из 4-5 слов для YouTube:`;
+  const userPrompt = `НОВОСТЬ / ТЕМА:\n"${effectiveTitle}"${contextBody}\n\nСгенерируй 10 ультра-гротескных заголовков из 4-5 слов для YouTube:`;
 
-  try {
-    const aiRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        max_tokens: 350,
-        temperature: 0.9,
-      }),
-      signal: AbortSignal.timeout(10000),
-    });
+  let rawLines = [];
+  const geminiKey = process.env.GEMINI_API_KEY;
+  if (geminiKey && !geminiKey.includes('HIER')) {
+    try {
+      const gRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent?key=${geminiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: systemPrompt }] },
+          contents: [{ parts: [{ text: userPrompt }] }],
+          generationConfig: { temperature: 0.9, maxOutputTokens: 2500 },
+        }),
+        signal: AbortSignal.timeout(12000),
+      });
+      if (gRes.ok) {
+        const d = await gRes.json();
+        const rawContent = d.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        rawLines = rawContent.split('\n').map(l => l.replace(/^[\d\s.\-•*]+/, '').replace(/["'«»`]/g, '').trim().toUpperCase()).filter(l => l.length > 5 && l.split(/\s+/).length >= 3 && l.split(/\s+/).length <= 7);
+      }
+    } catch (e) {
+      console.warn('Gemini title variants error:', e.message);
+    }
+  }
 
-    if (!aiRes.ok) throw new Error(`AI API error: ${aiRes.status}`);
+  if (rawLines.length === 0) {
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    if (apiKey && !apiKey.includes('HIER')) {
+      try {
+        const aiRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }],
+            max_tokens: 600, temperature: 0.9,
+          }),
+          signal: AbortSignal.timeout(10000),
+        });
+        if (aiRes.ok) {
+          const data = await aiRes.json();
+          const rawContent = data.choices?.[0]?.message?.content || '';
+          rawLines = rawContent.split('\n').map(l => l.replace(/^[\d\s.\-•*]+/, '').replace(/["'«»`]/g, '').trim().toUpperCase()).filter(l => l.length > 5 && l.split(/\s+/).length >= 3 && l.split(/\s+/).length <= 7);
+        }
+      } catch (e) {
+        console.warn('OpenRouter title variants error:', e.message);
+      }
+    }
+  }
 
-    const data = await aiRes.json();
-    const rawContent = data.choices?.[0]?.message?.content || '';
-    const rawLines = rawContent
-      .split('\n')
-      .map(l => l.replace(/^[\d\s.\-•*]+/, '').replace(/["'«»`]/g, '').trim().toUpperCase())
-      .filter(l => l.length > 5 && l.split(/\s+/).length >= 3 && l.split(/\s+/).length <= 7);
-
-    const uniqueVariants = Array.from(new Set(rawLines)).slice(0, 10);
+  const uniqueVariants = Array.from(new Set(rawLines)).slice(0, 10);
     const finalVariants = uniqueVariants.length > 0 ? uniqueVariants : (existingVariants.length > 0 ? existingVariants : [effectiveTitle]);
 
     if (jsonPath && fs.existsSync(jsonPath) && finalVariants.length > 0) {

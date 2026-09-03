@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js",
+    "dev": "node --watch-path=routes --watch-path=services --watch-path=server.js server.js",
     "test": "node ../tests/run_all_tests.js"
   },
   "dependencies": {

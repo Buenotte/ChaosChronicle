@@ -8,6 +8,19 @@ console.log('🧪 [TEST] Running Audio Generation (Edge TTS) Tests...');
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+async function fetchWithRetry(url, options, maxRetries = 3) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      const res = await fetch(url, options);
+      if (res.ok) return res;
+    } catch (err) {
+      if (i === maxRetries - 1) throw err;
+      await new Promise(r => setTimeout(r, 1500));
+    }
+  }
+  return fetch(url, options);
+}
+
 async function runAudioTests() {
   const newsDir = path.resolve(__dirname, '../news');
   const tempTestFolder = `temp_test_audio_${Date.now()}`;
@@ -19,7 +32,7 @@ async function runAudioTests() {
   }, null, 2), 'utf-8');
 
   try {
-    const res = await fetch('http://localhost:3001/api/generate-audio', {
+    const res = await fetchWithRetry('http://localhost:3001/api/generate-audio', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -36,8 +49,11 @@ async function runAudioTests() {
     console.log(`  ✅ Audio generated successfully: ${data.audioUrl}`);
   } finally {
     if (fs.existsSync(testPkgDir)) {
-      fs.rmSync(testPkgDir, { recursive: true, force: true });
-      console.log('  🧹 Cleaned up temporary test audio package');
+      await new Promise(r => setTimeout(r, 600));
+      try {
+        fs.rmSync(testPkgDir, { recursive: true, force: true });
+        console.log('  🧹 Cleaned up temporary test audio package');
+      } catch {}
     }
   }
 }

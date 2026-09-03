@@ -9,6 +9,7 @@ export default function ShortsCustomPlayer({ src, onEditMode }) {
 
   useEffect(() => {
     if (videoRef.current) {
+      try { videoRef.current.load() } catch {}
       videoRef.current.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false))
     }
   }, [src])
@@ -58,6 +59,7 @@ export default function ShortsCustomPlayer({ src, onEditMode }) {
       }}
     >
       <video
+        key={src}
         ref={videoRef}
         src={src}
         loop

@@ -2,17 +2,19 @@ import assert from 'assert';
 
 console.log('🧪 [TEST 2/5] Running Golobutsky Title Generator Tests...');
 
-async function fetchWithRetry(url, options, maxRetries = 3) {
+async function fetchWithRetry(url, options, maxRetries = 4) {
+  let lastErr;
   for (let i = 0; i < maxRetries; i++) {
     try {
-      const res = await fetch(url, options);
+      const res = await fetch(url, { ...options, signal: AbortSignal.timeout(15000) });
       if (res.ok) return res;
+      lastErr = new Error(`HTTP ${res.status}`);
     } catch (err) {
-      if (i === maxRetries - 1) throw err;
-      await new Promise(r => setTimeout(r, 1500));
+      lastErr = err;
+      await new Promise(r => setTimeout(r, 2000));
     }
   }
-  return fetch(url, options);
+  throw lastErr || new Error('fetchWithRetry failed');
 }
 
 async function runTitleTests() {

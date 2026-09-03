@@ -217,11 +217,7 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
               <button
                 type="button"
                 disabled={renderingFrame}
-                onClick={() => {
-                  if (viewMode === 'frame') handleInstantFramePreview()
-                  else if (realFrameUrl) setViewMode('frame')
-                  else handleInstantFramePreview()
-                }}
+                onClick={() => handleInstantFramePreview()}
                 style={{
                   background: viewMode === 'frame' ? '#3b82f6' : 'transparent',
                   color: '#fff', border: 'none', borderRadius: '6px', padding: '0.35rem 0.65rem', fontSize: '0.78rem', cursor: 'pointer', fontWeight: 700,

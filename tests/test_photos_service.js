@@ -9,11 +9,24 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const newsDir = path.resolve(__dirname, '../news');
 
+async function fetchWithRetry(url, options, maxRetries = 3) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      const res = await fetch(url, options);
+      if (res.ok) return res;
+    } catch (err) {
+      if (i === maxRetries - 1) throw err;
+      await new Promise(r => setTimeout(r, 1500));
+    }
+  }
+  return fetch(url, options);
+}
+
 async function runPhotosTests() {
   const query = 'Украина дроны атака';
 
   // 1. Photo Search API
-  const searchRes = await fetch(`http://localhost:3001/api/news-photos?title=${encodeURIComponent(query)}&forceLive=true`);
+  const searchRes = await fetchWithRetry(`http://localhost:3001/api/news-photos?title=${encodeURIComponent(query)}&forceLive=true`);
   assert.strictEqual(searchRes.status, 200, 'Photos search API must return 200');
   const searchData = await searchRes.json();
   assert.ok(searchData.success, 'Photos search must return success');
@@ -23,7 +36,7 @@ async function runPhotosTests() {
 
   // 2. Save Photos to dedicated test folder
   const testFolderName = `test_auto_photos_${Date.now()}`;
-  const saveRes = await fetch('http://localhost:3001/api/save-news-photos', {
+  const saveRes = await fetchWithRetry('http://localhost:3001/api/save-news-photos', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -39,8 +52,11 @@ async function runPhotosTests() {
   // 3. Clean up test folder
   const testFolder = path.join(newsDir, testFolderName);
   if (fs.existsSync(testFolder)) {
-    fs.rmSync(testFolder, { recursive: true, force: true });
-    console.log('  🧹 Cleaned up temporary test folder');
+    await new Promise(r => setTimeout(r, 500));
+    try {
+      fs.rmSync(testFolder, { recursive: true, force: true });
+      console.log('  🧹 Cleaned up temporary test folder');
+    } catch {}
   }
 }
 

@@ -38,7 +38,8 @@ export function buildAssShortsSubtitle(wrappedText, options) {
   const assShadowCol = toShortsAssStyleColor(shadowColor || 'black', '80');
   const bWidth = Number(strokeWidth) >= 0 ? Number(strokeWidth) : 8;
   const sDist = Number(shadowDistance) >= 0 ? Number(shadowDistance) : 4;
-  const baseSize = Math.max(30, Math.min(Number(fontSize) || 110, 240));
+  const rawSize = Math.max(30, Math.min(Number(fontSize) || 110, 240));
+  const baseSize = Math.round(rawSize * 1.33);
 
   const lines = wrappedText.split('\n').filter(Boolean);
   let wordIdx = 0;
@@ -48,7 +49,7 @@ export function buildAssShortsSubtitle(wrappedText, options) {
       const curIdx = wordIdx++;
       const wCol = (wordColors && wordColors[curIdx]) ? wordColors[curIdx] : fontColor;
       const wSz = (wordFontSizes && wordFontSizes[curIdx] && Number(wordFontSizes[curIdx]) > 0)
-        ? Number(wordFontSizes[curIdx])
+        ? Math.round(Number(wordFontSizes[curIdx]) * 1.33)
         : baseSize;
       return `{\\c${toShortsAssTagColor(wCol)}\\fs${wSz}\\bord${bWidth}\\3c${toShortsAssTagColor(strokeColor || 'black')}\\shad${sDist}\\4c${toShortsAssTagColor(shadowColor || 'black')}}${w}`;
     }).join(' ');

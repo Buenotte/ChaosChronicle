@@ -55,6 +55,7 @@ export default function PackageShortsSection({
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', flexWrap: 'wrap', background: '#111827', padding: '0.85rem', borderRadius: '10px', border: '1px solid #1f2937' }}>
           <div style={{ width: '150px', height: '266px', borderRadius: '8px', overflow: 'hidden', background: '#000', border: '2px solid #f43f5e', flexShrink: 0, boxShadow: '0 4px 16px rgba(244, 63, 94, 0.2)' }}>
             <video
+              key={shortState.shortUrl}
               src={shortState.shortUrl}
               controls
               playsInline

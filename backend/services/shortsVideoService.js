@@ -1,8 +1,11 @@
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import { execFileSync, execSync } from 'child_process';
+import { execFile, execSync } from 'child_process';
+import { promisify } from 'util';
 import { buildAssShortsSubtitle, FFMPEG_SHORTS_COLOR_MAP } from './shortsAssService.js';
+
+const execFileAsync = promisify(execFile);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -209,7 +212,7 @@ export async function processRenderShort({
     const fadeOutStart = Math.max(0, targetDur - 0.4);
     const af = `atrim=0:${targetDur},asetpts=PTS-STARTPTS,afade=t=out:st=${fadeOutStart}:d=0.4`;
 
-    execFileSync('ffmpeg', [
+    await execFileAsync('ffmpeg', [
       '-y',
       '-f', 'concat',
       '-safe', '0',
@@ -315,6 +318,7 @@ export async function processPreviewShortFrame(options) {
   const effectiveBoxColor = hexColorMap[boxColor] || boxColor || '#000000';
   const boxFilterPart = isBoxOn ? `box=1:boxcolor=${effectiveBoxColor}@${effectiveBoxOp}:boxborderw=20:` : 'box=0:';
 
+  const previewOut = path.join(targetFolder, 'preview_short_frame.jpg');
   let assFile = null;
   try {
     const assContent = buildAssShortsSubtitle(wrappedText, {
@@ -330,7 +334,7 @@ export async function processPreviewShortFrame(options) {
     const boxY = Math.max(10, effectivePosY - 20);
     const drawBoxFilter = isBoxOn ? `,drawbox=x=30:y=${boxY}:w=1020:h=${boxH}:color=${effectiveBoxColor}@${effectiveBoxOp}:t=fill` : '';
     const vf = `scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1${drawBoxFilter},subtitles=filename='${safeAssPath}':fontsdir='${safeCustomFontsDir}'`;
-    execFileSync('ffmpeg', ['-y', '-i', basePhoto, '-vf', vf, '-frames:v', '1', '-q:v', '2', previewOut]);
+    await execFileAsync('ffmpeg', ['-y', '-i', basePhoto, '-vf', vf, '-frames:v', '1', '-q:v', '2', previewOut]);
   } finally {
     try { if (assFile && fs.existsSync(assFile)) fs.unlinkSync(assFile); } catch {}
   }

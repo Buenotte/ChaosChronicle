@@ -36,6 +36,7 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
       const params = new URLSearchParams({ title: newsTopic.title || '', articleId: newsTopic.id || '', url: newsTopic.url || '', query: searchQuery.trim(), forceLive: 'true', page: '1', engine })
       const res = await fetch(`/api/news-photos?${params}`)
       const data = await res.json()
+      toast.dismiss(toastId)
       if (data.success) {
         const incoming = data.photos || []
         setItems(prev => {
@@ -45,12 +46,13 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
           const fresh = incoming.filter(p => !localUrls.has(typeof p === 'string' ? p : p?.url))
           return [...localSaved, ...fresh]
         })
-        toast.success(`Найдено ${data.photos?.length || 0} фото!`, { id: toastId })
+        toast.success(`Найдено ${data.photos?.length || 0} фото!`, { duration: 2500 })
       } else {
-        toast.error('Ошибка поиска фото: ' + (data.error || 'Ничего не найдено'), { id: toastId })
+        toast.error('Ошибка поиска фото: ' + (data.error || 'Ничего не найдено'), { duration: 3000 })
       }
     } catch (err) {
-      toast.error('Ошибка запроса: ' + err.message, { id: toastId })
+      toast.dismiss(toastId)
+      toast.error('Ошибка запроса: ' + err.message, { duration: 3000 })
     } finally {
       setSearching(false)
     }
@@ -139,111 +141,70 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
     const nextPage = searchPage + 1
     setLoadingMore(true)
     const toastId = toast.loading(`🔎 Поиск следующих фото (страница ${nextPage})...`)
-
     try {
-      const params = new URLSearchParams({
-        title: newsTopic.title || '',
-        query: searchQuery.trim(),
-        forceLive: 'true',
-        page: String(nextPage),
-        engine: currentEngine,
-      })
+      const params = new URLSearchParams({ title: newsTopic.title || '', query: searchQuery.trim(), forceLive: 'true', page: String(nextPage), engine: currentEngine })
       const res = await fetch(`/api/news-photos?${params}`)
       const data = await res.json()
-
+      toast.dismiss(toastId)
       if (data.success && data.photos?.length > 0) {
         const existingUrls = new Set(items.map(p => (typeof p === 'string' ? p : p.url)))
         const newUnique = data.photos.filter(p => !existingUrls.has(p.url))
         if (newUnique.length > 0) {
           setItems(prev => [...prev, ...newUnique])
           setSearchPage(nextPage)
-          toast.success(`📸 Добавлено +${newUnique.length} новых фото! Всего: ${items.length + newUnique.length}`, { id: toastId })
-        } else {
-          toast.info('Новых дополнительных фото не найдено', { id: toastId })
-        }
-      } else {
-        toast.info('Больше фото не найдено', { id: toastId })
-      }
-    } catch (err) {
-      toast.error('Ошибка поиска: ' + err.message, { id: toastId })
-    } finally {
-      setLoadingMore(false)
-    }
+          toast.success(`📸 Добавлено +${newUnique.length} новых фото! Всего: ${items.length + newUnique.length}`, { duration: 2500 })
+        } else { toast.info('Новых дополнительных фото не найдено', { duration: 2500 }) }
+      } else { toast.info('Больше фото не найдено', { duration: 2500 }) }
+    } catch (err) { toast.dismiss(toastId); toast.error('Ошибка поиска: ' + err.message, { duration: 3000 }) }
+    finally { setLoadingMore(false) }
   }
 
   const handleSaveSinglePhoto = async (e, index) => {
-    if (e && e.stopPropagation) e.stopPropagation()
+    if (e?.stopPropagation) e.stopPropagation()
     const photoToSave = items[index]
     const imgSrc = typeof photoToSave === 'string' ? photoToSave : (photoToSave?.url || '')
     if (!imgSrc) return
-
-    if (imgSrc.startsWith('/news-static/')) {
-      toast.info('Это фото уже сохранено на диске')
-      return
-    }
+    if (imgSrc.startsWith('/news-static/')) return toast.info('Это фото уже сохранено на диске')
 
     setSavingSingleIndex(index)
-    const toastId = toast.loading('💾 Скачивание фото в папку news/...', {
-      description: 'Сохранение оригинального файла...',
-    })
-
+    const toastId = toast.loading('💾 Скачивание фото в папку news/...', { description: 'Сохранение оригинального файла...' })
     try {
       const res = await fetch('/api/save-single-photo', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: newsTopic.title,
-          folderName: newsTopic.folderName || newsTopic.matchingPkg?.folderName,
-          bundleDir: newsTopic.bundleDir || newsTopic.matchingPkg?.bundleDir,
-          photoUrl: imgSrc,
-        }),
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: newsTopic.title, folderName: newsTopic.folderName || newsTopic.matchingPkg?.folderName, bundleDir: newsTopic.bundleDir || newsTopic.matchingPkg?.bundleDir, photoUrl: imgSrc }),
       })
       const data = await res.json()
+      toast.dismiss(toastId)
       if (!res.ok || !data.success) throw new Error(data.error || 'Ошибка скачивания фото')
       setItems(prev => prev.map((p, idx) => idx === index ? { ...(typeof p === 'object' ? p : {}), url: data.localUrl, source: 'На диске', isSavedLocal: true } : p))
       setSavedCount(data.totalPhotos)
       if (onSaved) onSaved()
-      toast.success(`📸 Фото сохранено: ${data.filename}!`, { id: toastId, description: `Папка: news/${data.folderName}/photos/` })
-    } catch (err) {
-      toast.error('Ошибка сохранения фото: ' + err.message, { id: toastId })
-    } finally {
-      setSavingSingleIndex(null)
-    }
+      toast.success(`📸 Фото сохранено: ${data.filename}!`, { description: `Папка: news/${data.folderName}/photos/`, duration: 2500 })
+    } catch (err) { toast.dismiss(toastId); toast.error('Ошибка сохранения фото: ' + err.message, { duration: 3000 }) }
+    finally { setSavingSingleIndex(null) }
   }
 
   const handleSavePhotosToFolder = async () => {
     if (items.length === 0) return
     setSavingPhotos(true)
-    const toastId = toast.loading(`💾 Скачивание ${items.length} фото в папку news/...`, {
-      description: 'Сохранение оригинальных изображений в формате .jpg/.png...',
-    })
-
+    const toastId = toast.loading(`💾 Скачивание ${items.length} фото в папку news/...`, { description: 'Сохранение оригинальных изображений в формате .jpg/.png...' })
     try {
       const res = await fetch('/api/save-news-photos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: newsTopic.title,
-          folderName: newsTopic.folderName || newsTopic.matchingPkg?.folderName,
-          bundleDir: newsTopic.bundleDir || newsTopic.matchingPkg?.bundleDir,
-          photos: items.map(p => (typeof p === 'string' ? p : p.url)),
-        }),
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: newsTopic.title, folderName: newsTopic.folderName || newsTopic.matchingPkg?.folderName, bundleDir: newsTopic.bundleDir || newsTopic.matchingPkg?.bundleDir, photos: items.map(p => (typeof p === 'string' ? p : p.url)) }),
       })
       const data = await res.json()
+      toast.dismiss(toastId)
       if (!res.ok || !data.success) throw new Error(data.error || 'Ошибка сохранения фото')
       setSavedCount(data.savedPhotosCount)
       if (data.photos && data.folderName) {
-        setItems(data.photos.map((relPath, idx) => ({
-          url: `/news-static/${data.folderName}/${relPath}`,
-          source: 'На диске',
-          isSavedLocal: true,
-          articleTitle: items[idx]?.articleTitle || `Фото #${idx + 1}`,
-        })))
+        setItems(data.photos.map(relPath => ({ url: `/news-static/${data.folderName}/${relPath}`, source: 'На диске', isSavedLocal: true })))
       }
       if (onSaved) onSaved()
-      toast.success(`📸 ${data.savedPhotosCount} фото успешно сохранены на диске!`, { id: toastId, description: `Папка: news/${data.folderName}/photos/` })
+      toast.success(`📸 ${data.savedPhotosCount || items.length} фото сохранены на диске!`, { description: `Папка: news/${data.folderName}/photos/`, duration: 2500 })
     } catch (err) {
-      toast.error('Ошибка сохранения фото: ' + err.message, { id: toastId })
+      toast.dismiss(toastId)
+      toast.error('Ошибка сохранения фото: ' + err.message, { duration: 3000 })
     } finally {
       setSavingPhotos(false)
     }

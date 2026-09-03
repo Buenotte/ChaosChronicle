@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Toaster, toast } from 'sonner'
+import ErrorBoundary from './components/ErrorBoundary'
 import NewsCard from './components/NewsCard'
 import NewsModalsContainer from './components/layout/NewsModalsContainer'
 import AppHeader from './components/layout/AppHeader'
@@ -347,24 +348,26 @@ export default function App() {
         )}
       </main>
 
-      {/* Модальные окна */}
-      <NewsModalsContainer
-        currentFeuilleton={currentFeuilleton}
-        setCurrentFeuilleton={setCurrentFeuilleton}
-        activeSavedPackage={activeSavedPackage}
-        handleCloseSavedPackage={handleCloseSavedPackage}
-        scriptTextPackage={scriptTextPackage}
-        setScriptTextPackage={setScriptTextPackage}
-        audioPackage={audioPackage}
-        setAudioPackage={setAudioPackage}
-        setVideoPackage={setVideoPackage}
-        photoTopic={photoTopic}
-        setPhotoTopic={setPhotoTopic}
-        newsPhotos={newsPhotos}
-        loadingPhotos={loadingPhotos}
-        handleFetchNewsPhotos={handleFetchNewsPhotos}
-        fetchSavedPackages={fetchSavedPackages}
-      />
+      {/* Модальные окна с защитой ErrorBoundary */}
+      <ErrorBoundary>
+        <NewsModalsContainer
+          currentFeuilleton={currentFeuilleton}
+          setCurrentFeuilleton={setCurrentFeuilleton}
+          activeSavedPackage={activeSavedPackage}
+          handleCloseSavedPackage={handleCloseSavedPackage}
+          scriptTextPackage={scriptTextPackage}
+          setScriptTextPackage={setScriptTextPackage}
+          audioPackage={audioPackage}
+          setAudioPackage={setAudioPackage}
+          setVideoPackage={setVideoPackage}
+          photoTopic={photoTopic}
+          setPhotoTopic={setPhotoTopic}
+          newsPhotos={newsPhotos}
+          loadingPhotos={loadingPhotos}
+          handleFetchNewsPhotos={handleFetchNewsPhotos}
+          fetchSavedPackages={fetchSavedPackages}
+        />
+      </ErrorBoundary>
 
       <footer className="app-footer">
         <p>ChaosChronicle PoC · Новости из открытых RSS-лент · ИИ: Gemini 3.7 Flash, DeepSeek R1, Qwen</p>

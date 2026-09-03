@@ -90,7 +90,6 @@ async function callGeminiDirect(systemInstruction, userInstruction, maxTokens = 
       generationConfig: {
         temperature: 0.85,
         maxOutputTokens: maxTokens,
-        thinkingConfig: { thinkingBudget: 0 },
       },
     }),
     signal: AbortSignal.timeout(30000),
@@ -98,7 +97,8 @@ async function callGeminiDirect(systemInstruction, userInstruction, maxTokens = 
 
   if (!response.ok) {
     const errText = await response.text();
-    throw new Error(`Google Gemini Direct ${response.status}: ${errText}`);
+    console.warn(`Google Gemini Direct ${response.status}: ${errText}`);
+    return null;
   }
 
   const data = await response.json();
@@ -109,12 +109,17 @@ async function callGeminiDirect(systemInstruction, userInstruction, maxTokens = 
 export async function generateGolubuzkiTitle(newsTitle, newsSummary = '', monologueText = '') {
   const textContext = monologueText && monologueText.trim() ? monologueText.slice(0, 1200) : (newsSummary || newsTitle);
 
-  // 1. Попытка через прямой Google Gemini API
+  // 1. Попытка через прямой Google Gemini API (gemini-3.7-flash)
   try {
     const directTitle = await callGeminiDirect(
-      'Создай убойный сатирический YouTube-заголовок СТРОГО НА ОСНОВЕ ПРИВЕДЕННОГО ТЕКСТА ФЕЛЬЕТОНА. Требования: СТРОГО 4-5 СЛОВ (капсом UPPERCASE). БЕЗ кавычек и точек.',
-      `Текст фельетона:\n"""\n${textContext}\n"""\n\nСоздай 1 заголовок из 4-5 слов капсом:`,
-      60
+      `Ты — главный редактор YouTube-канала ChaosChronicle и мастер ультра-гротескных, вирусных заголовков.
+Твоя задача — создать ОДИН УЛЬТРА-ГРОТЕСКНЫЙ, хлесткий YouTube-заголовок (СТРОГО 4-5 СЛОВ, ВСЕ БУКВЫ ЗАГЛАВНЫЕ UPPERCASE).
+ФОРМУЛА ВИРУСНОГО ГРОТЕСКА:
+- Столкновение несовместимого, парадокс, ирония, абсурд реальности («КУКУРУЗА ДЛЯ СЕВЕРНОГО ПОЛЮСА», «ПРЯЧУТ ФЛОТ СРЕДИ АЙСБЕРГОВ», «ВОЕНРУК ПРЕПАРИРУЕТ ЛЯГУШКУ ШТЫКОМ»).
+- КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНЫ скучные штампы, кавычки и точки.
+- СТРОГО 4-5 СЛОВ капсом.`,
+      `ТЕКСТ:\n"""\n${textContext}\n"""\n\nСоздай 1 ультра-гротескный заголовок из 4-5 слов капсом:`,
+      1200
     );
     if (directTitle) {
       const clean = directTitle.replace(/["'«»`]/g, '').replace(/\.$/, '').trim();
@@ -131,17 +136,14 @@ export async function generateGolubuzkiTitle(newsTitle, newsSummary = '', monolo
     try {
       const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'google/gemini-2.5-flash',
           messages: [
-            { role: 'system', content: 'Создай убойный сатирический YouTube-заголовок СТРОГО НА ОСНОВЕ ПРИВЕДЕННОГО ТЕКСТА ФЕЛЬЕТОНА. Требования: СТРОГО 4-5 СЛОВ (капсом UPPERCASE). БЕЗ кавычек и точек.' },
-            { role: 'user', content: `Текст фельетона:\n"""\n${textContext}\n"""\n\nСоздай 1 заголовок из 4-5 слов капсом:` }
+            { role: 'system', content: 'Создай 1 ультра-гротескный YouTube-заголовок из 4-5 слов капсом UPPERCASE без кавычек и точек.' },
+            { role: 'user', content: `Текст:\n"""\n${textContext}\n"""\n\n1 заголовок из 4-5 слов капсом:` }
           ],
-          max_tokens: 40,
+          max_tokens: 400,
           temperature: 0.85,
         }),
         signal: AbortSignal.timeout(7000),
@@ -153,9 +155,7 @@ export async function generateGolubuzkiTitle(newsTitle, newsSummary = '', monolo
         if (text) {
           text = text.replace(/["'«»`]/g, '').replace(/\.$/, '').trim();
           const words = text.split(/\s+/).filter(Boolean);
-          if (words.length >= 3 && words.length <= 6) {
-            return text.toUpperCase();
-          }
+          if (words.length >= 3 && words.length <= 6) return text.toUpperCase();
         }
       }
     } catch (err) {
@@ -308,7 +308,7 @@ export async function generateYouTubeHooks(newsTitle, newsSummary = '', scriptTe
   const userInst = `ТЕМА: ${newsTitle}\nКОНТЕКСТ:\n"""\n${context}\n"""\n\nСоздай 5 ультра-гротескных 3-секундных хуков в формате JSON:`;
 
   try {
-    let raw = await callGeminiDirect(sysInst, userInst, 800);
+    let raw = await callGeminiDirect(sysInst, userInst, 2500);
     if (!raw) {
       const apiKey = process.env.OPENROUTER_API_KEY;
       if (apiKey && !apiKey.includes('HIER')) {
@@ -318,7 +318,7 @@ export async function generateYouTubeHooks(newsTitle, newsSummary = '', scriptTe
           body: JSON.stringify({
             model: 'google/gemini-2.5-flash',
             messages: [{ role: 'system', content: sysInst }, { role: 'user', content: userInst }],
-            max_tokens: 800,
+            max_tokens: 2500,
             temperature: 0.85,
           }),
         });

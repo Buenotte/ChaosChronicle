@@ -37,6 +37,22 @@ app.use(packagesRoutes);
 app.use(audioRoutes);
 app.use(videoRoutes);
 
+// Globale Fehlerabsicherung gegen unerwartete Abstürze
+process.on('uncaughtException', (err) => {
+  console.error('⚠️ Uncaught Exception abgefangen:', err.message);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('⚠️ Unhandled Rejection abgefangen:', reason);
+});
+
+// Express Error Handler Middleware
+app.use((err, req, res, next) => {
+  console.error('⚠️ Express Route Error:', err.message);
+  if (!res.headersSent) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 const PORT = 3001;
 app.listen(PORT, () => {
   console.log(`🚀 ChaosChronicle Backend läuft auf http://localhost:${PORT}`);
