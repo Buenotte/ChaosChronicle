@@ -357,13 +357,7 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
               fontSize={fontSize} setFontSize={setFontSize} customSizeNum={customSizeNum} setCustomSizeNum={setCustomSizeNum}
               lineSpacing={lineSpacing} setLineSpacing={setLineSpacing} previewLines={previewLines}
               lineColors={lineColors} setLineColors={setLineColors} lineFontSizes={lineFontSizes} setLineFontSizes={setLineFontSizes}
-              words={allWords} wordColors={wordColors} setWordColors={setWordColors} wordFontSizes={wordFontSizes} setWordFontSizes={setWordFontSizes}
-              isItalic={isItalic} setIsItalic={setIsItalic} tiltAngle={tiltAngle} setTiltAngle={setTiltAngle}
-              fontColor={fontColor} setFontColor={setFontColor} borderColor={borderColor} setBorderColor={setBorderColor}
-              borderWidth={borderWidth} setBorderWidth={setBorderWidth} shadowDistance={shadowDistance} setShadowDistance={setShadowDistance}
-              position={position} setPosition={setPosition} offsetY={offsetY} setOffsetY={setOffsetY} offsetX={offsetX} setOffsetX={setOffsetX}
-              textAlign={textAlign} setTextAlign={setTextAlign}
-              hasBox={hasBox} setHasBox={setHasBox} boxStyle={boxStyle} setBoxStyle={setBoxStyle} boxOpacity={boxOpacity} setBoxOpacity={setBoxOpacity}
+              words={allWords} wordColors={wordColors} setWordColors={setWordColors} wordFontSizes={wordFontSizes} setWordFontSizes={setWordFontSizes} isItalic={isItalic} setIsItalic={setIsItalic} tiltAngle={tiltAngle} setTiltAngle={setTiltAngle} fontColor={fontColor} setFontColor={setFontColor} borderColor={borderColor} setBorderColor={setBorderColor} borderWidth={borderWidth} setBorderWidth={setBorderWidth} shadowDistance={shadowDistance} setShadowDistance={setShadowDistance} position={position} setPosition={setPosition} offsetY={offsetY} setOffsetY={setOffsetY} offsetX={offsetX} setOffsetX={setOffsetX} textAlign={textAlign} setTextAlign={setTextAlign} hasBox={hasBox} setHasBox={setHasBox} boxStyle={boxStyle} setBoxStyle={setBoxStyle} boxOpacity={boxOpacity} setBoxOpacity={setBoxOpacity}
             />
           </div>
 

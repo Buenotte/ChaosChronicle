@@ -32,7 +32,27 @@ export default function PackageVideoSection({
   onLoadedMetadata,
 }) {
   const [showBannerPreview, setShowBannerPreview] = useState(false)
+  const [volume, setVolume] = useState(1)
+  const [isMuted, setIsMuted] = useState(false)
   const activeBannerFile = BANNER_STYLES.find(b => b.id === bannerStyle)?.file || 'banner_modern_dark.webm'
+
+  const toggleMute = () => {
+    if (videoRef?.current) {
+      const next = !videoRef.current.muted
+      videoRef.current.muted = next
+      setIsMuted(next)
+    }
+  }
+
+  const handleVolume = (e) => {
+    const val = parseFloat(e.target.value)
+    setVolume(val)
+    if (videoRef?.current) {
+      videoRef.current.volume = val
+      videoRef.current.muted = val === 0
+      setIsMuted(val === 0)
+    }
+  }
 
   const formatTime = (secs) => {
     const m = Math.floor(secs / 60)
@@ -70,7 +90,6 @@ export default function PackageVideoSection({
               onTimeUpdate={onTimeUpdate}
               onLoadedMetadata={onLoadedMetadata}
               onEnded={() => {}}
-              controls
               playsInline
             />
 
@@ -142,9 +161,13 @@ export default function PackageVideoSection({
                 style={{ flex: 1, accentColor: '#ec4899', cursor: 'pointer' }}
               />
 
-              <span style={{ fontSize: '0.75rem', color: '#fff', fontFamily: 'monospace' }}>
+              <span style={{ fontSize: '0.75rem', color: '#fff', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>
                 {formatTime(currentTime)} / {formatTime(duration)}
               </span>
+              <button type="button" onClick={toggleMute} title={isMuted ? 'Включить звук' : 'Выключить звук'} style={{ background: 'none', border: 'none', color: isMuted ? '#ef4444' : '#fff', cursor: 'pointer', fontSize: '1rem', padding: '0 2px' }}>
+                {isMuted ? '🔇' : (volume < 0.5 ? '🔉' : '🔊')}
+              </button>
+              <input type="range" min={0} max={1} step={0.05} value={isMuted ? 0 : volume} onChange={handleVolume} style={{ width: '55px', accentColor: '#10b981', cursor: 'pointer' }} title={`Громкость: ${Math.round((isMuted ? 0 : volume) * 100)}%`} />
             </div>
           </div>
 

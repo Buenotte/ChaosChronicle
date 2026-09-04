@@ -8,8 +8,9 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onClose, onR
 
   const [currentText, setCurrentText] = useState(feuilleton.text || '')
   const [currentTitle, setCurrentTitle] = useState(feuilleton.title || '')
-  const [selectedStyle, setSelectedStyle] = useState(feuilleton.style || feuilleton.scriptStyle || 'clickbait')
+  const [selectedStyle, setSelectedStyle] = useState(feuilleton.style || feuilleton.scriptStyle || 'kasjanov')
   const [selectedModel, setSelectedModel] = useState(feuilleton.modelName || feuilleton.model || 'gemini')
+  const [selectedTone, setSelectedTone] = useState(feuilleton.tone || 'grotesque')
   const [regenerating, setRegenerating] = useState(false)
   const [saving, setSaving] = useState(false)
   const [savedInfo, setSavedInfo] = useState(feuilleton.bundleDir ? feuilleton : null)
@@ -18,8 +19,9 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onClose, onR
     if (feuilleton) {
       setCurrentText(feuilleton.text || '')
       setCurrentTitle(feuilleton.title || '')
-      setSelectedStyle(feuilleton.style || feuilleton.scriptStyle || 'clickbait')
+      setSelectedStyle(feuilleton.style || feuilleton.scriptStyle || 'kasjanov')
       setSelectedModel(feuilleton.modelName || feuilleton.model || 'gemini')
+      setSelectedTone(feuilleton.tone || 'grotesque')
       setSavedInfo(feuilleton.bundleDir ? feuilleton : null)
     }
   }, [feuilleton])
@@ -27,13 +29,15 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onClose, onR
   const words = currentText.split(/\s+/).filter(Boolean).length
   const minutes = Math.round((words / 140) * 10) / 10
 
-  const handleRegenerateStyle = async (newStyle = selectedStyle, newModel = selectedModel) => {
+  const handleRegenerateStyle = async (newStyle = selectedStyle, newModel = selectedModel, newTone = selectedTone) => {
     setSelectedStyle(newStyle)
     setSelectedModel(newModel)
+    setSelectedTone(newTone)
     setRegenerating(true)
     const styleName = FEUILLETON_STYLES.find(s => s.id === newStyle)?.name || newStyle
     const modelName = AI_MODELS.find(m => m.id === newModel)?.name || newModel
-    const toastId = toast.loading('🔄 Переписывание фельетона...', {
+    const toneLabel = newTone === 'analytics' ? '🧠 Аналитика' : '💥 Гротеск'
+    const toastId = toast.loading(`🔄 Генерация текста (${toneLabel})...`, {
       description: `${modelName} | ${styleName}`,
     })
 
@@ -46,6 +50,7 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onClose, onR
           summary: feuilleton.summary,
           model: newModel,
           style: newStyle,
+          tone: newTone,
           source: feuilleton.source,
           imageUrl: feuilleton.imageUrl,
           images: feuilleton.images || [],
@@ -205,10 +210,59 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onClose, onR
               </div>
             </div>
 
-            {/* 2. Выбор Авторского Стиля */}
+            {/* 2. Тональность и формат подачи */}
+            <div style={{ background: '#181c27', padding: '0.85rem 1rem', borderRadius: '10px', border: '1px solid #232936' }}>
+              <label style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f3f4f6', display: 'block', marginBottom: '0.5rem' }}>
+                🎯 2. Выберите формат подачи (Тональность):
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.55rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setSelectedTone('grotesque')}
+                  disabled={regenerating}
+                  style={{
+                    background: selectedTone === 'grotesque' ? '#7c2d12' : '#0f172a',
+                    border: selectedTone === 'grotesque' ? '2px solid #f97316' : '1px solid #334155',
+                    color: selectedTone === 'grotesque' ? '#fff' : '#94a3b8',
+                    borderRadius: '8px', padding: '0.6rem 0.8rem', cursor: 'pointer', textAlign: 'left',
+                    fontWeight: selectedTone === 'grotesque' ? 700 : 500, fontSize: '0.85rem'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <span>💥</span>
+                    <div>
+                      <div>Гротеск & Сатира</div>
+                      <div style={{ fontSize: '0.7rem', color: selectedTone === 'grotesque' ? '#fdba74' : '#64748b' }}>Едкая ирония, метафоры и сатирический памфлет</div>
+                    </div>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedTone('analytics')}
+                  disabled={regenerating}
+                  style={{
+                    background: selectedTone === 'analytics' ? '#1e3a8a' : '#0f172a',
+                    border: selectedTone === 'analytics' ? '2px solid #3b82f6' : '1px solid #334155',
+                    color: selectedTone === 'analytics' ? '#fff' : '#94a3b8',
+                    borderRadius: '8px', padding: '0.6rem 0.8rem', cursor: 'pointer', textAlign: 'left',
+                    fontWeight: selectedTone === 'analytics' ? 700 : 500, fontSize: '0.85rem'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <span>🧠</span>
+                    <div>
+                      <div>Увлекательная Аналитика</div>
+                      <div style={{ fontSize: '0.7rem', color: selectedTone === 'analytics' ? '#93c5fd' : '#64748b' }}>Без гротеска: факты, причины, ТТХ и аналитика</div>
+                    </div>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            {/* 3. Выбор Авторского Стиля */}
             <div style={{ background: '#181c27', padding: '1rem', borderRadius: '10px', border: '1px solid #232936' }}>
               <label style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f3f4f6', display: 'block', marginBottom: '0.55rem' }}>
-                🎭 2. Выберите авторский сатирический стиль:
+                🎭 3. Выберите автора / стилистический фокус:
               </label>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.5rem' }}>
                 {FEUILLETON_STYLES.map(s => {
@@ -264,8 +318,12 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onClose, onR
                     {FEUILLETON_STYLES.map(s => (<option key={s.id} value={s.id}>{s.icon} {s.name}</option>))}
                   </select>
                 </div>
+                <div style={{ display: 'flex', alignItems: 'center', background: '#0f172a', borderRadius: '6px', padding: '2px', border: '1px solid #334155' }}>
+                  <button type="button" onClick={() => { setSelectedTone('grotesque'); handleRegenerateStyle(selectedStyle, selectedModel, 'grotesque') }} style={{ background: selectedTone === 'grotesque' ? '#dc2626' : 'transparent', color: selectedTone === 'grotesque' ? '#fff' : '#94a3b8', border: 'none', borderRadius: '4px', padding: '0.28rem 0.55rem', fontSize: '0.78rem', fontWeight: selectedTone === 'grotesque' ? 700 : 500, cursor: 'pointer' }}>💥 Гротеск</button>
+                  <button type="button" onClick={() => { setSelectedTone('analytics'); handleRegenerateStyle(selectedStyle, selectedModel, 'analytics') }} style={{ background: selectedTone === 'analytics' ? '#2563eb' : 'transparent', color: selectedTone === 'analytics' ? '#fff' : '#94a3b8', border: 'none', borderRadius: '4px', padding: '0.28rem 0.55rem', fontSize: '0.78rem', fontWeight: selectedTone === 'analytics' ? 700 : 500, cursor: 'pointer' }}>🧠 Аналитика</button>
+                </div>
               </div>
-              <button type="button" className="refresh-btn" onClick={() => handleRegenerateStyle(selectedStyle, selectedModel)} disabled={regenerating} style={{ fontSize: '0.82rem', padding: '0.4rem 0.85rem' }}>
+              <button type="button" className="refresh-btn" onClick={() => handleRegenerateStyle(selectedStyle, selectedModel, selectedTone)} disabled={regenerating} style={{ fontSize: '0.82rem', padding: '0.4rem 0.85rem' }}>
                 🔄 {regenerating ? '⏳ Генерация...' : 'Сгенерировать заново'}
               </button>
             </div>
@@ -290,24 +348,15 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onClose, onR
             <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
               <button
                 type="button"
-                onClick={() => handleRegenerateStyle(selectedStyle, selectedModel)}
+                onClick={() => handleRegenerateStyle(selectedStyle, selectedModel, selectedTone)}
                 disabled={regenerating}
                 style={{
-                  background: 'linear-gradient(135deg, #7c3aed 0%, #2563eb 100%)',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '8px',
-                  padding: '0.65rem 1.4rem',
-                  fontSize: '0.95rem',
-                  fontWeight: 700,
-                  cursor: regenerating ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  boxShadow: '0 3px 12px rgba(124, 58, 237, 0.4)',
+                  background: selectedTone === 'analytics' ? 'linear-gradient(135deg, #1d4ed8 0%, #0284c7 100%)' : 'linear-gradient(135deg, #7c3aed 0%, #2563eb 100%)',
+                  color: '#fff', border: 'none', borderRadius: '8px', padding: '0.65rem 1.4rem', fontSize: '0.95rem', fontWeight: 700,
+                  cursor: regenerating ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 3px 12px rgba(124, 58, 237, 0.4)'
                 }}
               >
-                {regenerating ? '⏳ ИИ пишет фельетон...' : '🚀 Создать фельетон (3 мин)'}
+                {regenerating ? '⏳ ИИ пишет текст...' : (selectedTone === 'analytics' ? '🚀 Создать аналитику (3 мин)' : '🚀 Создать фельетон (3 мин)')}
               </button>
               <button type="button" className="close-btn" onClick={onClose}>Закрыть</button>
             </div>

@@ -112,7 +112,7 @@ const handleGenerateVideo = async (req, res) => {
         audioDuration = 180;
       }
 
-      const blurFilter = 'split[bg][fg];[bg]scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,gblur=sigma=35[blurred];[fg]scale=1920:1080:force_original_aspect_ratio=decrease[sharp];[blurred][sharp]overlay=(W-w)/2:(H-h)/2,setsar=1,format=yuv420p';
+      const blurFilter = 'split[bg][fg];[bg]scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,boxblur=18:2[blurred];[fg]scale=1920:1080:force_original_aspect_ratio=decrease[sharp];[blurred][sharp]overlay=(W-w)/2:(H-h)/2,setsar=1,format=yuv420p';
       let ffmpegArgs = [];
 
       const tempFramesDir = path.join(bundleDir, 'temp_frames');
@@ -120,22 +120,26 @@ const handleGenerateVideo = async (req, res) => {
 
       broadcastProgress(10, 'building', 'Параллельное масштабирование фото 1080p...');
 
-      const framePromises = photoFiles.map((pf, i) => new Promise((resolve) => {
-        const srcFile = path.join(photosDir, pf);
-        const outFrame = path.join(tempFramesDir, `frame_${String(i).padStart(3, '0')}.jpg`);
-        try {
-          if (fs.existsSync(outFrame) && fs.statSync(outFrame).mtimeMs >= fs.statSync(srcFile).mtimeMs) {
-            return resolve(outFrame.replace(/\\/g, '/'));
-          }
-        } catch {}
-        execFile('ffmpeg', ['-y', '-v', 'error', '-threads', '2', '-i', srcFile, '-vf', blurFilter, '-q:v', '2', outFrame], (err) => {
-          if (!err && fs.existsSync(outFrame)) resolve(outFrame.replace(/\\/g, '/'));
-          else resolve(null);
-        });
-      }));
-
-      const resolvedFrames = await Promise.all(framePromises);
-      const normalizedFrames = resolvedFrames.filter(Boolean);
+      const normalizedFrames = [];
+      const batchSize = 4;
+      for (let b = 0; b < photoFiles.length; b += batchSize) {
+        const chunk = photoFiles.slice(b, b + batchSize);
+        const chunkResults = await Promise.all(chunk.map((pf, idx) => new Promise((resolve) => {
+          const i = b + idx;
+          const srcFile = path.join(photosDir, pf);
+          const outFrame = path.join(tempFramesDir, `frame_${String(i).padStart(3, '0')}.jpg`);
+          try {
+            if (fs.existsSync(outFrame) && fs.statSync(outFrame).mtimeMs >= fs.statSync(srcFile).mtimeMs) {
+              return resolve(outFrame.replace(/\\/g, '/'));
+            }
+          } catch {}
+          execFile('ffmpeg', ['-y', '-v', 'error', '-threads', '2', '-i', srcFile, '-vf', blurFilter, '-q:v', '2', outFrame], (err) => {
+            if (!err && fs.existsSync(outFrame)) resolve(outFrame.replace(/\\/g, '/'));
+            else resolve(null);
+          });
+        })));
+        normalizedFrames.push(...chunkResults.filter(Boolean));
+      }
 
       const activeFrames = normalizedFrames.length > 0 ? normalizedFrames : photoFiles.map(f => path.join(photosDir, f).replace(/\\/g, '/'));
       const photoDuration = audioDuration / activeFrames.length;
@@ -163,11 +167,11 @@ const handleGenerateVideo = async (req, res) => {
 
       if (isXfade) {
         const N = activeFrames.length;
-        const D = Math.min(0.8, (audioDuration / N) * 0.4);
+        const D = Math.min(0.4, (audioDuration / N) * 0.25);
         const Tbase = (audioDuration + (N - 1) * D) / N;
         const step = Tbase - D;
 
-        ffmpegArgs.push('-y');
+        ffmpegArgs.push('-y', '-filter_complex_threads', '0', '-threads', '0');
         for (let i = 0; i < N; i++) {
           ffmpegArgs.push('-loop', '1', '-t', Tbase.toFixed(3), '-i', activeFrames[i]);
         }
@@ -179,7 +183,7 @@ const handleGenerateVideo = async (req, res) => {
 
         const filterParts = [];
         for (let i = 0; i < N; i++) {
-          filterParts.push(`[${i}:v]fps=30,settb=AVTB,setpts=PTS-STARTPTS[f${i}]`);
+          filterParts.push(`[${i}:v]fps=24,settb=AVTB,setpts=PTS-STARTPTS[f${i}]`);
         }
 
         let lastV = 'f0';
@@ -198,7 +202,7 @@ const handleGenerateVideo = async (req, res) => {
           ffmpegArgs.push('-filter_complex', filterParts.join(';'), '-map', '[v_slides]', '-map', `${audioIdx}:a`);
         }
 
-        ffmpegArgs.push('-c:v', 'libx264', '-preset', 'ultrafast', '-tune', 'stillimage', '-threads', '0', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '192k', '-shortest', videoPath);
+        ffmpegArgs.push('-c:v', 'libx264', '-preset', 'ultrafast', '-tune', 'fastdecode', '-threads', '0', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '192k', '-ac', '2', '-shortest', videoPath);
       } else {
         if (hasBanner) {
           ffmpegArgs = [
@@ -209,8 +213,8 @@ const handleGenerateVideo = async (req, res) => {
             '-filter_complex', `[0:v]fps=30[bg];[2:v]setpts=PTS-STARTPTS+${bannerSec}/TB[sub_b];[bg][sub_b]overlay=(W-w)/2:H-h-50:enable='between(t,${bannerSec},${bannerSec + 6})':eof_action=pass[v]`,
             '-map', '[v]',
             '-map', '1:a',
-            '-c:v', 'libx264', '-preset', 'ultrafast', '-tune', 'stillimage', '-threads', '0', '-pix_fmt', 'yuv420p',
-            '-c:a', 'aac', '-b:a', '192k',
+            '-c:v', 'libx264', '-preset', 'ultrafast', '-tune', 'fastdecode', '-threads', '0', '-pix_fmt', 'yuv420p',
+            '-c:a', 'aac', '-b:a', '192k', '-ac', '2',
             '-shortest',
             videoPath,
           ];
@@ -219,8 +223,8 @@ const handleGenerateVideo = async (req, res) => {
             '-y',
             '-f', 'concat', '-safe', '0', '-i', concatPath,
             '-i', audioPath,
-            '-c:v', 'libx264', '-preset', 'ultrafast', '-tune', 'stillimage', '-threads', '0', '-pix_fmt', 'yuv420p',
-            '-c:a', 'aac', '-b:a', '192k',
+            '-c:v', 'libx264', '-preset', 'ultrafast', '-tune', 'fastdecode', '-threads', '0', '-pix_fmt', 'yuv420p',
+            '-c:a', 'aac', '-b:a', '192k', '-ac', '2',
             '-shortest',
             videoPath,
           ];

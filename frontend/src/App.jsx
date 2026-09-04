@@ -5,7 +5,7 @@ import NewsCard from './components/NewsCard'
 import NewsModalsContainer from './components/layout/NewsModalsContainer'
 import AppHeader from './components/layout/AppHeader'
 import AppStatusBar from './components/layout/AppStatusBar'
-import { cleanMatchTitle } from './lib/utils'
+import { cleanMatchTitle, matchesSearch } from './lib/utils'
 
 export default function App() {
   const [articles, setArticles] = useState([])
@@ -228,12 +228,7 @@ export default function App() {
         matchingPkg: p,
       }))
       if (!q) return savedItems
-      return savedItems.filter(
-        a =>
-          a.title?.toLowerCase().includes(q) ||
-          a.summary?.toLowerCase().includes(q) ||
-          a.source?.toLowerCase().includes(q)
-      )
+      return savedItems.filter(a => matchesSearch(a, q))
     }
 
     const regularWithPkg = articles.map(a => {
@@ -258,12 +253,7 @@ export default function App() {
     })
 
     if (!q) return regularWithPkg
-    return regularWithPkg.filter(
-      a =>
-        a.title?.toLowerCase().includes(q) ||
-        a.summary?.toLowerCase().includes(q) ||
-        a.source?.toLowerCase().includes(q)
-    )
+    return regularWithPkg.filter(a => matchesSearch(a, q))
   }, [articles, savedPackages, search, category])
 
   return (

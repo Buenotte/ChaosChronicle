@@ -45,7 +45,7 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
     setCurrentThumbnail(pkg.hasThumbnail && pkg.folderName ? `/news-static/${pkg.folderName}/thumbnail/thumbnail.jpg?t=${Date.now()}` : (pkg.thumbnailUrl || null))
   }, [pkg])
 
-  const togglePlay = () => { if (videoRef.current) { if (isPlaying) videoRef.current.pause(); else videoRef.current.play(); setIsPlaying(!isPlaying); } }
+  const togglePlay = () => { if (videoRef.current) { videoRef.current.muted = false; if (isPlaying) videoRef.current.pause(); else videoRef.current.play(); setIsPlaying(!isPlaying); } }
   const handleTimeUpdate = () => { if (videoRef.current) { setCurrentTime(videoRef.current.currentTime); setIsPlaying(!videoRef.current.paused); } }
   const handleLoadedMetadata = () => { if (videoRef.current) setDuration(videoRef.current.duration); }
   const seekVideo = (e) => { const time = parseFloat(e.target.value); if (videoRef.current) { videoRef.current.currentTime = time; setCurrentTime(time); } }
@@ -375,11 +375,9 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
         <YouTubeMetadataModal
           pkg={pkg}
           onSaved={(data) => {
-            const hasYt = Boolean(data?.description || data?.title)
-            const hasFb = Boolean(data?.facebookPost)
+            const hasYt = Boolean(data?.description || data?.title), hasFb = Boolean(data?.facebookPost)
             setYoutubeState({ hasYouTube: hasYt, hasFacebook: hasFb })
-            pkg.hasYouTubeMetadata = hasYt; pkg.hasFacebookPost = hasFb
-            if (onRefresh) onRefresh()
+            pkg.hasYouTubeMetadata = hasYt; pkg.hasFacebookPost = hasFb; if (onRefresh) onRefresh()
           }}
           onClose={() => { setShowYouTubeModal(false); if (onRefresh) onRefresh(); }}
         />

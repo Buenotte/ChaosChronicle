@@ -228,7 +228,7 @@ export async function fetchAllFeeds(forceRefresh = false) {
   const results = await Promise.allSettled(
     FEEDS.map(async (feed) => {
       const parsed = await parser.parseURL(feed.url);
-      return parsed.items.slice(0, 15).filter(item => {
+      return parsed.items.filter(item => {
         const d = item.pubDate || item.isoDate;
         if (!d) return true;
         const time = new Date(d).getTime();

@@ -9,6 +9,7 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
   const [text, setText] = useState(pkg.scriptTxt || pkg.scriptMd || '')
   const [selectedStyle, setSelectedStyle] = useState('golubuzki')
   const [selectedModel, setSelectedModel] = useState(pkg.model || 'gemini')
+  const [selectedTone, setSelectedTone] = useState(pkg.tone || 'grotesque')
   const [savingText, setSavingText] = useState(false)
   const [regenerating, setRegenerating] = useState(false)
 
@@ -74,11 +75,12 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
     }
   }, [isDragging])
 
-  const handleRegenerateScript = async (styleToUse = selectedStyle, modelToUse = selectedModel) => {
+  const handleRegenerateScript = async (styleToUse = selectedStyle, modelToUse = selectedModel, toneToUse = selectedTone) => {
     setRegenerating(true)
     const styleName = FEUILLETON_STYLES.find(s => s.id === styleToUse)?.name || styleToUse
     const modelName = AI_MODELS.find(m => m.id === modelToUse)?.name || modelToUse
-    const toastId = toast.loading('🔄 Перегенерация текста нейросетью...', {
+    const toneLabel = toneToUse === 'analytics' ? '🧠 Аналитика' : '💥 Гротеск'
+    const toastId = toast.loading(`🔄 Перегенерация текста (${toneLabel})...`, {
       description: `${modelName} | ${styleName}`,
     })
 
@@ -90,6 +92,7 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
           title: pkg.original_title || pkg.title,
           summary: pkg.summary || (text ? text.slice(0, 350) : '') || '',
           style: styleToUse,
+          tone: toneToUse,
           source: pkg.source || '',
           model: modelToUse,
         }),
@@ -255,12 +258,17 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
                   ))}
                 </select>
               </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', background: '#0f172a', borderRadius: '6px', padding: '2px', border: '1px solid #334155' }}>
+                <button type="button" onClick={() => setSelectedTone('grotesque')} style={{ background: selectedTone === 'grotesque' ? '#dc2626' : 'transparent', color: selectedTone === 'grotesque' ? '#fff' : '#94a3b8', border: 'none', borderRadius: '4px', padding: '0.24rem 0.5rem', fontSize: '0.75rem', fontWeight: selectedTone === 'grotesque' ? 700 : 500, cursor: 'pointer' }}>💥 Гротеск</button>
+                <button type="button" onClick={() => setSelectedTone('analytics')} style={{ background: selectedTone === 'analytics' ? '#2563eb' : 'transparent', color: selectedTone === 'analytics' ? '#fff' : '#94a3b8', border: 'none', borderRadius: '4px', padding: '0.24rem 0.5rem', fontSize: '0.75rem', fontWeight: selectedTone === 'analytics' ? 700 : 500, cursor: 'pointer' }}>🧠 Аналитика</button>
+              </div>
             </div>
 
             <button
               type="button"
               className="refresh-btn"
-              onClick={() => handleRegenerateScript(selectedStyle, selectedModel)}
+              onClick={() => handleRegenerateScript(selectedStyle, selectedModel, selectedTone)}
               disabled={regenerating}
               style={{ fontSize: '0.8rem', padding: '0.38rem 0.85rem', background: '#1e293b', border: '1px solid #475569', color: '#f8fafc', fontWeight: 700, borderRadius: '6px', cursor: 'pointer' }}
             >

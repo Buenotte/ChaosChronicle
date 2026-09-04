@@ -1,12 +1,14 @@
 # 📜 Custom Project Rules for ChaosChronicle
 
-## 1. Git Rule
+## 1. Git & Push Rule
 - **STRICT REQUIREMENT**: Never execute `git commit` or `git push` automatically.
 - **EXPLICIT COMMAND ONLY**: Commits and pushes must ONLY be done when explicitly ordered by the user.
+- **TEST BEFORE PUSH**: When user requests push, ask first to run tests (`node tests/run_all_tests.js`). Only push if tests pass.
 
 ## 2. Test Execution Rule
-- **STRICT REQUIREMENT**: Never run tests (e.g. `npm test`, `run_all_tests.js`, test scripts) automatically in the background.
-- **EXPLICIT MANUAL REQUEST ONLY**: Automated test suites must ONLY be executed when the user explicitly instructs to run tests (e.g. "teste das Programm", "führe Tests aus").
+- **STRICT REQUIREMENT**: NEVER run tests (e.g. `npm test`, `run_all_tests.js`, `node tests/...`) automatically on your own.
+- **ALWAYS ASK BEFORE TEST COMMAND**: ALWAYS ask the user explicitly before executing any test command (e.g. "Soll ich die Tests jetzt ausführen?").
+- **USER APPROVAL REQUIRED**: Only start tests when the user has explicitly confirmed or ordered them.
 
 ## 3. Code Modularization Rule
 - **STRICT REQUIREMENT**: All files in the codebase must remain strictly under 400 lines of code.
