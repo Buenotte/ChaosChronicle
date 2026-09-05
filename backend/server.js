@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import express from 'express';
+import 'express-async-errors';
 import cors from 'cors';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));

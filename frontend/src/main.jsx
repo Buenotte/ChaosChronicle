@@ -3,6 +3,15 @@ import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './App.css'
 
+// Globale Absicherung fuer Browser Promise Rejections und Runtime Errors
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('⚠️ [Global Browser] Unhandled Promise Rejection:', event.reason)
+})
+
+window.addEventListener('error', (event) => {
+  console.error('⚠️ [Global Browser] Uncaught Runtime Error:', event.error || event.message)
+})
+
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props)
