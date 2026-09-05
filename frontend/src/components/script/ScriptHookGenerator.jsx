@@ -1,14 +1,21 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 
-export default function ScriptHookGenerator({ title, summary, currentText, onApplyHook }) {
+export default function ScriptHookGenerator({ title, summary, currentText, style = 'golubuzki', tone = 'grotesque', onApplyHook }) {
   const [isOpen, setIsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [hooks, setHooks] = useState([])
+  const [hookTone, setHookTone] = useState(tone || (style === 'analytics' ? 'analytics' : 'grotesque'))
 
-  const fetchHooks = async () => {
+  useEffect(() => {
+    if (tone) setHookTone(tone)
+    else if (style === 'analytics') setHookTone('analytics')
+  }, [tone, style])
+
+  const fetchHooks = async (overrideTone = hookTone) => {
     setLoading(true)
-    const toastId = toast.loading('⚡ Создание 5 вирусных 3-секундных хуков для YouTube...')
+    const isAna = overrideTone === 'analytics' || style === 'analytics'
+    const toastId = toast.loading(`⚡ Создание 5 ${isAna ? 'аналитических' : 'острых'} 3-секундных хуков для YouTube...`)
     try {
       const res = await fetch('/api/generate-hooks', {
         method: 'POST',
@@ -17,6 +24,8 @@ export default function ScriptHookGenerator({ title, summary, currentText, onApp
           title: title || '',
           summary: summary || '',
           text: currentText ? currentText.slice(0, 1000) : '',
+          style,
+          tone: overrideTone,
         }),
       })
       const data = await res.json()
@@ -24,7 +33,7 @@ export default function ScriptHookGenerator({ title, summary, currentText, onApp
       if (data.success && Array.isArray(data.hooks) && data.hooks.length > 0) {
         setHooks(data.hooks)
         setIsOpen(true)
-        toast.success('🎯 5 вирусных 3-секундных хуков созданы!')
+        toast.success(`🎯 5 ${isAna ? 'аналитических' : 'вирусных'} хуков созданы!`)
       } else {
         toast.error('Не удалось сгенерировать хуки: ' + (data.error || 'Ошибка ИИ'))
       }
@@ -65,7 +74,7 @@ export default function ScriptHookGenerator({ title, summary, currentText, onApp
           type="button"
           className="copy-btn"
           disabled={loading}
-          onClick={hooks.length > 0 ? () => setIsOpen(!isOpen) : fetchHooks}
+          onClick={hooks.length > 0 ? () => setIsOpen(!isOpen) : () => fetchHooks()}
           style={{
             background: 'linear-gradient(135deg, #f59e0b, #ef4444)',
             color: '#fff',
@@ -80,7 +89,7 @@ export default function ScriptHookGenerator({ title, summary, currentText, onApp
             cursor: 'pointer',
             boxShadow: '0 2px 10px rgba(245, 158, 11, 0.25)',
           }}
-          title="Сгенерировать 5 вариантов взрывных первых фраз (0-3 сек) для удержания на YouTube"
+          title="Сгенерировать 5 вариантов 3-секундных первых фраз для максимального удержания аудитории"
         >
           <span>⚡ {loading ? '⏳ Генерация хуков...' : '3-сек. YouTube Хуки'}</span>
           <span style={{ background: 'rgba(0,0,0,0.3)', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.72rem' }}>
@@ -89,15 +98,51 @@ export default function ScriptHookGenerator({ title, summary, currentText, onApp
         </button>
 
         {hooks.length > 0 && isOpen && (
-          <button
-            type="button"
-            className="copy-btn"
-            disabled={loading}
-            onClick={fetchHooks}
-            style={{ background: '#1e293b', fontSize: '0.75rem', padding: '0.3rem 0.6rem', border: '1px solid #334155' }}
-          >
-            🔄 Обновить варианты
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', background: '#0f172a', borderRadius: '6px', padding: '2px', border: '1px solid #334155' }}>
+              <button
+                type="button"
+                onClick={() => { setHookTone('grotesque'); fetchHooks('grotesque'); }}
+                style={{
+                  background: hookTone === 'grotesque' ? '#dc2626' : 'transparent',
+                  color: hookTone === 'grotesque' ? '#fff' : '#94a3b8',
+                  border: 'none',
+                  borderRadius: '4px',
+                  padding: '0.2rem 0.45rem',
+                  fontSize: '0.72rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                💥 Сатира
+              </button>
+              <button
+                type="button"
+                onClick={() => { setHookTone('analytics'); fetchHooks('analytics'); }}
+                style={{
+                  background: hookTone === 'analytics' ? '#2563eb' : 'transparent',
+                  color: hookTone === 'analytics' ? '#fff' : '#94a3b8',
+                  border: 'none',
+                  borderRadius: '4px',
+                  padding: '0.2rem 0.45rem',
+                  fontSize: '0.72rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                🧠 Аналитика
+              </button>
+            </div>
+            <button
+              type="button"
+              className="copy-btn"
+              disabled={loading}
+              onClick={() => fetchHooks()}
+              style={{ background: '#1e293b', fontSize: '0.75rem', padding: '0.3rem 0.6rem', border: '1px solid #334155' }}
+            >
+              🔄 Обновить
+            </button>
+          </div>
         )}
       </div>
 
@@ -130,7 +175,18 @@ export default function ScriptHookGenerator({ title, summary, currentText, onApp
                 title="🖐️ Зажмите мышкой и перетащите этот хук в поле текста диктора"
               >
                 <div style={{ flex: 1 }}>
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.68rem', fontWeight: 700, padding: '0.1rem 0.45rem', borderRadius: '4px', background: 'rgba(239, 68, 68, 0.2)', color: '#f87171', marginBottom: '0.25rem' }}>
+                  <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    fontSize: '0.68rem',
+                    fontWeight: 700,
+                    padding: '0.1rem 0.45rem',
+                    borderRadius: '4px',
+                    background: hookTone === 'analytics' ? 'rgba(37, 99, 235, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                    color: hookTone === 'analytics' ? '#60a5fa' : '#f87171',
+                    marginBottom: '0.25rem',
+                  }}>
                     <span>{h.type}</span>
                     <span style={{ color: '#94a3b8', fontSize: '0.65rem' }}>🖐️ drag</span>
                   </div>

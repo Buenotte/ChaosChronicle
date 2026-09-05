@@ -333,6 +333,8 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onClose, onR
               title={feuilleton.originalTitle || feuilleton.title || currentTitle}
               summary={feuilleton.summary || ''}
               currentText={currentText}
+              style={selectedStyle}
+              tone={selectedTone}
               onApplyHook={(newText) => { setCurrentText(newText); setSavedInfo(null); }}
             />
 

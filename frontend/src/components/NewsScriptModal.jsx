@@ -281,6 +281,8 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
             title={pkg.original_title || pkg.title}
             summary={pkg.summary || ''}
             currentText={text}
+            style={selectedStyle}
+            tone={selectedTone}
             onApplyHook={(newText) => setText(newText)}
           />
 
