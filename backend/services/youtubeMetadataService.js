@@ -8,6 +8,7 @@ const newsDir = path.resolve(__dirname, '../../news');
 const scriptsDir = path.resolve(__dirname, '../../scripts');
 
 const STYLES = {
+  analytics: { file: 'analytics_style.txt', label: '🧠 Увлекательная Аналитика (Без гротеска)', focus: 'Глубокий разбор скрытых причин, расстановки сил, военных ТТХ и геополитики без клоунады и гротеска.' },
   clickbait: { file: 'clickbait_style.txt', label: '🔥 Кликбейт & YouTube Топ (CTR 20%+)', focus: 'Ультра-вирусный темп, мощный шок-фактор, парадоксальные контрасты, хлесткие панчлайны и мемы.' },
   golubuzki: { file: 'golubuzki_style.txt', label: '🎭 Алексей Голобуцкий', focus: 'Едкая политическая сатира, смех как оружие, деконструкция официальной лжи врага, высмеивание паники в бункере.' },
   kasjanov: { file: 'kasjanov_style.txt', label: '🪖 Юрий Касьянов', focus: 'Военно-инженерный реализм, акцент на ТТХ, дронах, логистике, точный расчет и уязвимости врага.' },
@@ -56,6 +57,7 @@ export async function generateYouTubeMetadata({
   bundleDir: inputBundleDir,
   force = false,
   style = 'clickbait',
+  tone = 'grotesque',
   model = 'gemini',
   section = 'all',
 }) {
@@ -129,23 +131,47 @@ export async function generateYouTubeMetadata({
 
   const chosenModel = MODEL_MAP[model] || model || 'google/gemini-2.5-flash';
 
+  const isAnalytics = (style === 'analytics' || tone === 'analytics');
+
+  const ruleInstruction = isAnalytics
+    ? 'СТРОГО БЕЗ ГРОТЕСКА, БЕЗ КЛОУНАДЫ И БЕЗ ФАРСА. Стиль: умный, глубокий, интригующий аналитический разбор (причины, военные ТТХ, геополитические ставки и выводы).'
+    : 'Используй парадоксы, яркие контрасты и живые метафоры. БЕЗ слова «сатира», БЕЗ имен блогеров в тегах/хэштегах.';
+
   let systemPrompt = `Ты — ведущий YouTube-продюсер канала Chaos Chronicle.
-На основе новости создай вирусные метаданные для YouTube и Facebook в авторском стиле: ${styleCfg.label}
+На основе новости создай метаданные для YouTube и Facebook в стиле: ${styleCfg.label}
 ФОКУС: ${styleCfg.focus}
 ПОЗИЦИЯ: СТРОГО НА СТОРОНЕ УКРАИНЫ.
-ПРАВИЛО ВИРУСНОСТИ: Используй парадоксы, яркие контрасты (например "Зерно в Арктику: как Россия прячет флот от дронов") и живые метафоры. БЕЗ слова «сатира», БЕЗ имен блогеров в тегах/хэштегах.`;
+ПРАВИЛО: ${ruleInstruction}`;
 
   if (section === 'title') {
-    systemPrompt += `\nСоздай ТОЛЬКО 1 убойный, супер-кликабельный YouTube-заголовок (до 75 символов) с интригой/парадоксом и эмодзи | Chaos Chronicle.
+    systemPrompt += isAnalytics
+      ? `\nСоздай ТОЛЬКО 1 ёмкий, интригующий аналитический YouTube-заголовок (до 75 символов) с сутью интриги и эмодзи | Chaos Chronicle. БЕЗ гротескного цирка.
+Ответь СТРОГО JSON: { "title": "..." }`
+      : `\nСоздай ТОЛЬКО 1 убойный, супер-кликабельный YouTube-заголовок (до 75 символов) с интригой/парадоксом и эмодзи | Chaos Chronicle.
 Ответь СТРОГО JSON: { "title": "..." }`;
   } else if (section === 'description') {
-    systemPrompt += `\nСоздай ТОЛЬКО описание для YouTube БЕЗ приветствий (суть с визуальным гротеском, 3 тезиса ⚡ с парадоксами и метафорами из текста, призыв 🔔, хэштеги), а также keywords теги и хэштеги.
+    systemPrompt += isAnalytics
+      ? `\nСоздай ТОЛЬКО описание для YouTube БЕЗ приветствий (суть новости в 1-2 абзацах глубокой аналитики БЕЗ гротеска, 3 ключевых тезиса ⚡ с фактами и последствиями, призыв 🔔, хэштеги), а также keywords теги и хэштеги.
+Ответь СТРОГО JSON: { "description": "...", "tags": "...", "hashtags": "..." }`
+      : `\nСоздай ТОЛЬКО описание для YouTube БЕЗ приветствий (суть с визуальным гротеском, 3 тезиса ⚡ с парадоксами и метафорами из текста, призыв 🔔, хэштеги), а также keywords теги и хэштеги.
 Ответь СТРОГО JSON: { "description": "...", "tags": "...", "hashtags": "..." }`;
   } else if (section === 'facebookPost') {
-    systemPrompt += `\nСоздай ТОЛЬКО готовый вирусный пост для Facebook (40-70 слов, БЕЗ приветствий, с сочным сатирическим гротеском и парадоксом из текста, ссылка 👉 [ССЫЛКА НА ВАШЕ ВИДЕО В YOUTUBE] 🔔, фраза «Подпишитесь, чтобы не пропустить новые сводки! 🔔», хэштеги).
+    systemPrompt += isAnalytics
+      ? `\nСоздай ТОЛЬКО готовый пост для Facebook (40-70 слов, БЕЗ приветствий, качественная увлекательная аналитика БЕЗ гротеска, раскрывающая суть события, ссылка 👉 [ССЫЛКА НА ВАШЕ ВИДЕО В YOUTUBE] 🔔, фраза «Подпишитесь, чтобы не пропустить новые сводки! 🔔», хэштеги).
+Ответь СТРОГО JSON: { "facebookPost": "..." }`
+      : `\nСоздай ТОЛЬКО готовый вирусный пост для Facebook (40-70 слов, БЕЗ приветствий, с сочным сатирическим гротеском и парадоксом из текста, ссылка 👉 [ССЫЛКА НА ВАШЕ ВИДЕО В YOUTUBE] 🔔, фраза «Подпишитесь, чтобы не пропустить новые сводки! 🔔», хэштеги).
 Ответь СТРОГО JSON: { "facebookPost": "..." }`;
   } else {
-    systemPrompt += `\nОтветь СТРОГО JSON:
+    systemPrompt += isAnalytics
+      ? `\nОтветь СТРОГО JSON:
+{
+  "title": "Интригующий аналитический заголовок (до 75 символов) с эмодзи | Chaos Chronicle",
+  "description": "Описание YouTube БЕЗ приветствий: суть темы в виде глубокой аналитики БЕЗ гротеска, 3 пункта ⚡ с фактами/последствиями, призыв 🔔, хэштеги.",
+  "tags": "Теги через запятую для YouTube Studio (без слова сатира и имен)",
+  "hashtags": "#ChaosChronicle #новости #аналитика #политика #геополитика",
+  "facebookPost": "Короткий пост для Facebook: качественная увлекательная аналитика без клоунады"
+}`
+      : `\nОтветь СТРОГО JSON:
 {
   "title": "Хлёсткий кликабельный YouTube-заголовок (до 75 символов) с парадоксом и эмодзи | Chaos Chronicle",
   "description": "Описание YouTube БЕЗ приветствий: суть темы с ярким гротеском, 3 пункта ⚡ с метафорами из текста, призыв 🔔, хэштеги.",
@@ -254,7 +280,7 @@ export async function generateYouTubeMetadata({
   }
 }
 
-export function saveYouTubeMetadataJson({ bundleDir: inputBundleDir, folderName, title, description, tags, hashtags, facebookPost, style = 'golubuzki' }) {
+export function saveYouTubeMetadataJson({ bundleDir: inputBundleDir, folderName, title, description, tags, hashtags, facebookPost, style = 'golubuzki', tone = 'grotesque' }) {
   let bundleDir = inputBundleDir;
   if (!bundleDir && folderName) {
     bundleDir = path.join(newsDir, folderName);
@@ -271,6 +297,7 @@ export function saveYouTubeMetadataJson({ bundleDir: inputBundleDir, folderName,
     facebookPost: (facebookPost || '').trim(),
     savedAt: new Date().toISOString(),
     style,
+    tone,
   };
 
   const jsonPath = path.join(bundleDir, 'project.json');
@@ -284,6 +311,7 @@ export function saveYouTubeMetadataJson({ bundleDir: inputBundleDir, folderName,
       manifest.youtubeMetadata.tags = metadata.tags;
       manifest.youtubeMetadata.hashtags = metadata.hashtags;
       manifest.youtubeMetadata.facebookPost = metadata.facebookPost;
+      manifest.youtubeMetadata.tone = metadata.tone;
       manifest.youtubeMetadata.savedAt = metadata.savedAt;
       fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
     } catch {}

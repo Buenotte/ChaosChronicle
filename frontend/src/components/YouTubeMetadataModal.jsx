@@ -8,7 +8,8 @@ export default function YouTubeMetadataModal({ pkg, onSaved, onClose }) {
   const fileInputRef = useRef(null)
   const [loading, setLoading] = useState(false)
   const [savingJson, setSavingJson] = useState(false)
-  const [selectedStyle, setSelectedStyle] = useState('clickbait')
+  const [selectedStyle, setSelectedStyle] = useState(pkg.style || 'clickbait')
+  const [selectedTone, setSelectedTone] = useState(pkg.tone || (pkg.style === 'analytics' ? 'analytics' : 'grotesque'))
   const [titleModel, setTitleModel] = useState('gemini')
   const [descModel, setDescModel] = useState('gemini')
   const [fbModel, setFbModel] = useState('gemini')
@@ -19,7 +20,7 @@ export default function YouTubeMetadataModal({ pkg, onSaved, onClose }) {
   const [hashtags, setHashtags] = useState('')
   const [facebookPost, setFacebookPost] = useState('')
 
-  const fetchMetadata = async (force = false, styleOverride = selectedStyle) => {
+  const fetchMetadata = async (force = false, styleOverride = selectedStyle, toneOverride = selectedTone) => {
     setLoading(true)
     const styleLabel = FEUILLETON_STYLES.find(s => s.id === styleOverride)?.name?.split(' (')[0] || 'Кликбейт'
     const toastId = force ? toast.loading(`🤖 Генерация всех метаданных...`) : null
@@ -27,7 +28,7 @@ export default function YouTubeMetadataModal({ pkg, onSaved, onClose }) {
       const res = await fetch('/api/youtube-metadata', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ folderName: pkg.folderName, bundleDir: pkg.bundleDir, title: pkg.title, style: styleOverride, force, section: 'all' }),
+        body: JSON.stringify({ folderName: pkg.folderName, bundleDir: pkg.bundleDir, title: pkg.title, style: styleOverride, tone: toneOverride, force, section: 'all' }),
       })
       const data = await res.json()
       if (data.success) {
@@ -57,7 +58,7 @@ export default function YouTubeMetadataModal({ pkg, onSaved, onClose }) {
       const res = await fetch('/api/youtube-metadata', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ folderName: pkg.folderName, bundleDir: pkg.bundleDir, title: pkg.title, style: selectedStyle, force: true, section, model }),
+        body: JSON.stringify({ folderName: pkg.folderName, bundleDir: pkg.bundleDir, title: pkg.title, style: selectedStyle, tone: selectedTone, force: true, section, model }),
       })
       const data = await res.json()
       if (data.success) {
@@ -80,7 +81,7 @@ export default function YouTubeMetadataModal({ pkg, onSaved, onClose }) {
   }
 
   useEffect(() => {
-    fetchMetadata(false, selectedStyle)
+    fetchMetadata(false, selectedStyle, selectedTone)
   }, [pkg?.folderName])
 
   const handleSaveToProject = async () => {
@@ -98,6 +99,7 @@ export default function YouTubeMetadataModal({ pkg, onSaved, onClose }) {
           hashtags,
           facebookPost,
           style: selectedStyle,
+          tone: selectedTone,
         }),
       })
       const data = await res.json()
@@ -203,7 +205,12 @@ export default function YouTubeMetadataModal({ pkg, onSaved, onClose }) {
                   <button
                     key={s.id}
                     type="button"
-                    onClick={() => { setSelectedStyle(s.id); fetchMetadata(false, s.id); }}
+                    onClick={() => {
+                      const nextTone = s.id === 'analytics' ? 'analytics' : selectedTone
+                      setSelectedStyle(s.id)
+                      if (s.id === 'analytics') setSelectedTone('analytics')
+                      fetchMetadata(false, s.id, nextTone)
+                    }}
                     className={`saved-status-badge ${selectedStyle === s.id ? 'active' : 'inactive'} clickable`}
                     style={{ fontSize: '0.75rem', padding: '0.2rem 0.55rem' }}
                   >
@@ -233,6 +240,27 @@ export default function YouTubeMetadataModal({ pkg, onSaved, onClose }) {
                   📂 Импорт .json
                 </button>
               </div>
+            </div>
+
+            {/* Тональность: Гротеск vs Аналитика */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.45rem', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.8rem', color: '#9ca3af', fontWeight: 600 }}>🎯 Подача:</span>
+              <button
+                type="button"
+                onClick={() => { setSelectedTone('grotesque'); fetchMetadata(false, selectedStyle, 'grotesque'); }}
+                className={`saved-status-badge ${selectedTone === 'grotesque' ? 'active' : 'inactive'} clickable`}
+                style={{ fontSize: '0.75rem', padding: '0.15rem 0.55rem', background: selectedTone === 'grotesque' ? '#dc2626' : undefined, color: '#fff' }}
+              >
+                💥 Гротеск / Сатира
+              </button>
+              <button
+                type="button"
+                onClick={() => { setSelectedTone('analytics'); fetchMetadata(false, selectedStyle, 'analytics'); }}
+                className={`saved-status-badge ${selectedTone === 'analytics' ? 'active' : 'inactive'} clickable`}
+                style={{ fontSize: '0.75rem', padding: '0.15rem 0.55rem', background: selectedTone === 'analytics' ? '#059669' : undefined, color: '#fff' }}
+              >
+                🧠 Увлекательная Аналитика
+              </button>
             </div>
           </div>
           <button className="modal-close" onClick={e => { e.stopPropagation(); onClose(); }}>✕</button>

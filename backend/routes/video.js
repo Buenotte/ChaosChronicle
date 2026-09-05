@@ -11,6 +11,15 @@ const router = express.Router();
 // SSE Job Store für Video-Fortschritt
 const videoJobs = new Map();
 
+let cachedHwEncoder = null;
+const getHwEncoderArgs = () => new Promise((resolve) => {
+  if (cachedHwEncoder) return resolve(cachedHwEncoder);
+  execFile('ffmpeg', ['-y', '-f', 'lavfi', '-i', 'color=c=black:s=64x64:d=0.05', '-c:v', 'h264_qsv', '-f', 'null', '-'], (err) => {
+    cachedHwEncoder = (!err) ? ['-c:v', 'h264_qsv', '-preset', 'veryfast'] : ['-c:v', 'libx264', '-preset', 'ultrafast', '-threads', '0', '-pix_fmt', 'yuv420p'];
+    resolve(cachedHwEncoder);
+  });
+});
+
 // GET /api/video-progress/:jobId
 router.get('/api/video-progress/:jobId', (req, res) => {
   const { jobId } = req.params;
@@ -112,7 +121,7 @@ const handleGenerateVideo = async (req, res) => {
         audioDuration = 180;
       }
 
-      const blurFilter = 'split[bg][fg];[bg]scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,boxblur=18:2[blurred];[fg]scale=1920:1080:force_original_aspect_ratio=decrease[sharp];[blurred][sharp]overlay=(W-w)/2:(H-h)/2,setsar=1,format=yuv420p';
+      const blurFilter = 'split[bg][fg];[bg]scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,boxblur=10:1[blurred];[fg]scale=1920:1080:force_original_aspect_ratio=decrease[sharp];[blurred][sharp]overlay=(W-w)/2:(H-h)/2,setsar=1,format=yuv420p';
       let ffmpegArgs = [];
 
       const tempFramesDir = path.join(bundleDir, 'temp_frames');
@@ -121,7 +130,7 @@ const handleGenerateVideo = async (req, res) => {
       broadcastProgress(10, 'building', 'Параллельное масштабирование фото 1080p...');
 
       const normalizedFrames = [];
-      const batchSize = 4;
+      const batchSize = 2;
       for (let b = 0; b < photoFiles.length; b += batchSize) {
         const chunk = photoFiles.slice(b, b + batchSize);
         const chunkResults = await Promise.all(chunk.map((pf, idx) => new Promise((resolve) => {
@@ -165,6 +174,8 @@ const handleGenerateVideo = async (req, res) => {
       const isXfade = (transition === 'crossfade' || transition === 'fadeblack') && activeFrames.length > 1;
       const xfadeType = transition === 'fadeblack' ? 'fadeblack' : 'fade';
 
+      const hwEnc = await getHwEncoderArgs();
+
       if (isXfade) {
         const N = activeFrames.length;
         const D = Math.min(0.4, (audioDuration / N) * 0.25);
@@ -202,7 +213,7 @@ const handleGenerateVideo = async (req, res) => {
           ffmpegArgs.push('-filter_complex', filterParts.join(';'), '-map', '[v_slides]', '-map', `${audioIdx}:a`);
         }
 
-        ffmpegArgs.push('-c:v', 'libx264', '-preset', 'ultrafast', '-tune', 'fastdecode', '-threads', '0', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '192k', '-ac', '2', '-shortest', videoPath);
+        ffmpegArgs.push(...hwEnc, '-c:a', 'aac', '-b:a', '192k', '-ac', '2', '-shortest', videoPath);
       } else {
         if (hasBanner) {
           ffmpegArgs = [
@@ -213,7 +224,7 @@ const handleGenerateVideo = async (req, res) => {
             '-filter_complex', `[0:v]fps=30[bg];[2:v]setpts=PTS-STARTPTS+${bannerSec}/TB[sub_b];[bg][sub_b]overlay=(W-w)/2:H-h-50:enable='between(t,${bannerSec},${bannerSec + 6})':eof_action=pass[v]`,
             '-map', '[v]',
             '-map', '1:a',
-            '-c:v', 'libx264', '-preset', 'ultrafast', '-tune', 'fastdecode', '-threads', '0', '-pix_fmt', 'yuv420p',
+            ...hwEnc,
             '-c:a', 'aac', '-b:a', '192k', '-ac', '2',
             '-shortest',
             videoPath,
@@ -223,7 +234,7 @@ const handleGenerateVideo = async (req, res) => {
             '-y',
             '-f', 'concat', '-safe', '0', '-i', concatPath,
             '-i', audioPath,
-            '-c:v', 'libx264', '-preset', 'ultrafast', '-tune', 'fastdecode', '-threads', '0', '-pix_fmt', 'yuv420p',
+            ...hwEnc,
             '-c:a', 'aac', '-b:a', '192k', '-ac', '2',
             '-shortest',
             videoPath,
