@@ -127,6 +127,7 @@ export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, optio
       font = 'arialbd',
       fontSize = 'auto',
       lineSpacing = 1.15,
+      wordSpacing = 0,
       fontColor = 'yellow',
       borderColor = 'black',
       borderWidth = 9,
@@ -263,7 +264,7 @@ export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, optio
             ? Number(options.wordFontSizes[curIdx])
             : lineBaseSz;
           return `{\\c${toAssColor(wCol)}\\fs${wSz}}${w}`;
-        }).join(' ');
+        }).join(' '.repeat(1 + Math.max(0, Math.floor(Number(wordSpacing || options.wordSpacing || 0) / 10))));
       });
 
       const alignNum = options.textAlign === 'left' ? 7 : (options.textAlign === 'right' ? 9 : 8);
@@ -296,13 +297,15 @@ export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, optio
       }
     } else {
       const xFormula = options.textAlign === 'left' ? `${startX}` : (options.textAlign === 'right' ? `${startX}-text_w` : `${startX}-(text_w/2)`);
+      const extraSp = Math.max(0, Math.floor(Number(wordSpacing || options.wordSpacing || 0) / 10));
       const drawtextFilters = cleanLines.map((line, idx) => {
         const lineMaxFit = Math.floor(1160 / (Math.max(line.length, 6) * 0.62));
         let lineSize = (lineSizesList[idx] && Number(lineSizesList[idx]) > 0) ? Number(lineSizesList[idx]) : finalFontSize;
         lineSize = Math.min(Math.max(lineSize, 32), Math.min(lineMaxFit, 160));
 
         const lineCol = toFfmpegColor(lineColorsList[idx] || colorVal);
-        const safeText = line
+        const spacedLine = extraSp > 0 ? line.split(/\s+/).filter(Boolean).join(' '.repeat(1 + extraSp)) : line;
+        const safeText = spacedLine
           .replace(/\\/g, '\\\\')
           .replace(/'/g, "'\\''")
           .replace(/:/g, '\\:')

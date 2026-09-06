@@ -106,22 +106,17 @@ async function callGeminiDirect(systemInstruction, userInstruction, maxTokens = 
   return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 }
 
-// ── Генератор заголовков в стиле Голобуцкого (4-5 слов) СТРОГО ИЗ ТЕКСТА ──
-export async function generateGolubuzkiTitle(newsTitle, newsSummary = '', monologueText = '') {
+// ── Генератор хлестких заголовков (4-5 слов) СТРОГО ИЗ ТЕКСТА ──
+export async function generateGolubuzkiTitle(newsTitle, newsSummary = '', monologueText = '', tone = 'satire') {
   const textContext = monologueText && monologueText.trim() ? monologueText.slice(0, 1200) : (newsSummary || newsTitle);
+  const isAnalytics = tone === 'analytics';
+  const sysPrompt = isAnalytics
+    ? `Ты — ведущий геополитический и военный аналитик ChaosChronicle. Создай ОДИН МОЩНЫЙ АНАЛИТИЧЕСКИЙ YouTube-заголовок (СТРОГО 4-5 СЛОВ, UPPERCASE). Серьезный диагноз и нерв темы (например: "ЦЕНА ОШИБКИ КРЕМЛЯ В КУРСКЕ", "РЕАЛЬНЫЙ ТУПИК ВОЕННОЙ МАШИНЫ"). БЕЗ клоунады, БЕЗ кавычек, БЕЗ точек.`
+    : `Ты — главный редактор YouTube-канала ChaosChronicle и мастер острой сатиры. Создай ОДИН ХЛЕСТКИЙ сатирический YouTube-заголовок (СТРОГО 4-5 СЛОВ, UPPERCASE). Острый парадокс реальности (например: "БУНКЕР ОБЪЯВИЛ ПОБЕДУ НАД РЕАЛЬНОСТЬЮ", "СВЕРХДЕРЖАВА ПЕРЕШЛА НА КИТАЙСКИЕ БОЛТЫ"). БЕЗ клоунады, БЕЗ кавычек, БЕЗ точек.`;
+  const userPrompt = `ТЕКСТ:\n"""\n${textContext}\n"""\n\nСоздай 1 ${isAnalytics ? 'аналитический' : 'хлесткий сатирический'} заголовок из 4-5 слов капсом:`;
 
-  // 1. Попытка через прямой Google Gemini API (gemini-3.7-flash)
   try {
-    const directTitle = await callGeminiDirect(
-      `Ты — главный редактор YouTube-канала ChaosChronicle и мастер ультра-гротескных, вирусных заголовков.
-Твоя задача — создать ОДИН УЛЬТРА-ГРОТЕСКНЫЙ, хлесткий YouTube-заголовок (СТРОГО 4-5 СЛОВ, ВСЕ БУКВЫ ЗАГЛАВНЫЕ UPPERCASE).
-ФОРМУЛА ВИРУСНОГО ГРОТЕСКА:
-- Столкновение несовместимого, парадокс, ирония, абсурд реальности («КУКУРУЗА ДЛЯ СЕВЕРНОГО ПОЛЮСА», «ПРЯЧУТ ФЛОТ СРЕДИ АЙСБЕРГОВ», «ВОЕНРУК ПРЕПАРИРУЕТ ЛЯГУШКУ ШТЫКОМ»).
-- КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНЫ скучные штампы, кавычки и точки.
-- СТРОГО 4-5 СЛОВ капсом.`,
-      `ТЕКСТ:\n"""\n${textContext}\n"""\n\nСоздай 1 ультра-гротескный заголовок из 4-5 слов капсом:`,
-      1200
-    );
+    const directTitle = await callGeminiDirect(sysPrompt, userPrompt, 1200);
     if (directTitle) {
       const clean = directTitle.replace(/["'«»`]/g, '').replace(/\.$/, '').trim();
       const words = clean.split(/\s+/).filter(Boolean);
@@ -131,7 +126,6 @@ export async function generateGolubuzkiTitle(newsTitle, newsSummary = '', monolo
     console.warn('Direct title fallback:', err.message);
   }
 
-  // 2. OpenRouter fallback
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (apiKey && !apiKey.includes('HIER')) {
     try {
@@ -140,16 +134,11 @@ export async function generateGolubuzkiTitle(newsTitle, newsSummary = '', monolo
         headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'google/gemini-2.5-flash',
-          messages: [
-            { role: 'system', content: 'Создай 1 ультра-гротескный YouTube-заголовок из 4-5 слов капсом UPPERCASE без кавычек и точек.' },
-            { role: 'user', content: `Текст:\n"""\n${textContext}\n"""\n\n1 заголовок из 4-5 слов капсом:` }
-          ],
-          max_tokens: 400,
-          temperature: 0.85,
+          messages: [{ role: 'system', content: sysPrompt }, { role: 'user', content: userPrompt }],
+          max_tokens: 400, temperature: 0.85,
         }),
         signal: AbortSignal.timeout(7000),
       });
-
       if (res.ok) {
         const data = await res.json();
         let text = data.choices?.[0]?.message?.content?.trim();

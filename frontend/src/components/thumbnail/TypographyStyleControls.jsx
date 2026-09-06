@@ -31,7 +31,7 @@ export const BOX_STYLES = [
 
 export default function TypographyStyleControls({
   fontSize, setFontSize, customSizeNum, setCustomSizeNum,
-  lineSpacing = 1.15, setLineSpacing, previewLines = [],
+  lineSpacing = 1.15, setLineSpacing, wordSpacing = 0, setWordSpacing = null, previewLines = [],
   lineColors = null, setLineColors = null, lineFontSizes = null, setLineFontSizes = null,
   words = [], wordColors = null, setWordColors = null, wordFontSizes = null, setWordFontSizes = null,
   isItalic, setIsItalic, tiltAngle, setTiltAngle,
@@ -44,9 +44,9 @@ export default function TypographyStyleControls({
   const [customMode, setCustomMode] = useState('words')
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
-      {/* КОЛОНКА 1: РАЗМЕР, ИНТЕРВАЛ, КУРСИВ, НАКЛОН И ПОЗИЦИЯ */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+      {/* 📏 РАЗМЕР, ИНТЕРВАЛЫ, КУРСИВ И НАКЛОН */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
         {/* Размер шрифта (до 160px) */}
         <div>
           <label style={{ display: 'block', fontSize: '0.85rem', color: '#9ca3af', marginBottom: '0.4rem', fontWeight: 600 }}>
@@ -78,6 +78,21 @@ export default function TypographyStyleControls({
           </div>
         </div>
 
+        {/* ↔️ Отступ между словами (Word Spacing) */}
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+            <label style={{ fontSize: '0.85rem', color: '#9ca3af', fontWeight: 600 }}>↔️ Отступ между словами: +{Number(wordSpacing || 0)}px</label>
+            {setWordSpacing && Number(wordSpacing) !== 0 && (
+              <button type="button" onClick={() => setWordSpacing(0)} style={{ background: 'none', border: 'none', color: '#10b981', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline' }}>Сброс (0px)</button>
+            )}
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.72rem', color: '#71717a' }}>0px</span>
+            <input type="range" min="0" max="50" step="2" value={wordSpacing || 0} onChange={e => setWordSpacing && setWordSpacing(Number(e.target.value))} style={{ flex: 1, accentColor: '#10b981', cursor: 'pointer' }} />
+            <span style={{ fontSize: '0.85rem', color: '#10b981', minWidth: '45px', textAlign: 'right', fontWeight: 700 }}>+{Number(wordSpacing || 0)}px</span>
+          </div>
+        </div>
+
         {/* ✍️ КУРСИВ И 📐 НАКЛОН */}
         <div style={{ background: '#18181b', padding: '0.65rem', borderRadius: '8px', border: '1px solid #27272a', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -98,94 +113,10 @@ export default function TypographyStyleControls({
             </div>
           </div>
         </div>
-
-        {/* Позиция заголовка: пресеты + плавные слайдеры X / Y */}
-        <div style={{ background: '#18181b', padding: '0.6rem', borderRadius: '8px', border: '1px solid #27272a', display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <label style={{ fontSize: '0.82rem', color: '#f4f4f5', fontWeight: 700 }}>📍 Расположение (2D Drag):</label>
-            <span style={{ fontSize: '0.76rem', color: '#38bdf8', fontWeight: 700 }}>
-              X: {offsetX !== undefined && offsetX !== null ? offsetX : 50}% • Y: {offsetY !== undefined && offsetY !== null ? offsetY : 50}%
-            </span>
-          </div>
-
-          {/* Выравнивание строк (Linksbündig / Zentriert / Rechtsbündig) */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-            <span style={{ fontSize: '0.72rem', color: '#a1a1aa', fontWeight: 600 }}>Выравнивание текста:</span>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.35rem' }}>
-              {[
-                { id: 'left', label: '⬅️ Слева', title: 'По левому краю (linksbündig)' },
-                { id: 'center', label: '🎯 Центр', title: 'По центру (zentriert)' },
-                { id: 'right', label: '➡️ Справа', title: 'По правому краю (rechtsbündig)' },
-              ].map(a => {
-                const isActive = (textAlign || 'center') === a.id
-                return (
-                  <button
-                    key={a.id}
-                    type="button"
-                    title={a.title}
-                    onClick={() => setTextAlign && setTextAlign(a.id)}
-                    style={{
-                      padding: '0.3rem', borderRadius: '6px',
-                      background: isActive ? '#ec4899' : '#09090b',
-                      border: isActive ? '1px solid #f472b6' : '1px solid #27272a',
-                      color: '#fff', cursor: 'pointer', fontSize: '0.74rem', fontWeight: 600
-                    }}
-                  >
-                    {a.label}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
-          {/* Быстрые пресеты X / Y */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.35rem' }}>
-            {[{ label: '📐 Слева', x: 28, y: 50 }, { label: '🎯 Центр', x: 50, y: 50 }, { label: '📐 Справа', x: 72, y: 50 }].map((p, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => { if (setOffsetX) setOffsetX(p.x); if (setOffsetY) setOffsetY(p.y); setPosition('custom'); }}
-                style={{ padding: '0.3rem', borderRadius: '6px', background: (offsetX === p.x) ? '#3b82f6' : '#09090b', border: (offsetX === p.x) ? '1px solid #60a5fa' : '1px solid #27272a', color: '#fff', cursor: 'pointer', fontSize: '0.74rem', fontWeight: 600 }}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Слайдер X (Горизонталь) */}
-          {setOffsetX && (
-            <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.7rem', color: '#a1a1aa', width: '18px' }}>X:</span>
-              <input
-                type="range" min="5" max="95" step="1"
-                value={offsetX !== undefined && offsetX !== null ? Number(offsetX) : 50}
-                onChange={e => { setOffsetX(Number(e.target.value)); setPosition('custom'); }}
-                style={{ flex: 1, accentColor: '#38bdf8', cursor: 'pointer', height: '4px' }}
-                title="Позиция по горизонтали (X)"
-              />
-              <span style={{ fontSize: '0.7rem', color: '#71717a' }}>{offsetX}%</span>
-            </div>
-          )}
-
-          {/* Слайдер Y (Вертикаль) */}
-          {setOffsetY && (
-            <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.7rem', color: '#a1a1aa', width: '18px' }}>Y:</span>
-              <input
-                type="range" min="5" max="95" step="1"
-                value={offsetY !== undefined && offsetY !== null ? Number(offsetY) : 50}
-                onChange={e => { setOffsetY(Number(e.target.value)); setPosition('custom'); }}
-                style={{ flex: 1, accentColor: '#ec4899', cursor: 'pointer', height: '4px' }}
-                title="Позиция по вертикали (Y)"
-              />
-              <span style={{ fontSize: '0.7rem', color: '#71717a' }}>{offsetY}%</span>
-            </div>
-          )}
-        </div>
       </div>
 
-      {/* КОЛОНКА 2: ЦВЕТА, КОНТУР И ТЕНЬ */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      {/* 🎨 ЦВЕТА, КОНТУР И ТЕНЬ */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
         {/* Цвет текста (общий и построчный) */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
           <div>

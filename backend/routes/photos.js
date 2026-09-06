@@ -317,8 +317,8 @@ router.post('/api/delete-photo', async (req, res) => {
 // POST /api/generate-punchy-title
 router.post('/api/generate-punchy-title', async (req, res) => {
   try {
-    const { title = '', summary = '' } = req.body;
-    const punchy = await generateGolubuzkiTitle(title, summary);
+    const { title = '', summary = '', text = '', tone = 'satire' } = req.body;
+    const punchy = await generateGolubuzkiTitle(title, summary, text, tone);
     res.json({ success: true, title: punchy });
   } catch (err) {
     console.error('Error generating punchy title:', err.message);

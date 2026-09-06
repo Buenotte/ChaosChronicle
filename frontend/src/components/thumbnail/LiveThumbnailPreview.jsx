@@ -14,6 +14,7 @@ export default function LiveThumbnailPreview({
   fontFamilyName,
   calcLiveFontSize,
   lineSpacing = 1.15,
+  wordSpacing = 0,
   lineColors = null,
   lineFontSizes = null,
   wordColors = null,
@@ -268,7 +269,7 @@ export default function LiveThumbnailPreview({
                             color: wordHex,
                             fontSize: wordSz,
                             display: 'inline-block',
-                            margin: '0 0.05em',
+                            margin: `0 ${0.14 + (Math.max(0, Number(wordSpacing || 0)) * 0.025)}em`,
                           }}
                         >
                           {word}

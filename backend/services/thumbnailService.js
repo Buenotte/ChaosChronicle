@@ -19,7 +19,7 @@ export function getDefaultThumbnailStyle() {
     font: 'impact', fontFamilyName: 'Impact, sans-serif', fontSize: 'auto', customSizeNum: 82,
     lineFontSizes: null, fontColor: 'yellow', lineColors: null, wordColors: null, wordFontSizes: null,
     borderColor: 'black', borderWidth: 9,
-    shadowDistance: 4, lineSpacing: 1.15, isItalic: false, tiltAngle: 0, position: 'center', offsetY: 50, offsetX: 50, textAlign: 'center',
+    shadowDistance: 4, lineSpacing: 1.15, wordSpacing: 0, isItalic: false, tiltAngle: 0, position: 'center', offsetY: 50, offsetX: 50, textAlign: 'center',
     hasBox: false, boxStyle: 'none', boxOpacity: 75,
   };
 }
@@ -124,6 +124,7 @@ export async function processSetThumbnail({
     borderWidth: effectiveConfig.borderWidth !== undefined ? Number(effectiveConfig.borderWidth) : 9,
     shadowDistance: effectiveConfig.shadowDistance !== undefined ? Number(effectiveConfig.shadowDistance) : 4,
     lineSpacing: effectiveConfig.lineSpacing !== undefined ? Number(effectiveConfig.lineSpacing) : 1.15,
+    wordSpacing: effectiveConfig.wordSpacing !== undefined ? Number(effectiveConfig.wordSpacing) : 0,
     isItalic: !!effectiveConfig.isItalic,
     tiltAngle: Number(effectiveConfig.tiltAngle) || 0,
     position: effectiveConfig.position || 'center',

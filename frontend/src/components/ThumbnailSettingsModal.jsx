@@ -4,41 +4,37 @@ import LiveThumbnailPreview from './thumbnail/LiveThumbnailPreview'
 import BackgroundPhotoSelector from './thumbnail/BackgroundPhotoSelector'
 import FontPicker, { BUILTIN_FONTS } from './thumbnail/FontPicker'
 import TypographyStyleControls, { COLORS, STROKE_COLORS } from './thumbnail/TypographyStyleControls'
+import PositionControls from './thumbnail/PositionControls'
 
 export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose, onUpdated }) {
   if (!pkg) return null
 
   const cfg = pkg?.thumbnailStyle || pkg?.headlineConfig || {}
   const [text, setText] = useState(cfg.text || pkg?.title || pkg?.original_title || '')
-  const [font, setFont] = useState(cfg.font || 'impact')
-  const [fontFamilyName, setFontFamilyName] = useState(cfg.fontFamilyName || 'Impact, sans-serif')
-  const [customFonts, setCustomFonts] = useState([])
-  const [uploadingFont, setUploadingFont] = useState(false)
-  const [fontSize, setFontSize] = useState(cfg.fontSize || 'auto')
-  const [customSizeNum, setCustomSizeNum] = useState(cfg.fontSize && cfg.fontSize !== 'auto' ? Number(cfg.fontSize) : 82)
+  const [font, setFont] = useState(cfg.font || 'impact'), [fontFamilyName, setFontFamilyName] = useState(cfg.fontFamilyName || 'Impact, sans-serif')
+  const [customFonts, setCustomFonts] = useState([]), [uploadingFont, setUploadingFont] = useState(false)
+  const [fontSize, setFontSize] = useState(cfg.fontSize || 'auto'), [customSizeNum, setCustomSizeNum] = useState(cfg.fontSize && cfg.fontSize !== 'auto' ? Number(cfg.fontSize) : 82)
   const [isItalic, setIsItalic] = useState(!!cfg.isItalic), [tiltAngle, setTiltAngle] = useState(Number(cfg.tiltAngle) || 0)
-  const [lineSpacing, setLineSpacing] = useState(cfg.lineSpacing !== undefined ? Number(cfg.lineSpacing) : 1.15)
-  const [fontColor, setFontColor] = useState(cfg.fontColor || 'yellow')
-  const [lineColors, setLineColors] = useState(Array.isArray(cfg.lineColors) ? cfg.lineColors : null)
-  const [lineFontSizes, setLineFontSizes] = useState(Array.isArray(cfg.lineFontSizes) ? cfg.lineFontSizes : null)
-  const [wordColors, setWordColors] = useState(Array.isArray(cfg.wordColors) ? cfg.wordColors : null)
-  const [wordFontSizes, setWordFontSizes] = useState(Array.isArray(cfg.wordFontSizes) ? cfg.wordFontSizes : null)
-  const [borderColor, setBorderColor] = useState(cfg.borderColor || 'black')
-  const [borderWidth, setBorderWidth] = useState(cfg.borderWidth !== undefined ? Number(cfg.borderWidth) : 9)
-  const [shadowDistance, setShadowDistance] = useState(cfg.shadowDistance !== undefined ? Number(cfg.shadowDistance) : 4)
-  const [position, setPosition] = useState(cfg.position || 'center')
+  const [lineSpacing, setLineSpacing] = useState(cfg.lineSpacing !== undefined ? Number(cfg.lineSpacing) : 1.15), [wordSpacing, setWordSpacing] = useState(cfg.wordSpacing !== undefined ? Number(cfg.wordSpacing) : 0)
+  const [fontColor, setFontColor] = useState(cfg.fontColor || 'yellow'), [borderColor, setBorderColor] = useState(cfg.borderColor || 'black')
+  const [lineColors, setLineColors] = useState(Array.isArray(cfg.lineColors) ? cfg.lineColors : null), [lineFontSizes, setLineFontSizes] = useState(Array.isArray(cfg.lineFontSizes) ? cfg.lineFontSizes : null)
+  const [wordColors, setWordColors] = useState(Array.isArray(cfg.wordColors) ? cfg.wordColors : null), [wordFontSizes, setWordFontSizes] = useState(Array.isArray(cfg.wordFontSizes) ? cfg.wordFontSizes : null)
+  const [borderWidth, setBorderWidth] = useState(cfg.borderWidth !== undefined ? Number(cfg.borderWidth) : 9), [shadowDistance, setShadowDistance] = useState(cfg.shadowDistance !== undefined ? Number(cfg.shadowDistance) : 4)
+  const [position, setPosition] = useState(cfg.position || 'center'), [textAlign, setTextAlign] = useState(cfg.textAlign || 'center')
   const [offsetY, setOffsetY] = useState(cfg.offsetY !== undefined && cfg.offsetY !== null ? Number(cfg.offsetY) : 50)
   const [offsetX, setOffsetX] = useState(cfg.offsetX !== undefined && cfg.offsetX !== null ? Number(cfg.offsetX) : 50)
-  const [textAlign, setTextAlign] = useState(cfg.textAlign || 'center')
-  const [hasBox, setHasBox] = useState(!!cfg.hasBox), [boxStyle, setBoxStyle] = useState(cfg.boxStyle || (cfg.hasBox ? 'dark_soft' : 'none'))
-  const [boxOpacity, setBoxOpacity] = useState(cfg.boxOpacity !== undefined ? Number(cfg.boxOpacity) : 75)
+  const [hasBox, setHasBox] = useState(!!cfg.hasBox), [boxStyle, setBoxStyle] = useState(cfg.boxStyle || (cfg.hasBox ? 'dark_soft' : 'none')), [boxOpacity, setBoxOpacity] = useState(cfg.boxOpacity !== undefined ? Number(cfg.boxOpacity) : 75)
   const [selectedBgPhoto, setSelectedBgPhoto] = useState(null), [saving, setSaving] = useState(false), [generatingTitle, setGeneratingTitle] = useState(false)
   const [realThumbnailUrl, setRealThumbnailUrl] = useState(null), [previewMode, setPreviewMode] = useState('css'), [renderingPreview, setRenderingPreview] = useState(false)
+  const [titleTone, setTitleTone] = useState(pkg?.style === 'analytics' || pkg?.tone === 'analytics' ? 'analytics' : 'satire')
+  const [titleVariants, setTitleVariants] = useState(Array.isArray(pkg.title_variants) ? pkg.title_variants : [])
+  const [loadingVariants, setLoadingVariants] = useState(false)
 
   const getHeadlineConfig = () => ({
     text, font, fontFamilyName,
     fontSize: fontSize === 'auto' ? 'auto' : Number(customSizeNum),
     isItalic, tiltAngle: Number(tiltAngle) || 0, lineSpacing: Number(lineSpacing) || 1.15,
+    wordSpacing: Number(wordSpacing) || 0,
     fontColor, lineColors: Array.isArray(lineColors) ? lineColors : null,
     lineFontSizes: Array.isArray(lineFontSizes) ? lineFontSizes : null,
     wordColors: Array.isArray(wordColors) ? wordColors : null,
@@ -92,7 +88,7 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
     if (c.wordColors !== undefined) setWordColors(Array.isArray(c.wordColors) && c.wordColors.length === currentWords.length ? c.wordColors : null)
     if (c.wordFontSizes !== undefined) setWordFontSizes(Array.isArray(c.wordFontSizes) && c.wordFontSizes.length === currentWords.length ? c.wordFontSizes : null)
     if (c.borderColor) setBorderColor(c.borderColor); if (c.borderWidth !== undefined) setBorderWidth(Number(c.borderWidth))
-    if (c.shadowDistance !== undefined) setShadowDistance(Number(c.shadowDistance)); if (c.lineSpacing !== undefined) setLineSpacing(Number(c.lineSpacing))
+    if (c.shadowDistance !== undefined) setShadowDistance(Number(c.shadowDistance)); if (c.lineSpacing !== undefined) setLineSpacing(Number(c.lineSpacing)); if (c.wordSpacing !== undefined) setWordSpacing(Number(c.wordSpacing))
     if (c.isItalic !== undefined) setIsItalic(Boolean(c.isItalic)); if (c.tiltAngle !== undefined) setTiltAngle(Number(c.tiltAngle))
     if (c.position) setPosition(c.position)
     if (c.offsetY !== undefined && c.offsetY !== null) setOffsetY(Number(c.offsetY))
@@ -121,31 +117,23 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
 
   const handleSaveAsDefault = async () => {
     try {
-      const res = await fetch('/api/save-default-thumbnail-style', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(getHeadlineConfig()),
-      })
+      const res = await fetch('/api/save-default-thumbnail-style', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(getHeadlineConfig()) })
       const data = await res.json()
-      if (data.success) toast.success('⭐ Текущие настройки сохранены как шаблон по умолчанию!')
-      else toast.error('Не удалось сохранить шаблон: ' + (data.error || 'Ошибка'))
+      if (data.success) toast.success('⭐ Шаблон сохранен!')
+      else toast.error('Ошибка шаблона: ' + (data.error || ''))
     } catch (err) { toast.error('Ошибка: ' + err.message) }
   }
 
   const handleResetToDefault = async () => {
     try {
-      const res = await fetch('/api/default-thumbnail-style')
-      const data = await res.json()
-      if (data.success && data.style) {
-        applyStyleObject(data.style)
-        toast.success('🔄 Применен стандартный шаблон оформления!')
-      }
+      const res = await fetch('/api/default-thumbnail-style'), data = await res.json()
+      if (data.success && data.style) { applyStyleObject(data.style); toast.success('🔄 Стандартный шаблон применен!') }
     } catch (err) { toast.error('Ошибка: ' + err.message) }
   }
 
   const fetchCustomFonts = async () => {
     try {
-      const res = await fetch('/api/custom-fonts')
-      const data = await res.json()
+      const res = await fetch('/api/custom-fonts'), data = await res.json()
       if (data.success && Array.isArray(data.fonts)) {
         setCustomFonts(data.fonts)
         data.fonts.forEach(async (f) => {
@@ -174,13 +162,13 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
             try { const ff = new FontFace(data.font.name, `url(${data.font.url})`); await ff.load(); document.fonts.add(ff); } catch {}
             setCustomFonts(prev => [data.font, ...prev.filter(f => f.id !== data.font.id)])
             setFont(data.font.id); setFontFamilyName(`"${data.font.name}", sans-serif`)
-            toast.success(`🔤 Шрифт "${data.font.name}" успешно применен!`, { id: toastId })
-          } else { toast.error('Ошибка загрузки: ' + (data.error || 'Неизвестная ошибка'), { id: toastId }) }
-        } catch (postErr) { toast.error('Ошибка отправки шрифта: ' + postErr.message, { id: toastId }) }
+            toast.success(`🔤 Шрифт "${data.font.name}" применен!`, { id: toastId })
+          } else { toast.error('Ошибка: ' + (data.error || ''), { id: toastId }) }
+        } catch (postErr) { toast.error('Ошибка: ' + postErr.message, { id: toastId }) }
         finally { setUploadingFont(false) }
       }
       reader.readAsDataURL(file)
-    } catch (err) { setUploadingFont(false); toast.error('Ошибка чтения файла: ' + err.message) }
+    } catch (err) { setUploadingFont(false); toast.error('Ошибка файла: ' + err.message) }
   }
 
   const handleDeleteFont = async (fontId, fontName) => {
@@ -191,8 +179,8 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
         toast.success(`🗑️ Шрифт "${fontName}" удален`)
         setCustomFonts(prev => prev.filter(f => f.id !== fontId))
         if (font === fontId) { setFont('impact'); setFontFamilyName('Impact, "Arial Black", sans-serif'); }
-      } else { toast.error('Ошибка удаления: ' + (data.error || 'Неизвестная ошибка')) }
-    } catch (err) { toast.error('Ошибка удаления: ' + err.message) }
+      }
+    } catch (err) { toast.error('Ошибка: ' + err.message) }
   }
 
   const handleGeneratePunchyTitle = async () => {
@@ -200,12 +188,30 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
       setGeneratingTitle(true)
       const res = await fetch('/api/generate-punchy-title', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: pkg.original_title || pkg.title || text, summary: pkg.summary || '' }),
+        body: JSON.stringify({ title: pkg.original_title || pkg.title || text, summary: pkg.summary || '', text: pkg.scriptTxt || pkg.text || '', tone: titleTone }),
       })
       const data = await res.json()
       if (data.success && data.title) { setText(data.title); toast.success(`⚡ Заголовок создан: "${data.title}"`); }
     } catch (e) { toast.error('Ошибка генерации: ' + e.message) }
     finally { setGeneratingTitle(false) }
+  }
+
+  const handleFetchVariants = async () => {
+    try {
+      setLoadingVariants(true)
+      const res = await fetch('/api/generate-title-variants', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: pkg.original_title || pkg.title || text, summary: pkg.summary || '', text: pkg.scriptTxt || pkg.text || '',
+          bundleDir: pkg.bundleDir, folderName: pkg.folderName, style: titleTone === 'analytics' ? 'analytics' : 'golubuzki', forceRegenerate: true,
+        }),
+      })
+      const data = await res.json()
+      if (data.success && Array.isArray(data.variants) && data.variants.length > 0) {
+        setTitleVariants(data.variants); toast.success('✨ 10 вариантов заголовков создано!');
+      } else toast.error('Не удалось создать варианты: ' + (data.error || 'Ошибка'))
+    } catch (e) { toast.error('Ошибка: ' + e.message) }
+    finally { setLoadingVariants(false) }
   }
 
   const handleApply = async () => {
@@ -221,17 +227,10 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
       toast.dismiss(toastId)
       if (data.success) {
         toast.success('✨ Обложка и стиль сохранены!')
-        const freshThumbUrl = `${data.thumbnailUrl.split('?')[0]}?t=${Date.now()}`
-        if (onUpdated) onUpdated(freshThumbUrl, data.style)
-      } else {
-        toast.error('Ошибка: ' + (data.error || 'Не удалось обновить'))
-      }
-    } catch (err) {
-      toast.dismiss(toastId)
-      toast.error('Ошибка сохранения: ' + err.message)
-    } finally {
-      setSaving(false)
-    }
+        if (onUpdated) onUpdated(`${data.thumbnailUrl.split('?')[0]}?t=${Date.now()}`, data.style)
+      } else toast.error('Ошибка: ' + (data.error || 'Не удалось обновить'))
+    } catch (err) { toast.dismiss(toastId); toast.error('Ошибка сохранения: ' + err.message) }
+    finally { setSaving(false) }
   }
 
   const formatPreviewLines = (raw) => {
@@ -257,9 +256,8 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
   const activeColorHex = fontColor?.startsWith('#') ? fontColor : (COLORS.find(c => c.id === fontColor)?.hex || '#FFE600')
   const activeStrokeHex = borderColor?.startsWith('#') ? borderColor : (STROKE_COLORS.find(c => c.id === borderColor)?.hex || '#000000')
   const calcLiveFontSize = (overrideSize = null) => {
-    let sz = 78
-    if (overrideSize !== null && overrideSize !== undefined && !isNaN(Number(overrideSize)) && Number(overrideSize) > 0) sz = Math.min(Math.max(Number(overrideSize), 32), 160)
-    else if (fontSize !== 'auto' && !isNaN(Number(customSizeNum))) sz = Math.min(Math.max(Number(customSizeNum), 32), 160)
+    let sz = overrideSize && !isNaN(Number(overrideSize)) && Number(overrideSize) > 0 ? Number(overrideSize) : (fontSize !== 'auto' && !isNaN(Number(customSizeNum)) ? Number(customSizeNum) : null)
+    if (sz) sz = Math.min(Math.max(sz, 32), 160)
     else { const longest = Math.max(...previewLines.map(l => l.length), 8); sz = Math.min(Math.max(Math.floor(1160 / (longest * 0.65)), 48), 92); }
     return (((sz * 0.72) / 1280) * 100).toFixed(3) + 'cqw'
   }
@@ -271,7 +269,7 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
 
   return (
     <div className="modal-overlay" onClick={onClose} style={{ zIndex: 99999 }}>
-      <div className="modal-content" style={{ maxWidth: '960px', width: '96vw', maxHeight: '92vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+      <div className="modal-content" style={{ maxWidth: '1240px', width: '96vw', maxHeight: '92vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <div>
             <h2 className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem' }}>🎨 Настройка заголовка, шрифта, контура и фона</h2>
@@ -280,85 +278,107 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
 
-        <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          {/* Исходная новость */}
-          <div style={{ background: '#18181b', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px solid #27272a' }}>
-            <span style={{ fontSize: '0.75rem', color: '#a1a1aa', display: 'block', fontWeight: 600, marginBottom: '0.2rem' }}>📰 ПОЛНАЯ ТЕМА НОВОСТИ:</span>
-            <span style={{ fontSize: '0.9rem', color: '#f4f4f5', fontWeight: 600 }}>{pkg.original_title || pkg.title}</span>
-          </div>
+        <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {/* Сетка на 2 сбалансированные половины: Слева Превью и Заголовок, Справа Шрифты и Стили */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(460px, 1fr))', gap: '1.25rem', alignItems: 'start' }}>
+            {/* ⬅️ Левая половина: Превью, Тема, Заголовок с ИИ генератором и Выбор фото */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              <div style={{ background: '#18181b', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #27272a' }}>
+                <span style={{ fontSize: '0.72rem', color: '#a1a1aa', display: 'block', fontWeight: 600 }}>📰 ТЕМА НОВОСТИ:</span>
+                <span style={{ fontSize: '0.85rem', color: '#f4f4f5', fontWeight: 600 }}>{pkg.original_title || pkg.title}</span>
+              </div>
 
-          {/* 👁️ Живой предпросмотр */}
-          <LiveThumbnailPreview
-            previewSrc={currentBgSrc} position={position} offsetY={offsetY} offsetX={offsetX} textAlign={textAlign}
-            onOffsetYChange={(newY) => { setOffsetY(newY); setPosition('custom'); }}
-            onOffsetXChange={(newX) => { setOffsetX(newX); setPosition('custom'); }}
-            fontFamilyName={fontFamilyName} calcLiveFontSize={calcLiveFontSize} lineSpacing={lineSpacing} lineColors={lineColors}
-            lineFontSizes={lineFontSizes} wordColors={wordColors} wordFontSizes={wordFontSizes} activeColorHex={activeColorHex}
-            borderWidth={borderWidth} activeStrokeHex={activeStrokeHex} shadowDistance={shadowDistance} hasBox={hasBox}
-            boxStyle={boxStyle} boxOpacity={boxOpacity} isItalic={isItalic} tiltAngle={tiltAngle} previewLines={previewLines}
-            previewMode={previewMode} setPreviewMode={setPreviewMode} realThumbnailUrl={realThumbnailUrl}
-            onTriggerRealRender={handleInstantRealRender} renderingPreview={renderingPreview}
-          />
+              <LiveThumbnailPreview
+                previewSrc={currentBgSrc} position={position} offsetY={offsetY} offsetX={offsetX} textAlign={textAlign}
+                onOffsetYChange={(newY) => { setOffsetY(newY); setPosition('custom'); }}
+                onOffsetXChange={(newX) => { setOffsetX(newX); setPosition('custom'); }}
+                fontFamilyName={fontFamilyName} calcLiveFontSize={calcLiveFontSize} lineSpacing={lineSpacing} wordSpacing={wordSpacing} lineColors={lineColors}
+                lineFontSizes={lineFontSizes} wordColors={wordColors} wordFontSizes={wordFontSizes} activeColorHex={activeColorHex}
+                borderWidth={borderWidth} activeStrokeHex={activeStrokeHex} shadowDistance={shadowDistance} hasBox={hasBox}
+                boxStyle={boxStyle} boxOpacity={boxOpacity} isItalic={isItalic} tiltAngle={tiltAngle} previewLines={previewLines}
+                previewMode={previewMode} setPreviewMode={setPreviewMode} realThumbnailUrl={realThumbnailUrl}
+                onTriggerRealRender={handleInstantRealRender} renderingPreview={renderingPreview}
+              />
 
-          {/* 🖼️ Выбор фона из фото пакета */}
-          <BackgroundPhotoSelector
-            photoList={photoList} folderName={pkg.folderName} selectedBgPhoto={selectedBgPhoto}
-            onSelectPhoto={(p) => setSelectedBgPhoto(p)} onResetToDefault={() => setSelectedBgPhoto(null)}
-          />
+              {/* 📝 Текст заголовка и ИИ генерация */}
+              <div style={{ background: '#18181b', padding: '0.75rem', borderRadius: '8px', border: '1px solid #27272a' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem', flexWrap: 'wrap', gap: '0.35rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <label style={{ fontSize: '0.82rem', color: '#9ca3af', fontWeight: 600 }}>📝 Заголовок:</label>
+                    <div style={{ display: 'inline-flex', borderRadius: '6px', overflow: 'hidden', border: '1px solid #3f3f46' }}>
+                      <button type="button" onClick={() => setTitleTone('satire')} style={{ background: titleTone === 'satire' ? '#ec4899' : '#27272a', color: '#fff', border: 'none', padding: '0.15rem 0.45rem', fontSize: '0.7rem', cursor: 'pointer', fontWeight: 600 }}>💥 Сатира</button>
+                      <button type="button" onClick={() => setTitleTone('analytics')} style={{ background: titleTone === 'analytics' ? '#6366f1' : '#27272a', color: '#fff', border: 'none', padding: '0.15rem 0.45rem', fontSize: '0.7rem', cursor: 'pointer', fontWeight: 600 }}>🧠 Аналитика</button>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.35rem' }}>
+                    <button type="button" className="copy-btn" disabled={generatingTitle} onClick={handleGeneratePunchyTitle} style={{ background: titleTone === 'analytics' ? '#6366f1' : '#ec4899', fontSize: '0.73rem', padding: '0.2rem 0.55rem' }}>
+                      {generatingTitle ? '⏳...' : '⚡ 1 заголовок'}
+                    </button>
+                    <button type="button" className="copy-btn" disabled={loadingVariants} onClick={handleFetchVariants} style={{ background: '#8b5cf6', fontSize: '0.73rem', padding: '0.2rem 0.55rem' }}>
+                      {loadingVariants ? '⏳...' : '✨ 10 вариантов'}
+                    </button>
+                  </div>
+                </div>
+                <textarea
+                  value={text} onChange={e => setText(e.target.value)} rows={2}
+                  style={{ width: '100%', background: '#09090b', color: '#fff', border: '1px solid #3f3f46', borderRadius: '6px', padding: '0.55rem', fontSize: '0.95rem', fontWeight: 700, resize: 'vertical', lineHeight: 1.3 }}
+                  placeholder="Введите текст заголовка..."
+                />
+                {titleVariants && titleVariants.length > 0 && (
+                  <div style={{ marginTop: '0.35rem', display: 'flex', flexWrap: 'wrap', gap: '0.3rem', maxHeight: '90px', overflowY: 'auto' }}>
+                    {titleVariants.map((v, idx) => {
+                      const isCur = v.trim().toUpperCase() === text.trim().toUpperCase()
+                      return (
+                        <button
+                          key={idx} type="button" onClick={() => setText(v)}
+                          style={{
+                            background: isCur ? '#f59e0b' : '#27272a', color: isCur ? '#000' : '#e4e4e7',
+                            border: isCur ? '1px solid #fbbf24' : '1px solid #3f3f46', borderRadius: '5px', padding: '0.2rem 0.45rem', fontSize: '0.72rem', fontWeight: isCur ? 700 : 500, cursor: 'pointer', textAlign: 'left'
+                          }}
+                          title="Кликните, чтобы применить к обложке"
+                        >
+                          {isCur ? '✓ ' : ''}{v}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
 
-          {/* 📝 Текст заголовка */}
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-              <label style={{ fontSize: '0.85rem', color: '#9ca3af', fontWeight: 600 }}>
-                📝 Текст заголовка на обложке:
-              </label>
-              <button
-                type="button"
-                className="copy-btn"
-                disabled={generatingTitle}
-                onClick={handleGeneratePunchyTitle}
-                style={{ background: '#ec4899', fontSize: '0.75rem', padding: '0.25rem 0.6rem' }}
-              >
-                {generatingTitle ? '⏳ Создание...' : '⚡ Сгенерировать в стиле Голобуцкого (4-5 слов)'}
-              </button>
+              <BackgroundPhotoSelector
+                photoList={photoList} folderName={pkg.folderName} selectedBgPhoto={selectedBgPhoto}
+                onSelectPhoto={(p) => setSelectedBgPhoto(p)} onResetToDefault={() => setSelectedBgPhoto(null)}
+              />
+
+              {/* 📍 Расположение текста (2D Drag, пресеты, слайдеры X/Y) */}
+              <PositionControls
+                offsetX={offsetX} setOffsetX={setOffsetX}
+                offsetY={offsetY} setOffsetY={setOffsetY}
+                textAlign={textAlign} setTextAlign={setTextAlign}
+                setPosition={setPosition}
+              />
+
+              {/* 🔤 Выбор шрифта и загрузка */}
+              <FontPicker
+                font={font} customFonts={customFonts} uploadingFont={uploadingFont}
+                onSelectFont={(fId, fam) => { setFont(fId); setFontFamilyName(fam); }}
+                onFontFileUpload={handleFontFileUpload} onDeleteFont={handleDeleteFont}
+              />
             </div>
-            <textarea
-              value={text}
-              onChange={e => setText(e.target.value)}
-              rows={2}
-              style={{
-                width: '100%',
-                background: '#18181b',
-                color: '#fff',
-                border: '1px solid #3f3f46',
-                borderRadius: '8px',
-                padding: '0.65rem',
-                fontSize: '1rem',
-                fontWeight: 700,
-                resize: 'vertical',
-                lineHeight: 1.35,
-              }}
-              placeholder="Введите текст заголовка..."
-            />
-          </div>
 
-          {/* Настройки шрифта, размеров, начертания, наклона, цветов, контура и тени */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
-            <FontPicker
-              font={font}
-              customFonts={customFonts}
-              uploadingFont={uploadingFont}
-              onSelectFont={(fId, fam) => { setFont(fId); setFontFamilyName(fam); }}
-              onFontFileUpload={handleFontFileUpload}
-              onDeleteFont={handleDeleteFont}
-            />
-
-            <TypographyStyleControls
-              fontSize={fontSize} setFontSize={setFontSize} customSizeNum={customSizeNum} setCustomSizeNum={setCustomSizeNum}
-              lineSpacing={lineSpacing} setLineSpacing={setLineSpacing} previewLines={previewLines}
-              lineColors={lineColors} setLineColors={setLineColors} lineFontSizes={lineFontSizes} setLineFontSizes={setLineFontSizes}
-              words={allWords} wordColors={wordColors} setWordColors={setWordColors} wordFontSizes={wordFontSizes} setWordFontSizes={setWordFontSizes} isItalic={isItalic} setIsItalic={setIsItalic} tiltAngle={tiltAngle} setTiltAngle={setTiltAngle} fontColor={fontColor} setFontColor={setFontColor} borderColor={borderColor} setBorderColor={setBorderColor} borderWidth={borderWidth} setBorderWidth={setBorderWidth} shadowDistance={shadowDistance} setShadowDistance={setShadowDistance} position={position} setPosition={setPosition} offsetY={offsetY} setOffsetY={setOffsetY} offsetX={offsetX} setOffsetX={setOffsetX} textAlign={textAlign} setTextAlign={setTextAlign} hasBox={hasBox} setHasBox={setHasBox} boxStyle={boxStyle} setBoxStyle={setBoxStyle} boxOpacity={boxOpacity} setBoxOpacity={setBoxOpacity}
-            />
+            {/* ➡️ Правая половина: Все настройки оформления */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <TypographyStyleControls
+                fontSize={fontSize} setFontSize={setFontSize} customSizeNum={customSizeNum} setCustomSizeNum={setCustomSizeNum}
+                lineSpacing={lineSpacing} setLineSpacing={setLineSpacing} wordSpacing={wordSpacing} setWordSpacing={setWordSpacing} previewLines={previewLines}
+                lineColors={lineColors} setLineColors={setLineColors} lineFontSizes={lineFontSizes} setLineFontSizes={setLineFontSizes}
+                words={allWords} wordColors={wordColors} setWordColors={setWordColors} wordFontSizes={wordFontSizes} setWordFontSizes={setWordFontSizes}
+                isItalic={isItalic} setIsItalic={setIsItalic} tiltAngle={tiltAngle} setTiltAngle={setTiltAngle}
+                fontColor={fontColor} setFontColor={setFontColor} borderColor={borderColor} setBorderColor={setBorderColor}
+                borderWidth={borderWidth} setBorderWidth={setBorderWidth} shadowDistance={shadowDistance} setShadowDistance={setShadowDistance}
+                hasBox={hasBox} setHasBox={setHasBox} boxStyle={boxStyle} setBoxStyle={setBoxStyle} boxOpacity={boxOpacity} setBoxOpacity={setBoxOpacity}
+              />
+            </div>
           </div>
 
           {/* Кнопки действий */}
