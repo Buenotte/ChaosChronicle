@@ -36,7 +36,7 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onClose, onR
     setRegenerating(true)
     const styleName = FEUILLETON_STYLES.find(s => s.id === newStyle)?.name || newStyle
     const modelName = AI_MODELS.find(m => m.id === newModel)?.name || newModel
-    const toneLabel = newTone === 'analytics' ? '🧠 Аналитика' : '💥 Гротеск'
+    const toneLabel = newTone === 'analytics' ? '🧠 Аналитика' : '💥 Сатира'
     const toastId = toast.loading(`🔄 Генерация текста (${toneLabel})...`, {
       description: `${modelName} | ${styleName}`,
     })
@@ -231,7 +231,7 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onClose, onR
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                     <span>💥</span>
                     <div>
-                      <div>Гротеск & Сатира</div>
+                      <div>Сатира</div>
                       <div style={{ fontSize: '0.7rem', color: selectedTone === 'grotesque' ? '#fdba74' : '#64748b' }}>Едкая ирония, метафоры и сатирический памфлет</div>
                     </div>
                   </div>
@@ -252,7 +252,7 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onClose, onR
                     <span>🧠</span>
                     <div>
                       <div>Увлекательная Аналитика</div>
-                      <div style={{ fontSize: '0.7rem', color: selectedTone === 'analytics' ? '#93c5fd' : '#64748b' }}>Без гротеска: факты, причины, ТТХ и аналитика</div>
+                      <div style={{ fontSize: '0.7rem', color: selectedTone === 'analytics' ? '#93c5fd' : '#64748b' }}>Факты, причины, ТТХ и скрытые мотивы</div>
                     </div>
                   </div>
                 </button>
@@ -319,7 +319,7 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onClose, onR
                   </select>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', background: '#0f172a', borderRadius: '6px', padding: '2px', border: '1px solid #334155' }}>
-                  <button type="button" onClick={() => { setSelectedTone('grotesque'); handleRegenerateStyle(selectedStyle, selectedModel, 'grotesque') }} style={{ background: selectedTone === 'grotesque' ? '#dc2626' : 'transparent', color: selectedTone === 'grotesque' ? '#fff' : '#94a3b8', border: 'none', borderRadius: '4px', padding: '0.28rem 0.55rem', fontSize: '0.78rem', fontWeight: selectedTone === 'grotesque' ? 700 : 500, cursor: 'pointer' }}>💥 Гротеск</button>
+                  <button type="button" onClick={() => { setSelectedTone('grotesque'); handleRegenerateStyle(selectedStyle, selectedModel, 'grotesque') }} style={{ background: selectedTone === 'grotesque' ? '#dc2626' : 'transparent', color: selectedTone === 'grotesque' ? '#fff' : '#94a3b8', border: 'none', borderRadius: '4px', padding: '0.28rem 0.55rem', fontSize: '0.78rem', fontWeight: selectedTone === 'grotesque' ? 700 : 500, cursor: 'pointer' }}>💥 Сатира</button>
                   <button type="button" onClick={() => { setSelectedTone('analytics'); handleRegenerateStyle(selectedStyle, selectedModel, 'analytics') }} style={{ background: selectedTone === 'analytics' ? '#2563eb' : 'transparent', color: selectedTone === 'analytics' ? '#fff' : '#94a3b8', border: 'none', borderRadius: '4px', padding: '0.28rem 0.55rem', fontSize: '0.78rem', fontWeight: selectedTone === 'analytics' ? 700 : 500, cursor: 'pointer' }}>🧠 Аналитика</button>
                 </div>
               </div>

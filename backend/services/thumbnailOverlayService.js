@@ -322,7 +322,7 @@ export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, optio
         execFileSync('ffmpeg', ['-y', '-i', imagePath, '-filter_complex', filterComplex, '-frames:v', '1', '-q:v', '2', tempOut]);
       } else {
         const fullFilter = `scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720,${drawtextFilters.join(',')}`;
-        execFileSync('ffmpeg', ['-y', '-i', imagePath, '-vf', fullFilter, '-q:v', '2', tempOut]);
+        execFileSync('ffmpeg', ['-y', '-i', imagePath, '-vf', fullFilter, '-frames:v', '1', '-q:v', '2', tempOut]);
       }
     }
 

@@ -10,6 +10,21 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const newsDir = path.resolve(__dirname, '../../news');
 
+export function resolveSourcePhoto(targetPhoto, targetFolder) {
+  if (!targetPhoto) return null;
+  if (path.isAbsolute(targetPhoto) && fs.existsSync(targetPhoto)) return targetPhoto;
+  if (targetPhoto.startsWith('/news-static/')) {
+    const cleanSubPath = targetPhoto.replace('/news-static/', '').split('?')[0];
+    const cand = path.join(newsDir, decodeURIComponent(cleanSubPath));
+    if (fs.existsSync(cand)) return cand;
+  }
+  const candRel = path.join(targetFolder, targetPhoto.replace(/^[/\\]+/, ''));
+  if (fs.existsSync(candRel)) return candRel;
+  const candPhotos = path.join(targetFolder, 'photos', path.basename(targetPhoto));
+  if (fs.existsSync(candPhotos)) return candPhotos;
+  return null;
+}
+
 export function getDefaultThumbnailStyle() {
   const defPath = path.resolve(__dirname, '../default_thumbnail_style.json');
   if (fs.existsSync(defPath)) {
@@ -156,17 +171,11 @@ export async function processSetThumbnail({
   };
 
   // A) Nur Headline neu formatieren oder gewähltes Foto als Hintergrund verwenden
-  if (mode === 'apply_headline') {
+  if (mode !== 'generate_ai' && mode !== 'auto') {
     const targetPhoto = photoUrl || effectiveConfig.photoUrl;
-    let sourceFile = null;
-    if (targetPhoto && targetPhoto.startsWith('/news-static/')) {
-      const cleanSubPath = targetPhoto.replace('/news-static/', '').split('?')[0];
-      sourceFile = path.join(newsDir, decodeURIComponent(cleanSubPath));
-    } else if (targetPhoto && targetPhoto.startsWith('photos/')) {
-      sourceFile = path.join(targetFolder, targetPhoto);
-    }
+    let sourceFile = resolveSourcePhoto(targetPhoto, targetFolder);
 
-    if (!sourceFile || !fs.existsSync(sourceFile)) {
+    if (!sourceFile && !fs.existsSync(rawBackgroundPath)) {
       const photosDir = path.join(targetFolder, 'photos');
       if (fs.existsSync(photosDir)) {
         const photoList = fs.readdirSync(photosDir).filter(f => /\.(jpg|jpeg|png|webp|avif)$/i.test(f));
@@ -175,13 +184,22 @@ export async function processSetThumbnail({
     }
 
     if (sourceFile && fs.existsSync(sourceFile)) {
-      const scaleCmd = `ffmpeg -y -i "${sourceFile}" -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720[v]" -map "[v]" -q:v 2 "${destSub}"`;
+      const scaleCmd = `ffmpeg -y -i "${sourceFile}" -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720[v]" -map "[v]" -frames:v 1 -q:v 2 "${destSub}"`;
       try {
         execSync(scaleCmd, { timeout: 10000 });
       } catch {
         fs.copyFileSync(sourceFile, destSub);
       }
       fs.copyFileSync(destSub, rawBackgroundPath);
+    } else if (photoUrl && photoUrl.startsWith('http')) {
+      try {
+        const imgRes = await fetch(photoUrl, { signal: AbortSignal.timeout(6000) });
+        if (imgRes.ok) {
+          const buffer = Buffer.from(await imgRes.arrayBuffer());
+          fs.writeFileSync(destSub, buffer);
+          fs.copyFileSync(destSub, rawBackgroundPath);
+        }
+      } catch {}
     } else if (fs.existsSync(rawBackgroundPath)) {
       fs.copyFileSync(rawBackgroundPath, destSub);
     }
@@ -198,80 +216,54 @@ export async function processSetThumbnail({
   }
 
   // B) Neue KI-Bildgenerierung (Gemini 16:9)
-  if (mode === 'generate_ai' || mode === 'auto') {
-    const photosDir = path.join(targetFolder, 'photos');
-    let availablePhotos = [];
-    if (fs.existsSync(photosDir)) {
-      availablePhotos = fs.readdirSync(photosDir)
-        .filter(f => /\.(jpg|jpeg|png|webp)$/i.test(f))
-        .map(f => path.join(photosDir, f));
-    }
-
-    let scriptText = '';
-    const txtPath = path.join(targetFolder, 'script.txt');
-    const mdPath = path.join(targetFolder, 'script.md');
-    if (fs.existsSync(txtPath)) {
-      try { scriptText = fs.readFileSync(txtPath, 'utf-8'); } catch {}
-    } else if (fs.existsSync(mdPath)) {
-      try { scriptText = fs.readFileSync(mdPath, 'utf-8'); } catch {}
-    }
-
-    const promptEn = await generate4CornerAiPrompt(
-      fullNewsTitle,
-      scriptText,
-      availablePhotos.map(p => path.basename(p))
-    );
-
-    let aiSuccess = false;
-    const geminiBuffer = await generateGeminiImage(promptEn);
-    if (geminiBuffer && geminiBuffer.length > 5000) {
-      fs.writeFileSync(tempRaw, geminiBuffer);
-      try {
-        execSync(`ffmpeg -y -i "${tempRaw}" -vf "scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720" -q:v 2 "${destSub}"`, { timeout: 10000 });
-        try { fs.unlinkSync(tempRaw); } catch {}
-      } catch {
-        fs.writeFileSync(destSub, geminiBuffer);
-      }
-      aiSuccess = true;
-    }
-
-    if (!aiSuccess && availablePhotos.length > 0) {
-      const singlePhoto = availablePhotos[Math.floor(Math.random() * availablePhotos.length)];
-      const ffmpegCmd = `ffmpeg -y -i "${singlePhoto}" -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720,gblur=sigma=40,eq=brightness=-0.05:contrast=1.15[bg];[0:v]scale=1280:720:force_original_aspect_ratio=decrease[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2" -q:v 2 "${destSub}"`;
-      try {
-        execSync(ffmpegCmd, { timeout: 15000 });
-      } catch {
-        fs.copyFileSync(singlePhoto, destSub);
-      }
-    }
-
-    fs.copyFileSync(destSub, rawBackgroundPath);
-    overlayRussianHeadlineOnThumbnail(destSub, titleToRender, styleData);
-  } else {
-    let sourceFile = null;
-    if (photoUrl && photoUrl.startsWith('/news-static/')) {
-      const cleanSubPath = photoUrl.replace('/news-static/', '').split('?')[0];
-      sourceFile = path.join(newsDir, decodeURIComponent(cleanSubPath));
-    }
-
-    if (sourceFile && fs.existsSync(sourceFile)) {
-      const scaleCmd = `ffmpeg -y -i "${sourceFile}" -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720[v]" -map "[v]" -q:v 2 "${destSub}"`;
-      try {
-        execSync(scaleCmd, { timeout: 10000 });
-      } catch {
-        fs.copyFileSync(sourceFile, destSub);
-      }
-    } else if (photoUrl && photoUrl.startsWith('http')) {
-      const imgRes = await fetch(photoUrl, { signal: AbortSignal.timeout(6000) });
-      if (imgRes.ok) {
-        const buffer = Buffer.from(await imgRes.arrayBuffer());
-        fs.writeFileSync(destSub, buffer);
-      }
-    }
-
-    fs.copyFileSync(destSub, rawBackgroundPath);
-    overlayRussianHeadlineOnThumbnail(destSub, titleToRender, styleData);
+  const photosDir = path.join(targetFolder, 'photos');
+  let availablePhotos = [];
+  if (fs.existsSync(photosDir)) {
+    availablePhotos = fs.readdirSync(photosDir)
+      .filter(f => /\.(jpg|jpeg|png|webp)$/i.test(f))
+      .map(f => path.join(photosDir, f));
   }
+
+  let scriptText = '';
+  const txtPath = path.join(targetFolder, 'script.txt');
+  const mdPath = path.join(targetFolder, 'script.md');
+  if (fs.existsSync(txtPath)) {
+    try { scriptText = fs.readFileSync(txtPath, 'utf-8'); } catch {}
+  } else if (fs.existsSync(mdPath)) {
+    try { scriptText = fs.readFileSync(mdPath, 'utf-8'); } catch {}
+  }
+
+  const promptEn = await generate4CornerAiPrompt(
+    fullNewsTitle,
+    scriptText,
+    availablePhotos.map(p => path.basename(p))
+  );
+
+  let aiSuccess = false;
+  const geminiBuffer = await generateGeminiImage(promptEn);
+  if (geminiBuffer && geminiBuffer.length > 5000) {
+    fs.writeFileSync(tempRaw, geminiBuffer);
+    try {
+      execSync(`ffmpeg -y -i "${tempRaw}" -vf "scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720" -frames:v 1 -q:v 2 "${destSub}"`, { timeout: 10000 });
+      try { fs.unlinkSync(tempRaw); } catch {}
+    } catch {
+      fs.writeFileSync(destSub, geminiBuffer);
+    }
+    aiSuccess = true;
+  }
+
+  if (!aiSuccess && availablePhotos.length > 0) {
+    const singlePhoto = availablePhotos[Math.floor(Math.random() * availablePhotos.length)];
+    const ffmpegCmd = `ffmpeg -y -i "${singlePhoto}" -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720,gblur=sigma=40,eq=brightness=-0.05:contrast=1.15[bg];[0:v]scale=1280:720:force_original_aspect_ratio=decrease[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2" -frames:v 1 -q:v 2 "${destSub}"`;
+    try {
+      execSync(ffmpegCmd, { timeout: 15000 });
+    } catch {
+      fs.copyFileSync(singlePhoto, destSub);
+    }
+  }
+
+  fs.copyFileSync(destSub, rawBackgroundPath);
+  overlayRussianHeadlineOnThumbnail(destSub, titleToRender, styleData);
 
   const finalStyle = saveStyleAndManifest();
 

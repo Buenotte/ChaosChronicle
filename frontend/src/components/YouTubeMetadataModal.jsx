@@ -242,7 +242,7 @@ export default function YouTubeMetadataModal({ pkg, onSaved, onClose }) {
               </div>
             </div>
 
-            {/* Тональность: Гротеск vs Аналитика */}
+            {/* Тональность: Сатира vs Аналитика */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.45rem', flexWrap: 'wrap' }}>
               <span style={{ fontSize: '0.8rem', color: '#9ca3af', fontWeight: 600 }}>🎯 Подача:</span>
               <button
@@ -251,7 +251,7 @@ export default function YouTubeMetadataModal({ pkg, onSaved, onClose }) {
                 className={`saved-status-badge ${selectedTone === 'grotesque' ? 'active' : 'inactive'} clickable`}
                 style={{ fontSize: '0.75rem', padding: '0.15rem 0.55rem', background: selectedTone === 'grotesque' ? '#dc2626' : undefined, color: '#fff' }}
               >
-                💥 Гротеск / Сатира
+                💥 Сатира
               </button>
               <button
                 type="button"
@@ -259,7 +259,7 @@ export default function YouTubeMetadataModal({ pkg, onSaved, onClose }) {
                 className={`saved-status-badge ${selectedTone === 'analytics' ? 'active' : 'inactive'} clickable`}
                 style={{ fontSize: '0.75rem', padding: '0.15rem 0.55rem', background: selectedTone === 'analytics' ? '#059669' : undefined, color: '#fff' }}
               >
-                🧠 Увлекательная Аналитика
+                🧠 Аналитика
               </button>
             </div>
           </div>

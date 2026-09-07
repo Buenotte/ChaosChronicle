@@ -51,7 +51,7 @@ export default function PackageThumbnailSection({
                   return (
                     <div
                       key={idx}
-                      onClick={() => onSelectBgPhoto && onSelectBgPhoto(p)}
+                      onClick={() => onSelectBgPhoto && onSelectBgPhoto(pUrl)}
                       title={`Сделать фото #${idx + 1} фоном обложки`}
                       style={{
                         position: 'relative',

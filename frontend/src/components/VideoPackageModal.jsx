@@ -187,12 +187,13 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
     try {
       const res = await fetch('/api/set-thumbnail', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: 'generate_ai', bundleDir: pkg.bundleDir, folderName: pkg.folderName, headlineConfig: { text: pkg.title } }),
+        body: JSON.stringify({ mode: 'generate_ai', bundleDir: pkg.bundleDir, folderName: pkg.folderName, headlineConfig: pkg.headlineConfig || { text: pkg.title } }),
       })
       const data = await res.json()
-      if (data.success) { setCurrentThumbnail(`${data.thumbnailUrl}&t=${Date.now()}`); toast.success('✨ Обложка 16:9 создана и сохранена!', { id: toastId }) }
-      else { toast.error('❌ Ошибка генерации: ' + (data.error || 'Ошибка ИИ'), { id: toastId }) }
-    } catch (err) { toast.error('❌ Ошибка генерации', { id: toastId, description: err.message }) }
+      toast.dismiss(toastId)
+      if (data.success) { setCurrentThumbnail(`${data.thumbnailUrl.split('?')[0]}?t=${Date.now()}`); toast.success('✨ Обложка 16:9 создана!') }
+      else { toast.error('❌ Ошибка генерации: ' + (data.error || 'Ошибка ИИ')) }
+    } catch (err) { toast.dismiss(toastId); toast.error('❌ Ошибка генерации: ' + err.message) }
   }
 
   const handleSelectPhotoAsThumbnail = async (photoUrl) => {
@@ -200,20 +201,19 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
     try {
       const res = await fetch('/api/set-thumbnail', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ photoUrl, bundleDir: pkg.bundleDir, folderName: pkg.folderName, headlineConfig: { text: pkg.title } }),
+        body: JSON.stringify({ mode: 'apply_headline', photoUrl, bundleDir: pkg.bundleDir, folderName: pkg.folderName, headlineConfig: pkg.headlineConfig || {} }),
       })
       const data = await res.json()
+      toast.dismiss(toastId)
       if (data.success) {
-        setCurrentThumbnail(`${data.thumbnailUrl}&t=${Date.now()}`); toast.success('✨ Фото установлено фоном обложки!', { id: toastId })
+        setCurrentThumbnail(`${data.thumbnailUrl.split('?')[0]}?t=${Date.now()}`); toast.success('✨ Фото установлено фоном обложки!')
         if (onRefresh) onRefresh()
-      } else { toast.error('❌ Ошибка: ' + (data.error || 'Не удалось обновить'), { id: toastId }) }
-    } catch (err) { toast.error('❌ Ошибка установки фото', { id: toastId, description: err.message }) }
+      } else { toast.error('❌ Ошибка: ' + (data.error || 'Не удалось обновить')) }
+    } catch (err) { toast.dismiss(toastId); toast.error('❌ Ошибка установки фото: ' + err.message) }
   }
 
-  const [lightboxUrl, setLightboxUrl] = useState(null)
-  const [showSettingsModal, setShowSettingsModal] = useState(false)
-  const [showTitleVariantsModal, setShowTitleVariantsModal] = useState(false)
-  const [showYouTubeModal, setShowYouTubeModal] = useState(false)
+  const [lightboxUrl, setLightboxUrl] = useState(null), [showSettingsModal, setShowSettingsModal] = useState(false)
+  const [showTitleVariantsModal, setShowTitleVariantsModal] = useState(false), [showYouTubeModal, setShowYouTubeModal] = useState(false)
 
   useEffect(() => {
     try { if (new URLSearchParams(window.location.search).get('modal') === 'thumbnail') setShowSettingsModal(true) } catch {}

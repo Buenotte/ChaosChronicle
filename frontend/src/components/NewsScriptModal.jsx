@@ -79,7 +79,7 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
     setRegenerating(true)
     const styleName = FEUILLETON_STYLES.find(s => s.id === styleToUse)?.name || styleToUse
     const modelName = AI_MODELS.find(m => m.id === modelToUse)?.name || modelToUse
-    const toneLabel = toneToUse === 'analytics' ? '🧠 Аналитика' : '💥 Гротеск'
+    const toneLabel = toneToUse === 'analytics' ? '🧠 Аналитика' : '💥 Сатира'
     const toastId = toast.loading(`🔄 Перегенерация текста (${toneLabel})...`, {
       description: `${modelName} | ${styleName}`,
     })
@@ -260,7 +260,7 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', background: '#0f172a', borderRadius: '6px', padding: '2px', border: '1px solid #334155' }}>
-                <button type="button" onClick={() => setSelectedTone('grotesque')} style={{ background: selectedTone === 'grotesque' ? '#dc2626' : 'transparent', color: selectedTone === 'grotesque' ? '#fff' : '#94a3b8', border: 'none', borderRadius: '4px', padding: '0.24rem 0.5rem', fontSize: '0.75rem', fontWeight: selectedTone === 'grotesque' ? 700 : 500, cursor: 'pointer' }}>💥 Гротеск</button>
+                <button type="button" onClick={() => setSelectedTone('grotesque')} style={{ background: selectedTone === 'grotesque' ? '#dc2626' : 'transparent', color: selectedTone === 'grotesque' ? '#fff' : '#94a3b8', border: 'none', borderRadius: '4px', padding: '0.24rem 0.5rem', fontSize: '0.75rem', fontWeight: selectedTone === 'grotesque' ? 700 : 500, cursor: 'pointer' }}>💥 Сатира</button>
                 <button type="button" onClick={() => setSelectedTone('analytics')} style={{ background: selectedTone === 'analytics' ? '#2563eb' : 'transparent', color: selectedTone === 'analytics' ? '#fff' : '#94a3b8', border: 'none', borderRadius: '4px', padding: '0.24rem 0.5rem', fontSize: '0.75rem', fontWeight: selectedTone === 'analytics' ? 700 : 500, cursor: 'pointer' }}>🧠 Аналитика</button>
               </div>
             </div>
