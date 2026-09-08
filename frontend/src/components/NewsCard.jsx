@@ -81,6 +81,11 @@ export default function NewsCard({ article, index, onGenerate, onOpenPhotos, isG
           ) : (
             <span className="card-source">{article.source}</span>
           )}
+          {article.isCustom && (
+            <span style={{ background: '#7c3aed', color: '#fff', fontSize: '0.68rem', fontWeight: 700, padding: '0.12rem 0.45rem', borderRadius: '4px' }}>
+              ✍️ Своя
+            </span>
+          )}
           <span className="card-time">{timeAgo(article.pubDate)}</span>
           {hasAnyArtifact && (
             <span className="saved-status-badge">

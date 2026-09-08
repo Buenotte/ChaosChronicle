@@ -15,6 +15,7 @@ import feuilletonRoutes from './routes/feuilleton.js';
 import packagesRoutes from './routes/packages.js';
 import audioRoutes from './routes/audio.js';
 import videoRoutes from './routes/video.js';
+import ocrRoutes from './routes/ocr.js';
 
 const app = express();
 
@@ -37,6 +38,7 @@ app.use(feuilletonRoutes);
 app.use(packagesRoutes);
 app.use(audioRoutes);
 app.use(videoRoutes);
+app.use(ocrRoutes);
 
 // Globale Fehlerabsicherung gegen unerwartete Abstürze
 process.on('uncaughtException', (err) => {

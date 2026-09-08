@@ -330,6 +330,40 @@ router.get('/api/news', async (req, res) => {
   }
 });
 
+// POST /api/news/custom - Пользовательская новость (из YouTube, Telegram, Twitter)
+router.post('/api/news/custom', (req, res) => {
+  try {
+    const { title, summary = '', category = 'absurd', source = 'Своя новость', link = '', imageUrl = null } = req.body;
+    if (!title?.trim()) return res.status(400).json({ success: false, error: 'Заголовок обязателен' });
+
+    const customArticle = {
+      id: `custom-${Date.now()}`,
+      title: cleanText(title.trim()),
+      summary: cleanText(summary.trim()),
+      source: source.trim() || 'Своя новость',
+      category: category || 'absurd',
+      link: link.trim() || '',
+      pubDate: new Date().toISOString(),
+      relativeTime: 'Только что',
+      imageUrl: imageUrl || null,
+      images: imageUrl ? [imageUrl] : [],
+      isCustom: true,
+    };
+
+    if (!newsCache) newsCache = [];
+    newsCache.unshift(customArticle);
+    try {
+      fs.writeFileSync(cacheFilePath, JSON.stringify({ lastFetch, articles: newsCache }, null, 2), 'utf-8');
+    } catch (e) {
+      console.error('Fehler beim Speichern:', e.message);
+    }
+
+    return res.json({ success: true, article: customArticle });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // GET /news-static/*
 router.get('/news-static/*', (req, res) => {
   try {

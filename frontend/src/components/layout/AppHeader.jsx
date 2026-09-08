@@ -12,6 +12,7 @@ export default function AppHeader({
   onRefresh,
   loading,
   savedCount = 0,
+  onOpenCustomNews,
 }) {
   return (
     <header className="app-header">
@@ -76,6 +77,32 @@ export default function AppHeader({
               </button>
             )}
           </div>
+
+          {/* Своя новость */}
+          <button
+            type="button"
+            className="custom-news-btn"
+            onClick={onOpenCustomNews}
+            title="Добавить свою тему или новость вручную (из YouTube, Telegram, Twitter)"
+            style={{
+              background: 'linear-gradient(135deg, #7c3aed, #4f46e5)',
+              color: '#ffffff',
+              border: '1px solid #a78bfa',
+              borderRadius: '8px',
+              padding: '0.42rem 0.85rem',
+              fontSize: '0.84rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              boxShadow: '0 2px 8px rgba(124, 58, 237, 0.35)',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <span>➕</span>
+            <span>Своя новость</span>
+          </button>
 
           {/* Обновить */}
           <button

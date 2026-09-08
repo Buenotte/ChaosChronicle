@@ -1,8 +1,9 @@
-﻿import FeuilletonModal from '../FeuilletonModal'
+import FeuilletonModal from '../FeuilletonModal'
 import VideoPackageModal from '../VideoPackageModal'
 import NewsScriptModal from '../NewsScriptModal'
 import NewsAudioModal from '../NewsAudioModal'
 import NewsPhotosModal from '../NewsPhotosModal'
+import CustomNewsModal from '../CustomNewsModal'
 
 export default function NewsModalsContainer({
   currentFeuilleton,
@@ -20,9 +21,17 @@ export default function NewsModalsContainer({
   loadingPhotos,
   handleFetchNewsPhotos,
   fetchSavedPackages,
+  showCustomNewsModal,
+  setShowCustomNewsModal,
+  onCustomNewsCreated,
 }) {
   return (
     <>
+      <CustomNewsModal
+        isOpen={showCustomNewsModal}
+        onClose={() => setShowCustomNewsModal(false)}
+        onNewsCreated={onCustomNewsCreated}
+      />
       <FeuilletonModal
         feuilleton={currentFeuilleton}
         onOpenPhotos={handleFetchNewsPhotos}

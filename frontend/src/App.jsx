@@ -33,6 +33,14 @@ export default function App() {
   const [scriptTextPackage, setScriptTextPackage] = useState(null)
   const [audioPackage, setAudioPackage] = useState(null)
   const [videoPackage, setVideoPackage] = useState(null)
+  const [showCustomNewsModal, setShowCustomNewsModal] = useState(false)
+
+  const handleCustomNewsCreated = (newArticle, autoOpenFeuilleton = false) => {
+    setArticles(prev => [newArticle, ...prev])
+    if (autoOpenFeuilleton) {
+      handleGenerate(newArticle)
+    }
+  }
 
   const handleFetchNewsPhotos = async (article, forceLive = false) => {
     if (!article) return
@@ -274,6 +282,7 @@ export default function App() {
         onRefresh={() => (category === 'saved' ? fetchSavedPackages() : fetchNews(category, true))}
         loading={loading}
         savedCount={savedPackages?.length || 0}
+        onOpenCustomNews={() => setShowCustomNewsModal(true)}
       />
 
       {/* Информационная строка статуса */}
@@ -356,6 +365,9 @@ export default function App() {
           loadingPhotos={loadingPhotos}
           handleFetchNewsPhotos={handleFetchNewsPhotos}
           fetchSavedPackages={fetchSavedPackages}
+          showCustomNewsModal={showCustomNewsModal}
+          setShowCustomNewsModal={setShowCustomNewsModal}
+          onCustomNewsCreated={handleCustomNewsCreated}
         />
       </ErrorBoundary>
 
