@@ -17,6 +17,7 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
   const [savingPhotos, setSavingPhotos] = useState(false)
   const [savingSingleIndex, setSavingSingleIndex] = useState(null)
   const [savedCount, setSavedCount] = useState(null)
+  const [hasOrderChanged, setHasOrderChanged] = useState(false)
   const [lightboxUrl, setLightboxUrl] = useState(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
 
@@ -62,12 +63,13 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
     if (e?.stopPropagation) e.stopPropagation()
     const photoToRemove = items[indexToRemove]
     const imgSrc = typeof photoToRemove === 'string' ? photoToRemove : (photoToRemove?.url || '')
+    const extractedFolder = imgSrc.match(/\/news-static\/([^/]+)\//)?.[1]
     if (imgSrc && imgSrc.startsWith('/news-static/')) {
       try {
         const res = await fetch('/api/delete-photo', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ photoUrl: imgSrc, bundleDir: newsTopic?.bundleDir, folderName: newsTopic?.folderName }),
+          body: JSON.stringify({ photoUrl: imgSrc, bundleDir: newsTopic?.bundleDir, folderName: newsTopic?.folderName || extractedFolder }),
         })
         const data = await res.json()
         if (data.success && data.deleted) toast.success('🗑️ Фото удалено с диска!')
@@ -76,6 +78,7 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
       toast.info('Фото удалено из списка')
     }
     setItems(prev => prev.filter((_, idx) => idx !== indexToRemove))
+    setHasOrderChanged(true)
     if (onSaved) onSaved()
   }
 
@@ -89,6 +92,7 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
     const [moved] = newItems.splice(fromIndex, 1)
     newItems.splice(toIndex, 0, moved)
     setItems(newItems)
+    setHasOrderChanged(true)
   }
 
   const handleDragStart = (e, index) => {
@@ -133,6 +137,7 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
     const [moved] = newItems.splice(draggedIndex, 1)
     newItems.splice(targetIndex, 0, moved)
     setItems(newItems)
+    setHasOrderChanged(true)
     setDraggedIndex(null)
     setDragOverIndex(null)
   }
@@ -169,9 +174,15 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
     setSavingSingleIndex(index)
     const toastId = toast.loading('💾 Скачивание фото в папку news/...', { description: 'Сохранение оригинального файла...' })
     try {
+      const extractedFolder = items
+        .map(p => (typeof p === 'string' ? p : p?.url || ''))
+        .find(u => u.includes('/news-static/'))
+        ?.match(/\/news-static\/([^/]+)\//)?.[1]
+      const folderName = newsTopic.folderName || newsTopic.matchingPkg?.folderName || extractedFolder
+      const bundleDir = newsTopic.bundleDir || newsTopic.matchingPkg?.bundleDir
       const res = await fetch('/api/save-single-photo', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: newsTopic.title, folderName: newsTopic.folderName || newsTopic.matchingPkg?.folderName, bundleDir: newsTopic.bundleDir || newsTopic.matchingPkg?.bundleDir, photoUrl: imgSrc }),
+        body: JSON.stringify({ title: newsTopic.title, folderName, bundleDir, photoUrl: imgSrc }),
       })
       const data = await res.json()
       toast.dismiss(toastId)
@@ -187,21 +198,38 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
   const handleSavePhotosToFolder = async () => {
     if (items.length === 0) return
     setSavingPhotos(true)
-    const toastId = toast.loading(`💾 Скачивание ${items.length} фото в папку news/...`, { description: 'Сохранение оригинальных изображений в формате .jpg/.png...' })
+    const toastId = toast.loading(`💾 Сохранение ${items.length} фото в news/...`, { description: 'Запись файлов на диск в новом порядке...' })
     try {
+      const extractedFolder = items
+        .map(p => (typeof p === 'string' ? p : p?.url || ''))
+        .find(u => u.includes('/news-static/'))
+        ?.match(/\/news-static\/([^/]+)\//)?.[1]
+      const folderName = newsTopic.folderName || newsTopic.matchingPkg?.folderName || extractedFolder
+      const bundleDir = newsTopic.bundleDir || newsTopic.matchingPkg?.bundleDir
       const res = await fetch('/api/save-news-photos', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: newsTopic.title, folderName: newsTopic.folderName || newsTopic.matchingPkg?.folderName, bundleDir: newsTopic.bundleDir || newsTopic.matchingPkg?.bundleDir, photos: items.map(p => (typeof p === 'string' ? p : p.url)) }),
+        body: JSON.stringify({
+          title: newsTopic.title,
+          folderName,
+          bundleDir,
+          photos: items.map(p => (typeof p === 'string' ? p : p.url)),
+        }),
       })
       const data = await res.json()
       toast.dismiss(toastId)
       if (!res.ok || !data.success) throw new Error(data.error || 'Ошибка сохранения фото')
       setSavedCount(data.savedPhotosCount)
+      setHasOrderChanged(false)
       if (data.photos && data.folderName) {
-        setItems(data.photos.map(relPath => ({ url: `/news-static/${data.folderName}/${relPath}`, source: 'На диске', isSavedLocal: true })))
+        const bust = Date.now()
+        setItems(data.photos.map(relPath => ({
+          url: `/news-static/${data.folderName}/${relPath}?t=${bust}`,
+          source: 'На диске',
+          isSavedLocal: true,
+        })))
       }
       if (onSaved) onSaved()
-      toast.success(`📸 ${data.savedPhotosCount || items.length} фото сохранены на диске!`, { description: `Папка: news/${data.folderName}/photos/`, duration: 2500 })
+      toast.success(`📸 Порядок ${data.savedPhotosCount || items.length} фото сохранен на диске!`, { description: `Папка: news/${data.folderName}/photos/`, duration: 2500 })
     } catch (err) {
       toast.dismiss(toastId)
       toast.error('Ошибка сохранения фото: ' + err.message, { duration: 3000 })
@@ -243,9 +271,13 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
                 className="save-bundle-btn"
                 onClick={handleSavePhotosToFolder}
                 disabled={savingPhotos}
-                style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', fontWeight: 700 }}
+                style={{
+                  background: hasOrderChanged ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  fontWeight: 700,
+                  boxShadow: hasOrderChanged ? '0 0 14px rgba(245, 158, 11, 0.6)' : 'none',
+                }}
               >
-                {savingPhotos ? '⏳ Скачивание...' : `💾 Сохранить ${items.length} фото`}
+                {savingPhotos ? '⏳ Сохранение...' : hasOrderChanged ? `💾 Сохранить порядок (${items.length})` : `💾 Сохранить ${items.length} фото`}
               </button>
             )}
             <button
@@ -345,7 +377,10 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
             </>
           )}
         </div>
-        <div className="modal-footer"><button className="close-btn" onClick={onClose}>Закрыть</button></div>
+        <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>{hasOrderChanged && <span style={{ color: '#fbbf24', fontSize: '0.8rem', fontWeight: 600 }}>⚠️ Новый порядок еще не сохранен на диске</span>}</div>
+          <button className="close-btn" onClick={onClose}>Закрыть</button>
+        </div>
       </div>
     </div>
   )

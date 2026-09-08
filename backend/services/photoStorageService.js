@@ -17,8 +17,22 @@ export async function saveNewsPhotos({ title = 'News', bundleDir: inputBundleDir
     bundleDir = path.join(newsDir, folderName);
   }
 
+  // 0. Если папка не передана, определяем её напрямую из URL существующих локальных фото (/news-static/<folder>/)
+  if (!bundleDir && Array.isArray(photos)) {
+    for (const p of photos) {
+      const u = typeof p === 'string' ? p : (p?.url || '');
+      const match = u.match(/\/news-static\/([^\/]+)\//);
+      if (match && match[1]) {
+        folderName = match[1];
+        bundleDir = path.join(newsDir, folderName);
+        break;
+      }
+    }
+  }
+
   if (!bundleDir && title && fs.existsSync(newsDir)) {
     const cleanQuery = cleanMatchTitle(title);
+    const queryWords = title.toLowerCase().split(/[^a-z0-9а-яё]+/i).filter(w => w.length >= 4);
     const dirs = fs.readdirSync(newsDir, { withFileTypes: true });
     for (const d of dirs) {
       if (!d.isDirectory()) continue;
@@ -34,7 +48,10 @@ export async function saveNewsPhotos({ title = 'News', bundleDir: inputBundleDir
         } catch {}
       }
       const folderClean = cleanMatchTitle(d.name.replace(/^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}_/, ''));
+      const combined = `${manifestOrig} ${manifestTitle} ${folderClean}`;
+      const wordMatch = queryWords.length > 0 && queryWords.filter(w => combined.includes(w)).length >= 2;
       if (
+        wordMatch ||
         (manifestOrig && (cleanQuery.includes(manifestOrig.slice(0, 12)) || manifestOrig.includes(cleanQuery.slice(0, 12)))) ||
         (manifestTitle && (cleanQuery.includes(manifestTitle.slice(0, 12)) || manifestTitle.includes(cleanQuery.slice(0, 12)))) ||
         (folderClean && (cleanQuery.includes(folderClean.slice(0, 12)) || folderClean.includes(cleanQuery.slice(0, 12))))
@@ -66,8 +83,8 @@ export async function saveNewsPhotos({ title = 'News', bundleDir: inputBundleDir
     let ext = imgUrl.match(/\.(jpg|jpeg|png|webp|avif)/i)?.[1]?.toLowerCase() || 'jpg';
     if (ext === 'jpeg') ext = 'jpg';
 
-    // A. Lokale Datei
-    const cleanUrl = imgUrl.replace(/^https?:\/\/[^\/]+/, '');
+    // A. Lokale Datei (mit Bereinigung von Cache-Buster-Query-Strings ?t=...)
+    const cleanUrl = imgUrl.replace(/^https?:\/\/[^\/]+/, '').split('?')[0];
     if (cleanUrl.startsWith('/news-static/')) {
       const relativePath = decodeURIComponent(cleanUrl.replace(/^\/news-static\//, ''));
       const fullLocalPath = path.resolve(newsDir, relativePath);
