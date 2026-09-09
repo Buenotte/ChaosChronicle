@@ -52,14 +52,29 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onOpenPackag
       const res = await fetch('/api/generate-feuilleton', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: feuilleton.originalTitle || feuilleton.title, summary: feuilleton.summary, model: newModel,
-          style: newStyle, tone: newTone, source: feuilleton.source, imageUrl: feuilleton.imageUrl, images: feuilleton.images || [],
+          title: feuilleton.originalTitle || feuilleton.title,
+          summary: feuilleton.summary || feuilleton.originalNews || feuilleton.sourceText || '',
+          model: newModel,
+          style: newStyle,
+          tone: newTone,
+          source: feuilleton.source,
+          imageUrl: feuilleton.imageUrl,
+          images: feuilleton.images || [],
+          folderName: feuilleton.folderName || feuilleton.matchingPkg?.folderName || savedInfo?.folderName,
+          bundleDir: feuilleton.bundleDir || feuilleton.matchingPkg?.bundleDir || savedInfo?.bundleDir,
+          url: feuilleton.url || feuilleton.link || feuilleton.matchingPkg?.url || '',
+          saveToPackage: Boolean(feuilleton.folderName || feuilleton.matchingPkg?.folderName || savedInfo?.folderName),
         }),
       })
       const data = await res.json()
       if (!res.ok || !data.success) throw new Error(data.error || 'Ошибка генерации')
       const fData = data.feuilleton || data
-      setCurrentText(fData.text || ''); setCurrentTitle(fData.title || currentTitle); setSelectedStyle(newStyle); setSelectedModel(newModel); setSavedInfo(null)
+      setCurrentText(fData.text || ''); setCurrentTitle(fData.title || currentTitle); setSelectedStyle(newStyle); setSelectedModel(newModel)
+      if (feuilleton.matchingPkg) {
+        feuilleton.matchingPkg.scriptTxt = fData.text || ''
+        if (fData.title) feuilleton.matchingPkg.title = fData.title
+      }
+      if (onRefreshPackages) onRefreshPackages()
       toast.success('✨ Новый вариант фельетона готов!', { id: toastId })
     } catch (err) { toast.error('Ошибка перегенерации', { id: toastId, description: err.message }) }
     finally { setRegenerating(false) }

@@ -93,12 +93,16 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          folderName: pkg.folderName,
+          bundleDir: pkg.bundleDir,
+          url: pkg.url || pkg.link || '',
           title: pkg.original_title || pkg.title,
           summary: originalNews || pkg.original_news || pkg.summary || (text ? text.slice(0, 350) : '') || '',
           style: styleToUse,
           tone: toneToUse,
           source: pkg.source || '',
           model: modelToUse,
+          saveToPackage: Boolean(pkg.folderName || pkg.bundleDir),
         }),
       })
 
@@ -109,7 +113,12 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
       const newText = fData.text || data.text || ''
       if (newText) {
         setText(newText)
-        toast.success('✨ Новый вариант текста готов! Нажмите «Сохранить изменения»', { id: toastId })
+        pkg.scriptTxt = newText
+        pkg.hasScriptTxt = true
+        pkg.hasScriptMd = true
+        if (fData.title) pkg.title = fData.title
+        if (onSaved) onSaved()
+        toast.success('✨ Новый вариант текста готов и сохранен!', { id: toastId })
       } else {
         toast.warning('Ответ ИИ не содержит нового текста', { id: toastId })
       }
