@@ -27,87 +27,45 @@ export default function App() {
   const [newsPhotos, setNewsPhotos] = useState([])
   const [loadingPhotos, setLoadingPhotos] = useState(false)
 
-  // Saved Video Packages State
-  const [savedPackages, setSavedPackages] = useState([])
-  const [activeSavedPackage, setActiveSavedPackage] = useState(null)
-  const [scriptTextPackage, setScriptTextPackage] = useState(null)
-  const [audioPackage, setAudioPackage] = useState(null)
-  const [videoPackage, setVideoPackage] = useState(null)
-  const [showCustomNewsModal, setShowCustomNewsModal] = useState(false)
-  const [originalTextArticle, setOriginalTextArticle] = useState(null)
+  const [savedPackages, setSavedPackages] = useState([]), [activeSavedPackage, setActiveSavedPackage] = useState(null)
+  const [scriptTextPackage, setScriptTextPackage] = useState(null), [audioPackage, setAudioPackage] = useState(null), [videoPackage, setVideoPackage] = useState(null)
+  const [showCustomNewsModal, setShowCustomNewsModal] = useState(false), [originalTextArticle, setOriginalTextArticle] = useState(null)
 
   const handleCustomNewsCreated = (newArticle, autoOpenFeuilleton = false) => {
     setArticles(prev => [newArticle, ...prev])
-    if (autoOpenFeuilleton) {
-      handleGenerate(newArticle)
-    }
+    if (autoOpenFeuilleton) handleGenerate(newArticle)
   }
 
   const handleFetchNewsPhotos = async (article, forceLive = false) => {
     if (!article) return
-    setPhotoTopic(article)
-    setLoadingPhotos(true)
-    setNewsPhotos([])
-
-    const toastId = forceLive
-      ? toast.loading('🔎 Поиск 30 фото в мировых агентствах...', { description: article.title })
-      : toast.loading('📸 Поиск фото...', { description: article.title })
-
+    setPhotoTopic(article); setLoadingPhotos(true); setNewsPhotos([])
+    const toastId = forceLive ? toast.loading('🔎 Поиск 30 фото в мировых агентствах...', { description: article.title }) : toast.loading('📸 Поиск фото...', { description: article.title })
     try {
-      const folderName = article.matchingPkg?.folderName || article.folderName || ''
-      const bundleDir = article.matchingPkg?.bundleDir || article.bundleDir || ''
-      const params = new URLSearchParams({
-        title: article.title || '',
-        articleId: article.id || '',
-        url: article.url || '',
-        folderName,
-        bundleDir,
-        forceLive: forceLive ? 'true' : 'false',
-      })
-      const res = await fetch(`/api/news-photos?${params}`)
-      const data = await res.json()
-      if (data.success) {
-        setNewsPhotos(data.photos || [])
-        toast.success(`Найдено ${data.count} фото!`, { id: toastId })
-      } else {
-        toast.error('Не удалось загрузить фото', { id: toastId, description: data.error })
-      }
+      const folderName = article.matchingPkg?.folderName || article.folderName || '', bundleDir = article.matchingPkg?.bundleDir || article.bundleDir || ''
+      const params = new URLSearchParams({ title: article.title || '', articleId: article.id || '', url: article.url || '', folderName, bundleDir, forceLive: forceLive ? 'true' : 'false' })
+      const res = await fetch(`/api/news-photos?${params}`), data = await res.json()
+      if (data.success) { setNewsPhotos(data.photos || []); toast.success(`Найдено ${data.count} фото!`, { id: toastId }) }
+      else { toast.error('Не удалось загрузить фото', { id: toastId, description: data.error }) }
     } catch (err) {
       if (err.name === 'AbortError') toast.info('Поиск фото отменен', { id: toastId })
       else toast.error('Ошибка поиска фото', { description: err.message })
-    } finally {
-      setLoadingPhotos(false)
-    }
+    } finally { setLoadingPhotos(false) }
   }
 
   const checkStatus = useCallback(async () => {
-    try {
-      const res = await fetch('/api/status')
-      if (res.ok) setBackendStatus('online')
-      else setBackendStatus('offline')
-    } catch {
-      setBackendStatus('offline')
-    }
+    try { const res = await fetch('/api/status'); setBackendStatus(res.ok ? 'online' : 'offline') } catch { setBackendStatus('offline') }
   }, [])
 
   useEffect(() => {
     const loadFonts = async () => {
       try {
-        const res = await fetch('/api/custom-fonts')
-        const data = await res.json()
+        const res = await fetch('/api/custom-fonts'), data = await res.json()
         if (data.success && Array.isArray(data.fonts)) {
           data.fonts.forEach(async (f) => {
             try {
-              const aliases = [
-                f.name,
-                f.name.replace(/_/g, ' '),
-                f.name.replace(/[-_]?(Regular|Bold)/gi, '').replace(/_/g, ' ').trim(),
-              ]
-              const unique = [...new Set(aliases.filter(Boolean))]
-              for (const alias of unique) {
-                const fontFace = new FontFace(alias, `url(${f.url})`)
-                await fontFace.load()
-                document.fonts.add(fontFace)
+              const aliases = [f.name, f.name.replace(/_/g, ' '), f.name.replace(/[-_]?(Regular|Bold)/gi, '').replace(/_/g, ' ').trim()]
+              for (const alias of [...new Set(aliases.filter(Boolean))]) {
+                const fontFace = new FontFace(alias, `url(${f.url})`); await fontFace.load(); document.fonts.add(fontFace)
               }
             } catch {}
           })
@@ -199,6 +157,33 @@ export default function App() {
   useEffect(() => {
     checkStatus(); fetchNews(category); fetchSavedPackages();
   }, [category, fetchNews, checkStatus, fetchSavedPackages])
+
+  const handleSaveArticleToPackage = async (article) => {
+    const toastId = toast.loading('💾 Скачивание статьи и создание пакета в news/...')
+    try {
+      const res = await fetch('/api/save-package', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: article.title,
+          url: article.url || article.link || '',
+          source: article.source || 'RSS / Telegram',
+          summary: article.summary || article.original_news || '',
+          photos: article.images || (article.imageUrl ? [article.imageUrl] : []),
+        }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        toast.success('📦 Пакет успешно сохранен на диск!', { id: toastId })
+        await fetchSavedPackages()
+        handleOpenSavedPackage({ folderName: data.folderName, bundleDir: data.bundleDir, title: article.title, url: article.url || article.link })
+      } else {
+        toast.error('❌ Ошибка сохранения: ' + (data.error || 'Не удалось сохранить'), { id: toastId })
+      }
+    } catch (err) {
+      toast.error('❌ Ошибка: ' + err.message, { id: toastId })
+    }
+  }
 
   const handleGenerate = (article, customStyle = null) => {
     const pkg = article.matchingPkg
@@ -330,6 +315,7 @@ export default function App() {
                   article={article}
                   index={i}
                   onGenerate={handleGenerate}
+                  onSavePackage={handleSaveArticleToPackage}
                   onOpenPhotos={handleFetchNewsPhotos}
                   isGenerating={generatingId === article.id}
                   isSavedPkg={!!matchingSavedPkg}

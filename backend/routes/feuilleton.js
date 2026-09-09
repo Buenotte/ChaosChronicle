@@ -189,9 +189,24 @@ router.post('/api/generate-feuilleton', async (req, res) => {
   const { title, summary, model = 'gemini', source, style = 'golubuzki', tone = 'grotesque' } = req.body;
   if (!title) return res.status(400).json({ error: 'Title is required' });
 
-  let effectiveSummary = summary || '';
-  const articleUrl = req.body.url || req.body.link || '';
-  if (effectiveSummary.length < 150 && articleUrl && /^https?:\/\//i.test(articleUrl)) {
+  let effectiveSummary = (summary || req.body.original_news || req.body.originalNews || req.body.sourceText || '').trim();
+
+  // 1. Zuerst prüfen, ob bereits eine source.txt auf Festplatte existiert
+  const folderName = req.body.folderName || req.body.matchingPkg?.folderName || '';
+  const bundleDir = req.body.bundleDir || req.body.matchingPkg?.bundleDir || '';
+  if (folderName || bundleDir) {
+    const targetDir = bundleDir || path.resolve(__dirname, '../../news', folderName);
+    const srcFile = path.join(targetDir, 'source.txt'), origFile = path.join(targetDir, 'original_news.txt');
+    if (fs.existsSync(srcFile)) {
+      try { const d = fs.readFileSync(srcFile, 'utf-8').trim(); if (d.length > 50) effectiveSummary = d; } catch {}
+    } else if (fs.existsSync(origFile)) {
+      try { const d = fs.readFileSync(origFile, 'utf-8').trim(); if (d.length > 50) effectiveSummary = d; } catch {}
+    }
+  }
+
+  // 2. Wenn Web-URL vorhanden ist und Text kurz ist, vollstaendigen Originaltext der Internetseite scrapen
+  const articleUrl = req.body.url || req.body.link || req.body.matchingPkg?.url || '';
+  if (effectiveSummary.length < 300 && articleUrl && /^https?:\/\//i.test(articleUrl)) {
     try {
       const scraped = await scrapeArticleText(articleUrl);
       if (scraped && scraped.length > effectiveSummary.length) effectiveSummary = scraped;
@@ -203,79 +218,70 @@ router.post('/api/generate-feuilleton', async (req, res) => {
 
   try {
     let rawText = '';
-
-    // 1. Direkt Google Gemini 3.7 Flash
     if (model === 'gemini') {
-      try {
-        rawText = await callGeminiDirect(systemInstruction, userInstruction, 4000);
-      } catch (gErr) {
-        console.warn('Google Gemini Direct fehlgeschlagen, nutze OpenRouter Fallback:', gErr.message);
-      }
+      try { rawText = await callGeminiDirect(systemInstruction, userInstruction, 4000); }
+      catch (gErr) { console.warn('Gemini Direct Fallback zu OpenRouter:', gErr.message); }
     }
 
-    // 2. OpenRouter (für DeepSeek, Qwen oder Fallback)
     if (!rawText) {
       const apiKey = process.env.OPENROUTER_API_KEY;
-      if (!apiKey || apiKey.includes('HIER')) {
-        return res.status(500).json({ error: 'OPENROUTER_API_KEY ist nicht konfiguriert.' });
-      }
-
+      if (!apiKey || apiKey.includes('HIER')) return res.status(500).json({ error: 'OPENROUTER_API_KEY nicht konfiguriert.' });
       const orModelId = MODELS[model] || MODELS.gemini;
       const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': 'http://localhost:5173',
-          'X-Title': 'ChaosChronicle',
-        },
-        body: JSON.stringify({
-          model: orModelId,
-          messages: [
-            { role: 'system', content: systemInstruction },
-            { role: 'user', content: userInstruction },
-          ],
-          max_tokens: 2200,
-          temperature: 0.85,
-        }),
+        headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json', 'HTTP-Referer': 'http://localhost:5173', 'X-Title': 'ChaosChronicle' },
+        body: JSON.stringify({ model: orModelId, messages: [{ role: 'system', content: systemInstruction }, { role: 'user', content: userInstruction }], max_tokens: 2200, temperature: 0.85 }),
       });
-
-      if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`OpenRouter ${response.status}: ${errText}`);
-      }
-
+      if (!response.ok) throw new Error(`OpenRouter ${response.status}: ${await response.text()}`);
       const data = await response.json();
       rawText = data.choices?.[0]?.message?.content || '';
     }
     const text = cleanSpeechTextForAudio(rawText);
     const words = text.split(/\s+/).filter(Boolean).length;
     const minutes = Math.round((words / 140) * 10) / 10;
-
-    const punchyTitle = await generateGolubuzkiTitle(title, summary, text);
+    const punchyTitle = await generateGolubuzkiTitle(title, effectiveSummary, text);
 
     const feuilletonObj = {
       title: punchyTitle || title,
       originalTitle: title,
-      url: req.body.url || req.body.link || '',
+      url: articleUrl,
       text,
       model: modelId,
       modelName: model,
       style,
       words,
+      readingTimeMinutes: minutes,
       minutes,
       readTimeMin: minutes,
-      source,
+      source: source || 'Telegram / RSS',
+      date: new Date().toISOString(),
+      summary: effectiveSummary,
+      original_news: effectiveSummary,
       imageUrl: req.body.imageUrl,
       images: req.body.images || (req.body.imageUrl ? [req.body.imageUrl] : []),
       isSaved: false,
     };
 
-    res.json({
-      success: true,
-      feuilleton: feuilletonObj,
-      ...feuilletonObj,
-    });
+    if (req.body.saveToPackage && (folderName || bundleDir)) {
+      const targetDir = bundleDir || path.resolve(__dirname, '../../news', folderName);
+      if (fs.existsSync(targetDir)) {
+        fs.writeFileSync(path.join(targetDir, 'script.txt'), text, 'utf-8');
+        const origSection = effectiveSummary ? `## 📝 Исходное сообщение\n${effectiveSummary}\n\n---\n\n` : '';
+        fs.writeFileSync(path.join(targetDir, 'script.md'), `# 🎭 ${punchyTitle || title}\n\n---\n\n${origSection}## 🎬 Сценарий\n${text}\n`, 'utf-8');
+        const jsonPath = path.join(targetDir, 'project.json');
+        if (fs.existsSync(jsonPath)) {
+          try {
+            const m = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+            m.word_count = words; m.style = style; m.text_updated_at = new Date().toISOString();
+            if (punchyTitle && (!m.title || m.title === m.original_title)) m.title = punchyTitle;
+            fs.writeFileSync(jsonPath, JSON.stringify(m, null, 2), 'utf-8');
+          } catch {}
+        }
+        feuilletonObj.isSaved = true;
+      }
+    }
+
+    res.json({ success: true, feuilleton: feuilletonObj, ...feuilletonObj });
   } catch (err) {
     console.error('Feuilleton error:', err.message);
     res.status(500).json({ success: false, error: err.message });

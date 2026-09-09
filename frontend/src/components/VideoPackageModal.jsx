@@ -50,6 +50,29 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
   const handleLoadedMetadata = () => { if (videoRef.current) setDuration(videoRef.current.duration); }
   const seekVideo = (e) => { const time = parseFloat(e.target.value); if (videoRef.current) { videoRef.current.currentTime = time; setCurrentTime(time); } }
 
+  const [selectedScriptStyle, setSelectedScriptStyle] = useState(pkg.style || 'golubuzki')
+  const [generatingScript, setGeneratingScript] = useState(false)
+
+  const handleGenerateScript = async () => {
+    const toastId = toast.loading(`✍️ Генерация сценария из source.txt...`)
+    try {
+      setGeneratingScript(true)
+      const res = await fetch('/api/generate-feuilleton', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folderName: pkg.folderName, bundleDir: pkg.bundleDir, title: pkg.title || pkg.original_title, summary: pkg.summary || pkg.original_news || '', url: pkg.url || '', style: selectedScriptStyle, saveToPackage: true }),
+      })
+      const data = await res.json()
+      toast.dismiss(toastId)
+      if (data.success && data.feuilleton) {
+        pkg.hasScriptTxt = true; pkg.hasScriptMd = true; pkg.scriptTxt = data.feuilleton.text
+        if (data.feuilleton.title) pkg.title = data.feuilleton.title
+        toast.success(`✍️ Фельетон (${data.feuilleton.words} слов) готов и сохранен на диск!`)
+        if (onRefresh) onRefresh()
+      } else { toast.error('❌ Ошибка генерации: ' + (data.error || 'Ошибка')) }
+    } catch (err) { toast.dismiss(toastId); toast.error('❌ Ошибка: ' + err.message) }
+    finally { setGeneratingScript(false) }
+  }
+
   const handleSaveAsNative = async () => {
     if (!currentThumbnail) return
     try {
@@ -91,11 +114,8 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
     const jobId = `job_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
     let evtSource = null
     try {
-      setGeneratingVideo(true)
-      setVideoProgress(5)
-      setProgressLog('Инициализация монтажа видео...')
+      setGeneratingVideo(true); setVideoProgress(5); setProgressLog('Инициализация монтажа видео...')
       const toastId = toast.loading('🎬 Монтаж видео 16:9 через FFmpeg...')
-
       try {
         evtSource = new EventSource(`/api/video-progress/${jobId}`)
         evtSource.onmessage = (e) => {
@@ -108,78 +128,40 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
       } catch {}
 
       const res = await fetch('/api/render-video', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          bundleDir: pkg.bundleDir,
-          folderName: pkg.folderName,
-          transition: selectedTransition,
-          jobId,
-          includeSubBanner,
-          subBannerTime: Number(subBannerTime) || 25,
-          bannerStyle,
-        }),
-      })
-      const data = await res.json()
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bundleDir: pkg.bundleDir, folderName: pkg.folderName, transition: selectedTransition, jobId, includeSubBanner, subBannerTime: Number(subBannerTime) || 25, bannerStyle }),
+      }), data = await res.json()
       toast.dismiss(toastId)
       if (data.success) {
-        setVideoProgress(100); setProgressLog('Видео успешно создано!')
-        setVideoState({ hasVideo: true, videoUrl: data.videoUrl })
-        toast.success('🎬 Финальное видео 16:9 готово!')
+        setVideoProgress(100); setProgressLog('Видео успешно создано!'); setVideoState({ hasVideo: true, videoUrl: data.videoUrl }); toast.success('🎬 Финальное видео 16:9 готово!')
         if (onRefresh) onRefresh()
-      } else {
-        toast.error('❌ Ошибка: ' + (data.error || 'Не удалось создать видео'))
-      }
-    } catch (err) {
-      toast.dismiss(toastId)
-      toast.error('❌ Ошибка рендеринга видео', { description: err.message })
-    } finally {
-      if (evtSource) { try { evtSource.close() } catch {} }
-      setGeneratingVideo(false)
-    }
+      } else { toast.error('❌ Ошибка: ' + (data.error || 'Не удалось создать видео')) }
+    } catch (err) { toast.error('❌ Ошибка рендеринга видео: ' + err.message) }
+    finally { if (evtSource) { try { evtSource.close() } catch {} }; setGeneratingVideo(false) }
   }
 
   const [shortsConfig, setShortsConfig] = useState(pkg.shortsConfig || null)
 
   const handleGenerateShort = async (shortOpts = {}) => {
-    if (!audioState.hasAudio) {
-      return toast.error('❌ Аудио-озвучка не найдена!', {
-        description: 'Сначала сгенерируйте аудио в разделе 3 («3. Голосовая озвучка») перед созданием Shorts.'
-      })
-    }
+    if (!audioState.hasAudio) return toast.error('❌ Аудио-озвучка не найдена!', { description: 'Сначала сгенерируйте аудио в разделе 3 перед созданием Shorts.' })
     const toastId = toast.loading('📱 Монтаж YouTube Shorts 9:16 (16 сек)...')
     try {
       setGeneratingShort(true)
       const mergedOpts = { ...(shortsConfig || {}), ...shortOpts }
       const res = await fetch('/api/render-short', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          bundleDir: pkg.bundleDir, folderName: pkg.folderName, duration: 16, hookTitle: pkg.title || '', ...mergedOpts
-        }),
-      })
-      const data = await res.json()
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bundleDir: pkg.bundleDir, folderName: pkg.folderName, duration: 16, hookTitle: pkg.title || '', ...mergedOpts }),
+      }), data = await res.json()
       toast.dismiss(toastId)
       if (data.success) {
         const freshUrl = `${data.shortUrl.split('?')[0]}?t=${Date.now()}`
         setShortState({ hasShort: true, shortUrl: freshUrl })
-        if (data.shortsConfig) {
-          setShortsConfig(data.shortsConfig)
-          pkg.shortsConfig = data.shortsConfig
-        }
-        pkg.hasShort = true
-        pkg.shortUrl = freshUrl
-        toast.success('✨ Вертикальный YouTube Short 9:16 готов!')
-        if (onRefresh) onRefresh()
-        return data
-      } else {
-        toast.error('❌ Ошибка: ' + (data.error || 'Ошибка'))
-      }
-    } catch (e) {
-      toast.dismiss(toastId); toast.error('Ошибка: ' + e.message)
-    } finally {
-      setGeneratingShort(false)
-    }
+        if (data.shortsConfig) { setShortsConfig(data.shortsConfig); pkg.shortsConfig = data.shortsConfig }
+        pkg.hasShort = true; pkg.shortUrl = freshUrl; toast.success('✨ Вертикальный YouTube Short 9:16 готов!')
+        if (onRefresh) onRefresh(); return data
+      } else { toast.error('❌ Ошибка: ' + (data.error || 'Ошибка')) }
+    } catch (e) { toast.dismiss(toastId); toast.error('Ошибка: ' + e.message) }
+    finally { setGeneratingShort(false) }
   }
 
   const handleGenerateAiThumbnail = async () => {
@@ -188,8 +170,7 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
       const res = await fetch('/api/set-thumbnail', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mode: 'generate_ai', bundleDir: pkg.bundleDir, folderName: pkg.folderName, headlineConfig: pkg.headlineConfig || { text: pkg.title } }),
-      })
-      const data = await res.json()
+      }), data = await res.json()
       toast.dismiss(toastId)
       if (data.success) { setCurrentThumbnail(`${data.thumbnailUrl.split('?')[0]}?t=${Date.now()}`); toast.success('✨ Обложка 16:9 создана!') }
       else { toast.error('❌ Ошибка генерации: ' + (data.error || 'Ошибка ИИ')) }
@@ -202,8 +183,7 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
       const res = await fetch('/api/set-thumbnail', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mode: 'apply_headline', photoUrl, bundleDir: pkg.bundleDir, folderName: pkg.folderName, headlineConfig: pkg.headlineConfig || {} }),
-      })
-      const data = await res.json()
+      }), data = await res.json()
       toast.dismiss(toastId)
       if (data.success) {
         setCurrentThumbnail(`${data.thumbnailUrl.split('?')[0]}?t=${Date.now()}`); toast.success('✨ Фото установлено фоном обложки!')
@@ -228,15 +208,10 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
       const res = await fetch('/api/delete-package', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ folderName: pkg.folderName, bundleDir: pkg.bundleDir }),
-      })
-      const data = await res.json()
+      }), data = await res.json()
       if (data.success) {
-        toast.success(`🗑️ Пакет "${pkg.title || pkg.folderName}" удален`)
-        if (onRefresh) onRefresh()
-        onClose()
-      } else {
-        toast.error('Ошибка удаления: ' + (data.error || 'Не удалось удалить'))
-      }
+        toast.success(`🗑️ Пакет "${pkg.title || pkg.folderName}" удален`); if (onRefresh) onRefresh(); onClose()
+      } else { toast.error('Ошибка удаления: ' + (data.error || 'Не удалось удалить')) }
     } catch (err) { toast.error('Ошибка удаления: ' + err.message) }
   }
 
@@ -299,8 +274,36 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
 
         <div className="modal-body">
           {/* 1. Скрипт текста и Заголовок */}
-          <div style={{ marginBottom: '1.25rem' }}>
-            <h3 style={{ fontSize: '0.95rem', color: '#9ca3af', marginBottom: '0.5rem' }}>1. Заголовок и сценарий:</h3>
+          <div style={{ marginBottom: '1.25rem', background: '#090d16', padding: '0.85rem 1rem', borderRadius: '8px', border: '1px solid #1e293b' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem', flexWrap: 'wrap', gap: '0.4rem' }}>
+              <h3 style={{ fontSize: '0.95rem', color: '#9ca3af', margin: 0 }}>
+                1. Сценарий: {hasTxt && <span style={{ color: '#10b981', fontSize: '0.8rem', fontWeight: 600 }}>({pkg.scriptTxt?.split(/\s+/).filter(Boolean).length || pkg.word_count || 0} слов ✅)</span>}
+              </h3>
+              <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                <select
+                  value={selectedScriptStyle}
+                  onChange={e => setSelectedScriptStyle(e.target.value)}
+                  style={{ background: '#1e293b', color: '#f8fafc', border: '1px solid #334155', borderRadius: '6px', fontSize: '0.8rem', padding: '0.35rem 0.5rem', cursor: 'pointer' }}
+                >
+                  <option value="golubuzki">🎭 Голобуцкий (Сатира)</option>
+                  <option value="clickbait">🔥 Кликбейт (YouTube)</option>
+                  <option value="kasjanov">🪖 Касьянов (Военный)</option>
+                  <option value="klimovski">🔬 Климовский (Геополитика)</option>
+                  <option value="analytics">🧠 Аналитика</option>
+                  <option value="gibrid">⚡ Гибридный</option>
+                </select>
+                <button
+                  type="button"
+                  className="generate-btn"
+                  onClick={handleGenerateScript}
+                  disabled={generatingScript}
+                  style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', fontWeight: 700, background: '#7c3aed' }}
+                  title="Сгенерировать сценарий фельетона из оригинального текста source.txt на диске"
+                >
+                  {generatingScript ? '⏳ ИИ пишет...' : hasTxt ? '🔄 Перегенерировать' : '✍️ Создать фельетон'}
+                </button>
+              </div>
+            </div>
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
               <button className="copy-btn" style={{ background: '#3b82f6' }} onClick={() => onOpenScriptText(pkg)}>📜 Открыть и редактировать текст</button>
               <button className="copy-btn" style={{ background: '#ec4899', fontWeight: 600 }} onClick={() => setShowTitleVariantsModal(true)}>⚡ Выбрать из 10 заголовков (Голобуцкий)</button>
@@ -361,19 +364,14 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
       </div>
 
       {showShortsEditorModal && (
-        <ShortsEditorModal
-          pkg={pkg} previewPhotoUrl={pkg.photoUrls?.[0] || currentThumbnail} shortState={shortState}
-          generatingShort={generatingShort} onGenerateShort={(opts) => handleGenerateShort(opts)} onClose={() => setShowShortsEditorModal(false)}
-        />
+        <ShortsEditorModal pkg={pkg} previewPhotoUrl={pkg.photoUrls?.[0] || currentThumbnail} shortState={shortState} generatingShort={generatingShort} onGenerateShort={(opts) => handleGenerateShort(opts)} onClose={() => setShowShortsEditorModal(false)} />
       )}
-
       {showYouTubeModal && (
         <YouTubeMetadataModal
           pkg={pkg}
           onSaved={(data) => {
             const hasYt = Boolean(data?.description || data?.title), hasFb = Boolean(data?.facebookPost)
-            setYoutubeState({ hasYouTube: hasYt, hasFacebook: hasFb })
-            pkg.hasYouTubeMetadata = hasYt; pkg.hasFacebookPost = hasFb; if (onRefresh) onRefresh()
+            setYoutubeState({ hasYouTube: hasYt, hasFacebook: hasFb }); pkg.hasYouTubeMetadata = hasYt; pkg.hasFacebookPost = hasFb; if (onRefresh) onRefresh()
           }}
           onClose={() => { setShowYouTubeModal(false); if (onRefresh) onRefresh(); }}
         />

@@ -5,6 +5,7 @@ export default function NewsCard({
   article,
   index,
   onGenerate,
+  onSavePackage,
   onOpenPhotos,
   isGenerating,
   isSavedPkg,
@@ -171,12 +172,32 @@ export default function NewsCard({
         )}
 
         <div className="card-actions-grid">
+          {hasAnyArtifact ? (
+            <button
+              className="view-saved-btn has-artifacts"
+              onClick={() => onViewSavedPackage(savedPkg)}
+              title="Открыть готовый видео-пакет (Аудио, Фото, Сценарий)"
+            >
+              📂 Видео-пакет ✅
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="generate-btn"
+              onClick={() => onSavePackage ? onSavePackage(article) : onGenerate(article)}
+              style={{ background: '#059669', borderColor: '#10b981', color: '#fff', fontWeight: 700 }}
+              title="Скачать оригинальную новость и фото из интернета и сохранить пакет в news/"
+            >
+              💾 Сохранить в пакет
+            </button>
+          )}
+
           <button
             className="generate-btn"
             onClick={() => onGenerate(article)}
             disabled={isGenerating}
           >
-            {isGenerating ? '⏳ Создание...' : '✍️ Фельетон (3 мин)'}
+            {isGenerating ? '⏳ Создание...' : '✍️ Фельетон'}
           </button>
           <button
             className="photos-btn"
@@ -228,20 +249,6 @@ export default function NewsCard({
               🌐 Оригинал ↗
             </a>
           ) : null}
-
-          <button
-            className={`view-saved-btn ${hasAnyArtifact ? 'has-artifacts' : ''}`}
-            onClick={() => {
-              if (savedPkg) {
-                onViewSavedPackage(savedPkg)
-              } else {
-                onGenerate(article)
-              }
-            }}
-            title={hasAnyArtifact ? "Открыть готовый видео-пакет (Аудио, Фото, Сценарий)" : "Сначала создайте фельетон и сохраните видео-пакет"}
-          >
-            {hasAnyArtifact ? '📂 Видео-пакет ✅' : '📂 Создать пакет'}
-          </button>
         </div>
       </div>
     </article>
