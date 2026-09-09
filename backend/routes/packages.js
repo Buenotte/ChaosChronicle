@@ -53,6 +53,7 @@ const handleSavePackage = async (req, res) => {
     const photosDir = path.join(bundleDir, 'photos');
     fs.mkdirSync(photosDir, { recursive: true });
 
+    const rawOriginal = (req.body.summary || req.body.original_news || req.body.originalNews || req.body.sourceText || req.body.originalText || req.body.telegramText || '').trim();
     const words = text ? text.split(/\s+/).filter(Boolean).length : 0;
     const manifest = {
       title: title || 'Ohne Titel',
@@ -62,6 +63,8 @@ const handleSavePackage = async (req, res) => {
       model,
       style: req.body.style || style || 'clickbait',
       source,
+      summary: rawOriginal,
+      original_news: rawOriginal,
       word_count: words,
       created_at: now.toISOString(),
       photos: [],
@@ -69,9 +72,17 @@ const handleSavePackage = async (req, res) => {
       video: 'video.mp4',
     };
 
+    if (rawOriginal) {
+      try {
+        fs.writeFileSync(path.join(bundleDir, 'source.txt'), rawOriginal, 'utf-8');
+        fs.writeFileSync(path.join(bundleDir, 'original_news.txt'), rawOriginal, 'utf-8');
+      } catch {}
+    }
+
     if (text) {
       fs.writeFileSync(path.join(bundleDir, 'script.txt'), text, 'utf-8');
-      const mdContent = `# 🎭 ${title}\n\n**Quelle:** ${source} | **Datum:** ${date || now.toLocaleDateString()}\n**Modell:** ${model} | **Wortanzahl:** ${words}\n\n---\n\n${text}\n`;
+      const origSection = rawOriginal ? `## 📝 Исходное сообщение / Новость (Telegram / Источник)\n${rawOriginal}\n\n---\n\n` : '';
+      const mdContent = `# 🎭 ${title}\n\n**Quelle:** ${source} | **Datum:** ${date || now.toLocaleDateString()}\n**Modell:** ${model} | **Wortanzahl:** ${words}\n\n---\n\n${origSection}## 🎬 Сценарий / Текст для озвучки\n${text}\n`;
       fs.writeFileSync(path.join(bundleDir, 'script.md'), mdContent, 'utf-8');
     }
 
@@ -232,12 +243,18 @@ router.get('/api/saved-packages', async (req, res) => {
         const hasYouTubeMetadata = Boolean(ytMeta && (ytMeta.description || (ytMeta.clickbait && ytMeta.clickbait.description) || (ytMeta.golubuzki && ytMeta.golubuzki.description)));
         const hasFacebookPost = Boolean((manifest.facebookPosts && Object.keys(manifest.facebookPosts).length > 0) || (ytMeta && (ytMeta.facebookPost || (ytMeta.clickbait && ytMeta.clickbait.facebookPost) || (ytMeta.golubuzki && ytMeta.golubuzki.facebookPost))));
 
+        const sourceTxtPath = path.join(bundleDir, 'source.txt'), origNewsPath = path.join(bundleDir, 'original_news.txt');
+        let origNewsText = manifest.original_news || manifest.summary || '';
+        if (!origNewsText && fs.existsSync(sourceTxtPath)) { try { origNewsText = fs.readFileSync(sourceTxtPath, 'utf-8'); } catch {} }
+        if (!origNewsText && fs.existsSync(origNewsPath)) { try { origNewsText = fs.readFileSync(origNewsPath, 'utf-8'); } catch {} }
+
         const artifactCount = (hasScriptTxt ? 1 : 0) + (hasScriptMd ? 1 : 0) + (hasAudio ? 1 : 0) + (hasVideo ? 1 : 0) + (hasShort ? 1 : 0) + (photosCount > 0 ? 1 : 0) + (hasThumbnail ? 1 : 0) + (hasYouTubeMetadata ? 1 : 0) + (hasFacebookPost ? 1 : 0);
         packages.push({
           folderName: entry.name, bundleDir, title: packageTitle, original_title: manifest.original_title || packageTitle,
           url: manifest.url || manifest.original_url || manifest.link || null, date: manifest.date || null,
           model: manifest.model || 'gemini', style: manifest.style || manifest.feuilletonStyle || 'clickbait',
-          source: manifest.source || '', hasAudio, hasVideo, hasShort, shortUrl, hasScriptTxt, hasScriptMd,
+          source: manifest.source || '', summary: origNewsText, original_news: origNewsText, originalNews: origNewsText,
+          hasAudio, hasVideo, hasShort, shortUrl, hasScriptTxt, hasScriptMd,
           photosCount, photoUrls: photoFiles, hasThumbnail, thumbnailUrl, thumbnail_updated_at: thumbnailUpdatedAt,
           hasYouTubeMetadata, hasFacebookPost, youtubeMetadata: ytMeta || null, facebookPosts: manifest.facebookPosts || null,
           artifactCount, hasAnyArtifact: artifactCount > 0, headlineConfig: thumbnailStyle,
@@ -273,8 +290,15 @@ router.get('/api/package-script-text', (req, res) => {
     const targetDir = req.query.bundleDir || (req.query.folderName ? path.join(newsDir, req.query.folderName) : null);
     if (!targetDir || !fs.existsSync(targetDir)) return res.status(404).json({ success: false, error: 'Папка не найдена' });
     const txtPath = path.join(targetDir, 'script.txt'), mdPath = path.join(targetDir, 'script.md');
+    const sourceTxtPath = path.join(targetDir, 'source.txt'), origNewsPath = path.join(targetDir, 'original_news.txt'), jsonPath = path.join(targetDir, 'project.json');
     const text = fs.existsSync(txtPath) ? fs.readFileSync(txtPath, 'utf-8') : (fs.existsSync(mdPath) ? fs.readFileSync(mdPath, 'utf-8') : '');
-    res.json({ success: true, text, folderName: path.basename(targetDir) });
+    let originalNews = '';
+    if (fs.existsSync(sourceTxtPath)) { try { originalNews = fs.readFileSync(sourceTxtPath, 'utf-8'); } catch {} }
+    if (!originalNews && fs.existsSync(origNewsPath)) { try { originalNews = fs.readFileSync(origNewsPath, 'utf-8'); } catch {} }
+    if (!originalNews && fs.existsSync(jsonPath)) {
+      try { const m = JSON.parse(fs.readFileSync(jsonPath, 'utf-8')); originalNews = m.original_news || m.summary || ''; } catch {}
+    }
+    res.json({ success: true, text, originalNews, summary: originalNews, folderName: path.basename(targetDir) });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 

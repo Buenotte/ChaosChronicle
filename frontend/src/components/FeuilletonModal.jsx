@@ -76,6 +76,8 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onOpenPackag
           url: feuilleton.url || feuilleton.link || '', text: currentText, model: selectedModel,
           style: selectedStyle, source: feuilleton.source, imageUrl: feuilleton.imageUrl,
           images: feuilleton.images || [], folderName: savedInfo?.folderName,
+          summary: feuilleton.summary || feuilleton.originalNews || feuilleton.sourceText || '',
+          original_news: feuilleton.summary || feuilleton.originalNews || feuilleton.sourceText || '',
         }),
       })
       const data = await res.json()
@@ -310,6 +312,17 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onOpenPackag
                 🔄 {regenerating ? '⏳ Генерация...' : 'Сгенерировать заново'}
               </button>
             </div>
+
+            {feuilleton.summary && (
+              <details style={{ background: '#0b0f19', padding: '0.45rem 0.75rem', borderRadius: '6px', border: '1px solid #1e293b' }}>
+                <summary style={{ fontSize: '0.78rem', color: '#a78bfa', fontWeight: 600, cursor: 'pointer' }}>
+                  📰 Исходное сообщение (Telegram / Источник): {feuilleton.source || 'Источник'} ▾
+                </summary>
+                <div style={{ fontSize: '0.82rem', color: '#cbd5e1', marginTop: '0.35rem', whiteSpace: 'pre-wrap', lineHeight: '1.45', maxHeight: '140px', overflowY: 'auto' }}>
+                  {feuilleton.summary}
+                </div>
+              </details>
+            )}
 
             {/* ⚡ 3-секундные вирусные хуки для YouTube */}
             <ScriptHookGenerator

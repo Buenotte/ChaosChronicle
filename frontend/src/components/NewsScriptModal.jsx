@@ -7,6 +7,8 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
   if (!pkg) return null
 
   const [text, setText] = useState(pkg.scriptTxt || pkg.scriptMd || '')
+  const [originalNews, setOriginalNews] = useState(pkg.original_news || pkg.summary || pkg.originalNews || '')
+  const [showOriginal, setShowOriginal] = useState(false)
   const [selectedStyle, setSelectedStyle] = useState('golubuzki')
   const [selectedModel, setSelectedModel] = useState(pkg.model || 'gemini')
   const [selectedTone, setSelectedTone] = useState(pkg.tone || 'grotesque')
@@ -20,6 +22,7 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
 
   useEffect(() => {
     setText(pkg.scriptTxt || pkg.scriptMd || '')
+    setOriginalNews(pkg.original_news || pkg.summary || pkg.originalNews || '')
     setPos({ x: 0, y: 0 })
 
     // Live-Abruf der Datei direkt von der Festplatte
@@ -30,8 +33,9 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
       fetch(`/api/package-script-text?${params}`)
         .then(r => r.json())
         .then(data => {
-          if (data.success && typeof data.text === 'string') {
-            setText(data.text)
+          if (data.success) {
+            if (typeof data.text === 'string') setText(data.text)
+            if (data.originalNews || data.summary) setOriginalNews(data.originalNews || data.summary)
           }
         })
         .catch(() => {})
@@ -90,7 +94,7 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: pkg.original_title || pkg.title,
-          summary: pkg.summary || (text ? text.slice(0, 350) : '') || '',
+          summary: originalNews || pkg.original_news || pkg.summary || (text ? text.slice(0, 350) : '') || '',
           style: styleToUse,
           tone: toneToUse,
           source: pkg.source || '',
@@ -197,7 +201,7 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
         <div className="modal-body">
 
           {/* Панель выбора стиля, модели ИИ и перегенерации текста */}
-          <div style={{ background: '#0f172a', padding: '0.65rem 0.9rem', borderRadius: '8px', border: '1px solid #1e293b', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.6rem', marginBottom: '1rem' }}>
+          <div style={{ background: '#0f172a', padding: '0.65rem 0.9rem', borderRadius: '8px', border: '1px solid #1e293b', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.6rem', marginBottom: '0.75rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#94a3b8' }}>
@@ -276,10 +280,33 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
             </button>
           </div>
 
+          {/* Исходный текст Telegram / Новости */}
+          {originalNews && (
+            <div style={{ background: '#0b1120', border: '1px solid #1e293b', borderRadius: '8px', padding: '0.45rem 0.75rem', marginBottom: '0.75rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <span>📰</span> Исходный текст ({pkg.source || 'Telegram'}):
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowOriginal(!showOriginal)}
+                  style={{ background: 'transparent', border: '1px solid #334155', color: '#94a3b8', borderRadius: '4px', padding: '0.12rem 0.45rem', fontSize: '0.7rem', cursor: 'pointer' }}
+                >
+                  {showOriginal ? 'Свернуть ▲' : 'Показать оригинал ▼'}
+                </button>
+              </div>
+              {showOriginal && (
+                <div style={{ marginTop: '0.4rem', paddingTop: '0.4rem', borderTop: '1px solid #1e293b', fontSize: '0.82rem', color: '#cbd5e1', lineHeight: '1.45', maxHeight: '150px', overflowY: 'auto', whiteSpace: 'pre-wrap' }}>
+                  {originalNews}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* ⚡ 3-секундные вирусные хуки для YouTube */}
           <ScriptHookGenerator
             title={pkg.original_title || pkg.title}
-            summary={pkg.summary || ''}
+            summary={originalNews || pkg.summary || ''}
             currentText={text}
             style={selectedStyle}
             tone={selectedTone}
