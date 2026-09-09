@@ -200,36 +200,43 @@ export default function LiveThumbnailPreview({
           const isPerLine = boxStyle === 'per_line' || !!bCfg.enabled
 
           const getLineBadgeStyle = (idx) => {
-            if (!isPerLine) return { outerStyle: {}, innerStyle: {} }
-            const sType = bCfg.style || 'solid', shType = bCfg.shadow || 'soft'
-            const op = ((Number(bCfg.opacity !== undefined ? bCfg.opacity : boxOpacity || 90)) / 100).toFixed(2)
-            let rawCol = bCfg.color || '#000000'
-            if (bCfg.perLineColorsEnabled && Array.isArray(bCfg.lineColors) && bCfg.lineColors[idx]) {
-              rawCol = bCfg.lineColors[idx]
-            }
-            const hex = COLOR_MAP[rawCol] || (rawCol.startsWith('#') ? rawCol : '#000000')
-            const r = parseInt(hex.slice(1, 3) || '0', 16) || 0, g = parseInt(hex.slice(3, 5) || '0', 16) || 0, b = parseInt(hex.slice(5, 7) || '0', 16) || 0
-            const bg = `rgba(${r}, ${g}, ${b}, ${op})`
-
             let lineAngle = 0
-            if (bCfg.tiltMode === 'zigzag') {
+            if (Array.isArray(bCfg.lineTilts) && bCfg.lineTilts[idx] !== undefined && Number(bCfg.lineTilts[idx]) !== 0) {
+              lineAngle = Number(bCfg.lineTilts[idx]) || 0
+            } else if (bCfg.tiltMode === 'zigzag') {
               const zAngles = [-2.0, 1.8, -1.6, 2.0]
               lineAngle = zAngles[idx % zAngles.length]
             } else if (bCfg.tiltMode === 'custom' && Array.isArray(bCfg.lineTilts) && bCfg.lineTilts[idx] !== undefined) {
               lineAngle = Number(bCfg.lineTilts[idx]) || 0
             }
 
+            const outerStyle = {
+              display: 'block', width: 'max-content', margin: '3px 0',
+              transform: lineAngle !== 0 ? `rotate(${lineAngle}deg)` : undefined,
+              transformOrigin: 'center center',
+            }
+
+            if (!isPerLine) return { outerStyle, innerStyle: {} }
+            const isLineOn = Array.isArray(bCfg.linesEnabled) ? bCfg.linesEnabled[idx] !== false : true
+            if (!isLineOn) return { outerStyle, innerStyle: {} }
+
+            const sType = (Array.isArray(bCfg.lineStyles) && bCfg.lineStyles[idx]) ? bCfg.lineStyles[idx] : (bCfg.style || 'solid')
+            const shType = (Array.isArray(bCfg.lineShadows) && bCfg.lineShadows[idx]) ? bCfg.lineShadows[idx] : (bCfg.shadow || 'soft')
+            const rawOp = (Array.isArray(bCfg.lineOpacities) && bCfg.lineOpacities[idx] !== undefined) ? bCfg.lineOpacities[idx] : (bCfg.opacity !== undefined ? bCfg.opacity : (boxOpacity || 90))
+            const op = ((Number(rawOp)) / 100).toFixed(2)
+
+            let rawCol = (Array.isArray(bCfg.lineColors) && bCfg.lineColors[idx]) ? bCfg.lineColors[idx] : (bCfg.color || '#000000')
+            const hex = COLOR_MAP[rawCol] || (rawCol.startsWith('#') ? rawCol : '#000000')
+            const r = parseInt(hex.slice(1, 3) || '0', 16) || 0, g = parseInt(hex.slice(3, 5) || '0', 16) || 0, b = parseInt(hex.slice(5, 7) || '0', 16) || 0
+            const bg = `rgba(${r}, ${g}, ${b}, ${op})`
+
             let bShadowFilter = 'none'
             if (shType === 'soft') bShadowFilter = 'drop-shadow(0 6px 14px rgba(0,0,0,0.85))'
             else if (shType === 'hard') bShadowFilter = 'drop-shadow(5px 5px 0px rgba(0,0,0,0.95))'
             else if (shType === 'glow') bShadowFilter = 'drop-shadow(0 0 14px rgba(245,158,11,0.85))'
 
-            const outerStyle = {
-              display: 'block', width: 'max-content', margin: '3px 0',
-              transform: lineAngle !== 0 ? `rotate(${lineAngle}deg)` : undefined,
-              transformOrigin: 'center center',
-              filter: bShadowFilter !== 'none' ? bShadowFilter : undefined,
-            }
+            if (bShadowFilter !== 'none') outerStyle.filter = bShadowFilter
+
             const innerStyle = {
               background: bg, padding: '4px 18px', display: 'inline-block',
               width: 'max-content', transition: 'all 0.15s ease',

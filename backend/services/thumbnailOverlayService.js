@@ -266,15 +266,20 @@ export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, optio
       const assOutlineCol = toAssColor(bColor);
       let wordCounter = 0, dialogues = [];
       if (isPerLineBadges) {
-        const bStyle = bCfg.style || 'solid', bShadow = bCfg.shadow || 'soft';
-        const rawBadgeOp = Number(bCfg.opacity !== undefined ? bCfg.opacity : options.boxOpacity);
-        const badgeOp = (!isNaN(rawBadgeOp) && rawBadgeOp >= 5 && rawBadgeOp <= 100) ? rawBadgeOp : 85;
-        const alphaHex = Math.max(0, Math.min(255, Math.round((1 - badgeOp / 100) * 255))).toString(16).padStart(2, '0').toUpperCase();
-        const shadW = bShadow === 'hard' ? 8 : (bShadow === 'glow' ? 6 : (bShadow === 'none' ? 0 : 4));
-        const shadCol = bShadow === 'glow' ? '&H0B9EF5&' : '&H000000&', shadAlpha = bShadow === 'none' ? 'FF' : alphaHex;
-        const borderTag = bStyle === 'dashed' ? '\\bord3\\3c&HFFFFFF&' : '\\bord0';
+        const globalStyle = bCfg.style || 'solid', globalShadow = bCfg.shadow || 'soft';
+        const globalOp = Number(bCfg.opacity !== undefined ? bCfg.opacity : options.boxOpacity);
 
         cleanLines.forEach((line, idx) => {
+          const isLineOn = Array.isArray(bCfg.linesEnabled) ? bCfg.linesEnabled[idx] !== false : true;
+          const bStyle = (Array.isArray(bCfg.lineStyles) && bCfg.lineStyles[idx]) ? bCfg.lineStyles[idx] : globalStyle;
+          const bShadow = (Array.isArray(bCfg.lineShadows) && bCfg.lineShadows[idx]) ? bCfg.lineShadows[idx] : globalShadow;
+          const rawBadgeOp = Number((Array.isArray(bCfg.lineOpacities) && bCfg.lineOpacities[idx] !== undefined) ? bCfg.lineOpacities[idx] : globalOp);
+          const badgeOp = (!isNaN(rawBadgeOp) && rawBadgeOp >= 5 && rawBadgeOp <= 100) ? rawBadgeOp : 85;
+          const alphaHex = Math.max(0, Math.min(255, Math.round((1 - badgeOp / 100) * 255))).toString(16).padStart(2, '0').toUpperCase();
+          const shadW = bShadow === 'hard' ? 8 : (bShadow === 'glow' ? 6 : (bShadow === 'none' ? 0 : 4));
+          const shadCol = bShadow === 'glow' ? '&H0B9EF5&' : '&H000000&', shadAlpha = bShadow === 'none' ? 'FF' : alphaHex;
+          const borderTag = bStyle === 'dashed' ? '\\bord3\\3c&HFFFFFF&' : '\\bord0';
+
           const words = line.split(/\s+/).filter(Boolean);
           const curLineY = startY + lineHeights.slice(0, idx).reduce((s, h) => s + h, 0);
           const lineSz = (lineSizesList[idx] && Number(lineSizesList[idx]) > 0) ? Number(lineSizesList[idx]) : finalFontSize;
@@ -284,11 +289,16 @@ export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, optio
           const badgeY = Math.max(10, Math.round(curLineY + (lineHeights[idx] - lineH) / 2));
           const pivotX = Math.round(badgeX + approxW / 2), pivotY = Math.round(badgeY + lineH / 2);
           const zAngles = [-2.0, 1.8, -1.6, 2.0];
-          const tiltOffset = (bCfg.tiltMode === 'zigzag') ? zAngles[idx % 4] : (bCfg.tiltMode === 'custom' && Array.isArray(bCfg.lineTilts) && bCfg.lineTilts[idx] !== undefined ? Number(bCfg.lineTilts[idx]) : 0);
+          const tiltOffset = (Array.isArray(bCfg.lineTilts) && bCfg.lineTilts[idx] !== undefined && Number(bCfg.lineTilts[idx]) !== 0)
+            ? Number(bCfg.lineTilts[idx])
+            : (bCfg.tiltMode === 'zigzag' ? zAngles[idx % 4] : (bCfg.tiltMode === 'custom' && Array.isArray(bCfg.lineTilts) && bCfg.lineTilts[idx] !== undefined ? Number(bCfg.lineTilts[idx]) : 0));
           const lAngle = -(numAngle + tiltOffset);
-          const bCol = (bCfg.perLineColorsEnabled && Array.isArray(bCfg.lineColors) && bCfg.lineColors[idx]) ? bCfg.lineColors[idx] : (bCfg.color || '#000000');
-          const poly = getBadgeVector(bStyle, approxW, lineH, idx);
-          dialogues.push(`Dialogue: 0,0:00:00.00,0:00:05.00,Badge,,0,0,0,,{\\an7\\pos(${badgeX},${badgeY})\\org(${pivotX},${pivotY})${lAngle !== 0 ? `\\frz${lAngle}` : ''}\\c${toAssColor6(bCol)}\\1a&H${alphaHex}&${borderTag}\\shad${shadW}\\4c${shadCol}\\4a&H${shadAlpha}&\\p1}${poly}{\\p0}`);
+          const bCol = (Array.isArray(bCfg.lineColors) && bCfg.lineColors[idx]) ? bCfg.lineColors[idx] : (bCfg.color || '#000000');
+
+          if (isLineOn) {
+            const poly = getBadgeVector(bStyle, approxW, lineH, idx);
+            dialogues.push(`Dialogue: 0,0:00:00.00,0:00:05.00,Badge,,0,0,0,,{\\an7\\pos(${badgeX},${badgeY})\\org(${pivotX},${pivotY})${lAngle !== 0 ? `\\frz${lAngle}` : ''}\\c${toAssColor6(bCol)}\\1a&H${alphaHex}&${borderTag}\\shad${shadW}\\4c${shadCol}\\4a&H${shadAlpha}&\\p1}${poly}{\\p0}`);
+          }
 
           const lineCol = lineColorsList[idx] || colorVal;
           const wordFrags = words.map(w => {

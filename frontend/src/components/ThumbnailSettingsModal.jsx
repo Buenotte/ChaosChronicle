@@ -375,9 +375,7 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
 
           {/* Кнопки действий */}
           <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.65rem', borderTop: '1px solid #27272a', paddingTop: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-            <button className="copy-btn" disabled={saving} style={{ background: '#10b981', flex: 1, minWidth: '220px', padding: '0.75rem', fontSize: '0.95rem', fontWeight: 700 }} onClick={handleApply}>
-              {saving ? '⏳ Сохранение...' : '💾 Применить и сохранить обложку'}
-            </button>
+            <button className="copy-btn" disabled={saving} style={{ background: '#10b981', flex: 1, minWidth: '220px', padding: '0.75rem', fontSize: '0.95rem', fontWeight: 700 }} onClick={handleApply}>{saving ? '⏳ Сохранение...' : '💾 Применить и сохранить обложку'}</button>
             <button type="button" className="copy-btn" style={{ background: '#8b5cf6', padding: '0.75rem 1rem', fontWeight: 600 }} onClick={handleSaveAsDefault} title="Сделать оформление шаблоном по умолчанию">⭐ Шаблон по умолчанию</button>
             <button type="button" className="copy-btn" style={{ background: '#3b82f6', padding: '0.75rem 0.9rem', fontWeight: 600 }} onClick={handleResetToDefault} title="Загрузить шаблон по умолчанию">🔄 К шаблону</button>
             <button className="copy-btn" style={{ background: '#3f3f46', padding: '0.75rem 1.2rem', fontWeight: 600 }} onClick={onClose}>✕ Закрыть</button>
