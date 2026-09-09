@@ -8,7 +8,7 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
 
   const [text, setText] = useState(pkg.scriptTxt || pkg.scriptMd || '')
   const [originalNews, setOriginalNews] = useState(pkg.original_news || pkg.summary || pkg.originalNews || '')
-  const [showOriginal, setShowOriginal] = useState(false)
+  const [showOriginal, setShowOriginal] = useState(true)
   const [selectedStyle, setSelectedStyle] = useState('golubuzki')
   const [selectedModel, setSelectedModel] = useState(pkg.model || 'gemini')
   const [selectedTone, setSelectedTone] = useState(pkg.tone || 'grotesque')
@@ -204,99 +204,59 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
           <div style={{ background: '#0f172a', padding: '0.65rem 0.9rem', borderRadius: '8px', border: '1px solid #1e293b', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.6rem', marginBottom: '0.75rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#94a3b8' }}>
-                  🤖 Модель:
-                </span>
-                <select
-                  value={selectedModel}
-                  onChange={e => {
-                    setSelectedModel(e.target.value)
-                    handleRegenerateScript(selectedStyle, e.target.value)
-                  }}
-                  disabled={regenerating}
-                  style={{
-                    background: '#020617',
-                    color: '#f8fafc',
-                    border: '1px solid #334155',
-                    borderRadius: '6px',
-                    padding: '0.35rem 0.65rem',
-                    fontSize: '0.82rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {AI_MODELS.map(m => (
-                    <option key={m.id} value={m.id}>
-                      {m.icon} {m.name}
-                    </option>
-                  ))}
+                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#94a3b8' }}>🤖 Модель:</span>
+                <select value={selectedModel} onChange={e => { setSelectedModel(e.target.value); handleRegenerateScript(selectedStyle, e.target.value) }} disabled={regenerating} style={{ background: '#020617', color: '#f8fafc', border: '1px solid #334155', borderRadius: '6px', padding: '0.35rem 0.65rem', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer' }}>
+                  {AI_MODELS.map(m => (<option key={m.id} value={m.id}>{m.icon} {m.name}</option>))}
                 </select>
               </div>
-
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#94a3b8' }}>
-                  🎨 Стиль:
-                </span>
-                <select
-                  value={selectedStyle}
-                  onChange={e => {
-                    setSelectedStyle(e.target.value)
-                    handleRegenerateScript(e.target.value, selectedModel)
-                  }}
-                  disabled={regenerating}
-                  style={{
-                    background: '#020617',
-                    color: '#f8fafc',
-                    border: '1px solid #334155',
-                    borderRadius: '6px',
-                    padding: '0.35rem 0.65rem',
-                    fontSize: '0.82rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {FEUILLETON_STYLES.map(s => (
-                    <option key={s.id} value={s.id}>
-                      {s.icon} {s.name}
-                    </option>
-                  ))}
+                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#94a3b8' }}>🎨 Стиль:</span>
+                <select value={selectedStyle} onChange={e => { setSelectedStyle(e.target.value); handleRegenerateScript(e.target.value, selectedModel) }} disabled={regenerating} style={{ background: '#020617', color: '#f8fafc', border: '1px solid #334155', borderRadius: '6px', padding: '0.35rem 0.65rem', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer' }}>
+                  {FEUILLETON_STYLES.map(s => (<option key={s.id} value={s.id}>{s.icon} {s.name}</option>))}
                 </select>
               </div>
-
               <div style={{ display: 'flex', alignItems: 'center', background: '#0f172a', borderRadius: '6px', padding: '2px', border: '1px solid #334155' }}>
                 <button type="button" onClick={() => setSelectedTone('grotesque')} style={{ background: selectedTone === 'grotesque' ? '#dc2626' : 'transparent', color: selectedTone === 'grotesque' ? '#fff' : '#94a3b8', border: 'none', borderRadius: '4px', padding: '0.24rem 0.5rem', fontSize: '0.75rem', fontWeight: selectedTone === 'grotesque' ? 700 : 500, cursor: 'pointer' }}>💥 Сатира</button>
                 <button type="button" onClick={() => setSelectedTone('analytics')} style={{ background: selectedTone === 'analytics' ? '#2563eb' : 'transparent', color: selectedTone === 'analytics' ? '#fff' : '#94a3b8', border: 'none', borderRadius: '4px', padding: '0.24rem 0.5rem', fontSize: '0.75rem', fontWeight: selectedTone === 'analytics' ? 700 : 500, cursor: 'pointer' }}>🧠 Аналитика</button>
               </div>
             </div>
-
-            <button
-              type="button"
-              className="refresh-btn"
-              onClick={() => handleRegenerateScript(selectedStyle, selectedModel, selectedTone)}
-              disabled={regenerating}
-              style={{ fontSize: '0.8rem', padding: '0.38rem 0.85rem', background: '#1e293b', border: '1px solid #475569', color: '#f8fafc', fontWeight: 700, borderRadius: '6px', cursor: 'pointer' }}
-            >
+            <button type="button" className="refresh-btn" onClick={() => handleRegenerateScript(selectedStyle, selectedModel, selectedTone)} disabled={regenerating} style={{ fontSize: '0.8rem', padding: '0.38rem 0.85rem', background: '#1e293b', border: '1px solid #475569', color: '#f8fafc', fontWeight: 700, borderRadius: '6px', cursor: 'pointer' }}>
               🔄 {regenerating ? '⏳ Генерация...' : 'Сгенерировать (AI)'}
             </button>
           </div>
 
           {/* Исходный текст Telegram / Новости */}
           {originalNews && (
-            <div style={{ background: '#0b1120', border: '1px solid #1e293b', borderRadius: '8px', padding: '0.45rem 0.75rem', marginBottom: '0.75rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                  <span>📰</span> Исходный текст ({pkg.source || 'Telegram'}):
+            <div style={{ background: '#0b1120', border: '1px solid #38bdf8', borderRadius: '8px', padding: '0.65rem 0.85rem', marginBottom: '0.75rem', boxShadow: '0 2px 8px rgba(0,0,0,0.35)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem' }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <span>📰</span> ИСХОДНАЯ НОВОСТЬ ({pkg.source || 'Telegram / Источник'}):
+                  <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 500 }}>
+                    ({originalNews.split(/\s+/).filter(Boolean).length} слов)
+                  </span>
                 </span>
-                <button
-                  type="button"
-                  onClick={() => setShowOriginal(!showOriginal)}
-                  style={{ background: 'transparent', border: '1px solid #334155', color: '#94a3b8', borderRadius: '4px', padding: '0.12rem 0.45rem', fontSize: '0.7rem', cursor: 'pointer' }}
-                >
-                  {showOriginal ? 'Свернуть ▲' : 'Показать оригинал ▼'}
-                </button>
+                <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(originalNews);
+                      toast.success('Оригинальный текст скопирован!');
+                    }}
+                    style={{ background: '#1e293b', border: '1px solid #334155', color: '#38bdf8', borderRadius: '4px', padding: '0.15rem 0.45rem', fontSize: '0.72rem', cursor: 'pointer', fontWeight: 600 }}
+                  >
+                    📋 Копировать
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowOriginal(!showOriginal)}
+                    style={{ background: 'transparent', border: '1px solid #334155', color: '#94a3b8', borderRadius: '4px', padding: '0.15rem 0.45rem', fontSize: '0.72rem', cursor: 'pointer' }}
+                  >
+                    {showOriginal ? 'Свернуть ▲' : 'Развернуть ▼'}
+                  </button>
+                </div>
               </div>
               {showOriginal && (
-                <div style={{ marginTop: '0.4rem', paddingTop: '0.4rem', borderTop: '1px solid #1e293b', fontSize: '0.82rem', color: '#cbd5e1', lineHeight: '1.45', maxHeight: '150px', overflowY: 'auto', whiteSpace: 'pre-wrap' }}>
+                <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid #1e293b', fontSize: '0.86rem', color: '#f1f5f9', lineHeight: '1.55', maxHeight: '180px', overflowY: 'auto', whiteSpace: 'pre-wrap', background: '#030712', padding: '0.5rem 0.65rem', borderRadius: '6px' }}>
                   {originalNews}
                 </div>
               )}

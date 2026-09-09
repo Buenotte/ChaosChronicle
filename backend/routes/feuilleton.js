@@ -2,6 +2,7 @@ import express from 'express';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import { scrapeArticleText } from '../services/articleScraperService.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const router = express.Router();
@@ -186,13 +187,19 @@ function cleanSpeechTextForAudio(rawText) {
 // WICHTIG: Generiert den Text NUR im Speicher ohne automatisches Speichern auf Festplatte!
 router.post('/api/generate-feuilleton', async (req, res) => {
   const { title, summary, model = 'gemini', source, style = 'golubuzki', tone = 'grotesque' } = req.body;
+  if (!title) return res.status(400).json({ error: 'Title is required' });
 
-  if (!title) {
-    return res.status(400).json({ error: 'Title is required' });
+  let effectiveSummary = summary || '';
+  const articleUrl = req.body.url || req.body.link || '';
+  if (effectiveSummary.length < 150 && articleUrl && /^https?:\/\//i.test(articleUrl)) {
+    try {
+      const scraped = await scrapeArticleText(articleUrl);
+      if (scraped && scraped.length > effectiveSummary.length) effectiveSummary = scraped;
+    } catch {}
   }
 
   const modelId = model === 'gemini' ? 'gemini-3.7-flash' : (MODELS[model] || MODELS.gemini);
-  const { systemInstruction, userInstruction } = buildStyledFeuilletonPrompt(title, summary, style, tone);
+  const { systemInstruction, userInstruction } = buildStyledFeuilletonPrompt(title, effectiveSummary, style, tone);
 
   try {
     let rawText = '';

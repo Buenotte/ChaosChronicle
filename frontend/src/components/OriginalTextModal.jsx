@@ -1,14 +1,53 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { timeAgo } from '../lib/utils'
 
 export default function OriginalTextModal({ article, isOpen, onClose, onGenerate }) {
   const [copied, setCopied] = useState(false)
+  const initialText = article?.summary || article?.original_news || article?.originalNews || article?.sourceText || article?.matchingPkg?.summary || article?.matchingPkg?.original_news || ''
+  const [liveText, setLiveText] = useState(initialText)
+  const [isLoading, setIsLoading] = useState(false)
+
+  useEffect(() => {
+    if (!isOpen || !article) return
+    const text = article.summary || article.original_news || article.originalNews || article.sourceText || article.matchingPkg?.summary || article.matchingPkg?.original_news || ''
+    setLiveText(text)
+
+    const folderName = article.folderName || article.matchingPkg?.folderName || ''
+    const bundleDir = article.bundleDir || article.matchingPkg?.bundleDir || ''
+    const rawUrl = article.url || article.link || article.matchingPkg?.url || article.matchingPkg?.original_url || ''
+
+    if (folderName || bundleDir) {
+      setIsLoading(true)
+      const params = new URLSearchParams({ folderName, bundleDir })
+      fetch(`/api/package-script-text?${params}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.success && (data.originalNews || data.summary)) {
+            setLiveText(data.originalNews || data.summary)
+          }
+        })
+        .catch(() => {})
+        .finally(() => setIsLoading(false))
+    } else if (rawUrl && /^https?:\/\//i.test(rawUrl) && (!text || text.length < 150)) {
+      setIsLoading(true)
+      fetch(`/api/scrape-article?url=${encodeURIComponent(rawUrl)}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.success && data.text && data.text.length > (text?.length || 0)) {
+            setLiveText(data.text)
+          }
+        })
+        .catch(() => {})
+        .finally(() => setIsLoading(false))
+    }
+  }, [article, isOpen])
+
   if (!isOpen || !article) return null
 
   const title = article.original_title || article.title || 'Исходная новость'
   const source = article.source || (article.isCustom ? 'Telegram / Своя новость' : 'Источник')
-  const originalText = article.summary || article.original_news || article.originalNews || article.sourceText || article.matchingPkg?.summary || article.matchingPkg?.original_news || ''
+  const originalText = liveText || initialText
   
   const rawUrl = article.url || article.link || article.matchingPkg?.url || article.matchingPkg?.original_url || ''
   const hasWebUrl = typeof rawUrl === 'string' && (rawUrl.startsWith('http://') || rawUrl.startsWith('https://'))
@@ -49,6 +88,11 @@ export default function OriginalTextModal({ article, isOpen, onClose, onGenerate
                   🕒 {timeAgo(article.pubDate)}
                 </span>
               )}
+              {isLoading && (
+                <span style={{ fontSize: '0.75rem', color: '#fbbf24', fontWeight: 600 }}>
+                  ⏳ Загрузка полного текста...
+                </span>
+              )}
             </div>
             <h2 className="modal-title" style={{ fontSize: '1.2rem', lineHeight: 1.35, margin: 0 }}>
               {title}
@@ -76,6 +120,10 @@ export default function OriginalTextModal({ article, isOpen, onClose, onGenerate
               }}
             >
               {originalText}
+            </div>
+          ) : isLoading ? (
+            <div style={{ padding: '3rem', textAlign: 'center', color: '#fbbf24' }}>
+              ⏳ Загрузка полного текста статьи из источника...
             </div>
           ) : (
             <div style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>
@@ -131,3 +179,4 @@ export default function OriginalTextModal({ article, isOpen, onClose, onGenerate
     </div>
   )
 }
+

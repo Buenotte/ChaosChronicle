@@ -157,38 +157,14 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onOpenPackag
 
             {/* 1. Выбор ИИ Модели */}
             <div style={{ background: '#181c27', padding: '1rem', borderRadius: '10px', border: '1px solid #232936' }}>
-              <label style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f3f4f6', display: 'block', marginBottom: '0.55rem' }}>
-                🤖 1. Выберите модель ИИ:
-              </label>
+              <label style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f3f4f6', display: 'block', marginBottom: '0.55rem' }}>🤖 1. Выберите модель ИИ:</label>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.5rem' }}>
                 {AI_MODELS.map(m => {
                   const isSel = selectedModel === m.id
                   return (
-                    <button
-                      key={m.id}
-                      type="button"
-                      onClick={() => setSelectedModel(m.id)}
-                      disabled={regenerating}
-                      style={{
-                        background: isSel ? '#1d4ed8' : '#0f172a',
-                        border: isSel ? '2px solid #60a5fa' : '1px solid #334155',
-                        color: isSel ? '#fff' : '#94a3b8',
-                        borderRadius: '8px',
-                        padding: '0.6rem 0.8rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        cursor: 'pointer',
-                        fontWeight: isSel ? 700 : 500,
-                        fontSize: '0.85rem',
-                        textAlign: 'left',
-                      }}
-                    >
+                    <button key={m.id} type="button" onClick={() => setSelectedModel(m.id)} disabled={regenerating} style={{ background: isSel ? '#1d4ed8' : '#0f172a', border: isSel ? '2px solid #60a5fa' : '1px solid #334155', color: isSel ? '#fff' : '#94a3b8', borderRadius: '8px', padding: '0.6rem 0.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: isSel ? 700 : 500, fontSize: '0.85rem', textAlign: 'left' }}>
                       <span style={{ fontSize: '1.2rem' }}>{m.icon}</span>
-                      <div>
-                        <div>{m.name}</div>
-                        <div style={{ fontSize: '0.7rem', color: isSel ? '#dbeafe' : '#64748b' }}>{m.badge || 'Нейросеть'}</div>
-                      </div>
+                      <div><div>{m.name}</div><div style={{ fontSize: '0.7rem', color: isSel ? '#dbeafe' : '#64748b' }}>{m.badge || 'Нейросеть'}</div></div>
                     </button>
                   )
                 })}
@@ -197,48 +173,18 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onOpenPackag
 
             {/* 2. Тональность и формат подачи */}
             <div style={{ background: '#181c27', padding: '0.85rem 1rem', borderRadius: '10px', border: '1px solid #232936' }}>
-              <label style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f3f4f6', display: 'block', marginBottom: '0.5rem' }}>
-                🎯 2. Выберите формат подачи (Тональность):
-              </label>
+              <label style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f3f4f6', display: 'block', marginBottom: '0.5rem' }}>🎯 2. Выберите формат подачи (Тональность):</label>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.55rem' }}>
-                <button
-                  type="button"
-                  onClick={() => setSelectedTone('grotesque')}
-                  disabled={regenerating}
-                  style={{
-                    background: selectedTone === 'grotesque' ? '#7c2d12' : '#0f172a',
-                    border: selectedTone === 'grotesque' ? '2px solid #f97316' : '1px solid #334155',
-                    color: selectedTone === 'grotesque' ? '#fff' : '#94a3b8',
-                    borderRadius: '8px', padding: '0.6rem 0.8rem', cursor: 'pointer', textAlign: 'left',
-                    fontWeight: selectedTone === 'grotesque' ? 700 : 500, fontSize: '0.85rem'
-                  }}
-                >
+                <button type="button" onClick={() => setSelectedTone('grotesque')} disabled={regenerating} style={{ background: selectedTone === 'grotesque' ? '#7c2d12' : '#0f172a', border: selectedTone === 'grotesque' ? '2px solid #f97316' : '1px solid #334155', color: selectedTone === 'grotesque' ? '#fff' : '#94a3b8', borderRadius: '8px', padding: '0.6rem 0.8rem', cursor: 'pointer', textAlign: 'left', fontWeight: selectedTone === 'grotesque' ? 700 : 500, fontSize: '0.85rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                     <span>💥</span>
-                    <div>
-                      <div>Сатира</div>
-                      <div style={{ fontSize: '0.7rem', color: selectedTone === 'grotesque' ? '#fdba74' : '#64748b' }}>Едкая ирония, метафоры и сатирический памфлет</div>
-                    </div>
+                    <div><div>Сатира</div><div style={{ fontSize: '0.7rem', color: selectedTone === 'grotesque' ? '#fdba74' : '#64748b' }}>Едкая ирония, метафоры и сатирический памфлет</div></div>
                   </div>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedTone('analytics')}
-                  disabled={regenerating}
-                  style={{
-                    background: selectedTone === 'analytics' ? '#1e3a8a' : '#0f172a',
-                    border: selectedTone === 'analytics' ? '2px solid #3b82f6' : '1px solid #334155',
-                    color: selectedTone === 'analytics' ? '#fff' : '#94a3b8',
-                    borderRadius: '8px', padding: '0.6rem 0.8rem', cursor: 'pointer', textAlign: 'left',
-                    fontWeight: selectedTone === 'analytics' ? 700 : 500, fontSize: '0.85rem'
-                  }}
-                >
+                <button type="button" onClick={() => setSelectedTone('analytics')} disabled={regenerating} style={{ background: selectedTone === 'analytics' ? '#1e3a8a' : '#0f172a', border: selectedTone === 'analytics' ? '2px solid #3b82f6' : '1px solid #334155', color: selectedTone === 'analytics' ? '#fff' : '#94a3b8', borderRadius: '8px', padding: '0.6rem 0.8rem', cursor: 'pointer', textAlign: 'left', fontWeight: selectedTone === 'analytics' ? 700 : 500, fontSize: '0.85rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                     <span>🧠</span>
-                    <div>
-                      <div>Увлекательная Аналитика</div>
-                      <div style={{ fontSize: '0.7rem', color: selectedTone === 'analytics' ? '#93c5fd' : '#64748b' }}>Факты, причины, ТТХ и скрытые мотивы</div>
-                    </div>
+                    <div><div>Увлекательная Аналитика</div><div style={{ fontSize: '0.7rem', color: selectedTone === 'analytics' ? '#93c5fd' : '#64748b' }}>Факты, причины, ТТХ и скрытые мотивы</div></div>
                   </div>
                 </button>
               </div>
@@ -246,40 +192,14 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onOpenPackag
 
             {/* 3. Выбор Авторского Стиля */}
             <div style={{ background: '#181c27', padding: '1rem', borderRadius: '10px', border: '1px solid #232936' }}>
-              <label style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f3f4f6', display: 'block', marginBottom: '0.55rem' }}>
-                🎭 3. Выберите автора / стилистический фокус:
-              </label>
+              <label style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f3f4f6', display: 'block', marginBottom: '0.55rem' }}>🎭 3. Выберите автора / стилистический фокус:</label>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.5rem' }}>
                 {FEUILLETON_STYLES.map(s => {
                   const isSel = selectedStyle === s.id
                   return (
-                    <button
-                      key={s.id}
-                      type="button"
-                      onClick={() => setSelectedStyle(s.id)}
-                      disabled={regenerating}
-                      style={{
-                        background: isSel ? '#5b21b6' : '#0f172a',
-                        border: isSel ? '2px solid #a78bfa' : '1px solid #334155',
-                        color: isSel ? '#fff' : '#94a3b8',
-                        borderRadius: '8px',
-                        padding: '0.6rem 0.8rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        cursor: 'pointer',
-                        fontWeight: isSel ? 700 : 500,
-                        fontSize: '0.85rem',
-                        textAlign: 'left',
-                      }}
-                    >
+                    <button key={s.id} type="button" onClick={() => setSelectedStyle(s.id)} disabled={regenerating} style={{ background: isSel ? '#5b21b6' : '#0f172a', border: isSel ? '2px solid #a78bfa' : '1px solid #334155', color: isSel ? '#fff' : '#94a3b8', borderRadius: '8px', padding: '0.6rem 0.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: isSel ? 700 : 500, fontSize: '0.85rem', textAlign: 'left' }}>
                       <span style={{ fontSize: '1.2rem' }}>{s.icon}</span>
-                      <div>
-                        <div>{s.name.split(' (')[0]}</div>
-                        <div style={{ fontSize: '0.7rem', color: isSel ? '#ede9fe' : '#64748b' }}>
-                          {s.description || 'Специфический юмор и подача'}
-                        </div>
-                      </div>
+                      <div><div>{s.name.split(' (')[0]}</div><div style={{ fontSize: '0.7rem', color: isSel ? '#ede9fe' : '#64748b' }}>{s.description || 'Специфический юмор и подача'}</div></div>
                     </button>
                   )
                 })}
@@ -314,11 +234,11 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onOpenPackag
             </div>
 
             {feuilleton.summary && (
-              <details style={{ background: '#0b0f19', padding: '0.45rem 0.75rem', borderRadius: '6px', border: '1px solid #1e293b' }}>
-                <summary style={{ fontSize: '0.78rem', color: '#a78bfa', fontWeight: 600, cursor: 'pointer' }}>
-                  📰 Исходное сообщение (Telegram / Источник): {feuilleton.source || 'Источник'} ▾
+              <details open style={{ background: '#0b0f19', padding: '0.65rem 0.85rem', borderRadius: '6px', border: '1px solid #7c3aed', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
+                <summary style={{ fontSize: '0.82rem', color: '#c084fc', fontWeight: 700, cursor: 'pointer' }}>
+                  📰 ИСХОДНАЯ НОВОСТЬ ({feuilleton.source || 'Telegram / Источник'}): <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 500 }}>({feuilleton.summary.split(/\s+/).filter(Boolean).length} слов)</span>
                 </summary>
-                <div style={{ fontSize: '0.82rem', color: '#cbd5e1', marginTop: '0.35rem', whiteSpace: 'pre-wrap', lineHeight: '1.45', maxHeight: '140px', overflowY: 'auto' }}>
+                <div style={{ fontSize: '0.86rem', color: '#f1f5f9', marginTop: '0.45rem', whiteSpace: 'pre-wrap', lineHeight: '1.55', maxHeight: '160px', overflowY: 'auto', background: '#030712', padding: '0.5rem 0.65rem', borderRadius: '6px' }}>
                   {feuilleton.summary}
                 </div>
               </details>

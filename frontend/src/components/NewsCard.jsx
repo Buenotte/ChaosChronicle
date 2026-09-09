@@ -185,11 +185,11 @@ export default function NewsCard({
           >
             🖼️ Фото {hasAnyArtifact && savedPkg?.photosCount ? `(${savedPkg.photosCount})` : ''}
           </button>
-          {onOpenOriginal && originalText ? (
+          {onOpenOriginal ? (
             <button
               type="button"
               className="copy-btn"
-              onClick={() => onOpenOriginal(article)}
+              onClick={() => onOpenOriginal({ ...article, matchingPkg: savedPkg || article.matchingPkg })}
               style={{
                 background: '#1e293b',
                 color: '#38bdf8',
