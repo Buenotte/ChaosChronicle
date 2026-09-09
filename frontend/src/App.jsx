@@ -204,7 +204,8 @@ export default function App() {
     const pkg = article.matchingPkg
     setCurrentFeuilleton({
       id: article.id, title: pkg?.title || article.title, originalTitle: pkg?.original_title || article.title,
-      summary: pkg?.summary || article.summary, source: pkg?.source || article.source,
+      summary: pkg?.summary || pkg?.original_news || article.original_news || article.summary || article.sourceText || '',
+      source: pkg?.source || article.source,
       url: article.url || article.link || pkg?.url || '',
       imageUrl: article.imageUrl || pkg?.coverUrl || pkg?.thumbnailUrl,
       images: article.images || pkg?.photoUrls || (article.imageUrl ? [article.imageUrl] : []),

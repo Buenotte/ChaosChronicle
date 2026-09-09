@@ -67,16 +67,27 @@ export const FEEDS = [
   { url: 'https://rss.dw.com/rdf/rss-ru-ukr', category: 'ukraina', source: 'DW Украина' },
 ];
 
-export function cleanText(text = '') {
-  return text
+export function cleanText(text = '', preserveNewlines = false) {
+  if (!text) return '';
+  const cleaned = text
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n\n')
     .replace(/<[^>]*>/g, '')
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/\s+/g, ' ')
-    .trim();
+    .replace(/&#39;/g, "'");
+
+  if (preserveNewlines) {
+    return cleaned
+      .replace(/\r\n/g, '\n')
+      .replace(/[ \t]+/g, ' ')
+      .replace(/\n\s*\n\s*\n+/g, '\n\n')
+      .trim();
+  }
+
+  return cleaned.replace(/\s+/g, ' ').trim();
 }
 
 export function extractImages(item) {
@@ -339,7 +350,8 @@ router.post('/api/news/custom', (req, res) => {
     const customArticle = {
       id: `custom-${Date.now()}`,
       title: cleanText(title.trim()),
-      summary: cleanText(summary.trim()),
+      summary: cleanText(summary.trim(), true),
+      original_news: cleanText(summary.trim(), true),
       source: source.trim() || 'Своя новость',
       category: category || 'absurd',
       link: link.trim() || '',

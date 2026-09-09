@@ -210,15 +210,22 @@ export default function CustomNewsModal({ isOpen, onClose, onNewsCreated }) {
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#e5e7eb', marginBottom: '0.3rem' }}>
-              📝 Текст / Контекст / Цитата со скриншота
-            </label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
+              <label style={{ fontSize: '0.82rem', fontWeight: 600, color: '#e5e7eb', margin: 0 }}>
+                📝 Полный текст новости (Telegram / Источник / Пост)
+              </label>
+              {summary && (
+                <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>
+                  {summary.split(/\s+/).filter(Boolean).length} слов · {summary.length} симв.
+                </span>
+              )}
+            </div>
             <textarea
-              rows={3}
-              placeholder="Текст новости со скриншота или ключевые факты..."
+              rows={7}
+              placeholder="Вставьте полный оригинальный текст из Telegram или контекст новости (абзацы и форматирование сохраняются полностью)..."
               value={summary}
               onChange={e => setSummary(e.target.value)}
-              style={{ width: '100%', background: '#1f2937', border: '1px solid #4b5563', borderRadius: '6px', color: '#fff', padding: '0.5rem 0.7rem', fontSize: '0.86rem', resize: 'vertical' }}
+              style={{ width: '100%', background: '#1f2937', border: '1px solid #4b5563', borderRadius: '6px', color: '#fff', padding: '0.6rem 0.75rem', fontSize: '0.86rem', resize: 'vertical', lineHeight: 1.5 }}
             />
           </div>
 
