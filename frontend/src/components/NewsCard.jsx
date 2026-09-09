@@ -1,7 +1,17 @@
 import { useState, useEffect } from 'react'
 import { CATEGORIES, CATEGORY_COLOR, timeAgo } from '../lib/utils'
 
-export default function NewsCard({ article, index, onGenerate, onOpenPhotos, isGenerating, isSavedPkg, savedPkg, onViewSavedPackage }) {
+export default function NewsCard({
+  article,
+  index,
+  onGenerate,
+  onOpenPhotos,
+  isGenerating,
+  isSavedPkg,
+  savedPkg,
+  onViewSavedPackage,
+  onOpenOriginal,
+}) {
   const [imgError, setImgError] = useState(false)
   const catColor = CATEGORY_COLOR[article.category] || '#6b7280'
 
@@ -24,8 +34,9 @@ export default function NewsCard({ article, index, onGenerate, onOpenPhotos, isG
     setImgError(false)
   }, [displayImage])
 
-  const cleanTitleForSearch = (article.original_title || article.title || savedPkg?.title || '').replace(/^[0-9T_-]+/, '').replace(/_/g, ' ')
-  const targetUrl = article.url || article.link || savedPkg?.url || savedPkg?.original_url || savedPkg?.link || `https://www.google.com/search?q=${encodeURIComponent(cleanTitleForSearch + ' ' + (article.source || ''))}`
+  const rawUrl = article.url || article.link || savedPkg?.url || savedPkg?.original_url || savedPkg?.link || ''
+  const hasWebUrl = typeof rawUrl === 'string' && (rawUrl.startsWith('http://') || rawUrl.startsWith('https://'))
+  const originalText = article.summary || article.original_news || article.originalNews || article.sourceText || savedPkg?.summary || savedPkg?.original_news || savedPkg?.originalNews || ''
 
   return (
     <article
@@ -68,9 +79,9 @@ export default function NewsCard({ article, index, onGenerate, onOpenPhotos, isG
           <span className="card-badge" style={{ background: catColor }}>
             {CATEGORIES.find(c => c.key === article.category)?.label || article.category}
           </span>
-          {targetUrl ? (
+          {hasWebUrl ? (
             <a
-              href={targetUrl}
+              href={rawUrl}
               target="_blank"
               rel="noopener noreferrer"
               title="Открыть оригинальную статью в новой вкладке"
@@ -79,7 +90,7 @@ export default function NewsCard({ article, index, onGenerate, onOpenPhotos, isG
               🔗 {article.source || 'Источник'} ↗
             </a>
           ) : (
-            <span className="card-source">{article.source}</span>
+            <span className="card-source">{article.source || 'Telegram'}</span>
           )}
           {article.isCustom && (
             <span style={{ background: '#7c3aed', color: '#fff', fontSize: '0.68rem', fontWeight: 700, padding: '0.12rem 0.45rem', borderRadius: '4px' }}>
@@ -95,12 +106,18 @@ export default function NewsCard({ article, index, onGenerate, onOpenPhotos, isG
         </div>
 
         <h2 className="card-title">
-          {targetUrl ? (
-            <a href={targetUrl} target="_blank" rel="noopener noreferrer" title="Открыть оригинальную статью">
+          {hasWebUrl ? (
+            <a href={rawUrl} target="_blank" rel="noopener noreferrer" title="Открыть оригинальную статью">
               {article.title}
             </a>
           ) : (
-            <span>{article.title}</span>
+            <span
+              onClick={() => onOpenOriginal ? onOpenOriginal(article) : (onGenerate && onGenerate(article))}
+              style={{ cursor: onOpenOriginal ? 'pointer' : 'default' }}
+              title={onOpenOriginal ? 'Нажмите, чтобы прочитать исходное сообщение' : undefined}
+            >
+              {article.title}
+            </span>
           )}
         </h2>
         {article.summary && (
@@ -168,9 +185,29 @@ export default function NewsCard({ article, index, onGenerate, onOpenPhotos, isG
           >
             🖼️ Фото {hasAnyArtifact && savedPkg?.photosCount ? `(${savedPkg.photosCount})` : ''}
           </button>
-          {targetUrl && (
+          {onOpenOriginal && originalText ? (
+            <button
+              type="button"
+              className="copy-btn"
+              onClick={() => onOpenOriginal(article)}
+              style={{
+                background: '#1e293b',
+                color: '#38bdf8',
+                border: '1px solid #334155',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '0.78rem',
+                fontWeight: 600,
+                padding: '0.4rem 0.5rem',
+              }}
+              title="Посмотреть оригинальный текст сообщения (Telegram / Источник)"
+            >
+              📰 Исходник
+            </button>
+          ) : hasWebUrl ? (
             <a
-              href={targetUrl}
+              href={rawUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="copy-btn"
@@ -190,7 +227,7 @@ export default function NewsCard({ article, index, onGenerate, onOpenPhotos, isG
             >
               🌐 Оригинал ↗
             </a>
-          )}
+          ) : null}
 
           <button
             className={`view-saved-btn ${hasAnyArtifact ? 'has-artifacts' : ''}`}

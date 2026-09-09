@@ -34,6 +34,7 @@ export default function App() {
   const [audioPackage, setAudioPackage] = useState(null)
   const [videoPackage, setVideoPackage] = useState(null)
   const [showCustomNewsModal, setShowCustomNewsModal] = useState(false)
+  const [originalTextArticle, setOriginalTextArticle] = useState(null)
 
   const handleCustomNewsCreated = (newArticle, autoOpenFeuilleton = false) => {
     setArticles(prev => [newArticle, ...prev])
@@ -333,6 +334,7 @@ export default function App() {
                   isSavedPkg={!!matchingSavedPkg}
                   savedPkg={matchingSavedPkg}
                   onViewSavedPackage={pkg => handleOpenSavedPackage(pkg)}
+                  onOpenOriginal={art => setOriginalTextArticle(art)}
                 />
               )
             })}
@@ -362,6 +364,9 @@ export default function App() {
           setShowCustomNewsModal={setShowCustomNewsModal}
           onCustomNewsCreated={handleCustomNewsCreated}
           onOpenPackage={handleOpenSavedPackage}
+          originalTextArticle={originalTextArticle}
+          setOriginalTextArticle={setOriginalTextArticle}
+          onGenerateFeuilleton={handleGenerate}
         />
       </ErrorBoundary>
 

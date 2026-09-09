@@ -4,6 +4,7 @@ import NewsScriptModal from '../NewsScriptModal'
 import NewsAudioModal from '../NewsAudioModal'
 import NewsPhotosModal from '../NewsPhotosModal'
 import CustomNewsModal from '../CustomNewsModal'
+import OriginalTextModal from '../OriginalTextModal'
 
 export default function NewsModalsContainer({
   currentFeuilleton,
@@ -25,6 +26,9 @@ export default function NewsModalsContainer({
   setShowCustomNewsModal,
   onCustomNewsCreated,
   onOpenPackage,
+  originalTextArticle,
+  setOriginalTextArticle,
+  onGenerateFeuilleton,
 }) {
   return (
     <>
@@ -76,6 +80,13 @@ export default function NewsModalsContainer({
         onClose={() => setPhotoTopic(null)}
         onSaved={fetchSavedPackages}
         onReload={() => handleFetchNewsPhotos(photoTopic, true)}
+      />
+
+      <OriginalTextModal
+        article={originalTextArticle}
+        isOpen={Boolean(originalTextArticle)}
+        onClose={() => setOriginalTextArticle(null)}
+        onGenerate={onGenerateFeuilleton}
       />
     </>
   )
