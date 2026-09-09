@@ -122,11 +122,14 @@ function getBadgeVector(style, w, h, seed = 0) {
     return `m ${skew} 0 l ${w} 0 l ${w - skew} ${h} l 0 ${h}`;
   }
   if (style === 'torn') {
-    const s = 10; let pts = [`m 0 4`];
-    for (let i = 1; i < s; i++) pts.push(`l ${Math.round((w * i) / s)} ${(i + seed) % 3 === 0 ? 0 : ((i + seed) % 2 === 0 ? 4 : 2)}`);
-    pts.push(`l ${w} 3 l ${w} ${h - 3}`);
-    for (let i = s - 1; i > 0; i--) pts.push(`l ${Math.round((w * i) / s)} ${h - ((i + seed) % 3 === 0 ? 4 : ((i + seed) % 2 === 0 ? 0 : 2))}`);
-    pts.push(`l 0 ${h - 3}`); return pts.join(' ');
+    const s = 14; let pts = [`m 0 6`];
+    const topY = [0, 8, 1, 10, 2, 9, 0, 11, 3, 8, 1, 10, 2, 7];
+    for (let i = 1; i <= s; i++) pts.push(`l ${Math.round((w * i) / s)} ${topY[(i + seed) % topY.length]}`);
+    pts.push(`l ${w - 18} ${Math.round(h * 0.24)} l ${w - 3} ${Math.round(h * 0.48)} l ${w - 22} ${Math.round(h * 0.72)} l ${w} ${h}`);
+    const botY = [0, 9, 2, 10, 1, 8, 3, 11, 0, 9, 2, 8, 1, 7];
+    for (let i = s - 1; i >= 0; i--) pts.push(`l ${Math.round((w * i) / s)} ${h - botY[(i + seed + 2) % botY.length]}`);
+    pts.push(`l 18 ${Math.round(h * 0.75)} l 3 ${Math.round(h * 0.5)} l 22 ${Math.round(h * 0.25)} l 0 6`);
+    return pts.join(' ');
   }
   if (style === 'tape') return `m 0 6 l 8 0 l ${w - 8} 0 l ${w} 6 l ${w - 4} ${h} l 4 ${h}`;
   const r = 8;
@@ -269,7 +272,7 @@ export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, optio
         const alphaHex = Math.max(0, Math.min(255, Math.round((1 - badgeOp / 100) * 255))).toString(16).padStart(2, '0').toUpperCase();
         const shadW = bShadow === 'hard' ? 8 : (bShadow === 'glow' ? 6 : (bShadow === 'none' ? 0 : 4));
         const shadCol = bShadow === 'glow' ? '&H0B9EF5&' : '&H000000&', shadAlpha = bShadow === 'none' ? 'FF' : alphaHex;
-        const borderTag = bStyle === 'dashed' ? '\\bord3\\3c&HFFFFFF&' : '\\bord0';
+        const borderTag = bStyle === 'dashed' ? '\\bord3\\3c&HFFFFFF&' : (bStyle === 'torn' ? '\\bord1.5\\3c&H40FFFFFF&' : '\\bord0');
 
         cleanLines.forEach((line, idx) => {
           const words = line.split(/\s+/).filter(Boolean);

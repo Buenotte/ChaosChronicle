@@ -240,10 +240,12 @@ export default function LiveThumbnailPreview({
             else if (sType === 'dashed') { innerStyle.borderRadius = '6px'; innerStyle.border = '2.5px dashed rgba(255,255,255,0.75)'; }
             else if (sType === 'tape') { innerStyle.borderRadius = '2px'; innerStyle.padding = '4px 22px'; innerStyle.borderLeft = '4px solid rgba(255,255,255,0.4)'; innerStyle.borderRight = '4px solid rgba(255,255,255,0.4)'; }
             else if (sType === 'torn') {
-              innerStyle.padding = '6px 20px'
+              innerStyle.padding = '6px 28px'
               innerStyle.clipPath = (idx % 2 === 0)
-                ? 'polygon(0% 3px, 5% 0px, 12% 4px, 20% 1px, 28% 4px, 38% 0px, 50% 3px, 62% 1px, 72% 4px, 85% 0px, 95% 3px, 100% 1px, 99% 100%, 92% calc(100% - 3px), 80% 100%, 68% calc(100% - 4px), 52% 100%, 36% calc(100% - 3px), 22% 100%, 10% calc(100% - 4px), 0% 100%)'
-                : 'polygon(0% 1px, 8% 4px, 18% 0px, 30% 3px, 44% 1px, 58% 4px, 70% 0px, 82% 3px, 92% 1px, 100% 4px, 99% calc(100% - 1px), 90% 100%, 78% calc(100% - 4px), 64% 100%, 48% calc(100% - 3px), 32% 100%, 16% calc(100% - 4px), 0% calc(100% - 2px))'
+                ? 'polygon(0% 6px, 6% 0px, 12% 9px, 19% 1px, 25% 10px, 32% 2px, 39% 9px, 46% 0px, 53% 11px, 60% 3px, 67% 9px, 74% 1px, 81% 10px, 88% 2px, 94% 8px, 100% 0px, calc(100% - 18px) 24%, calc(100% - 3px) 48%, calc(100% - 22px) 72%, 100% 100%, 94% calc(100% - 8px), 88% calc(100% - 1px), 81% calc(100% - 10px), 74% calc(100% - 2px), 67% calc(100% - 9px), 60% calc(100% - 0px), 53% calc(100% - 11px), 46% calc(100% - 2px), 39% calc(100% - 9px), 32% calc(100% - 1px), 25% calc(100% - 10px), 19% calc(100% - 3px), 12% calc(100% - 8px), 6% calc(100% - 1px), 0% calc(100% - 6px), 18px 75%, 3px 50%, 22px 25%, 0% 6px)'
+                : 'polygon(0% 9px, 6% 2px, 13% 10px, 20% 0px, 27% 8px, 34% 2px, 41% 11px, 48% 1px, 55% 9px, 62% 0px, 69% 10px, 76% 2px, 83% 8px, 90% 1px, 96% 10px, 100% 2px, calc(100% - 22px) 28%, calc(100% - 4px) 52%, calc(100% - 17px) 76%, 100% 98%, 95% calc(100% - 10px), 88% calc(100% - 2px), 81% calc(100% - 9px), 74% calc(100% - 1px), 67% calc(100% - 11px), 60% calc(100% - 3px), 53% calc(100% - 8px), 46% calc(100% - 0px), 39% calc(100% - 10px), 32% calc(100% - 2px), 25% calc(100% - 9px), 18% calc(100% - 0px), 12% calc(100% - 10px), 6% calc(100% - 2px), 0% calc(100% - 8px), 22px 72%, 4px 48%, 18px 24%, 0% 9px)'
+              innerStyle.background = `linear-gradient(135deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.02) 40%, rgba(0,0,0,0.18) 75%, rgba(0,0,0,0.35) 100%), ${bg}`
+              innerStyle.boxShadow = 'inset 0 0 8px rgba(0,0,0,0.6), inset 0 1px 1.5px rgba(255,255,255,0.25)'
             }
             return { outerStyle, innerStyle }
           }
