@@ -272,7 +272,7 @@ export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, optio
         const alphaHex = Math.max(0, Math.min(255, Math.round((1 - badgeOp / 100) * 255))).toString(16).padStart(2, '0').toUpperCase();
         const shadW = bShadow === 'hard' ? 8 : (bShadow === 'glow' ? 6 : (bShadow === 'none' ? 0 : 4));
         const shadCol = bShadow === 'glow' ? '&H0B9EF5&' : '&H000000&', shadAlpha = bShadow === 'none' ? 'FF' : alphaHex;
-        const borderTag = bStyle === 'dashed' ? '\\bord3\\3c&HFFFFFF&' : (bStyle === 'torn' ? '\\bord1.5\\3c&H40FFFFFF&' : '\\bord0');
+        const borderTag = bStyle === 'dashed' ? '\\bord3\\3c&HFFFFFF&' : '\\bord0';
 
         cleanLines.forEach((line, idx) => {
           const words = line.split(/\s+/).filter(Boolean);
