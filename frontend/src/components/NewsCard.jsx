@@ -195,22 +195,15 @@ export default function NewsCard({ article, index, onGenerate, onOpenPhotos, isG
           <button
             className={`view-saved-btn ${hasAnyArtifact ? 'has-artifacts' : ''}`}
             onClick={() => {
-              const pkgToView = savedPkg || {
-                title: article.title,
-                folderName: '(Пакет еще не сохранен в news/)',
-                source: article.source,
-                model: 'gemini',
-                date: article.pubDate,
-                photosCount: article.images ? article.images.length : (article.imageUrl ? 1 : 0),
-                photoUrls: article.images || (article.imageUrl ? [article.imageUrl] : []),
-                hasAudio: false,
-                scriptTxt: 'Нажмите «✍️ Фельетон» и «📦 Сохранить», чтобы создать script.txt',
+              if (savedPkg) {
+                onViewSavedPackage(savedPkg)
+              } else {
+                onGenerate(article)
               }
-              onViewSavedPackage(pkgToView)
             }}
-            title="Открыть готовый видео-пакет (Аудио, Фото, Сценарий)"
+            title={hasAnyArtifact ? "Открыть готовый видео-пакет (Аудио, Фото, Сценарий)" : "Сначала создайте фельетон и сохраните видео-пакет"}
           >
-            {hasAnyArtifact ? '📂 Видео-пакет ✅' : '📂 Видео-пакет'}
+            {hasAnyArtifact ? '📂 Видео-пакет ✅' : '📂 Создать пакет'}
           </button>
         </div>
       </div>

@@ -35,7 +35,7 @@ export function getDefaultThumbnailStyle() {
     lineFontSizes: null, fontColor: 'yellow', lineColors: null, wordColors: null, wordFontSizes: null,
     borderColor: 'black', borderWidth: 9,
     shadowDistance: 4, lineSpacing: 1.15, wordSpacing: 0, isItalic: false, tiltAngle: 0, position: 'center', offsetY: 50, offsetX: 50, textAlign: 'center',
-    hasBox: false, boxStyle: 'none', boxOpacity: 75,
+    hasBox: false, boxStyle: 'none', boxOpacity: 75, lineBadges: null,
   };
 }
 
@@ -122,36 +122,51 @@ export async function processSetThumbnail({
     }
   }
 
+  const customLines = (Array.isArray(headlineConfig?.customLines) && headlineConfig.customLines.length > 0)
+    ? headlineConfig.customLines.map(l => String(l).trim().toUpperCase()).filter(Boolean)
+    : (Array.isArray(savedStyle?.customLines) && savedStyle.customLines.length > 0
+        ? savedStyle.customLines.map(l => String(l).trim().toUpperCase()).filter(Boolean)
+        : (titleToRender && (titleToRender.includes('\n') || titleToRender.includes('\r'))
+            ? titleToRender.split(/\r?\n|\r/).map(l => l.trim().toUpperCase()).filter(Boolean)
+            : null));
+
+  if (customLines && customLines.length > 0) {
+    titleToRender = customLines.join('\n');
+  }
+
   const effectiveConfig = { ...savedStyle, ...(headlineConfig || {}) };
 
-  const styleData = {
-    text: titleToRender,
-    font: effectiveConfig.font || 'impact',
-    fontFamilyName: effectiveConfig.fontFamilyName || 'Impact, sans-serif',
-    fontSize: effectiveConfig.fontSize || 'auto',
-    customSizeNum: effectiveConfig.fontSize !== 'auto' && effectiveConfig.fontSize ? Number(effectiveConfig.fontSize) : (effectiveConfig.customSizeNum || 82),
-    lineFontSizes: Array.isArray(effectiveConfig.lineFontSizes) ? effectiveConfig.lineFontSizes : null,
-    fontColor: effectiveConfig.fontColor || 'yellow',
-    lineColors: Array.isArray(effectiveConfig.lineColors) ? effectiveConfig.lineColors : null,
-    wordColors: Array.isArray(effectiveConfig.wordColors) ? effectiveConfig.wordColors : null,
-    wordFontSizes: Array.isArray(effectiveConfig.wordFontSizes) ? effectiveConfig.wordFontSizes : null,
-    borderColor: effectiveConfig.borderColor || 'black',
-    borderWidth: effectiveConfig.borderWidth !== undefined ? Number(effectiveConfig.borderWidth) : 9,
-    shadowDistance: effectiveConfig.shadowDistance !== undefined ? Number(effectiveConfig.shadowDistance) : 4,
-    lineSpacing: effectiveConfig.lineSpacing !== undefined ? Number(effectiveConfig.lineSpacing) : 1.15,
-    wordSpacing: effectiveConfig.wordSpacing !== undefined ? Number(effectiveConfig.wordSpacing) : 0,
-    isItalic: !!effectiveConfig.isItalic,
-    tiltAngle: Number(effectiveConfig.tiltAngle) || 0,
-    position: effectiveConfig.position || 'center',
-    offsetY: effectiveConfig.offsetY !== undefined && effectiveConfig.offsetY !== null ? Number(effectiveConfig.offsetY) : 50,
-    offsetX: effectiveConfig.offsetX !== undefined && effectiveConfig.offsetX !== null ? Number(effectiveConfig.offsetX) : 50,
-    textAlign: effectiveConfig.textAlign || 'center',
-    hasBox: !!effectiveConfig.hasBox,
-    boxStyle: effectiveConfig.boxStyle || (effectiveConfig.hasBox ? 'dark_soft' : 'none'),
-    boxOpacity: effectiveConfig.boxOpacity !== undefined ? Number(effectiveConfig.boxOpacity) : 75,
-    photoUrl: photoUrl || effectiveConfig.photoUrl || null,
-    updatedAt: new Date().toISOString(),
-  };
+    const finalOp = effectiveConfig.lineBadges?.opacity !== undefined ? Number(effectiveConfig.lineBadges.opacity) : (effectiveConfig.boxOpacity !== undefined ? Number(effectiveConfig.boxOpacity) : 85);
+    const styleData = {
+      text: titleToRender,
+      customLines: customLines && customLines.length > 0 ? customLines : null,
+      font: effectiveConfig.font || 'impact',
+      fontFamilyName: effectiveConfig.fontFamilyName || 'Impact, sans-serif',
+      fontSize: effectiveConfig.fontSize || 'auto',
+      customSizeNum: effectiveConfig.fontSize !== 'auto' && effectiveConfig.fontSize ? Number(effectiveConfig.fontSize) : (effectiveConfig.customSizeNum || 82),
+      lineFontSizes: Array.isArray(effectiveConfig.lineFontSizes) ? effectiveConfig.lineFontSizes : null,
+      fontColor: effectiveConfig.fontColor || 'yellow',
+      lineColors: Array.isArray(effectiveConfig.lineColors) ? effectiveConfig.lineColors : null,
+      wordColors: Array.isArray(effectiveConfig.wordColors) ? effectiveConfig.wordColors : null,
+      wordFontSizes: Array.isArray(effectiveConfig.wordFontSizes) ? effectiveConfig.wordFontSizes : null,
+      borderColor: effectiveConfig.borderColor || 'black',
+      borderWidth: effectiveConfig.borderWidth !== undefined ? Number(effectiveConfig.borderWidth) : 9,
+      shadowDistance: effectiveConfig.shadowDistance !== undefined ? Number(effectiveConfig.shadowDistance) : 4,
+      lineSpacing: effectiveConfig.lineSpacing !== undefined ? Number(effectiveConfig.lineSpacing) : 1.15,
+      wordSpacing: effectiveConfig.wordSpacing !== undefined ? Number(effectiveConfig.wordSpacing) : 0,
+      isItalic: !!effectiveConfig.isItalic,
+      tiltAngle: Number(effectiveConfig.tiltAngle) || 0,
+      position: effectiveConfig.position || 'center',
+      offsetY: effectiveConfig.offsetY !== undefined && effectiveConfig.offsetY !== null ? Number(effectiveConfig.offsetY) : 50,
+      offsetX: effectiveConfig.offsetX !== undefined && effectiveConfig.offsetX !== null ? Number(effectiveConfig.offsetX) : 50,
+      textAlign: effectiveConfig.textAlign || 'center',
+      hasBox: (effectiveConfig.boxStyle === 'per_line' || effectiveConfig.lineBadges?.enabled) ? true : !!effectiveConfig.hasBox,
+      boxStyle: (effectiveConfig.boxStyle === 'per_line' || effectiveConfig.lineBadges?.enabled) ? 'per_line' : (effectiveConfig.boxStyle || (effectiveConfig.hasBox ? 'dark_soft' : 'none')),
+      boxOpacity: finalOp,
+      lineBadges: effectiveConfig.lineBadges ? { ...effectiveConfig.lineBadges, opacity: finalOp } : (effectiveConfig.boxStyle === 'per_line' ? { enabled: true, style: 'solid', shadow: 'soft', tiltMode: 'none', color: '#000000', opacity: finalOp } : null),
+      photoUrl: photoUrl || effectiveConfig.photoUrl || null,
+      updatedAt: new Date().toISOString(),
+    };
 
   // Funktion zum Speichern von style.json und project.json
   const saveStyleAndManifest = () => {
@@ -161,7 +176,7 @@ export async function processSetThumbnail({
       try {
         const manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
         manifest.thumbnail = 'thumbnail/thumbnail.jpg';
-        manifest.title = titleToRender;
+        manifest.title = customLines && customLines.length > 0 ? customLines.join(' ') : titleToRender;
         manifest.headlineConfig = styleData;
         manifest.thumbnail_updated_at = styleData.updatedAt;
         fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');

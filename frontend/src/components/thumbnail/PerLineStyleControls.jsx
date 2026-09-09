@@ -1,4 +1,4 @@
-﻿import { COLORS } from './TypographyStyleControls'
+import { COLORS } from './TypographyStyleControls'
 
 export default function PerLineStyleControls({
   previewLines = [],

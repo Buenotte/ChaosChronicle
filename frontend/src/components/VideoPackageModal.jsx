@@ -219,14 +219,8 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
     try { if (new URLSearchParams(window.location.search).get('modal') === 'thumbnail') setShowSettingsModal(true) } catch {}
   }, [])
 
-  const handleOpenSettings = () => {
-    setShowSettingsModal(true)
-    try { const url = new URL(window.location.href); url.searchParams.set('modal', 'thumbnail'); window.history.replaceState({}, '', url.toString()) } catch {}
-  }
-  const handleCloseSettings = () => {
-    setShowSettingsModal(false)
-    try { const url = new URL(window.location.href); url.searchParams.delete('modal'); window.history.replaceState({}, '', url.toString()) } catch {}
-  }
+  const handleOpenSettings = () => { setShowSettingsModal(true); try { const url = new URL(window.location.href); url.searchParams.set('modal', 'thumbnail'); window.history.replaceState({}, '', url.toString()) } catch {} }
+  const handleCloseSettings = () => { setShowSettingsModal(false); try { const url = new URL(window.location.href); url.searchParams.delete('modal'); window.history.replaceState({}, '', url.toString()) } catch {} }
 
   const handleDeletePackage = async () => {
     if (!window.confirm(`Вы уверены, что хотите удалить пакет "${pkg.title || pkg.folderName}"?`)) return
@@ -259,10 +253,12 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
           currentThumbnail={currentThumbnail}
           onClose={handleCloseSettings}
           onUpdated={(newUrl, newStyle) => {
-            setCurrentThumbnail(newUrl)
+            if (newUrl) setCurrentThumbnail(newUrl)
             if (newStyle) {
               pkg.headlineConfig = newStyle
-              if (newStyle.text) pkg.title = newStyle.text
+              pkg.thumbnailStyle = newStyle
+              if (newStyle.customLines) pkg.customLines = newStyle.customLines
+              if (newStyle.text) pkg.title = newStyle.text.replace(/\r?\n/g, ' ')
             }
             if (onRefresh) onRefresh()
           }}

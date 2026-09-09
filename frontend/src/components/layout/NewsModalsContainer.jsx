@@ -24,6 +24,7 @@ export default function NewsModalsContainer({
   showCustomNewsModal,
   setShowCustomNewsModal,
   onCustomNewsCreated,
+  onOpenPackage,
 }) {
   return (
     <>
@@ -36,6 +37,10 @@ export default function NewsModalsContainer({
         feuilleton={currentFeuilleton}
         onOpenPhotos={handleFetchNewsPhotos}
         onRefreshPackages={fetchSavedPackages}
+        onOpenPackage={(pkg) => {
+          setCurrentFeuilleton(null)
+          if (onOpenPackage) onOpenPackage(pkg)
+        }}
         onClose={() => {
           setCurrentFeuilleton(null)
           fetchSavedPackages()

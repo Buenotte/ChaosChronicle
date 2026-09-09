@@ -186,37 +186,30 @@ export default function App() {
   }
 
   const handleOpenSavedPackage = (pkg) => {
-    setActiveSavedPackage(pkg)
-    if (pkg?.folderName) {
-      updateUrlState(pkg.folderName)
-    }
+    if (!pkg) return
+    const folder = pkg.folderName
+    const found = (savedPackages || []).find(p => p.folderName === folder)
+    setActiveSavedPackage(found ? { ...pkg, ...found } : pkg)
+    if (folder) updateUrlState(folder)
   }
 
-  const handleCloseSavedPackage = () => {
-    setActiveSavedPackage(null)
-    updateUrlState(null)
-  }
+  const handleCloseSavedPackage = () => { setActiveSavedPackage(null); updateUrlState(null); }
 
   useEffect(() => {
-    checkStatus()
-    fetchNews(category)
-    fetchSavedPackages()
+    checkStatus(); fetchNews(category); fetchSavedPackages();
   }, [category, fetchNews, checkStatus, fetchSavedPackages])
 
   const handleGenerate = (article, customStyle = null) => {
+    const pkg = article.matchingPkg
     setCurrentFeuilleton({
-      id: article.id,
-      title: article.title,
-      originalTitle: article.title,
-      summary: article.summary,
-      source: article.source,
-      url: article.url || article.link || '',
-      imageUrl: article.imageUrl,
-      images: article.images || (article.imageUrl ? [article.imageUrl] : []),
-      text: '',
-      style: customStyle || selectedStyle,
-      modelName: selectedModel,
-      isDraft: true,
+      id: article.id, title: pkg?.title || article.title, originalTitle: pkg?.original_title || article.title,
+      summary: pkg?.summary || article.summary, source: pkg?.source || article.source,
+      url: article.url || article.link || pkg?.url || '',
+      imageUrl: article.imageUrl || pkg?.coverUrl || pkg?.thumbnailUrl,
+      images: article.images || pkg?.photoUrls || (article.imageUrl ? [article.imageUrl] : []),
+      text: pkg?.scriptTxt || '', style: customStyle || pkg?.style || selectedStyle,
+      modelName: pkg?.model || selectedModel, tone: pkg?.tone || 'grotesque',
+      isDraft: !pkg, matchingPkg: pkg, bundleDir: pkg?.bundleDir, folderName: pkg?.folderName,
     })
   }
 
@@ -368,6 +361,7 @@ export default function App() {
           showCustomNewsModal={showCustomNewsModal}
           setShowCustomNewsModal={setShowCustomNewsModal}
           onCustomNewsCreated={handleCustomNewsCreated}
+          onOpenPackage={handleOpenSavedPackage}
         />
       </ErrorBoundary>
 

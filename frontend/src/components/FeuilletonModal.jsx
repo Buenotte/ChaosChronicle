@@ -3,116 +3,92 @@ import { toast } from 'sonner'
 import { FEUILLETON_STYLES, AI_MODELS } from '../lib/utils'
 import ScriptHookGenerator from './script/ScriptHookGenerator'
 
-export default function FeuilletonModal({ feuilleton, onOpenPhotos, onClose, onRefreshPackages }) {
+export default function FeuilletonModal({ feuilleton, onOpenPhotos, onOpenPackage, onClose, onRefreshPackages }) {
   if (!feuilleton) return null
 
-  const [currentText, setCurrentText] = useState(feuilleton.text || '')
+  const [currentText, setCurrentText] = useState(feuilleton.text || feuilleton.scriptTxt || '')
   const [currentTitle, setCurrentTitle] = useState(feuilleton.title || '')
   const [selectedStyle, setSelectedStyle] = useState(feuilleton.style || feuilleton.scriptStyle || 'kasjanov')
   const [selectedModel, setSelectedModel] = useState(feuilleton.modelName || feuilleton.model || 'gemini')
-  const [selectedTone, setSelectedTone] = useState(feuilleton.tone || 'grotesque')
-  const [regenerating, setRegenerating] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [savedInfo, setSavedInfo] = useState(feuilleton.bundleDir ? feuilleton : null)
+  const [selectedTone, setSelectedTone] = useState(feuilleton.tone || 'grotesque'), [regenerating, setRegenerating] = useState(false), [saving, setSaving] = useState(false)
+  const [savedInfo, setSavedInfo] = useState(feuilleton.bundleDir || feuilleton.matchingPkg ? (feuilleton.matchingPkg || feuilleton) : null)
 
   useEffect(() => {
     if (feuilleton) {
-      setCurrentText(feuilleton.text || '')
+      setCurrentText(feuilleton.text || feuilleton.scriptTxt || '')
       setCurrentTitle(feuilleton.title || '')
       setSelectedStyle(feuilleton.style || feuilleton.scriptStyle || 'kasjanov')
       setSelectedModel(feuilleton.modelName || feuilleton.model || 'gemini')
       setSelectedTone(feuilleton.tone || 'grotesque')
-      setSavedInfo(feuilleton.bundleDir ? feuilleton : null)
+      setSavedInfo(feuilleton.bundleDir || feuilleton.matchingPkg ? (feuilleton.matchingPkg || feuilleton) : null)
     }
   }, [feuilleton])
+
+  const handleOpenSaved = () => {
+    const info = savedInfo || feuilleton.matchingPkg || feuilleton
+    if (onOpenPackage) {
+      onOpenPackage({
+        ...feuilleton,
+        ...(feuilleton.matchingPkg || {}),
+        ...(info || {}),
+        title: currentTitle || feuilleton.title,
+        folderName: info?.folderName || feuilleton.folderName || feuilleton.matchingPkg?.folderName,
+        bundleDir: info?.bundleDir || feuilleton.bundleDir || feuilleton.matchingPkg?.bundleDir,
+        scriptTxt: currentText,
+      })
+    }
+  }
 
   const words = currentText.split(/\s+/).filter(Boolean).length
   const minutes = Math.round((words / 140) * 10) / 10
 
   const handleRegenerateStyle = async (newStyle = selectedStyle, newModel = selectedModel, newTone = selectedTone) => {
-    setSelectedStyle(newStyle)
-    setSelectedModel(newModel)
-    setSelectedTone(newTone)
-    setRegenerating(true)
+    setSelectedStyle(newStyle); setSelectedModel(newModel); setSelectedTone(newTone); setRegenerating(true)
     const styleName = FEUILLETON_STYLES.find(s => s.id === newStyle)?.name || newStyle
     const modelName = AI_MODELS.find(m => m.id === newModel)?.name || newModel
-    const toneLabel = newTone === 'analytics' ? '🧠 Аналитика' : '💥 Сатира'
-    const toastId = toast.loading(`🔄 Генерация текста (${toneLabel})...`, {
-      description: `${modelName} | ${styleName}`,
-    })
+    const toastId = toast.loading(`🔄 Генерация текста (${newTone === 'analytics' ? '🧠 Аналитика' : '💥 Сатира'})...`, { description: `${modelName} | ${styleName}` })
 
     try {
       const res = await fetch('/api/generate-feuilleton', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: feuilleton.originalTitle || feuilleton.title,
-          summary: feuilleton.summary,
-          model: newModel,
-          style: newStyle,
-          tone: newTone,
-          source: feuilleton.source,
-          imageUrl: feuilleton.imageUrl,
-          images: feuilleton.images || [],
+          title: feuilleton.originalTitle || feuilleton.title, summary: feuilleton.summary, model: newModel,
+          style: newStyle, tone: newTone, source: feuilleton.source, imageUrl: feuilleton.imageUrl, images: feuilleton.images || [],
         }),
       })
-
       const data = await res.json()
       if (!res.ok || !data.success) throw new Error(data.error || 'Ошибка генерации')
-
       const fData = data.feuilleton || data
-      setCurrentText(fData.text || '')
-      setCurrentTitle(fData.title || currentTitle)
-      setSelectedStyle(newStyle)
-      setSelectedModel(newModel)
-      setSavedInfo(null)
+      setCurrentText(fData.text || ''); setCurrentTitle(fData.title || currentTitle); setSelectedStyle(newStyle); setSelectedModel(newModel); setSavedInfo(null)
       toast.success('✨ Новый вариант фельетона готов!', { id: toastId })
-    } catch (err) {
-      toast.error('Ошибка перегенерации', { id: toastId, description: err.message })
-    } finally {
-      setRegenerating(false)
-    }
+    } catch (err) { toast.error('Ошибка перегенерации', { id: toastId, description: err.message }) }
+    finally { setRegenerating(false) }
   }
 
   const handleSavePackage = async () => {
     setSaving(true)
-    const toastId = toast.loading('💾 Сохранение видео-пакета в news/...', {
-      description: 'Создание папки, сохранение фото, script.txt и project.json...',
-    })
-
+    const toastId = toast.loading('💾 Сохранение видео-пакета в news/...', { description: 'Создание папки, сохранение фото, script.txt и project.json...' })
     try {
       const res = await fetch('/api/save-news-package', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: currentTitle,
-          original_title: feuilleton.originalTitle || feuilleton.title || currentTitle,
-          url: feuilleton.url || feuilleton.link || '',
-          text: currentText,
-          model: selectedModel,
-          style: selectedStyle,
-          source: feuilleton.source,
-          imageUrl: feuilleton.imageUrl,
-          images: feuilleton.images || [],
-          folderName: savedInfo?.folderName,
+          title: currentTitle, original_title: feuilleton.originalTitle || feuilleton.title || currentTitle,
+          url: feuilleton.url || feuilleton.link || '', text: currentText, model: selectedModel,
+          style: selectedStyle, source: feuilleton.source, imageUrl: feuilleton.imageUrl,
+          images: feuilleton.images || [], folderName: savedInfo?.folderName,
         }),
       })
-
       const data = await res.json()
       if (!res.ok || !data.success) throw new Error(data.error || 'Ошибка сохранения')
-
-      setSavedInfo({ ...data, style: selectedStyle, model: selectedModel })
+      const newSaved = { ...feuilleton, ...(feuilleton.matchingPkg || {}), ...data, title: currentTitle, scriptTxt: currentText, style: selectedStyle, model: selectedModel, tone: selectedTone }
+      setSavedInfo(newSaved)
       if (onRefreshPackages) onRefreshPackages()
       toast.success('📦 Видео-пакет успешно сохранен!', {
-        id: toastId,
-        description: `Папка: news/${data.folderName} | Фото: ${data.savedPhotosCount || 0} шт.`,
-        duration: 8000,
+        id: toastId, description: `Папка: news/${data.folderName} | Фото: ${data.savedPhotosCount || 0} шт.`, duration: 6000,
+        action: onOpenPackage ? { label: '📂 Открыть пакет', onClick: () => onOpenPackage(newSaved) } : undefined
       })
-    } catch (err) {
-      toast.error('Ошибка сохранения пакета', { id: toastId, description: err.message })
-    } finally {
-      setSaving(false)
-    }
+    } catch (err) { toast.error('Ошибка сохранения пакета', { id: toastId, description: err.message }) }
+    finally { setSaving(false) }
   }
 
   return (
@@ -128,11 +104,18 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onClose, onR
               <span className="modal-badge" style={{ background: '#7c3aed', color: '#fff' }}>
                 🎭 3-Минутный Сатирический Фельетон
               </span>
-              {!currentText ? (
+              {savedInfo ? (
+                <button
+                  type="button" onClick={handleOpenSaved} title="Кликните, чтобы открыть видео-пакет"
+                  style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#34d399', border: '1px solid rgba(16, 185, 129, 0.4)', padding: '0.2rem 0.55rem', borderRadius: '4px', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  🟢 📦 Пакет news/{savedInfo.folderName ? savedInfo.folderName.slice(0, 24) + '...' : ''} (Открыть ↗)
+                </button>
+              ) : (!currentText ? (
                 <span style={{ fontSize: '0.78rem', color: '#38bdf8', background: 'rgba(56, 189, 248, 0.15)', padding: '0.2rem 0.5rem', borderRadius: '4px', border: '1px solid rgba(56, 189, 248, 0.3)' }}>
                   ⚙️ Настройка параметров генерации
                 </span>
-              ) : (!savedInfo && (
+              ) : (
                 <span style={{ fontSize: '0.78rem', color: '#f59e0b', background: 'rgba(245, 158, 11, 0.15)', padding: '0.2rem 0.5rem', borderRadius: '4px', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
                   ⚠️ Черновик (нажмите «Сохранить видео-пакет»)
                 </span>
@@ -347,11 +330,9 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onClose, onR
 
         <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
           {!currentText ? (
-            <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', width: '100%', justifyContent: 'space-between', flexWrap: 'wrap' }}>
               <button
-                type="button"
-                onClick={() => handleRegenerateStyle(selectedStyle, selectedModel, selectedTone)}
-                disabled={regenerating}
+                type="button" onClick={() => handleRegenerateStyle(selectedStyle, selectedModel, selectedTone)} disabled={regenerating}
                 style={{
                   background: selectedTone === 'analytics' ? 'linear-gradient(135deg, #1d4ed8 0%, #0284c7 100%)' : 'linear-gradient(135deg, #7c3aed 0%, #2563eb 100%)',
                   color: '#fff', border: 'none', borderRadius: '8px', padding: '0.65rem 1.4rem', fontSize: '0.95rem', fontWeight: 700,
@@ -360,14 +341,32 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onClose, onR
               >
                 {regenerating ? '⏳ ИИ пишет текст...' : (selectedTone === 'analytics' ? '🚀 Создать аналитику (3 мин)' : '🚀 Создать фельетон (3 мин)')}
               </button>
-              <button type="button" className="close-btn" onClick={onClose}>Закрыть</button>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                {savedInfo && onOpenPackage && (
+                  <button type="button" className="copy-btn" onClick={handleOpenSaved} style={{ background: '#10b981', fontWeight: 700, padding: '0.65rem 1.1rem' }}>
+                    📂 Открыть видео-пакет
+                  </button>
+                )}
+                <button type="button" className="close-btn" onClick={onClose}>Закрыть</button>
+              </div>
             </div>
           ) : (
             <>
-              <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
-                <button type="button" className="save-bundle-btn" onClick={handleSavePackage} disabled={saving} style={{ background: savedInfo ? 'linear-gradient(135deg, #059669 0%, #047857 100%)' : 'linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)', fontWeight: 700, padding: '0.65rem 1.25rem', fontSize: '0.92rem' }}>
-                  {saving ? '⏳ Сохранение...' : (savedInfo ? '✅ Видео-пакет сохранен в news/' : '💾 Сохранить видео-пакет в news/')}
-                </button>
+              <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                {savedInfo ? (
+                  <>
+                    <button type="button" className="save-bundle-btn" onClick={handleOpenSaved} style={{ background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', fontWeight: 700, padding: '0.65rem 1.25rem', fontSize: '0.92rem' }} title="Открыть видео-пакет (Аудио, Фото, Сценарий, Обложка)">
+                      📂 Открыть видео-пакет ✅
+                    </button>
+                    <button type="button" className="copy-btn" onClick={handleSavePackage} disabled={saving} style={{ background: '#374151', padding: '0.65rem 0.85rem', fontSize: '0.82rem' }} title="Пересохранить текст сценария на диск">
+                      {saving ? '⏳...' : '💾 Обновить'}
+                    </button>
+                  </>
+                ) : (
+                  <button type="button" className="save-bundle-btn" onClick={handleSavePackage} disabled={saving} style={{ background: 'linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)', fontWeight: 700, padding: '0.65rem 1.25rem', fontSize: '0.92rem' }}>
+                    {saving ? '⏳ Сохранение...' : '💾 Сохранить видео-пакет в news/'}
+                  </button>
+                )}
                 {onOpenPhotos && (
                   <button type="button" className="photos-header-btn" onClick={() => onOpenPhotos({ title: currentTitle, images: feuilleton.images, id: feuilleton.id })} style={{ padding: '0.65rem 1rem', fontSize: '0.88rem' }}>
                     🖼️ Фото к новости

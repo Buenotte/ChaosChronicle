@@ -98,9 +98,6 @@ export function formatTitleLines(russianTitle, inputLines = null) {
   if (!clean) return [];
 
   const words = clean.split(' ');
-  if (words.length <= 4) {
-    return words.map(w => w.trim().toUpperCase());
-  }
 
   let lines = [];
   let curLine = '';
@@ -117,6 +114,23 @@ export function formatTitleLines(russianTitle, inputLines = null) {
   }
   if (curLine && lines.length < 4) lines.push(curLine);
   return lines.map(l => l.trim().toUpperCase()).filter(Boolean);
+}
+
+function getBadgeVector(style, w, h, seed = 0) {
+  if (style === 'slanted') {
+    const skew = Math.min(28, Math.max(14, Math.round(h * 0.25)));
+    return `m ${skew} 0 l ${w} 0 l ${w - skew} ${h} l 0 ${h}`;
+  }
+  if (style === 'torn') {
+    const s = 10; let pts = [`m 0 4`];
+    for (let i = 1; i < s; i++) pts.push(`l ${Math.round((w * i) / s)} ${(i + seed) % 3 === 0 ? 0 : ((i + seed) % 2 === 0 ? 4 : 2)}`);
+    pts.push(`l ${w} 3 l ${w} ${h - 3}`);
+    for (let i = s - 1; i > 0; i--) pts.push(`l ${Math.round((w * i) / s)} ${h - ((i + seed) % 3 === 0 ? 4 : ((i + seed) % 2 === 0 ? 0 : 2))}`);
+    pts.push(`l 0 ${h - 3}`); return pts.join(' ');
+  }
+  if (style === 'tape') return `m 0 6 l 8 0 l ${w - 8} 0 l ${w} 6 l ${w - 4} ${h} l 4 ${h}`;
+  const r = 8;
+  return `m ${r} 0 l ${w - r} 0 l ${w} ${r} l ${w} ${h - r} l ${w - r} ${h} l ${r} ${h} l 0 ${h - r} l 0 ${r}`;
 }
 
 export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, options = {}) {
@@ -140,7 +154,7 @@ export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, optio
       customLines: inputLines = null,
     } = options;
 
-    const cleanLines = formatTitleLines(russianTitle, inputLines);
+    const cleanLines = formatTitleLines(russianTitle, inputLines || options.customLines);
     if (cleanLines.length === 0) return;
 
     // Auto-Fit Bounds: Berechne maximale Schriftgröße, damit Text NIEMALS über 1160px (1280px Canvas) hinausragt
@@ -205,19 +219,13 @@ export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, optio
       darkblue: '#0A1931', darkgreen: '#064E3B', darkpurple: '#3B0764',
     };
     const toFfmpegColor = (col) => (col && FFMPEG_COLOR_MAP[col]) ? FFMPEG_COLOR_MAP[col] : (col || '#FFE600');
-    const toAssColor = (col) => {
-      const hex = toFfmpegColor(col).replace('#', '').trim();
-      return hex.length === 6 ? `&H00${hex.slice(4, 6)}${hex.slice(2, 4)}${hex.slice(0, 2)}&` : '&H0000E6FF&';
-    };
+    const toAssColor = (col) => { const hex = toFfmpegColor(col).replace('#', '').trim(); return hex.length === 6 ? `&H00${hex.slice(4, 6)}${hex.slice(2, 4)}${hex.slice(0, 2)}&` : '&H0000E6FF&'; };
+    const toAssColor6 = (col) => { const hex = toFfmpegColor(col).replace('#', '').trim(); return hex.length === 6 ? `&H${hex.slice(4, 6)}${hex.slice(2, 4)}${hex.slice(0, 2)}&` : '&H000000&'; };
 
-    const colorVal = toFfmpegColor(fontColor || 'yellow');
-    const lineColorsList = Array.isArray(options.lineColors) ? options.lineColors : [];
-    const bColor = toFfmpegColor(borderColor || 'black');
-    const bWidth = Number(borderWidth) >= 0 ? Number(borderWidth) : 9;
-    const sDist = Number(shadowDistance) >= 0 ? Number(shadowDistance) : 4;
-    const sColor = shadowColor || 'black@0.92';
-    const rawOp = Number(options.boxOpacity);
-    const op = (!isNaN(rawOp) && rawOp >= 10 && rawOp <= 100) ? (rawOp / 100).toFixed(2) : '0.75';
+    const colorVal = toFfmpegColor(fontColor || 'yellow'), lineColorsList = Array.isArray(options.lineColors) ? options.lineColors : [];
+    const bColor = toFfmpegColor(borderColor || 'black'), bWidth = Number(borderWidth) >= 0 ? Number(borderWidth) : 9;
+    const sDist = Number(shadowDistance) >= 0 ? Number(shadowDistance) : 4, sColor = shadowColor || 'black@0.92';
+    const rawOp = Number(options.boxOpacity), op = (!isNaN(rawOp) && rawOp >= 10 && rawOp <= 100) ? (rawOp / 100).toFixed(2) : '0.75';
     const BOX_MAP = {
       none: ':box=0',
       dark_soft: `:box=1:boxcolor=black@${op}:boxborderw=20`,
@@ -237,9 +245,11 @@ export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, optio
       (Array.isArray(options.wordFontSizes) && options.wordFontSizes.length === totalWordsInLines && options.wordFontSizes.some(s => s && Number(s) > 0))
     );
 
+    const bCfg = options.lineBadges || {};
+    const isPerLineBadges = (chosenBox === 'per_line') || !!bCfg.enabled;
     const tempOut = path.join(path.dirname(imagePath), 'temp_rendered_thumb.jpg');
 
-    if (hasWordStyles) {
+    if (hasWordStyles || isPerLineBadges) {
       const fontNameMap = { impact: 'Impact', arialbd: 'Arial', segoeuib: 'Segoe UI', tahomabd: 'Tahoma', trebucbd: 'Trebuchet MS', verdanab: 'Verdana', georgiab: 'Georgia' };
       let assFontName = fontNameMap[font] || (font && getTtfFamilyName(font));
       if (!assFontName && options.fontFamilyName) {
@@ -251,39 +261,65 @@ export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, optio
       if (!assFontName) assFontName = 'Impact';
 
       const assOutlineCol = toAssColor(bColor);
-      let wordCounter = 0;
+      let wordCounter = 0, dialogues = [];
+      if (isPerLineBadges) {
+        const bStyle = bCfg.style || 'solid', bShadow = bCfg.shadow || 'soft';
+        const rawBadgeOp = Number(bCfg.opacity !== undefined ? bCfg.opacity : options.boxOpacity);
+        const badgeOp = (!isNaN(rawBadgeOp) && rawBadgeOp >= 5 && rawBadgeOp <= 100) ? rawBadgeOp : 85;
+        const alphaHex = Math.max(0, Math.min(255, Math.round((1 - badgeOp / 100) * 255))).toString(16).padStart(2, '0').toUpperCase();
+        const shadW = bShadow === 'hard' ? 8 : (bShadow === 'glow' ? 6 : (bShadow === 'none' ? 0 : 4));
+        const shadCol = bShadow === 'glow' ? '&H0B9EF5&' : '&H000000&', shadAlpha = bShadow === 'none' ? 'FF' : alphaHex;
+        const borderTag = bStyle === 'dashed' ? '\\bord3\\3c&HFFFFFF&' : '\\bord0';
 
-      const assLines = cleanLines.map((line, lIdx) => {
-        const words = line.split(/\s+/).filter(Boolean);
-        const lineBaseSz = (lineSizesList[lIdx] && Number(lineSizesList[lIdx]) > 0) ? Number(lineSizesList[lIdx]) : finalFontSize;
-        const lineCol = lineColorsList[lIdx] || colorVal;
-        return words.map(w => {
-          const curIdx = wordCounter++;
-          const wCol = (options.wordColors && options.wordColors[curIdx]) ? options.wordColors[curIdx] : lineCol;
-          const wSz = (options.wordFontSizes && options.wordFontSizes[curIdx] && Number(options.wordFontSizes[curIdx]) > 0)
-            ? Number(options.wordFontSizes[curIdx])
-            : lineBaseSz;
-          return `{\\c${toAssColor(wCol)}\\fs${wSz}}${w}`;
-        }).join(' '.repeat(1 + Math.max(0, Math.floor(Number(wordSpacing || options.wordSpacing || 0) / 10))));
-      });
+        cleanLines.forEach((line, idx) => {
+          const words = line.split(/\s+/).filter(Boolean);
+          const curLineY = startY + lineHeights.slice(0, idx).reduce((s, h) => s + h, 0);
+          const lineSz = (lineSizesList[idx] && Number(lineSizesList[idx]) > 0) ? Number(lineSizesList[idx]) : finalFontSize;
+          const lineH = Math.round(lineSz * 1.24);
+          const approxW = Math.min(1240, Math.round(line.length * lineSz * 0.65) + Math.round(lineSz * 0.8) + (bStyle === 'slanted' ? Math.round(lineH * 0.3) : 0));
+          const badgeX = options.textAlign === 'left' ? startX : (options.textAlign === 'right' ? Math.max(10, startX - approxW) : Math.max(10, Math.round(startX - approxW / 2)));
+          const badgeY = Math.max(10, Math.round(curLineY + (lineHeights[idx] - lineH) / 2));
+          const pivotX = Math.round(badgeX + approxW / 2), pivotY = Math.round(badgeY + lineH / 2);
+          const zAngles = [-2.0, 1.8, -1.6, 2.0];
+          const tiltOffset = (bCfg.tiltMode === 'zigzag') ? zAngles[idx % 4] : (bCfg.tiltMode === 'custom' && Array.isArray(bCfg.lineTilts) && bCfg.lineTilts[idx] !== undefined ? Number(bCfg.lineTilts[idx]) : 0);
+          const lAngle = -(numAngle + tiltOffset);
+          const bCol = (bCfg.perLineColorsEnabled && Array.isArray(bCfg.lineColors) && bCfg.lineColors[idx]) ? bCfg.lineColors[idx] : (bCfg.color || '#000000');
+          const poly = getBadgeVector(bStyle, approxW, lineH, idx);
+          dialogues.push(`Dialogue: 0,0:00:00.00,0:00:05.00,Badge,,0,0,0,,{\\an7\\pos(${badgeX},${badgeY})\\org(${pivotX},${pivotY})${lAngle !== 0 ? `\\frz${lAngle}` : ''}\\c${toAssColor6(bCol)}\\1a&H${alphaHex}&${borderTag}\\shad${shadW}\\4c${shadCol}\\4a&H${shadAlpha}&\\p1}${poly}{\\p0}`);
 
-      const alignNum = options.textAlign === 'left' ? 7 : (options.textAlign === 'right' ? 9 : 8);
-      const assDialogue = `{\\an${alignNum}\\pos(${startX},${startY})${numAngle !== 0 ? `\\frz${-numAngle}` : ''}}${assLines.join('\\N')}`;
-      const assContent = `[Script Info]\nScriptType: v4.00+\nPlayResX: 1280\nPlayResY: 720\n\n[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\nStyle: Title,${assFontName},${finalFontSize},&H0000E6FF,&H000000FF,${assOutlineCol},&H90000000,-1,${isItalic ? -1 : 0},0,0,100,100,0,0,1,${bWidth},${sDist},${alignNum},10,10,10,1\n\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\nDialogue: 0,0:00:00.00,0:00:05.00,Title,,0,0,0,,${assDialogue}\n`;
+          const lineCol = lineColorsList[idx] || colorVal;
+          const wordFrags = words.map(w => {
+            const curIdx = wordCounter++;
+            const wCol = (options.wordColors && options.wordColors[curIdx]) ? options.wordColors[curIdx] : lineCol;
+            const wSz = (options.wordFontSizes && options.wordFontSizes[curIdx] && Number(options.wordFontSizes[curIdx]) > 0) ? Number(options.wordFontSizes[curIdx]) : lineSz;
+            return `{\\c${toAssColor(wCol)}\\fs${wSz}}${w}`;
+          }).join(' '.repeat(1 + Math.max(0, Math.floor(Number(wordSpacing || options.wordSpacing || 0) / 10))));
+          const textX = options.textAlign === 'left' ? (badgeX + Math.round(lineSz * 0.4)) : (options.textAlign === 'right' ? (badgeX + approxW - Math.round(lineSz * 0.4)) : pivotX);
+          const textY = Math.round(badgeY + (lineH - lineSz) / 2);
+          const aNum = options.textAlign === 'left' ? 7 : (options.textAlign === 'right' ? 9 : 8);
+          dialogues.push(`Dialogue: 1,0:00:00.00,0:00:05.00,Title,,0,0,0,,{\\an${aNum}\\pos(${textX},${textY})\\org(${pivotX},${pivotY})${lAngle !== 0 ? `\\frz${lAngle}` : ''}\\fs${lineSz}}${wordFrags}`);
+        });
+      } else {
+        const assLines = cleanLines.map((line, lIdx) => {
+          const words = line.split(/\s+/).filter(Boolean);
+          const lineBaseSz = (lineSizesList[lIdx] && Number(lineSizesList[lIdx]) > 0) ? Number(lineSizesList[lIdx]) : finalFontSize;
+          const lineCol = lineColorsList[lIdx] || colorVal;
+          const wordFrags = words.map(w => {
+            const curIdx = wordCounter++;
+            const wCol = (options.wordColors && options.wordColors[curIdx]) ? options.wordColors[curIdx] : lineCol;
+            const wSz = (options.wordFontSizes && options.wordFontSizes[curIdx] && Number(options.wordFontSizes[curIdx]) > 0) ? Number(options.wordFontSizes[curIdx]) : lineBaseSz;
+            return `{\\c${toAssColor(wCol)}\\fs${wSz}}${w}`;
+          }).join(' '.repeat(1 + Math.max(0, Math.floor(Number(wordSpacing || options.wordSpacing || 0) / 10))));
+          return wordFrags;
+        });
+        const alignNum = options.textAlign === 'left' ? 7 : (options.textAlign === 'right' ? 9 : 8);
+        dialogues.push(`Dialogue: 0,0:00:00.00,0:00:05.00,Title,,0,0,0,,{\\q2\\an${alignNum}\\pos(${startX},${startY})${numAngle !== 0 ? `\\frz${-numAngle}` : ''}}${assLines.join('\\N')}`);
+      }
 
-      const BOX_COLOR_HEX_MAP = {
-        dark_soft: 'black',
-        dark_solid: 'black',
-        red_accent: '#dc2626',
-        yellow_highlight: '#f59e0b',
-        blue_cyber: '#0f172a',
-        purple_glass: '#3b0764',
-        per_line: 'black',
-      };
+      const BOX_COLOR_HEX_MAP = { dark_soft: 'black', dark_solid: 'black', red_accent: '#dc2626', yellow_highlight: '#f59e0b', blue_cyber: '#0f172a', purple_glass: '#3b0764' };
       const boxColor = BOX_COLOR_HEX_MAP[chosenBox] || 'black';
-      const drawBoxFilter = (chosenBox !== 'none' || hasBox)
-        ? `,drawbox=x=${Math.max(10, startX - 560)}:y=${Math.max(10, startY - 25)}:w=1120:h=${totalTextHeight + 50}:color=${boxColor}@${op}:t=fill`
-        : '';
+      const drawBoxFilter = (!isPerLineBadges && (chosenBox !== 'none' || hasBox)) ? `,drawbox=x=${Math.max(10, startX - 560)}:y=${Math.max(10, startY - 25)}:w=1120:h=${totalTextHeight + 50}:color=${boxColor}@${op}:t=fill` : '';
+      const assContent = `[Script Info]\nScriptType: v4.00+\nPlayResX: 1280\nPlayResY: 720\nWrapStyle: 2\n\n[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\nStyle: Badge,Impact,50,&H00000000,&H00000000,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,0,5,7,10,10,10,1\nStyle: Title,${assFontName},${finalFontSize},&H0000E6FF,&H000000FF,${assOutlineCol},&H90000000,-1,${isItalic ? -1 : 0},0,0,100,100,0,0,1,${bWidth},${sDist},${options.textAlign === 'left' ? 7 : (options.textAlign === 'right' ? 9 : 8)},10,10,10,1\n\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n${dialogues.join('\n')}\n`;
 
       const assTempFile = path.join(path.dirname(imagePath), `temp_thumb_${Date.now()}.ass`);
       fs.writeFileSync(assTempFile, assContent, 'utf-8');
@@ -311,8 +347,16 @@ export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, optio
           .replace(/:/g, '\\:')
           .replace(/%/g, '\\%');
         const yPos = startY + lineHeights.slice(0, idx).reduce((sum, h) => sum + h, 0);
+        let curLineBoxParam = boxParam;
+        if (isPerLineBadges) {
+          const badgeOp = (!isNaN(Number(bCfg.opacity)) && Number(bCfg.opacity) >= 10 && Number(bCfg.opacity) <= 100)
+            ? (Number(bCfg.opacity) / 100).toFixed(2) : op;
+          const bCol = (bCfg.perLineColorsEnabled && Array.isArray(bCfg.lineColors) && bCfg.lineColors[idx])
+            ? bCfg.lineColors[idx] : (bCfg.color || 'black');
+          curLineBoxParam = `:box=1:boxcolor=${bCol}@${badgeOp}:boxborderw=18`;
+        }
 
-        return `drawtext=fontfile='${safeFontPath}':text='${safeText}':fontsize=${lineSize}:fontcolor=${lineCol}:bordercolor=${bColor}:borderw=${bWidth}:shadowcolor=${sColor}:shadowx=${sDist}:shadowy=${sDist}${boxParam}:x=${xFormula}:y=${yPos}`;
+        return `drawtext=fontfile='${safeFontPath}':text='${safeText}':fontsize=${lineSize}:fontcolor=${lineCol}:bordercolor=${bColor}:borderw=${bWidth}:shadowcolor=${sColor}:shadowx=${sDist}:shadowy=${sDist}${curLineBoxParam}:x=${xFormula}:y=${yPos}`;
       });
 
       if (numAngle !== 0) {

@@ -13,38 +13,33 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
   const [text, setText] = useState(cfg.text || pkg?.title || pkg?.original_title || '')
   const [font, setFont] = useState(cfg.font || 'impact'), [fontFamilyName, setFontFamilyName] = useState(cfg.fontFamilyName || 'Impact, sans-serif')
   const [customFonts, setCustomFonts] = useState([]), [uploadingFont, setUploadingFont] = useState(false)
-  const [fontSize, setFontSize] = useState(cfg.fontSize || 'auto'), [customSizeNum, setCustomSizeNum] = useState(cfg.fontSize && cfg.fontSize !== 'auto' ? Number(cfg.fontSize) : 82)
-  const [isItalic, setIsItalic] = useState(!!cfg.isItalic), [tiltAngle, setTiltAngle] = useState(Number(cfg.tiltAngle) || 0)
-  const [lineSpacing, setLineSpacing] = useState(cfg.lineSpacing !== undefined ? Number(cfg.lineSpacing) : 1.15), [wordSpacing, setWordSpacing] = useState(cfg.wordSpacing !== undefined ? Number(cfg.wordSpacing) : 0)
-  const [fontColor, setFontColor] = useState(cfg.fontColor || 'yellow'), [borderColor, setBorderColor] = useState(cfg.borderColor || 'black')
-  const [lineColors, setLineColors] = useState(Array.isArray(cfg.lineColors) ? cfg.lineColors : null), [lineFontSizes, setLineFontSizes] = useState(Array.isArray(cfg.lineFontSizes) ? cfg.lineFontSizes : null)
-  const [wordColors, setWordColors] = useState(Array.isArray(cfg.wordColors) ? cfg.wordColors : null), [wordFontSizes, setWordFontSizes] = useState(Array.isArray(cfg.wordFontSizes) ? cfg.wordFontSizes : null)
-  const [borderWidth, setBorderWidth] = useState(cfg.borderWidth !== undefined ? Number(cfg.borderWidth) : 9), [shadowDistance, setShadowDistance] = useState(cfg.shadowDistance !== undefined ? Number(cfg.shadowDistance) : 4)
-  const [position, setPosition] = useState(cfg.position || 'center'), [textAlign, setTextAlign] = useState(cfg.textAlign || 'center')
-  const [offsetY, setOffsetY] = useState(cfg.offsetY !== undefined && cfg.offsetY !== null ? Number(cfg.offsetY) : 50)
-  const [offsetX, setOffsetX] = useState(cfg.offsetX !== undefined && cfg.offsetX !== null ? Number(cfg.offsetX) : 50)
-  const [hasBox, setHasBox] = useState(!!cfg.hasBox), [boxStyle, setBoxStyle] = useState(cfg.boxStyle || (cfg.hasBox ? 'dark_soft' : 'none')), [boxOpacity, setBoxOpacity] = useState(cfg.boxOpacity !== undefined ? Number(cfg.boxOpacity) : 75)
+  const [fontSize, setFontSize] = useState(cfg.fontSize || 'auto'), [customSizeNum, setCustomSizeNum] = useState(cfg.fontSize && cfg.fontSize !== 'auto' ? Number(cfg.fontSize) : 82), [isItalic, setIsItalic] = useState(!!cfg.isItalic), [tiltAngle, setTiltAngle] = useState(Number(cfg.tiltAngle) || 0)
+  const [lineSpacing, setLineSpacing] = useState(cfg.lineSpacing !== undefined ? Number(cfg.lineSpacing) : 1.15), [wordSpacing, setWordSpacing] = useState(cfg.wordSpacing !== undefined ? Number(cfg.wordSpacing) : 0), [fontColor, setFontColor] = useState(cfg.fontColor || 'yellow'), [borderColor, setBorderColor] = useState(cfg.borderColor || 'black')
+  const [lineColors, setLineColors] = useState(Array.isArray(cfg.lineColors) ? cfg.lineColors : null), [lineFontSizes, setLineFontSizes] = useState(Array.isArray(cfg.lineFontSizes) ? cfg.lineFontSizes : null), [wordColors, setWordColors] = useState(Array.isArray(cfg.wordColors) ? cfg.wordColors : null), [wordFontSizes, setWordFontSizes] = useState(Array.isArray(cfg.wordFontSizes) ? cfg.wordFontSizes : null)
+  const [borderWidth, setBorderWidth] = useState(cfg.borderWidth !== undefined ? Number(cfg.borderWidth) : 9), [shadowDistance, setShadowDistance] = useState(cfg.shadowDistance !== undefined ? Number(cfg.shadowDistance) : 4), [position, setPosition] = useState(cfg.position || 'center'), [textAlign, setTextAlign] = useState(cfg.textAlign || 'center')
+  const [offsetY, setOffsetY] = useState(cfg.offsetY !== undefined && cfg.offsetY !== null ? Number(cfg.offsetY) : 50), [offsetX, setOffsetX] = useState(cfg.offsetX !== undefined && cfg.offsetX !== null ? Number(cfg.offsetX) : 50)
+  const isInitBadges = cfg.boxStyle === 'per_line' || Boolean(cfg.lineBadges?.enabled), initOp = cfg.lineBadges?.opacity !== undefined ? Number(cfg.lineBadges.opacity) : (cfg.boxOpacity !== undefined ? Number(cfg.boxOpacity) : 85)
+  const [hasBox, setHasBox] = useState(isInitBadges ? true : !!cfg.hasBox), [boxStyle, setBoxStyle] = useState(isInitBadges ? 'per_line' : (cfg.boxStyle || (cfg.hasBox ? 'dark_soft' : 'none'))), [boxOpacity, setBoxOpacity] = useState(initOp)
+  const [lineBadges, setLineBadges] = useState(cfg.lineBadges ? { ...cfg.lineBadges, enabled: isInitBadges, opacity: initOp } : { enabled: isInitBadges, style: 'solid', shadow: 'soft', tiltMode: 'none', lineTilts: null, color: '#000000', lineColors: null, opacity: initOp })
   const [selectedBgPhoto, setSelectedBgPhoto] = useState(null), [saving, setSaving] = useState(false), [generatingTitle, setGeneratingTitle] = useState(false)
   const [realThumbnailUrl, setRealThumbnailUrl] = useState(null), [previewMode, setPreviewMode] = useState('css'), [renderingPreview, setRenderingPreview] = useState(false)
-  const [titleTone, setTitleTone] = useState(pkg?.style === 'analytics' || pkg?.tone === 'analytics' ? 'analytics' : 'satire')
-  const [titleVariants, setTitleVariants] = useState(Array.isArray(pkg.title_variants) ? pkg.title_variants : [])
-  const [loadingVariants, setLoadingVariants] = useState(false)
+  const [titleTone, setTitleTone] = useState(pkg?.style === 'analytics' || pkg?.tone === 'analytics' ? 'analytics' : 'satire'), [titleVariants, setTitleVariants] = useState(Array.isArray(pkg.title_variants) ? pkg.title_variants : []), [loadingVariants, setLoadingVariants] = useState(false)
 
-  const getHeadlineConfig = () => ({
-    text, font, fontFamilyName,
-    fontSize: fontSize === 'auto' ? 'auto' : Number(customSizeNum),
-    isItalic, tiltAngle: Number(tiltAngle) || 0, lineSpacing: Number(lineSpacing) || 1.15,
-    wordSpacing: Number(wordSpacing) || 0,
-    fontColor, lineColors: Array.isArray(lineColors) ? lineColors : null,
-    lineFontSizes: Array.isArray(lineFontSizes) ? lineFontSizes : null,
-    wordColors: Array.isArray(wordColors) ? wordColors : null,
-    wordFontSizes: Array.isArray(wordFontSizes) ? wordFontSizes : null,
-    borderColor, borderWidth: Number(borderWidth), shadowDistance: Number(shadowDistance),
-    position, offsetY: offsetY !== undefined && offsetY !== null ? Number(offsetY) : 50,
-    offsetX: offsetX !== undefined && offsetX !== null ? Number(offsetX) : 50,
-    textAlign: textAlign || 'center',
-    hasBox: boxStyle !== 'none', boxStyle, boxOpacity: Number(boxOpacity) || 75,
-  })
+  const getHeadlineConfig = () => {
+    const isBadgesOn = Boolean(lineBadges?.enabled || boxStyle === 'per_line'), finalBoxStyle = isBadgesOn ? 'per_line' : boxStyle
+    const finalOp = lineBadges?.opacity !== undefined ? Number(lineBadges.opacity) : (Number(boxOpacity) || 85)
+    return {
+      text, font, fontFamilyName, fontSize: fontSize === 'auto' ? 'auto' : Number(customSizeNum),
+      isItalic, tiltAngle: Number(tiltAngle) || 0, lineSpacing: Number(lineSpacing) || 1.15, wordSpacing: Number(wordSpacing) || 0,
+      fontColor, lineColors: Array.isArray(lineColors) ? lineColors : null, lineFontSizes: Array.isArray(lineFontSizes) ? lineFontSizes : null,
+      wordColors: Array.isArray(wordColors) ? wordColors : null, wordFontSizes: Array.isArray(wordFontSizes) ? wordFontSizes : null,
+      customLines: formatPreviewLines(text), borderColor, borderWidth: Number(borderWidth), shadowDistance: Number(shadowDistance),
+      position, offsetY: offsetY !== undefined && offsetY !== null ? Number(offsetY) : 50,
+      offsetX: offsetX !== undefined && offsetX !== null ? Number(offsetX) : 50, textAlign: textAlign || 'center',
+      hasBox: finalBoxStyle !== 'none', boxStyle: finalBoxStyle, boxOpacity: finalOp,
+      lineBadges: { ...(lineBadges || {}), enabled: isBadgesOn, opacity: finalOp },
+    }
+  }
 
   const handleInstantRealRender = async () => {
     try {
@@ -56,9 +51,7 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
       })
       const data = await res.json()
       if (data.success && data.thumbnailUrl) {
-        setRealThumbnailUrl(`${data.thumbnailUrl.split('?')[0]}?t=${Date.now()}`)
-        setPreviewMode('real')
-        toast.success('⚡ Реальный рендер готов!', { duration: 1200 })
+        setRealThumbnailUrl(`${data.thumbnailUrl.split('?')[0]}?t=${Date.now()}`); setPreviewMode('real'); toast.success('⚡ Реальный рендер готов!', { duration: 1200 })
       }
     } catch (err) { toast.error('Ошибка: ' + err.message) }
     finally { setRenderingPreview(false) }
@@ -78,25 +71,24 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
 
   const applyStyleObject = (c) => {
     if (!c) return
-    if (c.text) setText(c.text)
+    if (c.customLines && Array.isArray(c.customLines) && c.customLines.length > 0) setText(c.customLines.join('\n'))
+    else if (c.text) setText(c.text)
     if (c.font) { setFont(c.font); setFontFamilyName(c.fontFamilyName || resolveFontFamily(c.font, customFonts)); }
     if (c.fontSize !== undefined) { setFontSize(c.fontSize); if (c.fontSize !== 'auto') setCustomSizeNum(Number(c.fontSize)); }
-    if (c.fontColor) setFontColor(c.fontColor)
-    if (c.lineColors !== undefined) setLineColors(Array.isArray(c.lineColors) ? c.lineColors : null)
+    if (c.fontColor) setFontColor(c.fontColor); if (c.lineColors !== undefined) setLineColors(Array.isArray(c.lineColors) ? c.lineColors : null)
     const targetText = c.text || text || pkg?.title || ''
     const currentWords = targetText.replace(/[\r\n\t]/g, ' ').trim().split(/\s+/).filter(Boolean)
     if (c.wordColors !== undefined) setWordColors(Array.isArray(c.wordColors) && c.wordColors.length === currentWords.length ? c.wordColors : null)
     if (c.wordFontSizes !== undefined) setWordFontSizes(Array.isArray(c.wordFontSizes) && c.wordFontSizes.length === currentWords.length ? c.wordFontSizes : null)
     if (c.borderColor) setBorderColor(c.borderColor); if (c.borderWidth !== undefined) setBorderWidth(Number(c.borderWidth))
     if (c.shadowDistance !== undefined) setShadowDistance(Number(c.shadowDistance)); if (c.lineSpacing !== undefined) setLineSpacing(Number(c.lineSpacing)); if (c.wordSpacing !== undefined) setWordSpacing(Number(c.wordSpacing))
-    if (c.isItalic !== undefined) setIsItalic(Boolean(c.isItalic)); if (c.tiltAngle !== undefined) setTiltAngle(Number(c.tiltAngle))
-    if (c.position) setPosition(c.position)
+    if (c.isItalic !== undefined) setIsItalic(Boolean(c.isItalic)); if (c.tiltAngle !== undefined) setTiltAngle(Number(c.tiltAngle)); if (c.position) setPosition(c.position)
     if (c.offsetY !== undefined && c.offsetY !== null) setOffsetY(Number(c.offsetY))
-    else if (c.position === 'top') setOffsetY(12); else if (c.position === 'bottom') setOffsetY(85); else if (c.position === 'center') setOffsetY(50)
-    setOffsetX(c.offsetX !== undefined && c.offsetX !== null ? Number(c.offsetX) : 50)
-    if (c.textAlign) setTextAlign(c.textAlign)
-    if (c.hasBox !== undefined) setHasBox(Boolean(c.hasBox)); if (c.boxStyle !== undefined) setBoxStyle(c.boxStyle); else if (c.hasBox) setBoxStyle('dark_soft')
-    if (c.boxOpacity !== undefined) setBoxOpacity(Number(c.boxOpacity)); if (c.photoUrl) setSelectedBgPhoto(c.photoUrl)
+    else if (c.position === 'top') setOffsetY(12); else if (c.position === 'bottom') setOffsetY(85); else if (c.position === 'center') setOffsetY(50); setOffsetX(c.offsetX !== undefined && c.offsetX !== null ? Number(c.offsetX) : 50); if (c.textAlign) setTextAlign(c.textAlign)
+    const isBadges = c.boxStyle === 'per_line' || Boolean(c.lineBadges?.enabled), opVal = c.lineBadges?.opacity !== undefined ? Number(c.lineBadges.opacity) : (c.boxOpacity !== undefined ? Number(c.boxOpacity) : 85)
+    if (isBadges) { setBoxStyle('per_line'); setHasBox(true); setLineBadges(prev => ({ ...(prev || {}), ...(c.lineBadges || {}), enabled: true, opacity: opVal })) }
+    else { if (c.hasBox !== undefined) setHasBox(Boolean(c.hasBox)); if (c.boxStyle !== undefined) setBoxStyle(c.boxStyle); else if (c.hasBox) setBoxStyle('dark_soft'); if (c.lineBadges) setLineBadges(c.lineBadges) }
+    setBoxOpacity(opVal); if (c.photoUrl) setSelectedBgPhoto(c.photoUrl)
   }
 
   const fetchThumbnailStyle = async () => {
@@ -118,12 +110,9 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
   const handleSaveAsDefault = async () => {
     try {
       const res = await fetch('/api/save-default-thumbnail-style', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(getHeadlineConfig()) })
-      const data = await res.json()
-      if (data.success) toast.success('⭐ Шаблон сохранен!')
-      else toast.error('Ошибка шаблона: ' + (data.error || ''))
+      const data = await res.json(); if (data.success) toast.success('⭐ Шаблон сохранен!'); else toast.error('Ошибка шаблона: ' + (data.error || ''))
     } catch (err) { toast.error('Ошибка: ' + err.message) }
   }
-
   const handleResetToDefault = async () => {
     try {
       const res = await fetch('/api/default-thumbnail-style'), data = await res.json()
@@ -176,8 +165,7 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
       const res = await fetch('/api/delete-font', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fontId }) })
       const data = await res.json()
       if (data.success) {
-        toast.success(`🗑️ Шрифт "${fontName}" удален`)
-        setCustomFonts(prev => prev.filter(f => f.id !== fontId))
+        toast.success(`🗑️ Шрифт "${fontName}" удален`); setCustomFonts(prev => prev.filter(f => f.id !== fontId))
         if (font === fontId) { setFont('impact'); setFontFamilyName('Impact, "Arial Black", sans-serif'); }
       }
     } catch (err) { toast.error('Ошибка: ' + err.message) }
@@ -190,8 +178,7 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: pkg.original_title || pkg.title || text, summary: pkg.summary || '', text: pkg.scriptTxt || pkg.text || '', tone: titleTone }),
       })
-      const data = await res.json()
-      if (data.success && data.title) { setText(data.title); toast.success(`⚡ Заголовок создан: "${data.title}"`); }
+      const data = await res.json(); if (data.success && data.title) { setText(data.title); toast.success(`⚡ Заголовок создан: "${data.title}"`); }
     } catch (e) { toast.error('Ошибка генерации: ' + e.message) }
     finally { setGeneratingTitle(false) }
   }
@@ -226,8 +213,13 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
       const data = await res.json()
       toast.dismiss(toastId)
       if (data.success) {
+        if (data.thumbnailUrl) {
+          const freshThumb = `${data.thumbnailUrl.split('?')[0]}?t=${Date.now()}`
+          setRealThumbnailUrl(freshThumb)
+          if (onUpdated) onUpdated(freshThumb, data.style)
+        } else if (onUpdated) onUpdated(null, data.style)
+        if (data.style) applyStyleObject(data.style)
         toast.success('✨ Обложка и стиль сохранены!')
-        if (onUpdated) onUpdated(`${data.thumbnailUrl.split('?')[0]}?t=${Date.now()}`, data.style)
       } else toast.error('Ошибка: ' + (data.error || 'Не удалось обновить'))
     } catch (err) { toast.dismiss(toastId); toast.error('Ошибка сохранения: ' + err.message) }
     finally { setSaving(false) }
@@ -241,7 +233,6 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
     }
     const words = str.replace(/[\r\n\t]/g, ' ').replace(/["'«»`]/g, '').trim().split(/\s+/).filter(Boolean)
     if (!words.length) return ['ЗАГОЛОВОК ОБЛОЖКИ']
-    if (words.length <= 4) return words.map(w => w.toUpperCase())
     let lines = [], cur = ''
     for (const w of words) {
       if ((cur + ' ' + w).trim().length <= 16) cur = (cur + ' ' + w).trim()
@@ -295,7 +286,7 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
                 fontFamilyName={fontFamilyName} calcLiveFontSize={calcLiveFontSize} lineSpacing={lineSpacing} wordSpacing={wordSpacing} lineColors={lineColors}
                 lineFontSizes={lineFontSizes} wordColors={wordColors} wordFontSizes={wordFontSizes} activeColorHex={activeColorHex}
                 borderWidth={borderWidth} activeStrokeHex={activeStrokeHex} shadowDistance={shadowDistance} hasBox={hasBox}
-                boxStyle={boxStyle} boxOpacity={boxOpacity} isItalic={isItalic} tiltAngle={tiltAngle} previewLines={previewLines}
+                boxStyle={boxStyle} boxOpacity={boxOpacity} lineBadges={lineBadges} isItalic={isItalic} tiltAngle={tiltAngle} previewLines={previewLines}
                 previewMode={previewMode} setPreviewMode={setPreviewMode} realThumbnailUrl={realThumbnailUrl}
                 onTriggerRealRender={handleInstantRealRender} renderingPreview={renderingPreview}
               />
@@ -377,6 +368,7 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
                 fontColor={fontColor} setFontColor={setFontColor} borderColor={borderColor} setBorderColor={setBorderColor}
                 borderWidth={borderWidth} setBorderWidth={setBorderWidth} shadowDistance={shadowDistance} setShadowDistance={setShadowDistance}
                 hasBox={hasBox} setHasBox={setHasBox} boxStyle={boxStyle} setBoxStyle={setBoxStyle} boxOpacity={boxOpacity} setBoxOpacity={setBoxOpacity}
+                lineBadges={lineBadges} setLineBadges={setLineBadges}
               />
             </div>
           </div>
@@ -386,15 +378,9 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
             <button className="copy-btn" disabled={saving} style={{ background: '#10b981', flex: 1, minWidth: '220px', padding: '0.75rem', fontSize: '0.95rem', fontWeight: 700 }} onClick={handleApply}>
               {saving ? '⏳ Сохранение...' : '💾 Применить и сохранить обложку'}
             </button>
-            <button type="button" className="copy-btn" style={{ background: '#8b5cf6', padding: '0.75rem 1rem', fontWeight: 600 }} onClick={handleSaveAsDefault} title="Сделать оформление шаблоном по умолчанию">
-              ⭐ Шаблон по умолчанию
-            </button>
-            <button type="button" className="copy-btn" style={{ background: '#3b82f6', padding: '0.75rem 0.9rem', fontWeight: 600 }} onClick={handleResetToDefault} title="Загрузить шаблон по умолчанию">
-              🔄 К шаблону
-            </button>
-            <button className="copy-btn" style={{ background: '#3f3f46', padding: '0.75rem 1.2rem', fontWeight: 600 }} onClick={onClose}>
-              ✕ Закрыть
-            </button>
+            <button type="button" className="copy-btn" style={{ background: '#8b5cf6', padding: '0.75rem 1rem', fontWeight: 600 }} onClick={handleSaveAsDefault} title="Сделать оформление шаблоном по умолчанию">⭐ Шаблон по умолчанию</button>
+            <button type="button" className="copy-btn" style={{ background: '#3b82f6', padding: '0.75rem 0.9rem', fontWeight: 600 }} onClick={handleResetToDefault} title="Загрузить шаблон по умолчанию">🔄 К шаблону</button>
+            <button className="copy-btn" style={{ background: '#3f3f46', padding: '0.75rem 1.2rem', fontWeight: 600 }} onClick={onClose}>✕ Закрыть</button>
           </div>
         </div>
       </div>

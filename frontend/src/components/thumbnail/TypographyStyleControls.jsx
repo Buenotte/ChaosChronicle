@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import PerLineStyleControls from './PerLineStyleControls'
 import PerWordStyleControls from './PerWordStyleControls'
+import LineBadgeControls from './LineBadgeControls'
 
 export const COLORS = [
   { id: 'yellow', hex: '#FFE600', label: 'Желтый' },
@@ -40,6 +41,7 @@ export default function TypographyStyleControls({
   position, setPosition, offsetY = 50, setOffsetY = null, offsetX = 50, setOffsetX = null,
   textAlign = 'center', setTextAlign = null,
   hasBox, setHasBox, boxStyle = 'none', setBoxStyle, boxOpacity = 75, setBoxOpacity,
+  lineBadges = null, setLineBadges = null,
 }) {
   const [customMode, setCustomMode] = useState('words')
 
@@ -270,21 +272,45 @@ export default function TypographyStyleControls({
             {BOX_STYLES.map(bs => {
               const isCur = (boxStyle === bs.id) || (!boxStyle && bs.id === 'none' && !hasBox) || (hasBox && bs.id === 'dark_soft' && !boxStyle)
               return (
-                <button key={bs.id} type="button" onClick={() => { if (setBoxStyle) setBoxStyle(bs.id); if (setHasBox) setHasBox(bs.id !== 'none'); }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.35rem 0.2rem', borderRadius: '6px', fontSize: '0.68rem', fontWeight: isCur ? 700 : 400, background: isCur ? '#27272a' : '#09090b', border: isCur ? `2px solid ${bs.border || '#3b82f6'}` : '1px solid #27272a', color: isCur ? '#fff' : '#a1a1aa', cursor: 'pointer' }}>
+                <button
+                  key={bs.id}
+                  type="button"
+                  onClick={() => {
+                    if (setBoxStyle) setBoxStyle(bs.id);
+                    if (setHasBox) setHasBox(bs.id !== 'none');
+                    if (setLineBadges) {
+                      if (bs.id === 'per_line') setLineBadges(prev => ({ ...(prev || {}), enabled: true }));
+                      else setLineBadges(prev => ({ ...(prev || {}), enabled: false }));
+                    }
+                  }}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.35rem 0.2rem', borderRadius: '6px', fontSize: '0.68rem', fontWeight: isCur ? 700 : 400, background: isCur ? '#27272a' : '#09090b', border: isCur ? `2px solid ${bs.border || '#3b82f6'}` : '1px solid #27272a', color: isCur ? '#fff' : '#a1a1aa', cursor: 'pointer' }}
+                >
                   {bs.label}
                 </button>
               )
             })}
           </div>
 
-          {/* Ползунок прозрачности плашки */}
-          {boxStyle !== 'none' && setBoxOpacity && (
+          {/* Ползунок прозрачности плашки (для цельной общей плашки) */}
+          {boxStyle !== 'none' && boxStyle !== 'per_line' && setBoxOpacity && (
             <div style={{ marginTop: '0.5rem', paddingTop: '0.4rem', borderTop: '1px solid #27272a', display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
               <span style={{ fontSize: '0.75rem', color: '#a1a1aa', minWidth: '95px' }}>Прозрачность: {boxOpacity}%</span>
               <input type="range" min="10" max="100" step="5" value={boxOpacity} onChange={e => setBoxOpacity(Number(e.target.value))} style={{ flex: 1, accentColor: '#38bdf8', cursor: 'pointer' }} />
             </div>
           )}
         </div>
+
+        {/* 🏷️ Построчные плашки с настраиваемыми CSS-эффектами */}
+        {(boxStyle === 'per_line' || lineBadges?.enabled) && setLineBadges && (
+          <LineBadgeControls
+            lineBadges={lineBadges}
+            setLineBadges={setLineBadges}
+            previewLines={previewLines}
+            setBoxStyle={setBoxStyle}
+            setHasBox={setHasBox}
+            setBoxOpacity={setBoxOpacity}
+          />
+        )}
       </div>
     </div>
   )

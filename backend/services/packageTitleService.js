@@ -249,10 +249,16 @@ export function updatePackageTitle(bundleDir, newTitle, updateThumbnail = true, 
         const preserveWords = titleOptions.wordColors || (wordCount === prevWordCount ? existingStyle.wordColors : null);
         const preserveWordSizes = titleOptions.wordFontSizes || (wordCount === prevWordCount ? existingStyle.wordFontSizes : null);
 
+        let preserveCustomLines = titleOptions.customLines;
+        if (!preserveCustomLines && wordCount === prevWordCount && existingStyle.customLines) {
+          preserveCustomLines = existingStyle.customLines;
+        }
+
         const mergedStyle = {
           ...existingStyle,
           ...titleOptions,
           text: cleanTitle,
+          customLines: preserveCustomLines || null,
           wordColors: preserveWords || null,
           wordFontSizes: preserveWordSizes || null,
         };
