@@ -206,10 +206,8 @@ export default function YouTubeMetadataModal({ pkg, onSaved, onClose }) {
                     key={s.id}
                     type="button"
                     onClick={() => {
-                      const nextTone = s.id === 'analytics' ? 'analytics' : selectedTone
                       setSelectedStyle(s.id)
-                      if (s.id === 'analytics') setSelectedTone('analytics')
-                      fetchMetadata(false, s.id, nextTone)
+                      fetchMetadata(false, s.id, selectedTone)
                     }}
                     className={`saved-status-badge ${selectedStyle === s.id ? 'active' : 'inactive'} clickable`}
                     style={{ fontSize: '0.75rem', padding: '0.2rem 0.55rem' }}

@@ -13,18 +13,18 @@ const MODELS = {
 };
 
 const STYLES = {
-  clickbait: { file: 'clickbait_style.txt', label: '🔥 Кликбейт & YouTube Топ (CTR 20%+)', focus: 'Ультра-вирусный темп, мощный шок-фактор, парадоксальные контрасты, хлесткие панчлайны и открытые петли интриги.' },
   golubuzki: { file: 'golubuzki_style.txt', label: '🎭 Алексей Голобуцкий', focus: 'Едкая сатира, смех как оружие, деконструкция официальной лжи врага и живой саркастический язык.' },
+  clickbait: { file: 'clickbait_style.txt', label: '🔥 Кликбейт & YouTube Топ (CTR 20%+)', focus: 'Ультра-вирусный темп, мощный шок-фактор, парадоксальные контрасты, хлесткие панчлайны и открытые петли интриги.' },
   kasjanov: { file: 'kasjanov_style.txt', label: '🪖 Юрий Касьянов', focus: 'Военно-инженерный реализм, аналитика без штампов, глубокий разбор ТТХ, логистики и тактики.' },
   klimovski: { file: 'klimovski_style.txt', label: '🔬 Юрий Климовский', focus: 'Клинический геополитический реализм, анатомия теневых решений Кремля, клановые интересы элит.' },
-  analytics: { file: 'analytics_style.txt', label: '🧠 Увлекательная Аналитика', focus: 'Факты, скрытые мотивы, расстановка сил и реальные последствия.' },
   gibrid: { file: 'gibrid_style.txt', label: '⚡ Гибридный стиль (3 в 1)', focus: 'Синтез сатиры Голобуцкого, военного реализма Касьянова и геополитической анатомии Климовского.' },
 };
 
 // ── Построитель промпта фельетона с выбором авторского стиля ──
 export function buildStyledFeuilletonPrompt(newsTitle, newsSummary = '', styleKey = 'golubuzki', tone = 'grotesque') {
   const scriptsDir = path.resolve(__dirname, '../../scripts');
-  const styleConfig = STYLES[styleKey] || STYLES.golubuzki;
+  const effectiveKey = styleKey === 'analytics' ? 'gibrid' : styleKey;
+  const styleConfig = STYLES[effectiveKey] || STYLES.golubuzki;
   const stylePath = path.join(scriptsDir, styleConfig.file);
   let styleGuide = '';
 
@@ -32,7 +32,7 @@ export function buildStyledFeuilletonPrompt(newsTitle, newsSummary = '', styleKe
     try { styleGuide = fs.readFileSync(stylePath, 'utf-8').slice(0, 2400); } catch {}
   }
 
-  const isAnalytics = tone === 'analytics' || styleKey === 'analytics';
+  const isAnalytics = tone === 'analytics';
   const roleName = isAnalytics ? 'глубокий военный и политический аналитик' : 'ведущий сатирический колумнист и аналитик';
   const textGenre = isAnalytics ? 'увлекательный 3-минутный аналитический обзор' : 'яркий 3-минутный фельетон';
   const hookRule = isAnalytics

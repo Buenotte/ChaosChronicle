@@ -193,13 +193,6 @@ export default function NewsCard({
           )}
 
           <button
-            className="generate-btn"
-            onClick={() => onGenerate(article)}
-            disabled={isGenerating}
-          >
-            {isGenerating ? '⏳ Создание...' : '✍️ Фельетон'}
-          </button>
-          <button
             className="photos-btn"
             onClick={() => onOpenPhotos(article)}
             title="Посмотреть фото к этой новости"

@@ -289,7 +289,6 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
                   <option value="clickbait">🔥 Кликбейт (YouTube)</option>
                   <option value="kasjanov">🪖 Касьянов (Военный)</option>
                   <option value="klimovski">🔬 Климовский (Геополитика)</option>
-                  <option value="analytics">🧠 Аналитика</option>
                   <option value="gibrid">⚡ Гибридный</option>
                 </select>
                 <button

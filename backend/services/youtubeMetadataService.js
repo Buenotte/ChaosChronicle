@@ -8,9 +8,8 @@ const newsDir = path.resolve(__dirname, '../../news');
 const scriptsDir = path.resolve(__dirname, '../../scripts');
 
 const STYLES = {
-  analytics: { file: 'analytics_style.txt', label: '🧠 Увлекательная Аналитика (Без гротеска)', focus: 'Глубокий разбор скрытых причин, расстановки сил, военных ТТХ и геополитики без клоунады и гротеска.' },
-  clickbait: { file: 'clickbait_style.txt', label: '🔥 Кликбейт & YouTube Топ (CTR 20%+)', focus: 'Ультра-вирусный темп, мощный шок-фактор, парадоксальные контрасты, хлесткие панчлайны и мемы.' },
   golubuzki: { file: 'golubuzki_style.txt', label: '🎭 Алексей Голобуцкий', focus: 'Едкая политическая сатира, смех как оружие, деконструкция официальной лжи врага, высмеивание паники в бункере.' },
+  clickbait: { file: 'clickbait_style.txt', label: '🔥 Кликбейт & YouTube Топ (CTR 20%+)', focus: 'Ультра-вирусный темп, мощный шок-фактор, парадоксальные контрасты, хлесткие панчлайны и мемы.' },
   kasjanov: { file: 'kasjanov_style.txt', label: '🪖 Юрий Касьянов', focus: 'Военно-инженерный реализм, акцент на ТТХ, дронах, логистике, точный расчет и уязвимости врага.' },
   klimovski: { file: 'klimovski_style.txt', label: '🔬 Юрий Климовский', focus: 'Клинический геополитический реализм, анатомия решений Кремля, клановые интересы элит.' },
   gibrid: { file: 'gibrid_style.txt', label: '⚡ Гибридный стиль (3 в 1)', focus: 'Синтез сатиры Голобуцкого, военного реализма Касьянова и геополитической анатомии Климовского.' },
@@ -107,7 +106,8 @@ export async function generateYouTubeMetadata({
     ? fs.readFileSync(path.join(bundleDir, 'script.txt'), 'utf-8') 
     : manifest.original_title || title);
 
-  const styleCfg = STYLES[style] || STYLES.golubuzki;
+  const effectiveStyle = (style === 'analytics') ? 'gibrid' : style;
+  const styleCfg = STYLES[effectiveStyle] || STYLES.golubuzki;
   let styleGuide = '';
   const stylePath = path.join(scriptsDir, styleCfg.file);
   if (fs.existsSync(stylePath)) {

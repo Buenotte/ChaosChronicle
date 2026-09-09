@@ -18,10 +18,6 @@ const TITLE_STYLES = {
     name: '🎭 Алексей Голобуцкий (Сатира & Сарказм)',
     desc: 'Едкий сарказм, язвительное высмеивание бункера, мемы («по плану», «бункерный дед», «аналоговнет», «отрицательный рост»).',
   },
-  analytics: {
-    name: '🧠 Увлекательная Аналитика',
-    desc: 'Серьезный геополитический и военно-стратегический анализ. Точный диагноз и цена событий.',
-  },
   kasjanov: {
     name: '🪖 Юрий Касьянов (Военный реализм)',
     desc: 'Военно-технический реализм, акцент на ТТХ, дроны, логистику, цену ошибок и точный расчет.',
@@ -76,7 +72,8 @@ export async function generateTitleVariants(title = '', summary = '', bundleDir 
   }
 
   try {
-    const selectedStyleConfig = TITLE_STYLES[style] || TITLE_STYLES.clickbait;
+    const effectiveStyle = (style === 'analytics') ? 'gibrid' : style;
+    const selectedStyleConfig = TITLE_STYLES[effectiveStyle] || TITLE_STYLES.clickbait;
     const isAnalytics = style === 'analytics';
     const systemPrompt = isAnalytics
       ? `Ты — ведущий YouTube-продюсер ChaosChronicle. Твой стиль: ${selectedStyleConfig.name}.
