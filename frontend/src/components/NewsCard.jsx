@@ -16,7 +16,9 @@ export default function NewsCard({
   const [imgError, setImgError] = useState(false)
   const catColor = CATEGORY_COLOR[article.category] || '#6b7280'
 
-  const hasAnyArtifact = isSavedPkg && (
+  const isSaved = Boolean(isSavedPkg || article.isSaved || savedPkg?.folderName || savedPkg?.bundleDir)
+
+  const hasAnyArtifact = isSaved && (
     savedPkg?.hasAnyArtifact ||
     savedPkg?.hasScriptTxt ||
     savedPkg?.hasScriptMd ||
@@ -27,7 +29,7 @@ export default function NewsCard({
   )
 
   // Wenn ein benutzerdefiniertes Thumbnail im Paket existiert, nimm DAS Thumbnail mit Priorität
-  const displayImage = (hasAnyArtifact && savedPkg?.thumbnailUrl)
+  const displayImage = (savedPkg?.thumbnailUrl)
     ? savedPkg.thumbnailUrl
     : (article.imageUrl || null)
 
@@ -41,7 +43,7 @@ export default function NewsCard({
 
   return (
     <article
-      className={`news-card ${hasAnyArtifact ? 'saved-news-card' : ''}`}
+      className={`news-card ${isSaved ? 'saved-news-card' : ''}`}
       style={{ '--cat-color': catColor, animationDelay: `${index * 30}ms` }}
     >
       {displayImage && !imgError && (
@@ -52,7 +54,7 @@ export default function NewsCard({
             onError={() => setImgError(true)}
             loading="lazy"
           />
-          {hasAnyArtifact && (
+          {isSaved && (
             <span
               style={{
                 position: 'absolute',
@@ -99,7 +101,7 @@ export default function NewsCard({
             </span>
           )}
           <span className="card-time">{timeAgo(article.pubDate)}</span>
-          {hasAnyArtifact && (
+          {isSaved && (
             <span className="saved-status-badge">
               🟢 📦 В news/
             </span>
@@ -172,10 +174,11 @@ export default function NewsCard({
         )}
 
         <div className="card-actions-grid">
-          {hasAnyArtifact ? (
+          {isSaved ? (
             <button
+              type="button"
               className="view-saved-btn has-artifacts"
-              onClick={() => onViewSavedPackage(savedPkg)}
+              onClick={() => onViewSavedPackage(savedPkg || article)}
               title="Открыть готовый видео-пакет (Аудио, Фото, Сценарий)"
             >
               📂 Видео-пакет ✅

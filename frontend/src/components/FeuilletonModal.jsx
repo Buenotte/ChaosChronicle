@@ -88,9 +88,9 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onOpenPackag
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: currentTitle, original_title: feuilleton.originalTitle || feuilleton.title || currentTitle,
-          url: feuilleton.url || feuilleton.link || '', text: currentText, model: selectedModel,
+          url: feuilleton.url || feuilleton.link || feuilleton.matchingPkg?.url || '', text: currentText, model: selectedModel,
           style: selectedStyle, source: feuilleton.source, imageUrl: feuilleton.imageUrl,
-          images: feuilleton.images || [], folderName: savedInfo?.folderName,
+          images: feuilleton.images || [], folderName: savedInfo?.folderName || feuilleton.folderName || feuilleton.matchingPkg?.folderName,
           summary: feuilleton.summary || feuilleton.originalNews || feuilleton.sourceText || '',
           original_news: feuilleton.summary || feuilleton.originalNews || feuilleton.sourceText || '',
         }),

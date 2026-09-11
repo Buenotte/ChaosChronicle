@@ -146,8 +146,8 @@ export default function App() {
 
   const handleOpenSavedPackage = (pkg) => {
     if (!pkg) return
-    const folder = pkg.folderName
-    const found = (savedPackages || []).find(p => p.folderName === folder)
+    const folder = pkg.folderName || pkg.matchingPkg?.folderName
+    const found = (savedPackages || []).find(p => p.folderName === folder || (folder && p.folderName?.includes(folder)))
     setActiveSavedPackage(found ? { ...pkg, ...found } : pkg)
     if (folder) updateUrlState(folder)
   }
@@ -166,6 +166,7 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: article.title,
+          folderName: article.folderName || article.matchingPkg?.folderName,
           url: article.url || article.link || '',
           source: article.source || 'RSS / Telegram',
           summary: article.summary || article.original_news || '',
