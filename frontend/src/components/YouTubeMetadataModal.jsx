@@ -14,6 +14,7 @@ export default function YouTubeMetadataModal({ pkg, onSaved, onClose }) {
   const [descModel, setDescModel] = useState('gemini')
   const [fbModel, setFbModel] = useState('gemini')
   const [sectionLoading, setSectionLoading] = useState(null)
+  const [metaKeywords, setMetaKeywords] = useState('')
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [tags, setTags] = useState('')
@@ -28,7 +29,7 @@ export default function YouTubeMetadataModal({ pkg, onSaved, onClose }) {
       const res = await fetch('/api/youtube-metadata', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ folderName: pkg.folderName, bundleDir: pkg.bundleDir, title: pkg.title, style: styleOverride, tone: toneOverride, force, section: 'all' }),
+        body: JSON.stringify({ folderName: pkg.folderName, bundleDir: pkg.bundleDir, title: pkg.title, style: styleOverride, tone: toneOverride, force, section: 'all', keywords: metaKeywords.trim() }),
       })
       const data = await res.json()
       if (data.success) {
@@ -58,7 +59,7 @@ export default function YouTubeMetadataModal({ pkg, onSaved, onClose }) {
       const res = await fetch('/api/youtube-metadata', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ folderName: pkg.folderName, bundleDir: pkg.bundleDir, title: pkg.title, style: selectedStyle, tone: selectedTone, force: true, section, model }),
+        body: JSON.stringify({ folderName: pkg.folderName, bundleDir: pkg.bundleDir, title: pkg.title, style: selectedStyle, tone: selectedTone, force: true, section, model, keywords: metaKeywords.trim() }),
       })
       const data = await res.json()
       if (data.success) {
@@ -264,7 +265,22 @@ export default function YouTubeMetadataModal({ pkg, onSaved, onClose }) {
           <button className="modal-close" onClick={e => { e.stopPropagation(); onClose(); }}>✕</button>
         </div>
 
-        <div className="modal-body" style={{ overflowY: 'auto', flex: 1, padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+        <div className="modal-body" style={{ overflowY: 'auto', flex: 1, padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {/* 🔤 Ключевые слова для акцентов */}
+          <div style={{ background: '#111827', padding: '0.65rem 0.9rem', borderRadius: '8px', border: '1px solid #1e3a8a', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.78rem', color: '#93c5fd', fontWeight: 700 }}>🔤 КЛЮЧЕВЫЕ СЛОВА ДЛЯ ЗАГОЛОВКА / ОПИСАНИЯ (ОПЦИОНАЛЬНО):</span>
+              <span style={{ fontSize: '0.7rem', color: '#9ca3af' }}>Обязательные слова для ИИ</span>
+            </div>
+            <input
+              type="text"
+              value={metaKeywords}
+              onChange={e => setMetaKeywords(e.target.value)}
+              placeholder="Например: дефолт, бункер, капуста, санкции, F-16..."
+              style={{ width: '100%', background: '#0a101f', border: '1px solid #2563eb', borderRadius: '6px', color: '#facc15', padding: '0.4rem 0.65rem', fontSize: '0.86rem', fontWeight: 600, outline: 'none' }}
+            />
+          </div>
+
           {/* 1. YouTube Заголовок */}
           <div style={{ background: '#181c27', padding: '0.85rem 1rem', borderRadius: '10px', border: '1px solid #232936' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem', flexWrap: 'wrap', gap: '0.4rem' }}>

@@ -32,7 +32,7 @@ const TITLE_STYLES = {
   },
 };
 
-export async function generateTitleVariants(title = '', summary = '', bundleDir = null, folderName = null, forceRegenerate = false, style = 'clickbait', text = '') {
+export async function generateTitleVariants(title = '', summary = '', bundleDir = null, folderName = null, forceRegenerate = false, style = 'clickbait', text = '', keywords = '') {
   let effectiveTitle = title;
   let existingVariants = [];
   let scriptContent = text || '';
@@ -62,7 +62,7 @@ export async function generateTitleVariants(title = '', summary = '', bundleDir 
     }
   }
 
-  if (!forceRegenerate && existingVariants.length > 0) {
+  if (!forceRegenerate && existingVariants.length > 0 && !keywords.trim()) {
     return {
       resolvedTitle: effectiveTitle,
       variants: existingVariants,
@@ -98,7 +98,10 @@ export async function generateTitleVariants(title = '', summary = '', bundleDir 
 5. ВЫВОД: РОВНО 10 строк, по одному заголовку на строку (капсом UPPERCASE).`;
 
     const contextBody = scriptContent ? `\n\nДЕТАЛИ ИЗ СЦЕНАРИЯ:\n"""\n${scriptContent.slice(0, 1200)}\n"""` : '';
-    const userPrompt = `НОВОСТЬ / ТЕМА:\n"${effectiveTitle}"${contextBody}\n\nСгенерируй 10 ${isAnalytics ? 'мощных аналитических' : 'хлестких'} заголовков из 4-5 слов для YouTube:`;
+    const kwInstruction = keywords && keywords.trim()
+      ? `\n\nОБЯЗАТЕЛЬНЫЕ КЛЮЧЕВЫЕ СЛОВА / АКЦЕНТЫ:\nОбязательно включи или обыграй в заголовках следующие слова/термины: "${keywords.trim()}".`
+      : '';
+    const userPrompt = `НОВОСТЬ / ТЕМА:\n"${effectiveTitle}"${contextBody}${kwInstruction}\n\nСгенерируй 10 ${isAnalytics ? 'мощных аналитических' : 'хлестких'} заголовков из 4-5 слов для YouTube:`;
 
   let rawLines = [];
   const geminiKey = process.env.GEMINI_API_KEY;
@@ -116,6 +119,7 @@ export async function generateTitleVariants(title = '', summary = '', bundleDir 
       });
       if (gRes.ok) {
         const d = await gRes.json();
+        const rawContent = d.candidates?.[0]?.content?.parts?.[0]?.text || '';
         const forbiddenTitleRegex = /\b(РАЗБИРАЕМ|АНАЛИЗИРУЕМ|РАЗБОР|ГЛУБОКАЯ АНАЛИТИКА|БЕЗ ГРОТЕСКА)\b/i;
         rawLines = rawContent.split('\n')
           .map(l => l.replace(/^[\d\s.\-•*]+/, '').replace(/["'«»`]/g, '').trim().toUpperCase())

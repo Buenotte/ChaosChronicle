@@ -70,6 +70,7 @@ export async function generateYouTubeMetadata({
   tone = 'grotesque',
   model = 'gemini',
   section = 'all',
+  keywords = '',
 }) {
   let bundleDir = inputBundleDir;
   if (!bundleDir && folderName) {
@@ -199,7 +200,10 @@ ${strictNegativeRule}`;
 }`;
   }
 
-  const userPrompt = `НОВОСТЬ: ${effectiveTitle}\nТЕКСТ:\n${effectiveText.slice(0, 1200)}`;
+  const kwInstruction = keywords && keywords.trim()
+    ? `\nОБЯЗАТЕЛЬНЫЕ КЛЮЧЕВЫЕ СЛОВА / АКЦЕНТЫ: Обязательно включи или обыграй в заголовке/описании следующие слова: "${keywords.trim()}".`
+    : '';
+  const userPrompt = `НОВОСТЬ: ${effectiveTitle}\nТЕКСТ:\n${effectiveText.slice(0, 1200)}${kwInstruction}`;
 
   try {
     const aiRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {

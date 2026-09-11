@@ -12,6 +12,7 @@ export default function TitleVariantsModal({ pkg, onClose, onTitleSaved }) {
   const [variants, setVariants] = useState(pkg.title_variants || [])
   const [selectedTitle, setSelectedTitle] = useState(pkg.title || '')
   const [originalNewsTitle, setOriginalNewsTitle] = useState(pkg.original_title || pkg.title || '')
+  const [titleKeywords, setTitleKeywords] = useState('')
   const [lineSpacing, setLineSpacing] = useState(pkg.headlineConfig?.lineSpacing || 1.15)
   const [lineColors, setLineColors] = useState(pkg.headlineConfig?.lineColors || null)
 
@@ -23,7 +24,16 @@ export default function TitleVariantsModal({ pkg, onClose, onTitleSaved }) {
       const res = await fetch('/api/generate-title-variants', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: effectiveTopic, summary: pkg.summary || '', text: pkg.scriptTxt || pkg.text || '', bundleDir: pkg.bundleDir, folderName: pkg.folderName, style: styleToUse, forceRegenerate: force }),
+        body: JSON.stringify({
+          title: effectiveTopic,
+          summary: pkg.summary || '',
+          text: pkg.scriptTxt || pkg.text || '',
+          bundleDir: pkg.bundleDir,
+          folderName: pkg.folderName,
+          style: styleToUse,
+          forceRegenerate: force,
+          keywords: titleKeywords.trim(),
+        }),
       })
       const data = await res.json()
       if (data.success && Array.isArray(data.variants) && data.variants.length > 0) {
@@ -110,36 +120,38 @@ export default function TitleVariantsModal({ pkg, onClose, onTitleSaved }) {
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
 
-        <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {/* Исходная тема для ИИ */}
-          <div style={{ background: '#18181b', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px solid #3b82f6' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-              <span style={{ fontSize: '0.75rem', color: '#93c5fd', fontWeight: 700 }}>
-                📰 ИСХОДНАЯ ТЕМА / КОНТЕКСТ ДЛЯ ГЕНЕРАЦИИ:
-              </span>
-              <span style={{ fontSize: '0.7rem', color: '#9ca3af' }}>
-                💡 Отредактируйте тему и нажмите «Сгенерировать новые 10»
-              </span>
+        <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+          {/* Исходная тема и ключевые слова для ИИ */}
+          <div style={{ background: '#18181b', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px solid #3b82f6', display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                <span style={{ fontSize: '0.75rem', color: '#93c5fd', fontWeight: 700 }}>📰 ИСХОДНАЯ ТЕМА / КОНТЕКСТ ДЛЯ ГЕНЕРАЦИИ:</span>
+                <span style={{ fontSize: '0.7rem', color: '#9ca3af' }}>💡 Нажмите Enter для генерации</span>
+              </div>
+              <input
+                type="text"
+                value={originalNewsTitle}
+                onChange={e => setOriginalNewsTitle(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') fetchVariants(true) }}
+                placeholder="Введите тему события для генерации заголовков..."
+                style={{ width: '100%', background: '#09090b', border: '1px solid #2563eb', borderRadius: '6px', padding: '0.45rem 0.65rem', color: '#fff', fontSize: '0.88rem', fontWeight: 600, outline: 'none', boxSizing: 'border-box' }}
+              />
             </div>
-            <input
-              type="text"
-              value={originalNewsTitle}
-              onChange={e => setOriginalNewsTitle(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') fetchVariants(true); }}
-              placeholder="Введите исходную тему или событие для генерации заголовков..."
-              style={{
-                width: '100%',
-                background: '#09090b',
-                border: '1px solid #2563eb',
-                borderRadius: '6px',
-                padding: '0.45rem 0.65rem',
-                color: '#fff',
-                fontSize: '0.9rem',
-                fontWeight: 600,
-                outline: 'none',
-                boxSizing: 'border-box',
-              }}
-            />
+
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                <span style={{ fontSize: '0.75rem', color: '#38bdf8', fontWeight: 700 }}>🔤 ОБЯЗАТЕЛЬНЫЕ СЛОВА / АКЦЕНТЫ (ОПЦИОНАЛЬНО):</span>
+                <span style={{ fontSize: '0.7rem', color: '#9ca3af' }}>Слова, которые ИИ обязан включить в заголовок</span>
+              </div>
+              <input
+                type="text"
+                value={titleKeywords}
+                onChange={e => setTitleKeywords(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') fetchVariants(true) }}
+                placeholder="Например: дефолт, бункер, капуста, санкции, F-16..."
+                style={{ width: '100%', background: '#09090b', border: '1px solid #0284c7', borderRadius: '6px', padding: '0.45rem 0.65rem', color: '#facc15', fontSize: '0.86rem', fontWeight: 600, outline: 'none', boxSizing: 'border-box' }}
+              />
+            </div>
           </div>
 
           {/* Панель выбора авторского стиля */}
@@ -252,36 +264,18 @@ export default function TitleVariantsModal({ pkg, onClose, onTitleSaved }) {
             </div>
 
             {/* ↕️ Настройка межстрочного интервала */}
-            <div style={{ background: '#131b2e', padding: '0.6rem 0.85rem', borderRadius: '8px', border: '1px solid #1e3a8a' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
-                <label style={{ fontSize: '0.84rem', color: '#93c5fd', fontWeight: 700 }}>
-                  ↕️ Межстрочный интервал на обложке: {Number(lineSpacing).toFixed(2)}x
-                </label>
+            <div style={{ background: '#131b2e', padding: '0.5rem 0.85rem', borderRadius: '8px', border: '1px solid #1e3a8a' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
+                <label style={{ fontSize: '0.84rem', color: '#93c5fd', fontWeight: 700 }}>↕️ Межстрочный интервал: {Number(lineSpacing).toFixed(2)}x</label>
                 {Number(lineSpacing) !== 1.15 && (
-                  <button
-                    type="button"
-                    onClick={() => setLineSpacing(1.15)}
-                    style={{ background: 'none', border: 'none', color: '#38bdf8', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline' }}
-                  >
-                    Сброс (1.15x)
-                  </button>
+                  <button type="button" onClick={() => setLineSpacing(1.15)} style={{ background: 'none', border: 'none', color: '#38bdf8', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline' }}>Сброс (1.15x)</button>
                 )}
               </div>
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.72rem', color: '#71717a' }}>0.7x (плотно)</span>
-                <input
-                  type="range"
-                  min="0.70"
-                  max="1.70"
-                  step="0.05"
-                  value={lineSpacing}
-                  onChange={e => setLineSpacing(Number(e.target.value))}
-                  style={{ flex: 1, accentColor: '#38bdf8', cursor: 'pointer' }}
-                />
-                <span style={{ fontSize: '0.85rem', color: '#38bdf8', minWidth: '45px', textAlign: 'right', fontWeight: 700 }}>
-                  {Number(lineSpacing).toFixed(2)}x
-                </span>
-                <span style={{ fontSize: '0.72rem', color: '#71717a' }}>1.7x (свободно)</span>
+                <span style={{ fontSize: '0.72rem', color: '#71717a' }}>0.7x</span>
+                <input type="range" min="0.70" max="1.70" step="0.05" value={lineSpacing} onChange={e => setLineSpacing(Number(e.target.value))} style={{ flex: 1, accentColor: '#38bdf8', cursor: 'pointer' }} />
+                <span style={{ fontSize: '0.85rem', color: '#38bdf8', minWidth: '40px', textAlign: 'right', fontWeight: 700 }}>{Number(lineSpacing).toFixed(2)}x</span>
+                <span style={{ fontSize: '0.72rem', color: '#71717a' }}>1.7x</span>
               </div>
             </div>
 
@@ -297,61 +291,27 @@ export default function TitleVariantsModal({ pkg, onClose, onTitleSaved }) {
               if (lines.length <= 1) return null
 
               return (
-                <div style={{ background: '#18181b', padding: '0.6rem 0.85rem', borderRadius: '8px', border: '1px solid #27272a', display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                <div style={{ background: '#18181b', padding: '0.55rem 0.85rem', borderRadius: '8px', border: '1px solid #27272a', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <label style={{ fontSize: '0.8rem', color: '#f472b6', fontWeight: 700 }}>
-                      🌈 Цвет для каждой строки заголовка:
-                    </label>
+                    <label style={{ fontSize: '0.8rem', color: '#f472b6', fontWeight: 700 }}>🌈 Цвет строк:</label>
                     {lineColors && (
-                      <button
-                        type="button"
-                        onClick={() => setLineColors(null)}
-                        style={{ background: 'none', border: 'none', color: '#38bdf8', fontSize: '0.72rem', cursor: 'pointer', textDecoration: 'underline' }}
-                      >
-                        Сбросить цвета
-                      </button>
+                      <button type="button" onClick={() => setLineColors(null)} style={{ background: 'none', border: 'none', color: '#38bdf8', fontSize: '0.72rem', cursor: 'pointer', textDecoration: 'underline' }}>Сбросить</button>
                     )}
                   </div>
                   {lines.map((lText, lIdx) => {
                     const activeCol = (lineColors && lineColors[lIdx]) ? lineColors[lIdx] : (lIdx === 0 ? 'yellow' : 'white')
                     const curHex = activeCol?.startsWith('#') ? activeCol : (COLORS.find(c => c.id === activeCol)?.hex || '#FFE600')
                     return (
-                      <div key={lIdx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#09090b', padding: '0.3rem 0.5rem', borderRadius: '6px', gap: '0.4rem' }}>
-                        <span style={{ fontSize: '0.78rem', color: '#f4f4f5', fontWeight: 700, maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {lIdx + 1}. {lText}
-                        </span>
+                      <div key={lIdx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#09090b', padding: '0.25rem 0.5rem', borderRadius: '6px', gap: '0.4rem' }}>
+                        <span style={{ fontSize: '0.78rem', color: '#f4f4f5', fontWeight: 700, maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lIdx + 1}. {lText}</span>
                         <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
                           {COLORS.map(c => {
                             const isCur = activeCol === c.id || activeCol === c.hex
                             return (
-                              <button
-                                key={c.id}
-                                type="button"
-                                onClick={() => {
-                                  const newArr = [...(lineColors || lines.map((_, i) => i === 0 ? 'yellow' : 'white'))]
-                                  newArr[lIdx] = c.id
-                                  setLineColors(newArr)
-                                }}
-                                title={`Строка ${lIdx + 1}: ${c.label}`}
-                                style={{
-                                  width: '16px', height: '16px', borderRadius: '50%', background: c.hex,
-                                  border: isCur ? '2px solid #ffffff' : '1px solid #000', cursor: 'pointer',
-                                  transform: isCur ? 'scale(1.2)' : 'scale(1)', padding: 0,
-                                }}
-                              />
+                              <button key={c.id} type="button" onClick={() => { const newArr = [...(lineColors || lines.map((_, i) => i === 0 ? 'yellow' : 'white'))]; newArr[lIdx] = c.id; setLineColors(newArr); }} title={`Строка ${lIdx + 1}: ${c.label}`} style={{ width: '16px', height: '16px', borderRadius: '50%', background: c.hex, border: isCur ? '2px solid #fff' : '1px solid #000', cursor: 'pointer', transform: isCur ? 'scale(1.2)' : 'scale(1)', padding: 0 }} />
                             )
                           })}
-                          <input
-                            type="color"
-                            value={curHex}
-                            onChange={e => {
-                              const newArr = [...(lineColors || lines.map((_, i) => i === 0 ? 'yellow' : 'white'))]
-                              newArr[lIdx] = e.target.value
-                              setLineColors(newArr)
-                            }}
-                            title="Свой цвет для строки"
-                            style={{ width: '20px', height: '20px', padding: 0, border: 'none', borderRadius: '4px', cursor: 'pointer', background: 'transparent' }}
-                          />
+                          <input type="color" value={curHex} onChange={e => { const newArr = [...(lineColors || lines.map((_, i) => i === 0 ? 'yellow' : 'white'))]; newArr[lIdx] = e.target.value; setLineColors(newArr); }} title="Свой цвет" style={{ width: '18px', height: '18px', padding: 0, border: 'none', borderRadius: '4px', cursor: 'pointer', background: 'transparent' }} />
                         </div>
                       </div>
                     )

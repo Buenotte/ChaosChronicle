@@ -332,4 +332,55 @@ router.post('/api/preview-short-frame', async (req, res) => {
   }
 });
 
+// POST /api/save-shorts-config
+router.post('/api/save-shorts-config', (req, res) => {
+  try {
+    const {
+      bundleDir: inputBundleDir, folderName, hookTitle, font, fontSize, fontColor,
+      strokeWidth, strokeColor, shadowDistance, shadowColor, shadowStyle,
+      wordColors, wordFontSizes, boxEnabled, boxColor, boxOpacity, posY, selectedPhoto,
+    } = req.body;
+
+    const newsDir = path.resolve(__dirname, '../../news');
+    let bundleDir = inputBundleDir || (folderName ? path.join(newsDir, folderName) : null);
+    if (!bundleDir || !fs.existsSync(bundleDir)) {
+      return res.status(400).json({ success: false, error: 'Папка проекта не найдена' });
+    }
+
+    const jsonPath = path.join(bundleDir, 'project.json');
+    let manifest = {};
+    if (fs.existsSync(jsonPath)) {
+      try { manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8')); } catch {}
+    }
+
+    const shortsConfig = {
+      hookTitle: (hookTitle || '').trim(),
+      font: font || 'impact',
+      fontSize: Number(fontSize) || 110,
+      fontColor: fontColor || 'yellow',
+      strokeWidth: Number(strokeWidth) || 0,
+      strokeColor: strokeColor || 'black',
+      shadowDistance: Number(shadowDistance) || 0,
+      shadowColor: shadowColor || 'black',
+      shadowStyle: shadowStyle || 'hard',
+      wordColors: wordColors || null,
+      wordFontSizes: wordFontSizes || null,
+      boxEnabled: Boolean(boxEnabled),
+      boxColor: boxColor || 'black',
+      boxOpacity: boxEnabled ? (Number(boxOpacity) || 75) : 0,
+      posY: Number(posY) || 200,
+      selectedPhoto: selectedPhoto || null,
+      savedAt: new Date().toISOString(),
+    };
+
+    manifest.shortsConfig = shortsConfig;
+    fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
+
+    res.json({ success: true, shortsConfig, folderName: path.basename(bundleDir) });
+  } catch (err) {
+    console.error('Save shorts config error:', err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 export default router;

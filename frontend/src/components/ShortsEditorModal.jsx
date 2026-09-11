@@ -27,6 +27,7 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
   const [viewMode, setViewMode] = useState(shortState?.hasShort ? 'video' : 'editor')
   const [realFrameUrl, setRealFrameUrl] = useState(null)
   const [renderingFrame, setRenderingFrame] = useState(false)
+  const [savingConfig, setSavingConfig] = useState(false)
   const previewRef = useRef(null)
 
   const photoList = Array.isArray(pkg?.photoUrls) && pkg.photoUrls.length > 0 ? pkg.photoUrls : (Array.isArray(pkg?.photos) ? pkg.photos : [])
@@ -69,6 +70,47 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
       toast.error('Ошибка: ' + e.message)
     } finally {
       setRenderingFrame(false)
+    }
+  }
+
+  const handleSaveConfig = async () => {
+    try {
+      setSavingConfig(true)
+      const res = await fetch('/api/save-shorts-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bundleDir: pkg?.bundleDir,
+          folderName: pkg?.folderName,
+          hookTitle: text,
+          font,
+          fontSize: Number(fontSize) || 110,
+          fontColor,
+          strokeWidth: Number(strokeWidth) || 0,
+          strokeColor,
+          shadowDistance: Number(shadowDistance) || 0,
+          shadowColor,
+          shadowStyle,
+          wordColors,
+          wordFontSizes,
+          boxEnabled: !!boxEnabled,
+          boxColor,
+          boxOpacity: boxEnabled ? Number(boxOpacity) || 75 : 0,
+          posY: Number(posY) || 200,
+          selectedPhoto,
+        }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        toast.success('💾 Настройки Shorts сохранены в пакет!')
+        if (pkg) pkg.shortsConfig = data.shortsConfig
+      } else {
+        toast.error('Ошибка сохранения: ' + (data.error || 'Не удалось сохранить'))
+      }
+    } catch (err) {
+      toast.error('Ошибка: ' + err.message)
+    } finally {
+      setSavingConfig(false)
     }
   }
 
@@ -284,49 +326,23 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
                           <span
                             key={lIdx}
                             style={{
-                              display: 'inline-flex',
-                              alignItems: 'baseline',
-                              fontFamily: activeFontFamily,
-                              lineHeight: 1,
-                              fontWeight: 900,
-                              textTransform: 'uppercase',
-                              WebkitTextStroke: strokeWidth > 0 ? `${((strokeWidth / 1080) * 240).toFixed(2)}px ${activeStrokeHex}` : 'none',
-                              textShadow: activeShadowCss,
-                              background: boxEnabled ? `${activeBoxHex}${Math.round((boxOpacity / 100) * 255).toString(16).padStart(2, '0')}` : 'transparent',
-                              padding: boxEnabled ? '2px 8px' : '0',
-                              borderRadius: '4px',
-                              textAlign: 'center',
+                              display: 'inline-flex', alignItems: 'baseline', fontFamily: activeFontFamily, lineHeight: 1, fontWeight: 900, textTransform: 'uppercase',
+                              WebkitTextStroke: strokeWidth > 0 ? `${((strokeWidth / 1080) * 240).toFixed(2)}px ${activeStrokeHex}` : 'none', textShadow: activeShadowCss,
+                              background: boxEnabled ? `${activeBoxHex}${Math.round((boxOpacity / 100) * 255).toString(16).padStart(2, '0')}` : 'transparent', padding: boxEnabled ? '2px 8px' : '0', borderRadius: '4px', textAlign: 'center',
                             }}
                           >
                             {lineWords.map((w, wSubIdx) => {
-                              const curIdx = wordGlobalIdx++
-                              const wCol = (wordColors && wordColors[curIdx]) ? wordColors[curIdx] : fontColor
+                              const curIdx = wordGlobalIdx++, wCol = (wordColors && wordColors[curIdx]) ? wordColors[curIdx] : fontColor
                               const wColHex = TEXT_COLORS.find(c => c.id === wCol)?.hex || activeColorHex
-                              const wSz = (wordFontSizes && wordFontSizes[curIdx] && Number(wordFontSizes[curIdx]) > 0)
-                                ? Number(wordFontSizes[curIdx])
-                                : Number(fontSize)
-                              return (
-                                <span
-                                  key={wSubIdx}
-                                  style={{
-                                    color: wColHex,
-                                    fontSize: `${(wSz / 1080) * 240}px`,
-                                    margin: '0 0.12em',
-                                    display: 'inline-block',
-                                  }}
-                                >
-                                  {w}
-                                </span>
-                              )
+                              const wSz = (wordFontSizes && wordFontSizes[curIdx] && Number(wordFontSizes[curIdx]) > 0) ? Number(wordFontSizes[curIdx]) : Number(fontSize)
+                              return (<span key={wSubIdx} style={{ color: wColHex, fontSize: `${(wSz / 1080) * 240}px`, margin: '0 0.12em', display: 'inline-block' }}>{w}</span>)
                             })}
                           </span>
                         )
                       })
                     })()}
                   </div>
-                  <div style={{ position: 'absolute', bottom: '10px', left: '12px', zIndex: 12, fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)', pointerEvents: 'none' }}>
-                    ▶ YouTube Shorts (9:16)
-                  </div>
+                  <div style={{ position: 'absolute', bottom: '10px', left: '12px', zIndex: 12, fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)', pointerEvents: 'none' }}>▶ YouTube Shorts (9:16)</div>
                 </>
               )}
             </div>
@@ -337,19 +353,16 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
         {/* Футер */}
         <div className="modal-footer" style={{ padding: '0.85rem 1.25rem', borderTop: '1px solid #1e293b', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
           {shortState?.hasShort ? (
-            <a
-              href={shortState.shortUrl}
-              download="short.mp4"
-              onClick={() => toast.success('💾 Видео short.mp4 сохранено в папку новости!')}
-              className="copy-btn"
-              style={{ background: '#10b981', color: '#fff', textDecoration: 'none', padding: '0.5rem 1rem', fontWeight: 700 }}
-            >
-              💾 Сохранить готовый short.mp4
+            <a href={shortState.shortUrl} download="short.mp4" onClick={() => toast.success('💾 Видео short.mp4 сохранено в папку новости!')} className="copy-btn" style={{ background: '#10b981', color: '#fff', textDecoration: 'none', padding: '0.5rem 1rem', fontWeight: 700 }}>
+              💾 Скачать short.mp4
             </a>
           ) : <div />}
-          <div style={{ display: 'flex', gap: '0.65rem' }}>
-            <button type="button" className="close-btn" style={{ padding: '0.5rem 1rem' }} onClick={onClose}>Закрыть</button>
-            <button type="button" className="copy-btn" disabled={generatingShort} onClick={handleApply} style={{ background: 'linear-gradient(135deg, #f43f5e, #ec4899)', color: '#fff', fontWeight: 700, padding: '0.55rem 1.25rem', fontSize: '0.88rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <button type="button" className="close-btn" style={{ padding: '0.5rem 0.9rem' }} onClick={onClose}>Закрыть</button>
+            <button type="button" className="copy-btn" disabled={savingConfig || generatingShort} onClick={handleSaveConfig} style={{ background: '#059669', color: '#fff', fontWeight: 700, padding: '0.5rem 1rem', fontSize: '0.84rem' }} title="Сохранить текст, шрифт, цвета и позицию в project.json">
+              {savingConfig ? '⏳ Сохранение...' : '💾 Сохранить настройки'}
+            </button>
+            <button type="button" className="copy-btn" disabled={generatingShort} onClick={handleApply} style={{ background: 'linear-gradient(135deg, #f43f5e, #ec4899)', color: '#fff', fontWeight: 700, padding: '0.55rem 1.15rem', fontSize: '0.86rem' }}>
               {generatingShort ? '⏳ Монтаж Shorts (4 сек)...' : '⚡ Смонтировать Short (9:16)'}
             </button>
           </div>

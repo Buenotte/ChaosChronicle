@@ -316,8 +316,8 @@ router.post('/api/save-script-text', async (req, res) => {
 // POST /api/generate-title-variants
 router.post('/api/generate-title-variants', async (req, res) => {
   try {
-    const { title = '', summary = '', text = '', bundleDir, folderName, forceRegenerate = false, style = 'golubuzki' } = req.body;
-    const result = await generateTitleVariants(title, summary, bundleDir, folderName, forceRegenerate, style, text);
+    const { title = '', summary = '', text = '', bundleDir, folderName, forceRegenerate = false, style = 'golubuzki', keywords = '' } = req.body;
+    const result = await generateTitleVariants(title, summary, bundleDir, folderName, forceRegenerate, style, text, keywords);
     res.json({ success: true, ...result });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
