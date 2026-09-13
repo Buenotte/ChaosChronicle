@@ -108,16 +108,23 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
     const hex = rawCol.startsWith('#') ? rawCol : (BOX_COLORS.find(c => c.id === rawCol)?.hex || '#000000')
     const r = parseInt(hex.slice(1, 3) || '0', 16) || 0, g = parseInt(hex.slice(3, 5) || '0', 16) || 0, b = parseInt(hex.slice(5, 7) || '0', 16) || 0
     const bg = `rgba(${r}, ${g}, ${b}, ${op})`
+    const defPadX = sType === 'slanted' ? 56 : (sType === 'torn' ? 56 : (sType === 'tape' ? 48 : 40))
+    const defPadY = sType === 'torn' ? 14 : 10
+    const rawPadX = (Array.isArray(bCfg.linePadX) && bCfg.linePadX[idx] !== undefined) ? Number(bCfg.linePadX[idx]) : (bCfg.padX !== undefined ? Number(bCfg.padX) : defPadX)
+    const rawPadY = (Array.isArray(bCfg.linePadY) && bCfg.linePadY[idx] !== undefined) ? Number(bCfg.linePadY[idx]) : (bCfg.padY !== undefined ? Number(bCfg.padY) : defPadY)
+    const cssPadX = Math.max(2, Math.round((rawPadX / 1080) * 240))
+    const cssPadY = Math.max(1, Math.round((rawPadY / 1080) * 240))
+
     if (shType === 'soft') outerStyle.filter = 'drop-shadow(0 3px 6px rgba(0,0,0,0.85))'
     else if (shType === 'hard') outerStyle.filter = 'drop-shadow(2px 2px 0px rgba(0,0,0,0.95))'
     else if (shType === 'glow') outerStyle.filter = 'drop-shadow(0 0 8px rgba(245,158,11,0.85))'
-    const innerStyle = { background: bg, padding: '2px 8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 'max-content' }
+
+    const innerStyle = { background: bg, padding: `${cssPadY}px ${cssPadX}px`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', width: 'max-content' }
     if (sType === 'solid') innerStyle.borderRadius = '4px'
-    else if (sType === 'slanted') { innerStyle.clipPath = 'polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%)'; innerStyle.padding = '2px 10px'; }
-    else if (sType === 'dashed') { innerStyle.borderRadius = '4px'; innerStyle.border = '1.5px dashed rgba(255,255,255,0.75)'; }
-    else if (sType === 'tape') { innerStyle.borderRadius = '2px'; innerStyle.padding = '2px 10px'; innerStyle.borderLeft = '3px solid rgba(255,255,255,0.4)'; innerStyle.borderRight = '3px solid rgba(255,255,255,0.4)'; }
+    else if (sType === 'slanted') { innerStyle.clipPath = 'polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%)'; }
+    else if (sType === 'dashed') { innerStyle.borderRadius = '4px'; innerStyle.border = '1.5px dashed rgba(255,255,255,0.85)'; }
+    else if (sType === 'tape') { innerStyle.borderRadius = '2px'; innerStyle.borderLeft = '3px solid rgba(255,255,255,0.45)'; innerStyle.borderRight = '3px solid rgba(255,255,255,0.45)'; }
     else if (sType === 'torn') {
-      innerStyle.padding = '3px 10px'
       innerStyle.clipPath = (idx % 2 === 0) ? 'polygon(0% 2px, 6% 0px, 12% 3px, 19% 1px, 25% 4px, 32% 1px, 39% 4px, 46% 0px, 53% 4px, 60% 1px, 67% 4px, 74% 1px, 81% 4px, 88% 1px, 94% 3px, 100% 0px, calc(100% - 6px) 24%, calc(100% - 1px) 48%, calc(100% - 7px) 72%, 100% 100%, 94% calc(100% - 3px), 88% calc(100% - 1px), 81% calc(100% - 4px), 74% calc(100% - 1px), 67% calc(100% - 3px), 60% calc(100% - 0px), 53% calc(100% - 4px), 46% calc(100% - 1px), 39% calc(100% - 3px), 32% calc(100% - 1px), 25% calc(100% - 4px), 19% calc(100% - 1px), 12% calc(100% - 3px), 6% calc(100% - 1px), 0% calc(100% - 2px), 6px 75%, 1px 50%, 7px 25%, 0% 2px)' : 'polygon(0% 3px, 6% 1px, 13% 4px, 20% 0px, 27% 3px, 34% 1px, 41% 4px, 48% 1px, 55% 4px, 62% 0px, 69% 4px, 76% 1px, 83% 3px, 90% 1px, 96% 4px, 100% 1px, calc(100% - 7px) 28%, calc(100% - 1px) 52%, calc(100% - 6px) 76%, 100% 98%, 95% calc(100% - 3px), 88% calc(100% - 1px), 81% calc(100% - 4px), 74% calc(100% - 1px), 67% calc(100% - 4px), 60% calc(100% - 1px), 53% calc(100% - 3px), 46% calc(100% - 0px), 39% calc(100% - 4px), 32% calc(100% - 1px), 25% calc(100% - 3px), 18% calc(100% - 0px), 12% calc(100% - 3px), 6% calc(100% - 1px), 0% calc(100% - 3px), 7px 72%, 1px 48%, 6px 24%, 0% 3px)'
       innerStyle.background = `linear-gradient(135deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.02) 40%, rgba(0,0,0,0.18) 75%, rgba(0,0,0,0.35) 100%), ${bg}`
       innerStyle.boxShadow = 'inset 0 0 4px rgba(0,0,0,0.6)'
@@ -287,7 +294,7 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
                                   const curIdx = wordGlobalIdx++, wCol = (wordColors && wordColors[curIdx]) ? wordColors[curIdx] : fontColor
                                   const wColHex = TEXT_COLORS.find(c => c.id === wCol)?.hex || activeColorHex
                                   const wSz = (wordFontSizes && wordFontSizes[curIdx] && Number(wordFontSizes[curIdx]) > 0) ? Number(wordFontSizes[curIdx]) : Number(fontSize)
-                                  return (<span key={wSubIdx} style={{ color: wColHex, fontSize: `${(wSz / 1080) * 240}px`, margin: '0 0.12em', display: 'inline-block' }}>{w}</span>)
+                                  return (<span key={wSubIdx} style={{ color: wColHex, fontSize: `${(wSz / 1080) * 240}px`, margin: wSubIdx > 0 ? '0 0 0 0.28em' : '0', display: 'inline-block' }}>{w}</span>)
                                 })}
                               </span>
                             </span>

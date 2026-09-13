@@ -25,14 +25,20 @@ export default function LineBadgeControls({
   setBoxStyle, setHasBox, setBoxOpacity,
 }) {
   const [tab, setTab] = useState('global')
+  const [expandedLine, setExpandedLine] = useState(0)
   const cfg = lineBadges || {}
   const enabled = !!cfg.enabled
   const curStyle = cfg.style || 'solid', curShadow = cfg.shadow || 'soft', curColor = cfg.color || '#000000'
   const curOpacity = cfg.opacity !== undefined ? Number(cfg.opacity) : 90
+  const curPadX = cfg.padX !== undefined ? Number(cfg.padX) : 40
+  const curPadY = cfg.padY !== undefined ? Number(cfg.padY) : 10
   const tiltMode = cfg.tiltMode || 'none'
   const lineTilts = Array.isArray(cfg.lineTilts) ? cfg.lineTilts : []
   const lineColors = Array.isArray(cfg.lineColors) ? cfg.lineColors : []
   const lineStyles = Array.isArray(cfg.lineStyles) ? cfg.lineStyles : []
+  const lineOpacities = Array.isArray(cfg.lineOpacities) ? cfg.lineOpacities : []
+  const linePadX = Array.isArray(cfg.linePadX) ? cfg.linePadX : []
+  const linePadY = Array.isArray(cfg.linePadY) ? cfg.linePadY : []
   const linesEnabled = Array.isArray(cfg.linesEnabled) ? cfg.linesEnabled : []
 
   const update = (patch) => {
@@ -59,6 +65,9 @@ export default function LineBadgeControls({
     update({
       lineStyles: Array(cnt).fill(curStyle),
       lineColors: Array(cnt).fill(curColor),
+      lineOpacities: Array(cnt).fill(curOpacity),
+      linePadX: Array(cnt).fill(curPadX),
+      linePadY: Array(cnt).fill(curPadY),
       linesEnabled: Array(cnt).fill(true),
     })
   }
@@ -67,7 +76,7 @@ export default function LineBadgeControls({
     <div style={{ background: '#141416', padding: '0.75rem', borderRadius: '8px', border: '1px solid #27272a', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span style={{ fontSize: '0.85rem', fontWeight: 700, color: enabled ? '#f59e0b' : '#9ca3af' }}>🏷️ Плашки под строками</span>
+          <span style={{ fontSize: '0.85rem', fontWeight: 700, color: enabled ? '#f59e0b' : '#9ca3af' }}>🏷️ Плашки под строками (Badge Studio)</span>
           {enabled && <span style={{ fontSize: '0.65rem', background: '#f59e0b22', color: '#f59e0b', padding: '0.1rem 0.4rem', borderRadius: '4px', fontWeight: 700 }}>АКТИВНО</span>}
         </div>
         <button type="button" onClick={() => update({ enabled: !enabled })} style={{ background: enabled ? '#f59e0b' : '#27272a', color: enabled ? '#000' : '#d4d4d8', border: 'none', borderRadius: '6px', padding: '0.25rem 0.65rem', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}>
@@ -90,7 +99,7 @@ export default function LineBadgeControls({
             <>
               <div>
                 <label style={{ fontSize: '0.72rem', color: '#a1a1aa', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>Форма плашки:</label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '0.3rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '0.3rem' }}>
                   {BADGE_STYLES.map(s => (
                     <button key={s.id} type="button" onClick={() => update({ style: s.id })} style={{ background: curStyle === s.id ? '#f59e0b22' : '#18181b', color: curStyle === s.id ? '#f59e0b' : '#e4e4e7', border: curStyle === s.id ? '1.5px solid #f59e0b' : '1px solid #27272a', borderRadius: '6px', padding: '0.3rem 0.45rem', fontSize: '0.7rem', fontWeight: curStyle === s.id ? 700 : 500, cursor: 'pointer', textAlign: 'left' }} title={s.desc}>
                       {s.label}
@@ -118,6 +127,29 @@ export default function LineBadgeControls({
                   ))}
                   <input type="color" value={curColor} onChange={e => update({ color: e.target.value })} style={{ width: '24px', height: '24px', padding: 0, border: 'none', borderRadius: '5px', cursor: 'pointer', background: 'transparent' }} title="Кастомный HEX цвет" />
                 </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#a1a1aa', marginBottom: '0.2rem' }}>
+                    <span>📐 Высота (Y):</span>
+                    <span style={{ color: '#38bdf8', fontWeight: 700 }}>{curPadY}px</span>
+                  </div>
+                  <input type="range" min="2" max="28" value={curPadY} onChange={e => update({ padY: Number(e.target.value) })} style={{ width: '100%', accentColor: '#38bdf8' }} />
+                </div>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#a1a1aa', marginBottom: '0.2rem' }}>
+                    <span>📏 Длина (X):</span>
+                    <span style={{ color: '#f59e0b', fontWeight: 700 }}>{curPadX}px</span>
+                  </div>
+                  <input type="range" min="15" max="80" value={curPadX} onChange={e => update({ padX: Number(e.target.value) })} style={{ width: '100%', accentColor: '#f59e0b' }} />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <label style={{ fontSize: '0.72rem', color: '#a1a1aa', fontWeight: 600, width: '100px' }}>Прозрачность:</label>
+                <input type="range" min="10" max="100" value={curOpacity} onChange={e => update({ opacity: Number(e.target.value) })} style={{ flex: 1, accentColor: '#f59e0b', height: '4px', cursor: 'pointer' }} />
+                <span style={{ fontSize: '0.72rem', color: '#f59e0b', minWidth: '32px', textAlign: 'right', fontWeight: 700 }}>{curOpacity}%</span>
               </div>
 
               <div>
@@ -148,42 +180,38 @@ export default function LineBadgeControls({
                 )}
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <label style={{ fontSize: '0.72rem', color: '#a1a1aa', fontWeight: 600, width: '100px' }}>Прозрачность:</label>
-                <input type="range" min="10" max="100" value={curOpacity} onChange={e => update({ opacity: Number(e.target.value) })} style={{ flex: 1, accentColor: '#f59e0b', height: '4px', cursor: 'pointer' }} />
-                <span style={{ fontSize: '0.72rem', color: '#f59e0b', minWidth: '32px', textAlign: 'right', fontWeight: 700 }}>{curOpacity}%</span>
-              </div>
-
               <button type="button" onClick={applyGlobalToAll} style={{ background: '#27272a', color: '#94a3b8', border: '1px dashed #3f3f46', borderRadius: '6px', padding: '0.35rem', fontSize: '0.7rem', cursor: 'pointer', fontWeight: 600 }}>
                 🔄 Применить эти параметры ко всем строкам
               </button>
             </>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-              <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Настройка плашки для каждой отдельной строки:</div>
+              <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Настройка формы, высоты, длины и прозрачности для каждой строки:</div>
               {previewLines.map((lineText, idx) => {
                 const isLineOn = linesEnabled[idx] !== false
                 const lStyle = lineStyles[idx] || curStyle
                 const lCol = lineColors[idx] || curColor
+                const lOp = lineOpacities[idx] !== undefined ? Number(lineOpacities[idx]) : curOpacity
+                const lPadY = linePadY[idx] !== undefined ? Number(linePadY[idx]) : curPadY
+                const lPadX = linePadX[idx] !== undefined ? Number(linePadX[idx]) : curPadX
                 const lTilt = Number(lineTilts[idx]) || 0
+                const isExp = expandedLine === idx
                 return (
                   <div key={idx} style={{ background: '#09090b', border: isLineOn ? '1px solid #3f3f46' : '1px dashed #27272a', borderRadius: '6px', padding: '0.4rem 0.5rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flex: 1, minWidth: '120px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.4rem' }}>
+                      <div onClick={() => setExpandedLine(isExp ? -1 : idx)} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flex: 1, cursor: 'pointer' }}>
                         <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#f59e0b' }}>#{idx + 1}</span>
                         <span style={{ fontSize: '0.72rem', color: '#e4e4e7', fontWeight: 600, maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lineText || `Строка ${idx + 1}`}</span>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', minWidth: '120px' }}>
-                        <span style={{ fontSize: '0.65rem', color: '#a1a1aa' }}>Наклон:</span>
-                        <input type="range" min="-6" max="6" step="0.5" value={lTilt} onChange={e => setLineProp('lineTilts', idx, Number(e.target.value))} style={{ flex: 1, accentColor: '#6366f1', height: '3px', cursor: 'pointer' }} />
-                        <span style={{ fontSize: '0.65rem', color: '#6366f1', minWidth: '24px', textAlign: 'right', fontWeight: 600 }}>{lTilt > 0 ? `+${lTilt}°` : `${lTilt}°`}</span>
+                        <span style={{ fontSize: '0.65rem', color: '#71717a' }}>{isExp ? '▼' : '▶'}</span>
                       </div>
                       <button type="button" onClick={() => setLineProp('linesEnabled', idx, !isLineOn)} style={{ background: isLineOn ? '#10b98122' : '#ef444422', color: isLineOn ? '#10b981' : '#ef4444', border: isLineOn ? '1px solid #10b981' : '1px solid #ef4444', borderRadius: '4px', padding: '0.1rem 0.4rem', fontSize: '0.68rem', fontWeight: 700, cursor: 'pointer' }}>
                         {isLineOn ? '✓ Плашка' : '✕ Без плашки'}
                       </button>
                     </div>
-                    {isLineOn && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', paddingTop: '0.2rem', borderTop: '1px solid #18181b' }}>
+
+                    {isLineOn && isExp && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', paddingTop: '0.3rem', borderTop: '1px solid #18181b' }}>
+                        {/* Форма */}
                         <div style={{ display: 'flex', gap: '0.25rem', overflowX: 'auto' }}>
                           {BADGE_STYLES.map(s => (
                             <button key={s.id} type="button" onClick={() => setLineProp('lineStyles', idx, s.id)} style={{ background: lStyle === s.id ? '#f59e0b22' : '#18181b', color: lStyle === s.id ? '#f59e0b' : '#a1a1aa', border: lStyle === s.id ? '1px solid #f59e0b' : '1px solid #27272a', borderRadius: '4px', padding: '0.15rem 0.35rem', fontSize: '0.65rem', fontWeight: lStyle === s.id ? 700 : 400, cursor: 'pointer', whiteSpace: 'nowrap' }}>
@@ -191,13 +219,44 @@ export default function LineBadgeControls({
                             </button>
                           ))}
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                          <span style={{ fontSize: '0.65rem', color: '#a1a1aa' }}>Цвет:</span>
+
+                        {/* Цвет и Прозрачность */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '0.5rem', alignItems: 'center' }}>
                           <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
-                            {BADGE_COLORS.slice(0, 5).map(c => (
+                            {BADGE_COLORS.slice(0, 4).map(c => (
                               <button key={c.id} type="button" onClick={() => setLineProp('lineColors', idx, c.id)} style={{ width: '16px', height: '16px', borderRadius: '3px', background: c.id, border: lCol === c.id ? '2px solid #f59e0b' : '1px solid #3f3f46', cursor: 'pointer' }} />
                             ))}
                             <input type="color" value={lCol} onChange={e => setLineProp('lineColors', idx, e.target.value)} style={{ width: '18px', height: '18px', padding: 0, border: 'none', borderRadius: '3px', cursor: 'pointer', background: 'transparent' }} />
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                            <span style={{ fontSize: '0.65rem', color: '#a1a1aa' }}>Прозр:</span>
+                            <input type="range" min="10" max="100" value={lOp} onChange={e => setLineProp('lineOpacities', idx, Number(e.target.value))} style={{ flex: 1, accentColor: '#f59e0b', height: '3px' }} />
+                            <span style={{ fontSize: '0.65rem', color: '#f59e0b', fontWeight: 600 }}>{lOp}%</span>
+                          </div>
+                        </div>
+
+                        {/* Высота, Длина и Наклон */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.4rem', background: '#18181b', padding: '0.3rem', borderRadius: '4px' }}>
+                          <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.62rem', color: '#a1a1aa' }}>
+                              <span>Высота:</span>
+                              <span style={{ color: '#38bdf8', fontWeight: 700 }}>{lPadY}px</span>
+                            </div>
+                            <input type="range" min="2" max="28" value={lPadY} onChange={e => setLineProp('linePadY', idx, Number(e.target.value))} style={{ width: '100%', accentColor: '#38bdf8' }} />
+                          </div>
+                          <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.62rem', color: '#a1a1aa' }}>
+                              <span>Длина:</span>
+                              <span style={{ color: '#f59e0b', fontWeight: 700 }}>{lPadX}px</span>
+                            </div>
+                            <input type="range" min="15" max="80" value={lPadX} onChange={e => setLineProp('linePadX', idx, Number(e.target.value))} style={{ width: '100%', accentColor: '#f59e0b' }} />
+                          </div>
+                          <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.62rem', color: '#a1a1aa' }}>
+                              <span>Наклон:</span>
+                              <span style={{ color: '#a855f7', fontWeight: 700 }}>{lTilt}°</span>
+                            </div>
+                            <input type="range" min="-6" max="6" step="0.5" value={lTilt} onChange={e => setLineProp('lineTilts', idx, Number(e.target.value))} style={{ width: '100%', accentColor: '#a855f7' }} />
                           </div>
                         </div>
                       </div>
@@ -212,3 +271,4 @@ export default function LineBadgeControls({
     </div>
   )
 }
+
