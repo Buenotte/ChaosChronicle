@@ -64,6 +64,7 @@ export async function processRenderShort({
   boxEnabled = true,
   boxColor = 'black',
   boxOpacity = 75,
+  lineBadges = null,
   selectedPhoto = null,
 }) {
   let targetFolder = inputBundleDir;
@@ -197,17 +198,14 @@ export async function processRenderShort({
     // LibASS + Drawbox для 100% точного рендеринга шрифтов, размеров и контуров
     const assContent = buildAssShortsSubtitle(wrappedText, {
       font: reqFont, fontSize: effectiveSize, fontColor, strokeWidth: effectiveStroke, strokeColor: effectiveStrokeColor,
-      shadowDistance: effectiveShadowDist, shadowColor, posY: effectivePosY, wordColors, wordFontSizes
+      shadowDistance: effectiveShadowDist, shadowColor, posY: effectivePosY, wordColors, wordFontSizes,
+      lineBadges, boxEnabled, boxColor, boxOpacity,
     });
     const assFile = path.join(targetFolder, `temp_short_ass_${Date.now()}.ass`);
     fs.writeFileSync(assFile, assContent, 'utf-8');
     const safeAssPath = assFile.replace(/\\/g, '/').replace(/:/g, '\\:');
     const safeCustomFontsDir = customFontsDir.replace(/\\/g, '/').replace(/:/g, '\\:');
-    const linesCount = wrappedText.split('\n').filter(Boolean).length;
-    const boxH = Math.round(linesCount * (effectiveSize * 1.18) + 40);
-    const boxY = Math.max(10, effectivePosY - 20);
-    const drawBoxFilter = isBoxOn ? `,drawbox=x=30:y=${boxY}:w=1020:h=${boxH}:color=${effectiveBoxColor}@${effectiveBoxOp}:t=fill` : '';
-    const vf = `scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1${drawBoxFilter},subtitles=filename='${safeAssPath}':fontsdir='${safeCustomFontsDir}'`;
+    const vf = `scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,subtitles=filename='${safeAssPath}':fontsdir='${safeCustomFontsDir}'`;
 
     const fadeOutStart = Math.max(0, targetDur - 0.4);
     const af = `atrim=0:${targetDur},asetpts=PTS-STARTPTS,afade=t=out:st=${fadeOutStart}:d=0.4`;
@@ -253,6 +251,7 @@ export async function processRenderShort({
     boxEnabled,
     boxColor,
     boxOpacity,
+    lineBadges: lineBadges || null,
     selectedPhoto,
   };
 
@@ -281,7 +280,12 @@ export async function processRenderShort({
 }
 
 export async function processPreviewShortFrame(options) {
-  const { bundleDir: inputBundleDir, folderName, selectedPhoto, hookTitle = '', font: reqFont = 'impact', fontSize = 90, fontColor = 'yellow', strokeWidth = 8, strokeColor = 'black', shadowDistance = 4, shadowColor = 'black', wordColors = null, wordFontSizes = null, posY = 240, shadowStyle = 'hard', boxEnabled = true, boxColor = 'black', boxOpacity = 75 } = options;
+  const {
+    bundleDir: inputBundleDir, folderName, selectedPhoto, hookTitle = '', font: reqFont = 'impact',
+    fontSize = 90, fontColor = 'yellow', strokeWidth = 8, strokeColor = 'black', shadowDistance = 4,
+    shadowColor = 'black', wordColors = null, wordFontSizes = null, posY = 240, shadowStyle = 'hard',
+    boxEnabled = true, boxColor = 'black', boxOpacity = 75, lineBadges = null,
+  } = options;
   let targetFolder = inputBundleDir || (folderName ? path.join(newsDir, folderName) : null);
   if (!targetFolder || !fs.existsSync(targetFolder)) throw new Error('Папка не найдена');
   const photosDir = path.join(targetFolder, 'photos');
@@ -297,44 +301,25 @@ export async function processPreviewShortFrame(options) {
   const wrappedText = wrapShortsText(hookTitle || path.basename(targetFolder).replace(/^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}_/, '').replace(/_/g, ' '), maxChars);
 
   const customFontsDir = path.resolve(__dirname, '../custom_fonts');
-  let fontPath = 'C\\:/Windows/Fonts/impact.ttf';
-  if (reqFont === 'arial_black') fontPath = 'C\\:/Windows/Fonts/ariblk.ttf';
-  else if (reqFont && reqFont.endsWith('.ttf') && fs.existsSync(path.join(customFontsDir, reqFont))) {
-    fontPath = path.join(customFontsDir, reqFont).replace(/\\/g, '/').replace(/:/g, '\\:');
-  }
-
-  const hexColorMap = { yellow: '#FFE600', white: '#FFFFFF', red: '#FF2A2A', cyan: '#00F0FF', green: '#00FF66', orange: '#FF8C00', black: '#000000', blue: '#1D4ED8', purple: '#7C3AED' };
-  const effectiveColor = hexColorMap[fontColor] || fontColor || '#FFE600';
   const effectivePosY = Math.max(20, Math.min(Number(posY) || 240, 1800));
   const effectiveStroke = Math.max(0, Math.min(Number(strokeWidth) ?? 8, 28));
+  const hexColorMap = { yellow: '#FFE600', white: '#FFFFFF', red: '#FF2A2A', cyan: '#00F0FF', green: '#00FF66', orange: '#FF8C00', black: '#000000', blue: '#1D4ED8', purple: '#7C3AED' };
   const effectiveStrokeColor = hexColorMap[strokeColor] || strokeColor || '#000000';
   const effectiveShadowDist = Math.max(0, Math.min(Number(shadowDistance) ?? 4, 30));
-  const shadowHex = hexColorMap[shadowColor] || shadowColor || '#000000';
-  let shadowParams = effectiveShadowDist > 0
-    ? `shadowcolor=${shadowHex}@0.92:shadowx=${effectiveShadowDist}:shadowy=${effectiveShadowDist}:`
-    : 'shadowcolor=black@0:shadowx=0:shadowy=0:';
-
-  const effectiveBoxOp = Math.max(0, Math.min(Number(boxOpacity) ?? 75, 100)) / 100;
-  const isBoxOn = boxEnabled !== false && boxEnabled !== 'false' && effectiveBoxOp > 0;
-  const effectiveBoxColor = hexColorMap[boxColor] || boxColor || '#000000';
-  const boxFilterPart = isBoxOn ? `box=1:boxcolor=${effectiveBoxColor}@${effectiveBoxOp}:boxborderw=20:` : 'box=0:';
 
   const previewOut = path.join(targetFolder, 'preview_short_frame.jpg');
   let assFile = null;
   try {
     const assContent = buildAssShortsSubtitle(wrappedText, {
       font: reqFont, fontSize: effectiveSize, fontColor, strokeWidth: effectiveStroke, strokeColor: effectiveStrokeColor,
-      shadowDistance: effectiveShadowDist, shadowColor, posY: effectivePosY, wordColors, wordFontSizes
+      shadowDistance: effectiveShadowDist, shadowColor, posY: effectivePosY, wordColors, wordFontSizes,
+      lineBadges, boxEnabled, boxColor, boxOpacity,
     });
     assFile = path.join(targetFolder, `temp_preview_short_ass_${Date.now()}.ass`);
     fs.writeFileSync(assFile, assContent, 'utf-8');
     const safeAssPath = assFile.replace(/\\/g, '/').replace(/:/g, '\\:');
     const safeCustomFontsDir = customFontsDir.replace(/\\/g, '/').replace(/:/g, '\\:');
-    const linesCount = wrappedText.split('\n').filter(Boolean).length;
-    const boxH = Math.round(linesCount * (effectiveSize * 1.18) + 40);
-    const boxY = Math.max(10, effectivePosY - 20);
-    const drawBoxFilter = isBoxOn ? `,drawbox=x=30:y=${boxY}:w=1020:h=${boxH}:color=${effectiveBoxColor}@${effectiveBoxOp}:t=fill` : '';
-    const vf = `scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1${drawBoxFilter},subtitles=filename='${safeAssPath}':fontsdir='${safeCustomFontsDir}'`;
+    const vf = `scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,subtitles=filename='${safeAssPath}':fontsdir='${safeCustomFontsDir}'`;
     await execFileAsync('ffmpeg', ['-y', '-i', basePhoto, '-vf', vf, '-frames:v', '1', '-q:v', '2', previewOut]);
   } finally {
     try { if (assFile && fs.existsSync(assFile)) fs.unlinkSync(assFile); } catch {}

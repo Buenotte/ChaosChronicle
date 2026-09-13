@@ -338,7 +338,7 @@ router.post('/api/save-shorts-config', (req, res) => {
     const {
       bundleDir: inputBundleDir, folderName, hookTitle, font, fontSize, fontColor,
       strokeWidth, strokeColor, shadowDistance, shadowColor, shadowStyle,
-      wordColors, wordFontSizes, boxEnabled, boxColor, boxOpacity, posY, selectedPhoto,
+      wordColors, wordFontSizes, boxEnabled, boxColor, boxOpacity, posY, lineBadges, selectedPhoto,
     } = req.body;
 
     const newsDir = path.resolve(__dirname, '../../news');
@@ -369,6 +369,7 @@ router.post('/api/save-shorts-config', (req, res) => {
       boxColor: boxColor || 'black',
       boxOpacity: boxEnabled ? (Number(boxOpacity) || 75) : 0,
       posY: Number(posY) || 200,
+      lineBadges: lineBadges || null,
       selectedPhoto: selectedPhoto || null,
       savedAt: new Date().toISOString(),
     };

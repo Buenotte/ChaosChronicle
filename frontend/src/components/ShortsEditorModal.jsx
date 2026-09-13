@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 import BackgroundPhotoSelector from './thumbnail/BackgroundPhotoSelector'
 import ShortsCustomPlayer from './shorts/ShortsCustomPlayer'
 import ShortsTypographyControls, { STROKE_COLORS, SHADOW_COLORS } from './shorts/ShortsTypographyControls'
+import LineBadgeControls from './thumbnail/LineBadgeControls'
 import { SHORTS_FONTS, TEXT_COLORS, BOX_COLORS, wrapShortsText } from './shorts/shortsConfig'
 
 export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortState, generatingShort, onGenerateShort, onClose }) {
@@ -22,6 +23,16 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
   const [boxColor, setBoxColor] = useState(cfg.boxColor || 'black')
   const [boxOpacity, setBoxOpacity] = useState(cfg.boxOpacity ?? 75)
   const [posY, setPosY] = useState(cfg.posY || 200)
+  const [lineBadges, setLineBadges] = useState(cfg.lineBadges || {
+    enabled: cfg.boxEnabled ?? true,
+    style: 'solid',
+    shadow: 'soft',
+    tiltMode: 'none',
+    lineTilts: null,
+    color: cfg.boxColor && BOX_COLORS.find(c => c.id === cfg.boxColor)?.hex ? BOX_COLORS.find(c => c.id === cfg.boxColor).hex : (cfg.boxColor || '#000000'),
+    lineColors: null,
+    opacity: cfg.boxOpacity ?? 75,
+  })
   const [selectedPhoto, setSelectedPhoto] = useState(cfg.selectedPhoto || null)
   const [isDragging, setIsDragging] = useState(false)
   const [viewMode, setViewMode] = useState(shortState?.hasShort ? 'video' : 'editor')
@@ -57,7 +68,7 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          bundleDir: pkg.bundleDir, folderName: pkg.folderName, selectedPhoto, hookTitle: text, font, fontSize: Number(fontSize) || 110, fontColor, strokeWidth: Number(strokeWidth) || 0, strokeColor, shadowDistance: Number(shadowDistance) || 0, shadowColor, shadowStyle, wordColors, wordFontSizes, boxEnabled: !!boxEnabled, boxColor, boxOpacity: boxEnabled ? Number(boxOpacity) || 75 : 0, posY: Number(posY) || 200,
+          bundleDir: pkg.bundleDir, folderName: pkg.folderName, selectedPhoto, hookTitle: text, font, fontSize: Number(fontSize) || 110, fontColor, strokeWidth: Number(strokeWidth) || 0, strokeColor, shadowDistance: Number(shadowDistance) || 0, shadowColor, shadowStyle, wordColors, wordFontSizes, boxEnabled: !!boxEnabled, boxColor, boxOpacity: boxEnabled ? Number(boxOpacity) || 75 : 0, posY: Number(posY) || 200, lineBadges,
         }),
       })
       const data = await res.json()
@@ -73,6 +84,47 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
     }
   }
 
+  const getLineBadgeStyle = (idx) => {
+    const bCfg = lineBadges || {}
+    const isBadgesOn = bCfg.enabled || (boxEnabled && bCfg.enabled !== false)
+    let lineAngle = 0
+    if (Array.isArray(bCfg.lineTilts) && bCfg.lineTilts[idx] !== undefined && Number(bCfg.lineTilts[idx]) !== 0) {
+      lineAngle = Number(bCfg.lineTilts[idx]) || 0
+    } else if (bCfg.tiltMode === 'zigzag') {
+      const zAngles = [-2.0, 1.8, -1.6, 2.0]
+      lineAngle = zAngles[idx % zAngles.length]
+    } else if (bCfg.tiltMode === 'custom' && Array.isArray(bCfg.lineTilts) && bCfg.lineTilts[idx] !== undefined) {
+      lineAngle = Number(bCfg.lineTilts[idx]) || 0
+    }
+    const outerStyle = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 'max-content', margin: '2px 0', transform: lineAngle !== 0 ? `rotate(${lineAngle}deg)` : undefined, transformOrigin: 'center center' }
+    if (!isBadgesOn) return { outerStyle, innerStyle: {} }
+    const isLineOn = Array.isArray(bCfg.linesEnabled) ? bCfg.linesEnabled[idx] !== false : true
+    if (!isLineOn) return { outerStyle, innerStyle: {} }
+    const sType = (Array.isArray(bCfg.lineStyles) && bCfg.lineStyles[idx]) ? bCfg.lineStyles[idx] : (bCfg.style || 'solid')
+    const shType = (Array.isArray(bCfg.lineShadows) && bCfg.lineShadows[idx]) ? bCfg.lineShadows[idx] : (bCfg.shadow || 'soft')
+    const rawOp = (Array.isArray(bCfg.lineOpacities) && bCfg.lineOpacities[idx] !== undefined) ? bCfg.lineOpacities[idx] : (bCfg.opacity !== undefined ? bCfg.opacity : (boxOpacity || 75))
+    const op = ((Number(rawOp)) / 100).toFixed(2)
+    const rawCol = (Array.isArray(bCfg.lineColors) && bCfg.lineColors[idx]) ? bCfg.lineColors[idx] : (bCfg.color || activeBoxHex)
+    const hex = rawCol.startsWith('#') ? rawCol : (BOX_COLORS.find(c => c.id === rawCol)?.hex || '#000000')
+    const r = parseInt(hex.slice(1, 3) || '0', 16) || 0, g = parseInt(hex.slice(3, 5) || '0', 16) || 0, b = parseInt(hex.slice(5, 7) || '0', 16) || 0
+    const bg = `rgba(${r}, ${g}, ${b}, ${op})`
+    if (shType === 'soft') outerStyle.filter = 'drop-shadow(0 3px 6px rgba(0,0,0,0.85))'
+    else if (shType === 'hard') outerStyle.filter = 'drop-shadow(2px 2px 0px rgba(0,0,0,0.95))'
+    else if (shType === 'glow') outerStyle.filter = 'drop-shadow(0 0 8px rgba(245,158,11,0.85))'
+    const innerStyle = { background: bg, padding: '2px 8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 'max-content' }
+    if (sType === 'solid') innerStyle.borderRadius = '4px'
+    else if (sType === 'slanted') { innerStyle.clipPath = 'polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%)'; innerStyle.padding = '2px 10px'; }
+    else if (sType === 'dashed') { innerStyle.borderRadius = '4px'; innerStyle.border = '1.5px dashed rgba(255,255,255,0.75)'; }
+    else if (sType === 'tape') { innerStyle.borderRadius = '2px'; innerStyle.padding = '2px 10px'; innerStyle.borderLeft = '3px solid rgba(255,255,255,0.4)'; innerStyle.borderRight = '3px solid rgba(255,255,255,0.4)'; }
+    else if (sType === 'torn') {
+      innerStyle.padding = '3px 10px'
+      innerStyle.clipPath = (idx % 2 === 0) ? 'polygon(0% 2px, 6% 0px, 12% 3px, 19% 1px, 25% 4px, 32% 1px, 39% 4px, 46% 0px, 53% 4px, 60% 1px, 67% 4px, 74% 1px, 81% 4px, 88% 1px, 94% 3px, 100% 0px, calc(100% - 6px) 24%, calc(100% - 1px) 48%, calc(100% - 7px) 72%, 100% 100%, 94% calc(100% - 3px), 88% calc(100% - 1px), 81% calc(100% - 4px), 74% calc(100% - 1px), 67% calc(100% - 3px), 60% calc(100% - 0px), 53% calc(100% - 4px), 46% calc(100% - 1px), 39% calc(100% - 3px), 32% calc(100% - 1px), 25% calc(100% - 4px), 19% calc(100% - 1px), 12% calc(100% - 3px), 6% calc(100% - 1px), 0% calc(100% - 2px), 6px 75%, 1px 50%, 7px 25%, 0% 2px)' : 'polygon(0% 3px, 6% 1px, 13% 4px, 20% 0px, 27% 3px, 34% 1px, 41% 4px, 48% 1px, 55% 4px, 62% 0px, 69% 4px, 76% 1px, 83% 3px, 90% 1px, 96% 4px, 100% 1px, calc(100% - 7px) 28%, calc(100% - 1px) 52%, calc(100% - 6px) 76%, 100% 98%, 95% calc(100% - 3px), 88% calc(100% - 1px), 81% calc(100% - 4px), 74% calc(100% - 1px), 67% calc(100% - 4px), 60% calc(100% - 1px), 53% calc(100% - 3px), 46% calc(100% - 0px), 39% calc(100% - 4px), 32% calc(100% - 1px), 25% calc(100% - 3px), 18% calc(100% - 0px), 12% calc(100% - 3px), 6% calc(100% - 1px), 0% calc(100% - 3px), 7px 72%, 1px 48%, 6px 24%, 0% 3px)'
+      innerStyle.background = `linear-gradient(135deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.02) 40%, rgba(0,0,0,0.18) 75%, rgba(0,0,0,0.35) 100%), ${bg}`
+      innerStyle.boxShadow = 'inset 0 0 4px rgba(0,0,0,0.6)'
+    }
+    return { outerStyle, innerStyle }
+  }
+
   const handleSaveConfig = async () => {
     try {
       setSavingConfig(true)
@@ -80,46 +132,27 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          bundleDir: pkg?.bundleDir,
-          folderName: pkg?.folderName,
-          hookTitle: text,
-          font,
-          fontSize: Number(fontSize) || 110,
-          fontColor,
-          strokeWidth: Number(strokeWidth) || 0,
-          strokeColor,
-          shadowDistance: Number(shadowDistance) || 0,
-          shadowColor,
-          shadowStyle,
-          wordColors,
-          wordFontSizes,
-          boxEnabled: !!boxEnabled,
-          boxColor,
-          boxOpacity: boxEnabled ? Number(boxOpacity) || 75 : 0,
-          posY: Number(posY) || 200,
-          selectedPhoto,
+          bundleDir: pkg?.bundleDir, folderName: pkg?.folderName, hookTitle: text, font, fontSize: Number(fontSize) || 110,
+          fontColor, strokeWidth: Number(strokeWidth) || 0, strokeColor, shadowDistance: Number(shadowDistance) || 0,
+          shadowColor, shadowStyle, wordColors, wordFontSizes, boxEnabled: !!boxEnabled, boxColor,
+          boxOpacity: boxEnabled ? Number(boxOpacity) || 75 : 0, posY: Number(posY) || 200, lineBadges, selectedPhoto,
         }),
       })
       const data = await res.json()
       if (data.success) {
         toast.success('💾 Настройки Shorts сохранены в пакет!')
         if (pkg) pkg.shortsConfig = data.shortsConfig
-      } else {
-        toast.error('Ошибка сохранения: ' + (data.error || 'Не удалось сохранить'))
-      }
-    } catch (err) {
-      toast.error('Ошибка: ' + err.message)
-    } finally {
-      setSavingConfig(false)
-    }
+      } else { toast.error('Ошибка сохранения: ' + (data.error || 'Не удалось сохранить')) }
+    } catch (err) { toast.error('Ошибка: ' + err.message) }
+    finally { setSavingConfig(false) }
   }
 
   const handleApply = async () => {
     if (!onGenerateShort) return
     const res = await onGenerateShort({
-      hookTitle: text, font, fontSize: Number(fontSize) || 110, fontColor, strokeWidth: Number(strokeWidth) || 0, strokeColor, shadowDistance: Number(shadowDistance) || 0, shadowColor,
-      shadowStyle, wordColors, wordFontSizes, boxEnabled: !!boxEnabled, boxColor, boxOpacity: boxEnabled ? Number(boxOpacity) || 75 : 0, posY: Number(posY) || 200,
-      selectedPhoto,
+      hookTitle: text, font, fontSize: Number(fontSize) || 110, fontColor, strokeWidth: Number(strokeWidth) || 0, strokeColor,
+      shadowDistance: Number(shadowDistance) || 0, shadowColor, shadowStyle, wordColors, wordFontSizes, boxEnabled: !!boxEnabled,
+      boxColor, boxOpacity: boxEnabled ? Number(boxOpacity) || 75 : 0, posY: Number(posY) || 200, lineBadges, selectedPhoto,
     })
     if (res?.success) setViewMode('video')
   }
@@ -144,7 +177,6 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
         </div>
 
         <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1.25rem', overflowY: 'auto' }}>
-          {/* 🖼️ Выбор фото для фона Shorts */}
           <BackgroundPhotoSelector
             photoList={photoList}
             folderName={pkg?.folderName}
@@ -185,24 +217,11 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
                 </div>
               </div>
 
-              {/* Контур, Тень и Пословная настройка */}
               <ShortsTypographyControls
-                strokeWidth={strokeWidth}
-                setStrokeWidth={setStrokeWidth}
-                strokeColor={strokeColor}
-                setStrokeColor={setStrokeColor}
-                shadowDistance={shadowDistance}
-                setShadowDistance={setShadowDistance}
-                shadowColor={shadowColor}
-                setShadowColor={setShadowColor}
-                words={wordsList}
-                wordColors={wordColors}
-                setWordColors={setWordColors}
-                wordFontSizes={wordFontSizes}
-                setWordFontSizes={setWordFontSizes}
-                fontColor={fontColor}
-                fontSize={fontSize}
-                onDirty={() => setViewMode('editor')}
+                strokeWidth={strokeWidth} setStrokeWidth={setStrokeWidth} strokeColor={strokeColor} setStrokeColor={setStrokeColor}
+                shadowDistance={shadowDistance} setShadowDistance={setShadowDistance} shadowColor={shadowColor} setShadowColor={setShadowColor}
+                words={wordsList} wordColors={wordColors} setWordColors={setWordColors} wordFontSizes={wordFontSizes} setWordFontSizes={setWordFontSizes}
+                fontColor={fontColor} fontSize={fontSize} onDirty={() => setViewMode('editor')}
               />
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem' }}>
@@ -216,137 +235,71 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
                 </div>
               </div>
 
-              {/* Плашка фона */}
-              <div style={{ background: '#111827', border: '1px solid #1f2937', borderRadius: '8px', padding: '0.65rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#f3f4f6' }}>🔲 Фон/Плашка под текстом:</span>
-                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.78rem', color: boxEnabled ? '#10b981' : '#9ca3af' }}>
-                    <input type="checkbox" checked={boxEnabled} onChange={e => { setBoxEnabled(e.target.checked); setViewMode('editor') }} style={{ accentColor: '#f43f5e', cursor: 'pointer' }} />
-                    {boxEnabled ? 'ВКЛЮЧЕН' : 'ОТКЛЮЧЕН'}
-                  </label>
-                </div>
-                {boxEnabled && (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem', alignItems: 'center', paddingTop: '0.3rem', borderTop: '1px solid #1f2937' }}>
-                    <div>
-                      <label style={{ fontSize: '0.74rem', color: '#9ca3af', display: 'block', marginBottom: '0.2rem' }}>Цвет фона:</label>
-                      <div style={{ display: 'flex', gap: '0.3rem' }}>
-                        {BOX_COLORS.map(b => (<button key={b.id} type="button" onClick={() => { setBoxColor(b.id); setViewMode('editor') }} style={{ width: '20px', height: '20px', borderRadius: '4px', background: b.hex, border: boxColor === b.id ? '2px solid #f43f5e' : '1px solid rgba(255,255,255,0.2)', cursor: 'pointer', boxShadow: boxColor === b.id ? '0 0 6px #f43f5e' : 'none' }} title={b.label} />))}
-                      </div>
-                    </div>
-                    <div>
-                      <label style={{ fontSize: '0.74rem', color: '#9ca3af', display: 'block', marginBottom: '0.2rem' }}>Прозрачность ({boxOpacity}%):</label>
-                      <input type="range" min="10" max="100" value={boxOpacity} onChange={e => { setBoxOpacity(Number(e.target.value)); setViewMode('editor') }} style={{ width: '100%' }} />
-                    </div>
+              {/* 🏷️ Плашки под строками (Badge Editor Panel) */}
+              <LineBadgeControls
+                lineBadges={lineBadges}
+                setLineBadges={(newBadges) => { setLineBadges(newBadges); setViewMode('editor') }}
+                previewLines={displayText.split('\n').filter(Boolean)}
+                setBoxOpacity={(op) => { setBoxOpacity(op); setViewMode('editor') }}
+                setHasBox={(has) => { setBoxEnabled(has); setViewMode('editor') }}
+              />
+            </div>
+
+            {/* Правая панель: Большой экран 9:16 */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.55rem', flexShrink: 0, margin: '0 auto' }}>
+              <div style={{ display: 'flex', gap: '0.35rem', background: '#111827', padding: '4px', borderRadius: '8px', border: '1px solid #1f2937', flexWrap: 'wrap', justifyContent: 'center' }}>
+                <button type="button" onClick={() => setViewMode('editor')} style={{ background: viewMode === 'editor' ? '#f43f5e' : 'transparent', color: '#fff', border: 'none', borderRadius: '6px', padding: '0.35rem 0.65rem', fontSize: '0.78rem', cursor: 'pointer', fontWeight: 700, boxShadow: viewMode === 'editor' ? '0 2px 8px rgba(244,63,94,0.4)' : 'none' }}>👁️ CSS</button>
+                <button type="button" disabled={renderingFrame} onClick={() => handleInstantFramePreview()} style={{ background: viewMode === 'frame' ? '#3b82f6' : 'transparent', color: '#fff', border: 'none', borderRadius: '6px', padding: '0.35rem 0.65rem', fontSize: '0.78rem', cursor: 'pointer', fontWeight: 700, boxShadow: viewMode === 'frame' ? '0 2px 8px rgba(59,130,246,0.4)' : 'none' }} title="Сгенерировать точный кадр через FFmpeg за 0.03 сек">{renderingFrame ? '⏳ FFmpeg...' : '⚡ FFmpeg'}</button>
+                <button type="button" disabled={!shortState?.hasShort} onClick={() => setViewMode('video')} style={{ background: viewMode === 'video' ? '#10b981' : 'transparent', color: !shortState?.hasShort ? '#6b7280' : '#fff', border: 'none', borderRadius: '6px', padding: '0.35rem 0.65rem', fontSize: '0.78rem', cursor: shortState?.hasShort ? 'pointer' : 'not-allowed', fontWeight: 700, boxShadow: viewMode === 'video' ? '0 2px 8px rgba(16,185,129,0.4)' : 'none' }}>▶ Видео {shortState?.hasShort ? '✨' : ''}</button>
+              </div>
+
+              <div
+                ref={previewRef} onMouseDown={handlePreviewMouseDown} onMouseMove={handlePreviewMouseMove}
+                onMouseUp={() => setIsDragging(false)} onMouseLeave={() => setIsDragging(false)}
+                style={{ width: '240px', height: '426px', borderRadius: '14px', position: 'relative', overflow: 'hidden', background: '#000', border: isDragging ? '2px solid #f43f5e' : '2px solid #334155', boxShadow: isDragging ? '0 0 24px rgba(244,63,94,0.45)' : '0 8px 30px rgba(0,0,0,0.8)', cursor: viewMode === 'editor' ? 'grab' : 'default', userSelect: 'none' }}
+              >
+                {viewMode === 'video' && shortState?.hasShort ? (
+                  <ShortsCustomPlayer src={shortState.shortUrl} onEditMode={() => setViewMode('editor')} />
+                ) : viewMode === 'frame' && realFrameUrl ? (
+                  <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                    <img src={realFrameUrl} alt="FFmpeg Rendered Frame" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <button type="button" onClick={handleInstantFramePreview} style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 30, background: 'rgba(0,0,0,0.75)', color: '#3b82f6', border: '1px solid #3b82f6', borderRadius: '6px', padding: '0.3rem 0.6rem', fontSize: '0.74rem', cursor: 'pointer', fontWeight: 700 }}>🔄 Обновить</button>
                   </div>
+                ) : (
+                  <>
+                    {currentBgSrc && (<img src={currentBgSrc} alt="Shorts Preview" draggable={false} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 1, pointerEvents: 'none' }} />)}
+                    <div style={{ position: 'absolute', top: `${(posY / 1920) * 100}%`, left: '50%', transform: 'translateX(-50%)', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', textAlign: 'center', zIndex: 10, pointerEvents: 'none' }}>
+                      {(() => {
+                        let wordGlobalIdx = 0
+                        return displayText.split('\n').map((line, lIdx) => {
+                          const lineWords = line.split(/\s+/).filter(Boolean)
+                          const { outerStyle, innerStyle } = getLineBadgeStyle(lIdx)
+                          return (
+                            <span key={lIdx} style={outerStyle}>
+                              <span
+                                style={{
+                                  ...innerStyle,
+                                  fontFamily: activeFontFamily, lineHeight: 1, fontWeight: 900, textTransform: 'uppercase',
+                                  WebkitTextStroke: strokeWidth > 0 ? `${((strokeWidth / 1080) * 240).toFixed(2)}px ${activeStrokeHex}` : 'none', textShadow: activeShadowCss,
+                                }}
+                              >
+                                {lineWords.map((w, wSubIdx) => {
+                                  const curIdx = wordGlobalIdx++, wCol = (wordColors && wordColors[curIdx]) ? wordColors[curIdx] : fontColor
+                                  const wColHex = TEXT_COLORS.find(c => c.id === wCol)?.hex || activeColorHex
+                                  const wSz = (wordFontSizes && wordFontSizes[curIdx] && Number(wordFontSizes[curIdx]) > 0) ? Number(wordFontSizes[curIdx]) : Number(fontSize)
+                                  return (<span key={wSubIdx} style={{ color: wColHex, fontSize: `${(wSz / 1080) * 240}px`, margin: '0 0.12em', display: 'inline-block' }}>{w}</span>)
+                                })}
+                              </span>
+                            </span>
+                          )
+                        })
+                      })()}
+                    </div>
+                    <div style={{ position: 'absolute', bottom: '10px', left: '12px', zIndex: 12, fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)', pointerEvents: 'none' }}>▶ YouTube Shorts (9:16)</div>
+                  </>
                 )}
               </div>
             </div>
-
-          {/* Правая панель: Большой экран 9:16 */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.55rem', flexShrink: 0, margin: '0 auto' }}>
-            <div style={{ display: 'flex', gap: '0.35rem', background: '#111827', padding: '4px', borderRadius: '8px', border: '1px solid #1f2937', flexWrap: 'wrap', justifyContent: 'center' }}>
-              <button
-                type="button"
-                onClick={() => setViewMode('editor')}
-                style={{
-                  background: viewMode === 'editor' ? '#f43f5e' : 'transparent',
-                  color: '#fff', border: 'none', borderRadius: '6px', padding: '0.35rem 0.65rem', fontSize: '0.78rem', cursor: 'pointer', fontWeight: 700,
-                  boxShadow: viewMode === 'editor' ? '0 2px 8px rgba(244,63,94,0.4)' : 'none',
-                }}
-              >
-                👁️ CSS
-              </button>
-              <button
-                type="button"
-                disabled={renderingFrame}
-                onClick={() => handleInstantFramePreview()}
-                style={{
-                  background: viewMode === 'frame' ? '#3b82f6' : 'transparent',
-                  color: '#fff', border: 'none', borderRadius: '6px', padding: '0.35rem 0.65rem', fontSize: '0.78rem', cursor: 'pointer', fontWeight: 700,
-                  boxShadow: viewMode === 'frame' ? '0 2px 8px rgba(59,130,246,0.4)' : 'none',
-                }}
-                title="Сгенерировать точный кадр через FFmpeg за 0.03 сек"
-              >
-                {renderingFrame ? '⏳ FFmpeg...' : '⚡ FFmpeg'}
-              </button>
-              <button
-                type="button"
-                disabled={!shortState?.hasShort}
-                onClick={() => setViewMode('video')}
-                style={{
-                  background: viewMode === 'video' ? '#10b981' : 'transparent',
-                  color: !shortState?.hasShort ? '#6b7280' : '#fff', border: 'none', borderRadius: '6px', padding: '0.35rem 0.65rem', fontSize: '0.78rem', cursor: shortState?.hasShort ? 'pointer' : 'not-allowed', fontWeight: 700,
-                  boxShadow: viewMode === 'video' ? '0 2px 8px rgba(16,185,129,0.4)' : 'none',
-                }}
-              >
-                ▶ Видео {shortState?.hasShort ? '✨' : ''}
-              </button>
-            </div>
-
-            <div
-              ref={previewRef} onMouseDown={handlePreviewMouseDown} onMouseMove={handlePreviewMouseMove}
-              onMouseUp={() => setIsDragging(false)} onMouseLeave={() => setIsDragging(false)}
-              style={{
-                width: '240px', height: '426px', borderRadius: '14px', position: 'relative', overflow: 'hidden',
-                background: '#000', border: isDragging ? '2px solid #f43f5e' : '2px solid #334155',
-                boxShadow: isDragging ? '0 0 24px rgba(244,63,94,0.45)' : '0 8px 30px rgba(0,0,0,0.8)',
-                cursor: viewMode === 'editor' ? 'grab' : 'default', userSelect: 'none',
-              }}
-            >
-              {viewMode === 'video' && shortState?.hasShort ? (
-                <ShortsCustomPlayer src={shortState.shortUrl} onEditMode={() => setViewMode('editor')} />
-              ) : viewMode === 'frame' && realFrameUrl ? (
-                <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-                  <img src={realFrameUrl} alt="FFmpeg Rendered Frame" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
-                  <button
-                    type="button"
-                    onClick={handleInstantFramePreview}
-                    style={{
-                      position: 'absolute', top: '10px', right: '10px', zIndex: 30,
-                      background: 'rgba(0,0,0,0.75)', color: '#3b82f6', border: '1px solid #3b82f6',
-                      borderRadius: '6px', padding: '0.3rem 0.6rem', fontSize: '0.74rem', cursor: 'pointer', fontWeight: 700,
-                    }}
-                  >
-                    🔄 Обновить
-                  </button>
-                </div>
-              ) : (
-                <>
-                  {currentBgSrc && (<img src={currentBgSrc} alt="Shorts Preview" draggable={false} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 1, pointerEvents: 'none' }} />)}
-                  <div style={{
-                    position: 'absolute', top: `${(posY / 1920) * 100}%`, left: '50%', transform: 'translateX(-50%)',
-                    width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center',
-                    gap: `${((fontSize * 0.15) / 1080) * 240}px`, textAlign: 'center', zIndex: 10, pointerEvents: 'none',
-                  }}>
-                    {(() => {
-                      let wordGlobalIdx = 0
-                      return displayText.split('\n').map((line, lIdx) => {
-                        const lineWords = line.split(/\s+/).filter(Boolean)
-                        return (
-                          <span
-                            key={lIdx}
-                            style={{
-                              display: 'inline-flex', alignItems: 'baseline', fontFamily: activeFontFamily, lineHeight: 1, fontWeight: 900, textTransform: 'uppercase',
-                              WebkitTextStroke: strokeWidth > 0 ? `${((strokeWidth / 1080) * 240).toFixed(2)}px ${activeStrokeHex}` : 'none', textShadow: activeShadowCss,
-                              background: boxEnabled ? `${activeBoxHex}${Math.round((boxOpacity / 100) * 255).toString(16).padStart(2, '0')}` : 'transparent', padding: boxEnabled ? '2px 8px' : '0', borderRadius: '4px', textAlign: 'center',
-                            }}
-                          >
-                            {lineWords.map((w, wSubIdx) => {
-                              const curIdx = wordGlobalIdx++, wCol = (wordColors && wordColors[curIdx]) ? wordColors[curIdx] : fontColor
-                              const wColHex = TEXT_COLORS.find(c => c.id === wCol)?.hex || activeColorHex
-                              const wSz = (wordFontSizes && wordFontSizes[curIdx] && Number(wordFontSizes[curIdx]) > 0) ? Number(wordFontSizes[curIdx]) : Number(fontSize)
-                              return (<span key={wSubIdx} style={{ color: wColHex, fontSize: `${(wSz / 1080) * 240}px`, margin: '0 0.12em', display: 'inline-block' }}>{w}</span>)
-                            })}
-                          </span>
-                        )
-                      })
-                    })()}
-                  </div>
-                  <div style={{ position: 'absolute', bottom: '10px', left: '12px', zIndex: 12, fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)', pointerEvents: 'none' }}>▶ YouTube Shorts (9:16)</div>
-                </>
-              )}
-            </div>
-          </div>
           </div>
         </div>
 
