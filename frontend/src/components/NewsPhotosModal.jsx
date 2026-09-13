@@ -34,7 +34,9 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
     const engineLabels = { all: 'по всем источникам', article: 'из оригинальной статьи', bing: 'в Bing', pinterest: 'в Pinterest', yandex: 'в Yandex' }
     const toastId = toast.loading(`🔎 Поиск фото ${engineLabels[engine] || ''}...`, { description: searchQuery.slice(0, 50) })
     try {
-      const params = new URLSearchParams({ title: newsTopic.title || '', articleId: newsTopic.id || '', url: newsTopic.url || '', query: searchQuery.trim(), forceLive: 'true', page: '1', engine })
+      const folderName = newsTopic.folderName || newsTopic.matchingPkg?.folderName || ''
+      const bundleDir = newsTopic.bundleDir || newsTopic.matchingPkg?.bundleDir || ''
+      const params = new URLSearchParams({ title: newsTopic.title || '', articleId: newsTopic.id || '', url: newsTopic.url || '', folderName, bundleDir, query: searchQuery.trim(), forceLive: 'true', page: '1', engine })
       const res = await fetch(`/api/news-photos?${params}`)
       const data = await res.json()
       toast.dismiss(toastId)
@@ -42,10 +44,15 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
         const incoming = data.photos || []
         setItems(prev => {
           const localSaved = prev.filter(p => p?.isSavedLocal || (typeof p === 'string' && p.startsWith('/news-static/')) || (p?.url && p.url.startsWith('/news-static/')))
-          if (localSaved.length === 0) return incoming
-          const localUrls = new Set(localSaved.map(p => typeof p === 'string' ? p : p?.url))
-          const fresh = incoming.filter(p => !localUrls.has(typeof p === 'string' ? p : p?.url))
-          return [...localSaved, ...fresh]
+          const incomingLocal = incoming.filter(p => p?.isSavedLocal || (typeof p === 'string' && p.startsWith('/news-static/')) || (p?.url && p.url.startsWith('/news-static/')))
+          const allLocal = [...localSaved]
+          const localUrls = new Set(allLocal.map(p => typeof p === 'string' ? p : p?.url))
+          incomingLocal.forEach(p => {
+            const u = typeof p === 'string' ? p : p?.url
+            if (!localUrls.has(u)) { localUrls.add(u); allLocal.push(p) }
+          })
+          const incomingWeb = incoming.filter(p => !localUrls.has(typeof p === 'string' ? p : p?.url))
+          return [...allLocal, ...incomingWeb]
         })
         toast.success(`Найдено ${data.photos?.length || 0} фото!`, { duration: 2500 })
       } else {
@@ -147,7 +154,9 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
     setLoadingMore(true)
     const toastId = toast.loading(`🔎 Поиск следующих фото (страница ${nextPage})...`)
     try {
-      const params = new URLSearchParams({ title: newsTopic.title || '', query: searchQuery.trim(), forceLive: 'true', page: String(nextPage), engine: currentEngine })
+      const folderName = newsTopic.folderName || newsTopic.matchingPkg?.folderName || ''
+      const bundleDir = newsTopic.bundleDir || newsTopic.matchingPkg?.bundleDir || ''
+      const params = new URLSearchParams({ title: newsTopic.title || '', articleId: newsTopic.id || '', url: newsTopic.url || '', folderName, bundleDir, query: searchQuery.trim(), forceLive: 'true', page: String(nextPage), engine: currentEngine })
       const res = await fetch(`/api/news-photos?${params}`)
       const data = await res.json()
       toast.dismiss(toastId)
@@ -174,10 +183,7 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
     setSavingSingleIndex(index)
     const toastId = toast.loading('💾 Скачивание фото в папку news/...', { description: 'Сохранение оригинального файла...' })
     try {
-      const extractedFolder = items
-        .map(p => (typeof p === 'string' ? p : p?.url || ''))
-        .find(u => u.includes('/news-static/'))
-        ?.match(/\/news-static\/([^/]+)\//)?.[1]
+      const extractedFolder = items.map(p => (typeof p === 'string' ? p : p?.url || '')).find(u => u.includes('/news-static/'))?.match(/\/news-static\/([^/]+)\//)?.[1]
       const folderName = newsTopic.folderName || newsTopic.matchingPkg?.folderName || extractedFolder
       const bundleDir = newsTopic.bundleDir || newsTopic.matchingPkg?.bundleDir
       const res = await fetch('/api/save-single-photo', {
@@ -200,20 +206,12 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
     setSavingPhotos(true)
     const toastId = toast.loading(`💾 Сохранение ${items.length} фото в news/...`, { description: 'Запись файлов на диск в новом порядке...' })
     try {
-      const extractedFolder = items
-        .map(p => (typeof p === 'string' ? p : p?.url || ''))
-        .find(u => u.includes('/news-static/'))
-        ?.match(/\/news-static\/([^/]+)\//)?.[1]
+      const extractedFolder = items.map(p => (typeof p === 'string' ? p : p?.url || '')).find(u => u.includes('/news-static/'))?.match(/\/news-static\/([^/]+)\//)?.[1]
       const folderName = newsTopic.folderName || newsTopic.matchingPkg?.folderName || extractedFolder
       const bundleDir = newsTopic.bundleDir || newsTopic.matchingPkg?.bundleDir
       const res = await fetch('/api/save-news-photos', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: newsTopic.title,
-          folderName,
-          bundleDir,
-          photos: items.map(p => (typeof p === 'string' ? p : p.url)),
-        }),
+        body: JSON.stringify({ title: newsTopic.title, folderName, bundleDir, photos: items.map(p => (typeof p === 'string' ? p : p.url)) }),
       })
       const data = await res.json()
       toast.dismiss(toastId)
@@ -222,20 +220,12 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
       setHasOrderChanged(false)
       if (data.photos && data.folderName) {
         const bust = Date.now()
-        setItems(data.photos.map(relPath => ({
-          url: `/news-static/${data.folderName}/${relPath}?t=${bust}`,
-          source: 'На диске',
-          isSavedLocal: true,
-        })))
+        setItems(data.photos.map(relPath => ({ url: `/news-static/${data.folderName}/${relPath}?t=${bust}`, source: 'На диске', isSavedLocal: true })))
       }
       if (onSaved) onSaved()
       toast.success(`📸 Порядок ${data.savedPhotosCount || items.length} фото сохранен на диске!`, { description: `Папка: news/${data.folderName}/photos/`, duration: 2500 })
-    } catch (err) {
-      toast.dismiss(toastId)
-      toast.error('Ошибка сохранения фото: ' + err.message, { duration: 3000 })
-    } finally {
-      setSavingPhotos(false)
-    }
+    } catch (err) { toast.dismiss(toastId); toast.error('Ошибка сохранения фото: ' + err.message, { duration: 3000 }) }
+    finally { setSavingPhotos(false) }
   }
 
   const isLoading = initialLoading || searching

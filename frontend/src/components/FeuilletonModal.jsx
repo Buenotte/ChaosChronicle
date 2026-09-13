@@ -316,7 +316,20 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onOpenPackag
                   </button>
                 )}
                 {onOpenPhotos && (
-                  <button type="button" className="photos-header-btn" onClick={() => onOpenPhotos({ title: currentTitle, images: feuilleton.images, id: feuilleton.id })} style={{ padding: '0.65rem 1rem', fontSize: '0.88rem' }}>
+                  <button
+                    type="button"
+                    className="photos-header-btn"
+                    onClick={() => onOpenPhotos({
+                      title: currentTitle,
+                      images: feuilleton.images,
+                      id: feuilleton.id,
+                      url: feuilleton.url || feuilleton.sourceUrl,
+                      folderName: savedInfo?.folderName || feuilleton.folderName || feuilleton.matchingPkg?.folderName,
+                      bundleDir: savedInfo?.bundleDir || feuilleton.bundleDir || feuilleton.matchingPkg?.bundleDir,
+                      matchingPkg: feuilleton.matchingPkg,
+                    })}
+                    style={{ padding: '0.65rem 1rem', fontSize: '0.88rem' }}
+                  >
                     🖼️ Фото к новости
                   </button>
                 )}

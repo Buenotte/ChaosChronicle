@@ -197,7 +197,7 @@ export default function NewsCard({
 
           <button
             className="photos-btn"
-            onClick={() => onOpenPhotos(article)}
+            onClick={() => onOpenPhotos({ ...article, matchingPkg: savedPkg || article.matchingPkg, folderName: savedPkg?.folderName || article.folderName, bundleDir: savedPkg?.bundleDir || article.bundleDir })}
             title="Посмотреть фото к этой новости"
           >
             🖼️ Фото {hasAnyArtifact && savedPkg?.photosCount ? `(${savedPkg.photosCount})` : ''}

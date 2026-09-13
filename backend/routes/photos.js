@@ -104,60 +104,59 @@ router.get('/api/news-photos', async (req, res) => {
     let detectedBundleDir = inputBundleDir;
     let detectedFolderName = folderName;
 
-    // 1. Lokale Fotos von der Festplatte IMMER zuerst laden
+    // 1. Lokale Fotos von der Festplatte IMMER zuerst und vollständig laden
     if (fs.existsSync(newsDir)) {
       if (!detectedBundleDir && detectedFolderName) {
-        detectedBundleDir = path.join(newsDir, detectedFolderName);
+        const direct = path.join(newsDir, detectedFolderName);
+        if (fs.existsSync(direct)) detectedBundleDir = direct;
       }
-      if (!detectedBundleDir && title) {
-        const cleanQuery = title.toLowerCase().replace(/[^a-z0-9а-яё]/gi, '');
+      if (!detectedBundleDir && (title || url || detectedFolderName)) {
+        const cleanQuery = (title || '').toLowerCase().replace(/[^a-z0-9а-яё]/gi, '');
         const dirs = fs.readdirSync(newsDir, { withFileTypes: true });
         for (const d of dirs) {
           if (!d.isDirectory()) continue;
-          const pDir = path.join(newsDir, d.name);
-          const jsonPath = path.join(pDir, 'project.json');
-          let mTitle = '';
-          let mOrig = '';
+          const pDir = path.join(newsDir, d.name), jsonPath = path.join(pDir, 'project.json');
+          if (detectedFolderName && (d.name === detectedFolderName || d.name.includes(detectedFolderName))) { detectedBundleDir = pDir; detectedFolderName = d.name; break; }
+          let mTitle = '', mOrig = '', mUrl = '';
           if (fs.existsSync(jsonPath)) {
             try {
               const m = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
               mTitle = (m.title || '').toLowerCase().replace(/[^a-z0-9а-яё]/gi, '');
               mOrig = (m.original_title || '').toLowerCase().replace(/[^a-z0-9а-яё]/gi, '');
+              mUrl = m.url || m.original_url || m.link || '';
             } catch {}
           }
+          if (url && mUrl && (mUrl === url || mUrl.includes(url) || url.includes(mUrl))) { detectedBundleDir = pDir; detectedFolderName = d.name; break; }
           const fClean = d.name.replace(/^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}_/, '').toLowerCase().replace(/[^a-z0-9а-яё]/gi, '');
-          if (
-            (mOrig && (cleanQuery.includes(mOrig.slice(0, 12)) || mOrig.includes(cleanQuery.slice(0, 12)))) ||
-            (mTitle && (cleanQuery.includes(mTitle.slice(0, 12)) || mTitle.includes(cleanQuery.slice(0, 12)))) ||
-            (fClean && (cleanQuery.includes(fClean.slice(0, 12)) || fClean.includes(cleanQuery.slice(0, 12))))
-          ) {
-            detectedBundleDir = pDir;
-            detectedFolderName = d.name;
-            break;
+          if (cleanQuery && ((mOrig && (cleanQuery.includes(mOrig.slice(0, 12)) || mOrig.includes(cleanQuery.slice(0, 12)))) ||
+              (mTitle && (cleanQuery.includes(mTitle.slice(0, 12)) || mTitle.includes(cleanQuery.slice(0, 12)))) ||
+              (fClean && (cleanQuery.includes(fClean.slice(0, 12)) || fClean.includes(cleanQuery.slice(0, 12)))))) {
+            detectedBundleDir = pDir; detectedFolderName = d.name; break;
           }
         }
       }
 
       if (detectedBundleDir && fs.existsSync(detectedBundleDir)) {
+        const folderBase = path.basename(detectedBundleDir);
+        detectedFolderName = folderBase;
         const existingPhotosDir = path.join(detectedBundleDir, 'photos');
         if (fs.existsSync(existingPhotosDir)) {
-          const existingFiles = fs.readdirSync(existingPhotosDir)
-            .filter(f => /\.(jpg|jpeg|png|webp|avif)/i.test(f))
-            .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-          const folderBase = path.basename(detectedBundleDir);
-          detectedFolderName = folderBase;
-          for (const f of existingFiles) {
+          const files = fs.readdirSync(existingPhotosDir).filter(f => /\.(jpg|jpeg|png|webp|avif|gif)/i.test(f)).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+          for (const f of files) {
             const localUrl = `/news-static/${folderBase}/photos/${f}`;
             if (!seen.has(localUrl)) {
               seen.add(localUrl);
-              photos.push({
-                url: localUrl,
-                source: `На диске: photos/${f}`,
-                articleTitle: title,
-                isSavedLocal: true,
-                quality: 'local',
-              });
+              photos.push({ url: localUrl, source: `На диске: photos/${f}`, articleTitle: title, isSavedLocal: true, quality: 'local' });
             }
+          }
+        }
+        // Auch Bilder im Hauptordner des Pakets mit aufnehmen
+        const rootImgFiles = fs.readdirSync(detectedBundleDir).filter(f => /\.(jpg|jpeg|png|webp|avif)/i.test(f) && !f.includes('thumb'));
+        for (const f of rootImgFiles) {
+          const localUrl = `/news-static/${folderBase}/${f}`;
+          if (!seen.has(localUrl)) {
+            seen.add(localUrl);
+            photos.push({ url: localUrl, source: `На диске: ${f}`, articleTitle: title, isSavedLocal: true, quality: 'local' });
           }
         }
       }
@@ -165,14 +164,7 @@ router.get('/api/news-photos', async (req, res) => {
 
     // Wenn keine Live-Suche und bereits lokale Fotos vorhanden sind -> sofort zurückgeben
     if (!isForceLive && photos.length > 0) {
-      return res.json({
-        success: true,
-        count: photos.length,
-        isLocal: true,
-        bundleDir: detectedBundleDir,
-        folderName: detectedFolderName,
-        photos,
-      });
+      return res.json({ success: true, count: photos.length, isLocal: true, bundleDir: detectedBundleDir, folderName: detectedFolderName, photos });
     }
 
     const titleClean = cleanText(title);
