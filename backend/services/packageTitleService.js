@@ -159,7 +159,16 @@ export async function generateTitleVariants(title = '', summary = '', bundleDir 
   }
 
   const uniqueVariants = Array.from(new Set(rawLines)).slice(0, 10);
-    const finalVariants = uniqueVariants.length > 0 ? uniqueVariants : (existingVariants.length > 0 ? existingVariants : [effectiveTitle]);
+  if (uniqueVariants.length < 3 && effectiveTitle) {
+    const words = effectiveTitle.split(/\s+/).filter(Boolean);
+    const base = words.slice(0, 5).join(' ').toUpperCase();
+    if (base && !uniqueVariants.includes(base)) uniqueVariants.push(base);
+    const v2 = `${base} ПО ПЛАНУ`;
+    if (!uniqueVariants.includes(v2)) uniqueVariants.push(v2);
+    const v3 = `РЕАЛЬНОСТЬ: ${base}`;
+    if (!uniqueVariants.includes(v3)) uniqueVariants.push(v3);
+  }
+  const finalVariants = uniqueVariants.length > 0 ? uniqueVariants : (existingVariants.length > 0 ? existingVariants : [effectiveTitle]);
 
     if (jsonPath && fs.existsSync(jsonPath) && finalVariants.length > 0) {
       try {
