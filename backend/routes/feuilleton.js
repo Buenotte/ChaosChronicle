@@ -83,29 +83,28 @@ async function callGeminiDirect(systemInstruction, userInstruction, maxTokens = 
   const geminiKey = process.env.GEMINI_API_KEY;
   if (!geminiKey || geminiKey.includes('HIER')) return null;
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent?key=${geminiKey}`;
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      system_instruction: { parts: [{ text: systemInstruction }] },
-      contents: [{ parts: [{ text: userInstruction }] }],
-      generationConfig: {
-        temperature: 0.85,
-        maxOutputTokens: maxTokens,
-      },
-    }),
-    signal: AbortSignal.timeout(30000),
-  });
+  try {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${geminiKey}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: systemInstruction }] },
+        contents: [{ parts: [{ text: userInstruction }] }],
+        generationConfig: {
+          temperature: 0.85,
+          maxOutputTokens: maxTokens,
+        },
+      }),
+      signal: AbortSignal.timeout(30000),
+    });
 
-  if (!response.ok) {
-    const errText = await response.text();
-    console.warn(`Google Gemini Direct ${response.status}: ${errText}`);
+    if (!response.ok) return null;
+    const data = await response.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  } catch {
     return null;
   }
-
-  const data = await response.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 }
 
 // ── Генератор хлестких заголовков (4-5 слов) СТРОГО ИЗ ТЕКСТА ──
@@ -213,14 +212,13 @@ router.post('/api/generate-feuilleton', async (req, res) => {
     } catch {}
   }
 
-  const modelId = model === 'gemini' ? 'gemini-3.7-flash' : (MODELS[model] || MODELS.gemini);
+  const modelId = MODELS[model] || MODELS.gemini;
   const { systemInstruction, userInstruction } = buildStyledFeuilletonPrompt(title, effectiveSummary, style, tone);
 
   try {
     let rawText = '';
     if (model === 'gemini') {
-      try { rawText = await callGeminiDirect(systemInstruction, userInstruction, 4000); }
-      catch (gErr) { console.warn('Gemini Direct Fallback zu OpenRouter:', gErr.message); }
+      try { rawText = await callGeminiDirect(systemInstruction, userInstruction, 4000); } catch {}
     }
 
     if (!rawText) {

@@ -164,13 +164,33 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
     if (res?.success) setViewMode('video')
   }
 
-  const handlePreviewMouseDown = (e) => { if (viewMode === 'editor') { setIsDragging(true); updatePosFromEvent(e); } }
-  const handlePreviewMouseMove = (e) => { if (isDragging && viewMode === 'editor') updatePosFromEvent(e); }
   const updatePosFromEvent = (e) => {
     if (!previewRef.current) return
     const rect = previewRef.current.getBoundingClientRect()
-    const ratio = Math.max(0, Math.min((e.clientY - rect.top) / rect.height, 1))
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY
+    const ratio = Math.max(0, Math.min((clientY - rect.top) / rect.height, 1))
     setPosY(Math.round(ratio * 1920))
+  }
+
+  const handlePreviewMouseDown = (e) => {
+    if (viewMode !== 'editor') setViewMode('editor')
+    setIsDragging(true)
+    updatePosFromEvent(e)
+    const handleMove = (ev) => {
+      ev.preventDefault()
+      updatePosFromEvent(ev)
+    }
+    const handleUp = () => {
+      setIsDragging(false)
+      window.removeEventListener('mousemove', handleMove)
+      window.removeEventListener('mouseup', handleUp)
+      window.removeEventListener('touchmove', handleMove)
+      window.removeEventListener('touchend', handleUp)
+    }
+    window.addEventListener('mousemove', handleMove)
+    window.addEventListener('mouseup', handleUp)
+    window.addEventListener('touchmove', handleMove, { passive: false })
+    window.addEventListener('touchend', handleUp)
   }
 
   return (
@@ -261,9 +281,10 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
               </div>
 
               <div
-                ref={previewRef} onMouseDown={handlePreviewMouseDown} onMouseMove={handlePreviewMouseMove}
-                onMouseUp={() => setIsDragging(false)} onMouseLeave={() => setIsDragging(false)}
-                style={{ width: '240px', height: '426px', borderRadius: '14px', position: 'relative', overflow: 'hidden', background: '#000', border: isDragging ? '2px solid #f43f5e' : '2px solid #334155', boxShadow: isDragging ? '0 0 24px rgba(244,63,94,0.45)' : '0 8px 30px rgba(0,0,0,0.8)', cursor: viewMode === 'editor' ? 'grab' : 'default', userSelect: 'none' }}
+                ref={previewRef}
+                onMouseDown={handlePreviewMouseDown}
+                onTouchStart={handlePreviewMouseDown}
+                style={{ width: '240px', height: '426px', borderRadius: '14px', position: 'relative', overflow: 'hidden', background: '#000', border: isDragging ? '2px solid #f43f5e' : '2px solid #334155', boxShadow: isDragging ? '0 0 24px rgba(244,63,94,0.45)' : '0 8px 30px rgba(0,0,0,0.8)', cursor: isDragging ? 'grabbing' : 'grab', userSelect: 'none' }}
               >
                 {viewMode === 'video' && shortState?.hasShort ? (
                   <ShortsCustomPlayer src={shortState.shortUrl} onEditMode={() => setViewMode('editor')} />

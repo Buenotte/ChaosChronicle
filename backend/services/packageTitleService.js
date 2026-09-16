@@ -107,7 +107,7 @@ export async function generateTitleVariants(title = '', summary = '', bundleDir 
   const geminiKey = process.env.GEMINI_API_KEY;
   if (geminiKey && !geminiKey.includes('HIER')) {
     try {
-      const gRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent?key=${geminiKey}`, {
+      const gRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${geminiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -115,7 +115,7 @@ export async function generateTitleVariants(title = '', summary = '', bundleDir 
           contents: [{ parts: [{ text: userPrompt }] }],
           generationConfig: { temperature: 0.9, maxOutputTokens: 2500 },
         }),
-        signal: AbortSignal.timeout(12000),
+        signal: AbortSignal.timeout(15000),
       });
       if (gRes.ok) {
         const d = await gRes.json();

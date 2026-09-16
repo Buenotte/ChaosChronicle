@@ -59,7 +59,9 @@ export default function LiveThumbnailPreview({
   }
 
   const handlePointerDown = (e) => {
-    if (previewMode === 'real') return
+    if (previewMode === 'real' && setPreviewMode) {
+      setPreviewMode('css')
+    }
     setIsDraggingTitle(true)
     updatePosFromEvent(e)
     const handleMove = (ev) => {
@@ -237,17 +239,23 @@ export default function LiveThumbnailPreview({
 
             if (bShadowFilter !== 'none') outerStyle.filter = bShadowFilter
 
+            const defPadX = sType === 'slanted' ? 56 : (sType === 'torn' ? 56 : (sType === 'tape' ? 48 : 40))
+            const defPadY = sType === 'torn' ? 14 : 10
+            const rawPadX = (Array.isArray(bCfg.linePadX) && bCfg.linePadX[idx] !== undefined) ? Number(bCfg.linePadX[idx]) : (bCfg.padX !== undefined ? Number(bCfg.padX) : defPadX)
+            const rawPadY = (Array.isArray(bCfg.linePadY) && bCfg.linePadY[idx] !== undefined) ? Number(bCfg.linePadY[idx]) : (bCfg.padY !== undefined ? Number(bCfg.padY) : defPadY)
+            const cssPadX = Math.max(4, Math.round((rawPadX / 1280) * 450))
+            const cssPadY = Math.max(2, Math.round((rawPadY / 720) * 360))
+
             const innerStyle = {
-              background: bg, padding: '4px 18px', display: 'inline-block',
+              background: bg, padding: `${cssPadY}px ${cssPadX}px`, display: 'inline-block',
               width: 'max-content', transition: 'all 0.15s ease',
             }
 
             if (sType === 'solid') innerStyle.borderRadius = '6px'
-            else if (sType === 'slanted') { innerStyle.clipPath = 'polygon(18px 0%, 100% 0%, calc(100% - 18px) 100%, 0% 100%)'; innerStyle.padding = '4px 24px'; }
+            else if (sType === 'slanted') { innerStyle.clipPath = 'polygon(18px 0%, 100% 0%, calc(100% - 18px) 100%, 0% 100%)'; }
             else if (sType === 'dashed') { innerStyle.borderRadius = '6px'; innerStyle.border = '2.5px dashed rgba(255,255,255,0.75)'; }
-            else if (sType === 'tape') { innerStyle.borderRadius = '2px'; innerStyle.padding = '4px 22px'; innerStyle.borderLeft = '4px solid rgba(255,255,255,0.4)'; innerStyle.borderRight = '4px solid rgba(255,255,255,0.4)'; }
+            else if (sType === 'tape') { innerStyle.borderRadius = '2px'; innerStyle.borderLeft = '4px solid rgba(255,255,255,0.4)'; innerStyle.borderRight = '4px solid rgba(255,255,255,0.4)'; }
             else if (sType === 'torn') {
-              innerStyle.padding = '6px 28px'
               innerStyle.clipPath = (idx % 2 === 0)
                 ? 'polygon(0% 6px, 6% 0px, 12% 9px, 19% 1px, 25% 10px, 32% 2px, 39% 9px, 46% 0px, 53% 11px, 60% 3px, 67% 9px, 74% 1px, 81% 10px, 88% 2px, 94% 8px, 100% 0px, calc(100% - 18px) 24%, calc(100% - 3px) 48%, calc(100% - 22px) 72%, 100% 100%, 94% calc(100% - 8px), 88% calc(100% - 1px), 81% calc(100% - 10px), 74% calc(100% - 2px), 67% calc(100% - 9px), 60% calc(100% - 0px), 53% calc(100% - 11px), 46% calc(100% - 2px), 39% calc(100% - 9px), 32% calc(100% - 1px), 25% calc(100% - 10px), 19% calc(100% - 3px), 12% calc(100% - 8px), 6% calc(100% - 1px), 0% calc(100% - 6px), 18px 75%, 3px 50%, 22px 25%, 0% 6px)'
                 : 'polygon(0% 9px, 6% 2px, 13% 10px, 20% 0px, 27% 8px, 34% 2px, 41% 11px, 48% 1px, 55% 9px, 62% 0px, 69% 10px, 76% 2px, 83% 8px, 90% 1px, 96% 10px, 100% 2px, calc(100% - 22px) 28%, calc(100% - 4px) 52%, calc(100% - 17px) 76%, 100% 98%, 95% calc(100% - 10px), 88% calc(100% - 2px), 81% calc(100% - 9px), 74% calc(100% - 1px), 67% calc(100% - 11px), 60% calc(100% - 3px), 53% calc(100% - 8px), 46% calc(100% - 0px), 39% calc(100% - 10px), 32% calc(100% - 2px), 25% calc(100% - 9px), 18% calc(100% - 0px), 12% calc(100% - 10px), 6% calc(100% - 2px), 0% calc(100% - 8px), 22px 72%, 4px 48%, 18px 24%, 0% 9px)'
