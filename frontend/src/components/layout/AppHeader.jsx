@@ -13,6 +13,7 @@ export default function AppHeader({
   loading,
   savedCount = 0,
   onOpenCustomNews,
+  onOpenYouTubeImport,
 }) {
   return (
     <header className="app-header">
@@ -77,6 +78,32 @@ export default function AppHeader({
               </button>
             )}
           </div>
+
+          {/* YouTube Импорт */}
+          <button
+            type="button"
+            className="youtube-import-btn"
+            onClick={onOpenYouTubeImport}
+            title="Импортировать YouTube видео: извлечь аудио, создать 3-мин. сценарий и сохранить в новости"
+            style={{
+              background: 'linear-gradient(135deg, #dc2626, #9333ea)',
+              color: '#ffffff',
+              border: '1px solid #f87171',
+              borderRadius: '8px',
+              padding: '0.42rem 0.85rem',
+              fontSize: '0.84rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              boxShadow: '0 2px 8px rgba(220, 38, 38, 0.35)',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <span>🎬</span>
+            <span>YouTube в Сценарий</span>
+          </button>
 
           {/* Своя новость */}
           <button

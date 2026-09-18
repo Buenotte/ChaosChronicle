@@ -5,6 +5,7 @@ import NewsAudioModal from '../NewsAudioModal'
 import NewsPhotosModal from '../NewsPhotosModal'
 import CustomNewsModal from '../CustomNewsModal'
 import OriginalTextModal from '../OriginalTextModal'
+import YouTubeImportModal from '../YouTubeImportModal'
 
 export default function NewsModalsContainer({
   currentFeuilleton,
@@ -24,6 +25,8 @@ export default function NewsModalsContainer({
   fetchSavedPackages,
   showCustomNewsModal,
   setShowCustomNewsModal,
+  showYouTubeModal,
+  setShowYouTubeModal,
   onCustomNewsCreated,
   onOpenPackage,
   originalTextArticle,
@@ -36,6 +39,14 @@ export default function NewsModalsContainer({
         isOpen={showCustomNewsModal}
         onClose={() => setShowCustomNewsModal(false)}
         onNewsCreated={onCustomNewsCreated}
+      />
+      <YouTubeImportModal
+        isOpen={showYouTubeModal}
+        onClose={() => setShowYouTubeModal(false)}
+        onPackageCreated={() => fetchSavedPackages()}
+        onOpenPackage={pkg => {
+          if (onOpenPackage) onOpenPackage(pkg)
+        }}
       />
       <FeuilletonModal
         feuilleton={currentFeuilleton}

@@ -20,6 +20,7 @@ const testSuites = [
   { name: '8. Video Engine & Subscribe Banner (FFmpeg)', file: 'test_video_engine.js' },
   { name: '9. Frontend React AST & Modal Smoke Tests', file: 'test_frontend_smoke.js' },
   { name: '10. YouTube Shorts 9:16 Studio & FFmpeg Pipeline', file: 'test_shorts_engine.js' },
+  { name: '11. YouTube Audio Extraction & 3-Min Script Pipeline', file: 'test_youtube_service.js' },
 ];
 
 let passedCount = 0;

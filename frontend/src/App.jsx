@@ -29,7 +29,7 @@ export default function App() {
 
   const [savedPackages, setSavedPackages] = useState([]), [activeSavedPackage, setActiveSavedPackage] = useState(null)
   const [scriptTextPackage, setScriptTextPackage] = useState(null), [audioPackage, setAudioPackage] = useState(null), [videoPackage, setVideoPackage] = useState(null)
-  const [showCustomNewsModal, setShowCustomNewsModal] = useState(false), [originalTextArticle, setOriginalTextArticle] = useState(null)
+  const [showCustomNewsModal, setShowCustomNewsModal] = useState(false), [showYouTubeModal, setShowYouTubeModal] = useState(false), [originalTextArticle, setOriginalTextArticle] = useState(null)
 
   const handleCustomNewsCreated = (newArticle, autoOpenFeuilleton = false) => {
     setArticles(prev => [newArticle, ...prev])
@@ -264,6 +264,7 @@ export default function App() {
         loading={loading}
         savedCount={savedPackages?.length || 0}
         onOpenCustomNews={() => setShowCustomNewsModal(true)}
+        onOpenYouTubeImport={() => setShowYouTubeModal(true)}
       />
 
       {/* Информационная строка статуса */}
@@ -350,6 +351,8 @@ export default function App() {
           fetchSavedPackages={fetchSavedPackages}
           showCustomNewsModal={showCustomNewsModal}
           setShowCustomNewsModal={setShowCustomNewsModal}
+          showYouTubeModal={showYouTubeModal}
+          setShowYouTubeModal={setShowYouTubeModal}
           onCustomNewsCreated={handleCustomNewsCreated}
           onOpenPackage={handleOpenSavedPackage}
           originalTextArticle={originalTextArticle}
