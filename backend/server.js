@@ -17,6 +17,7 @@ import audioRoutes from './routes/audio.js';
 import videoRoutes from './routes/video.js';
 import ocrRoutes from './routes/ocr.js';
 import youtubeRoutes from './routes/youtube.js';
+import autoPhotosRoutes from './routes/autoPhotos.js';
 
 const app = express();
 
@@ -41,6 +42,7 @@ app.use(audioRoutes);
 app.use(videoRoutes);
 app.use(ocrRoutes);
 app.use(youtubeRoutes);
+app.use(autoPhotosRoutes);
 
 // Globale Fehlerabsicherung gegen unerwartete Abstürze
 process.on('uncaughtException', (err) => {

@@ -10,6 +10,7 @@ export default function YouTubeImportModal({ isOpen, onClose, onPackageCreated, 
   const [videoPreview, setVideoPreview] = useState(null)
   const [previewLoading, setPreviewLoading] = useState(false)
   const [createdPackage, setCreatedPackage] = useState(null)
+  const [loadingPhotos, setLoadingPhotos] = useState(false)
 
   useEffect(() => {
     if (!isOpen) {
@@ -280,7 +281,7 @@ export default function YouTubeImportModal({ isOpen, onClose, onPackageCreated, 
                   Заголовок: <strong>{createdPackage.title}</strong>
                 </div>
                 <div style={{ fontSize: '0.78rem', color: '#a7f3d0', marginTop: '0.2rem' }}>
-                  📊 Слов: {createdPackage.wordCount} (~3 мин.) · 🎵 Аудио: {createdPackage.hasAudio ? 'Сохранено (audio.mp3)' : 'Без звука'}
+                  📊 Слов: {createdPackage.wordCount} (~3 мин.) · 🎙️ Озвучка: создается в Студии (раздел 3)
                 </div>
               </div>
 
@@ -306,13 +307,37 @@ export default function YouTubeImportModal({ isOpen, onClose, onPackageCreated, 
                 </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', flexWrap: 'wrap' }}>
                 <button
                   type="button"
                   onClick={onClose}
                   style={{ background: '#27272a', color: '#d4d4d8', border: 'none', borderRadius: '8px', padding: '0.65rem 1.25rem', fontSize: '0.88rem', cursor: 'pointer' }}
                 >
                   Закрыть
+                </button>
+                <button
+                  type="button"
+                  disabled={loadingPhotos}
+                  onClick={async () => {
+                    setLoadingPhotos(true)
+                    const toastId = toast.loading('🖼️ ИИ загружает 100 фото по тексту...')
+                    try {
+                      const res = await fetch('/api/auto-fetch-photos', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ folderName: createdPackage.folderName, count: 100 }),
+                      })
+                      const d = await res.json()
+                      toast.dismiss(toastId)
+                      if (d.success) {
+                        toast.success(`🎉 Загружено ${d.count} фото!`)
+                        if (onPackageCreated) onPackageCreated(createdPackage)
+                      } else { toast.error('Ошибка: ' + d.error) }
+                    } catch (e) { toast.dismiss(toastId); toast.error('Ошибка: ' + e.message) }
+                    finally { setLoadingPhotos(false) }
+                  }}
+                  style={{ background: '#065f46', color: '#6ee7b7', border: '1px solid #10b981', borderRadius: '8px', padding: '0.65rem 1.2rem', fontSize: '0.88rem', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  {loadingPhotos ? '⏳ Загрузка 100 фото...' : '🖼️ 100 фото автоматом'}
                 </button>
                 {onOpenPackage && (
                   <button

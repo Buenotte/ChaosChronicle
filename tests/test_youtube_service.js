@@ -56,10 +56,10 @@ async function runYouTubeTests() {
   assert.ok(fs.existsSync(path.join(pkgDir, 'project.json')), 'project.json must exist');
   assert.ok(fs.existsSync(path.join(pkgDir, 'script.txt')), 'script.txt must exist');
   assert.ok(fs.existsSync(path.join(pkgDir, 'source.txt')), 'source.txt must exist');
-  assert.ok(fs.existsSync(path.join(pkgDir, 'audio.mp3')), 'audio.mp3 must exist');
+  assert.ok(fs.existsSync(path.join(pkgDir, 'yt_source_audio.mp3')), 'yt_source_audio.mp3 must exist');
 
   const manifest = JSON.parse(fs.readFileSync(path.join(pkgDir, 'project.json'), 'utf-8'));
-  assert.strictEqual(manifest.audio, 'audio.mp3', 'Manifest must link audio.mp3');
+  assert.strictEqual(manifest.hasAudio, false, 'hasAudio must be false until voiced');
   assert.strictEqual(manifest.style, 'scipop', 'Manifest must store scipop style');
   assert.ok(manifest.word_count > 0, 'Manifest must have word count');
   console.log(`  ✅ Package created successfully: ${importData.folderName} (${importData.wordCount} words)`);

@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 import ImageLightboxModal from './ImageLightboxModal'
 import PhotoCardItem from './photos/PhotoCardItem'
 import PhotoSearchHeader from './photos/PhotoSearchHeader'
+import PhotoQueriesModal from './photos/PhotoQueriesModal'
 
 export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoading, onClose, onSaved, onReload }) {
   if (!newsTopic) return null
@@ -18,8 +19,9 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
   const [savingSingleIndex, setSavingSingleIndex] = useState(null)
   const [savedCount, setSavedCount] = useState(null)
   const [hasOrderChanged, setHasOrderChanged] = useState(false)
-  const [lightboxUrl, setLightboxUrl] = useState(null)
-  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [lightboxUrl, setLightboxUrl] = useState(null), [isFullscreen, setIsFullscreen] = useState(false)
+  const [autoFetching, setAutoFetching] = useState(false)
+  const [showQueriesModal, setShowQueriesModal] = useState(false)
 
   useEffect(() => {
     setItems(photos || [])
@@ -28,15 +30,17 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
     }
   }, [photos, newsTopic?.title])
 
-  const handleCustomSearch = async (engine = 'all') => {
-    if (!searchQuery.trim()) { toast.error('Введите ключевые слова для поиска фото'); return }
+  const handleCustomSearch = async (engine = 'all', overrideQuery = null) => {
+    const q = (overrideQuery !== null && overrideQuery !== undefined ? overrideQuery : searchQuery).trim()
+    if (!q) { toast.error('Введите ключевые слова для поиска фото'); return }
+    if (overrideQuery) setSearchQuery(overrideQuery)
     setSearching(true); setCurrentEngine(engine); setSearchPage(1)
     const engineLabels = { all: 'по всем источникам', article: 'из оригинальной статьи', bing: 'в Bing', pinterest: 'в Pinterest', yandex: 'в Yandex' }
-    const toastId = toast.loading(`🔎 Поиск фото ${engineLabels[engine] || ''}...`, { description: searchQuery.slice(0, 50) })
+    const toastId = toast.loading(`🔎 Поиск фото ${engineLabels[engine] || ''}...`, { description: q.slice(0, 50) })
     try {
       const folderName = newsTopic.folderName || newsTopic.matchingPkg?.folderName || ''
       const bundleDir = newsTopic.bundleDir || newsTopic.matchingPkg?.bundleDir || ''
-      const params = new URLSearchParams({ title: newsTopic.title || '', articleId: newsTopic.id || '', url: newsTopic.url || '', folderName, bundleDir, query: searchQuery.trim(), forceLive: 'true', page: '1', engine })
+      const params = new URLSearchParams({ title: newsTopic.title || '', articleId: newsTopic.id || '', url: newsTopic.url || '', folderName, bundleDir, query: q, forceLive: 'true', page: '1', engine })
       const res = await fetch(`/api/news-photos?${params}`)
       const data = await res.json()
       toast.dismiss(toastId)
@@ -66,6 +70,37 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
     }
   }
 
+  const handleAutoFetch100 = async (customQueries = null, customCount = 100) => {
+    setAutoFetching(true)
+    const targetCount = Number(customCount) || 100
+    const toastId = toast.loading(`🖼️ ИИ ищет и загружает ${targetCount} фото...`, { description: 'Поиск лучших кадров на Bing и DuckDuckGo...' })
+    try {
+      const folderName = newsTopic.folderName || newsTopic.matchingPkg?.folderName || ''
+      const bundleDir = newsTopic.bundleDir || newsTopic.matchingPkg?.bundleDir || ''
+      const scriptText = newsTopic.scriptText || newsTopic.scriptTxt || newsTopic.text || ''
+      const res = await fetch('/api/auto-fetch-photos', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folderName, bundleDir, title: newsTopic.title, scriptText, count: targetCount, customQueries }),
+      })
+      const data = await res.json()
+      toast.dismiss(toastId)
+      if (data.success && data.photos) {
+        const bust = Date.now()
+        setItems(data.photos.map(p => ({ url: `/news-static/${data.folderName}/${p}?t=${bust}`, source: 'На диске', isSavedLocal: true })))
+        setSavedCount(data.count)
+        setHasOrderChanged(false)
+        if (onSaved) onSaved()
+        toast.success(`🎉 Загружено ${data.count} фото в пакет!`)
+      } else {
+        toast.error('Ошибка: ' + (data.error || 'Не удалось загрузить фото'))
+      }
+    } catch (e) {
+      toast.dismiss(toastId); toast.error('Ошибка: ' + e.message)
+    } finally {
+      setAutoFetching(false)
+    }
+  }
+
   const handleRemovePhoto = async (e, indexToRemove) => {
     if (e?.stopPropagation) e.stopPropagation()
     const photoToRemove = items[indexToRemove]
@@ -74,79 +109,37 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
     if (imgSrc && imgSrc.startsWith('/news-static/')) {
       try {
         const res = await fetch('/api/delete-photo', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ photoUrl: imgSrc, bundleDir: newsTopic?.bundleDir, folderName: newsTopic?.folderName || extractedFolder }),
-        })
-        const data = await res.json()
+        }), data = await res.json()
         if (data.success && data.deleted) toast.success('🗑️ Фото удалено с диска!')
       } catch (err) { console.error('Fehler beim Löschen des Fotos:', err) }
-    } else {
-      toast.info('Фото удалено из списка')
-    }
+    } else { toast.info('Фото удалено из списка') }
     setItems(prev => prev.filter((_, idx) => idx !== indexToRemove))
     setHasOrderChanged(true)
     if (onSaved) onSaved()
   }
 
-  const [draggedIndex, setDraggedIndex] = useState(null)
-  const [dragOverIndex, setDragOverIndex] = useState(null)
-
+  const [draggedIndex, setDraggedIndex] = useState(null), [dragOverIndex, setDragOverIndex] = useState(null)
   const handleMovePhoto = (fromIndex, delta) => {
-    const toIndex = fromIndex + delta
-    if (toIndex < 0 || toIndex >= items.length) return
-    const newItems = [...items]
-    const [moved] = newItems.splice(fromIndex, 1)
-    newItems.splice(toIndex, 0, moved)
-    setItems(newItems)
-    setHasOrderChanged(true)
+    const toIndex = fromIndex + delta; if (toIndex < 0 || toIndex >= items.length) return
+    const newItems = [...items], [moved] = newItems.splice(fromIndex, 1)
+    newItems.splice(toIndex, 0, moved); setItems(newItems); setHasOrderChanged(true)
   }
-
-  const handleDragStart = (e, index) => {
-    setDraggedIndex(index)
-    e.dataTransfer.effectAllowed = 'move'
-    e.dataTransfer.setData('text/plain', String(index))
-  }
-
-  const handleDragOver = (e, index) => {
-    e.preventDefault()
-    e.dataTransfer.dropEffect = 'move'
-    if (dragOverIndex !== index) setDragOverIndex(index)
-  }
-
+  const handleDragStart = (e, index) => { setDraggedIndex(index); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(index)) }
+  const handleDragOver = (e, index) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; if (dragOverIndex !== index) setDragOverIndex(index) }
   const handleContainerDragOver = (e) => {
-    e.preventDefault()
-    if (!modalBodyRef.current || draggedIndex === null) return
-    const rect = modalBodyRef.current.getBoundingClientRect()
-    const topZone = e.clientY - rect.top
-    const bottomZone = rect.bottom - e.clientY
-
-    if (topZone < 80 && topZone > 0) {
-      const scrollSpeed = Math.max(10, Math.round((80 - topZone) * 0.8))
-      modalBodyRef.current.scrollTop -= scrollSpeed
-    } else if (bottomZone < 80 && bottomZone > 0) {
-      const scrollSpeed = Math.max(10, Math.round((80 - bottomZone) * 0.8))
-      modalBodyRef.current.scrollTop += scrollSpeed
-    }
+    e.preventDefault(); if (!modalBodyRef.current || draggedIndex === null) return
+    const rect = modalBodyRef.current.getBoundingClientRect(), topZone = e.clientY - rect.top, bottomZone = rect.bottom - e.clientY
+    if (topZone < 80 && topZone > 0) modalBodyRef.current.scrollTop -= Math.max(10, Math.round((80 - topZone) * 0.8))
+    else if (bottomZone < 80 && bottomZone > 0) modalBodyRef.current.scrollTop += Math.max(10, Math.round((80 - bottomZone) * 0.8))
   }
-
-  const handleDragEnd = () => {
-    setDraggedIndex(null)
-    setDragOverIndex(null)
-  }
-
+  const handleDragEnd = () => { setDraggedIndex(null); setDragOverIndex(null) }
   const handleDrop = (e, targetIndex) => {
     e.preventDefault()
-    if (draggedIndex === null || draggedIndex === targetIndex) {
-      setDraggedIndex(null); setDragOverIndex(null); return
-    }
-    const newItems = [...items]
-    const [moved] = newItems.splice(draggedIndex, 1)
-    newItems.splice(targetIndex, 0, moved)
-    setItems(newItems)
-    setHasOrderChanged(true)
-    setDraggedIndex(null)
-    setDragOverIndex(null)
+    if (draggedIndex === null || draggedIndex === targetIndex) { setDraggedIndex(null); setDragOverIndex(null); return }
+    const newItems = [...items], [moved] = newItems.splice(draggedIndex, 1)
+    newItems.splice(targetIndex, 0, moved); setItems(newItems); setHasOrderChanged(true); setDraggedIndex(null); setDragOverIndex(null)
   }
 
   const handleLoadMorePhotos = async () => {
@@ -237,6 +230,16 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
         title={newsTopic.title}
         onClose={() => setLightboxUrl(null)}
       />
+      <PhotoQueriesModal
+        isOpen={showQueriesModal}
+        onClose={() => setShowQueriesModal(false)}
+        folderName={newsTopic.folderName || newsTopic.matchingPkg?.folderName || ''}
+        bundleDir={newsTopic.bundleDir || newsTopic.matchingPkg?.bundleDir || ''}
+        title={newsTopic.title || ''}
+        scriptText={newsTopic.scriptText || newsTopic.text || ''}
+        onSelectQuery={(q) => handleCustomSearch('all', q)}
+        onAutoFetchWithQueries={(customQueries, count) => handleAutoFetch100(customQueries, count)}
+      />
       <div
         className="modal-content"
         onClick={e => e.stopPropagation()}
@@ -290,6 +293,9 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
           searching={searching}
           isLoading={isLoading}
           currentEngine={currentEngine}
+          onAutoFetch100={handleAutoFetch100}
+          autoFetching={autoFetching}
+          onOpenQueries={() => setShowQueriesModal(true)}
         />
 
         <div ref={modalBodyRef} onDragOver={handleContainerDragOver} className="modal-body" style={{ flex: 1, overflowY: 'auto', padding: '1.25rem' }}>

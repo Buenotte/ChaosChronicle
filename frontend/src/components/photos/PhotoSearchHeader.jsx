@@ -5,6 +5,9 @@ export default function PhotoSearchHeader({
   searching,
   isLoading,
   currentEngine,
+  onAutoFetch100,
+  autoFetching,
+  onOpenQueries,
 }) {
   const handleSubmit = (e) => {
     if (e && e.preventDefault) e.preventDefault();
@@ -144,6 +147,50 @@ export default function PhotoSearchHeader({
         >
           {searching && currentEngine === 'yandex' ? '⏳...' : '🔴 Yandex'}
         </button>
+
+        {onOpenQueries && (
+          <button
+            type="button"
+            onClick={onOpenQueries}
+            disabled={isLoading || autoFetching}
+            style={{
+              background: '#4f46e5',
+              border: '1px solid #6366f1',
+              color: '#fff',
+              fontWeight: 700,
+              padding: '0.42rem 0.75rem',
+              borderRadius: '6px',
+              fontSize: '0.8rem',
+              whiteSpace: 'nowrap',
+              cursor: (isLoading || autoFetching) ? 'default' : 'pointer',
+            }}
+            title="Посмотреть и скопировать список поисковых запросов ИИ по тексту статьи"
+          >
+            📋 Запросы ИИ
+          </button>
+        )}
+
+        {onAutoFetch100 && (
+          <button
+            type="button"
+            onClick={onAutoFetch100}
+            disabled={isLoading || autoFetching}
+            style={{
+              background: '#059669',
+              border: '1px solid #10b981',
+              color: '#fff',
+              fontWeight: 700,
+              padding: '0.42rem 0.75rem',
+              borderRadius: '6px',
+              fontSize: '0.8rem',
+              whiteSpace: 'nowrap',
+              cursor: (isLoading || autoFetching) ? 'default' : 'pointer',
+            }}
+            title="Автоматически найти и скачать 100 подходящих фото по тексту из интернета"
+          >
+            {autoFetching ? '⏳ Загрузка 100 фото...' : '✨ 100 фото по тексту'}
+          </button>
+        )}
       </div>
     </form>
   );

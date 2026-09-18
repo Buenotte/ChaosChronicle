@@ -28,9 +28,7 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
   const [shortState, setShortState] = useState({ hasShort: !!pkg.hasShort, shortUrl: pkg.folderName ? `/news-static/${pkg.folderName}/short.mp4` : null })
   const [youtubeState, setYoutubeState] = useState({ hasYouTube: !!pkg.hasYouTubeMetadata, hasFacebook: !!pkg.hasFacebookPost })
   const [generatingShort, setGeneratingShort] = useState(false), [showShortsEditorModal, setShowShortsEditorModal] = useState(false), [isMaximized, setIsMaximized] = useState(false)
-  const [currentThumbnail, setCurrentThumbnail] = useState(
-    pkg.hasThumbnail ? (pkg.thumbnailUrl || (pkg.folderName ? `/news-static/${pkg.folderName}/thumbnail/thumbnail.jpg` : null)) : null
-  )
+  const [currentThumbnail, setCurrentThumbnail] = useState(pkg.hasThumbnail ? (pkg.thumbnailUrl || (pkg.folderName ? `/news-static/${pkg.folderName}/thumbnail/thumbnail.jpg` : null)) : null)
 
   useEffect(() => {
     setAudioState({ hasAudio: !!pkg.hasAudio, audioUrl: pkg.audioUrl })
@@ -60,14 +58,11 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
       const res = await fetch('/api/generate-feuilleton', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ folderName: pkg.folderName, bundleDir: pkg.bundleDir, title: pkg.title || pkg.original_title, summary: pkg.summary || pkg.original_news || '', url: pkg.url || '', style: selectedScriptStyle, saveToPackage: true }),
-      })
-      const data = await res.json()
+      }), data = await res.json()
       toast.dismiss(toastId)
       if (data.success && data.feuilleton) {
-        pkg.hasScriptTxt = true; pkg.hasScriptMd = true; pkg.scriptTxt = data.feuilleton.text
-        if (data.feuilleton.title) pkg.title = data.feuilleton.title
-        toast.success(`✍️ Фельетон (${data.feuilleton.words} слов) готов и сохранен на диск!`)
-        if (onRefresh) onRefresh()
+        pkg.hasScriptTxt = true; pkg.hasScriptMd = true; pkg.scriptTxt = data.feuilleton.text; if (data.feuilleton.title) pkg.title = data.feuilleton.title
+        toast.success(`✍️ Фельетон (${data.feuilleton.words} слов) готов и сохранен!`); if (onRefresh) onRefresh()
       } else { toast.error('❌ Ошибка генерации: ' + (data.error || 'Ошибка')) }
     } catch (err) { toast.dismiss(toastId); toast.error('❌ Ошибка: ' + err.message) }
     finally { setGeneratingScript(false) }
@@ -80,12 +75,10 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
       if (window.showSaveFilePicker) {
         try {
           const handle = await window.showSaveFilePicker({ suggestedName: defaultName, types: [{ description: 'JPEG Image', accept: { 'image/jpeg': ['.jpg'] } }] })
-          const writable = await handle.createWritable(); await writable.write(blob); await writable.close()
-          return toast.success('💾 Обложка сохранена!')
+          const writable = await handle.createWritable(); await writable.write(blob); await writable.close(); return toast.success('💾 Обложка сохранена!')
         } catch (e) { if (e.name === 'AbortError') return }
       }
-      const url = window.URL.createObjectURL(blob), a = document.createElement('a')
-      a.href = url; a.download = defaultName; document.body.appendChild(a); a.click(); window.URL.revokeObjectURL(url)
+      const url = window.URL.createObjectURL(blob), a = document.createElement('a'); a.href = url; a.download = defaultName; document.body.appendChild(a); a.click(); window.URL.revokeObjectURL(url)
       toast.success('💾 Обложка скачана!')
     } catch (err) { toast.error('Ошибка сохранения: ' + err.message) }
   }
@@ -119,11 +112,7 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
       try {
         evtSource = new EventSource(`/api/video-progress/${jobId}`)
         evtSource.onmessage = (e) => {
-          try {
-            const data = JSON.parse(e.data)
-            if (data.progress !== undefined && !isNaN(data.progress)) setVideoProgress(data.progress)
-            if (data.log) setProgressLog(data.log)
-          } catch {}
+          try { const d = JSON.parse(e.data); if (d.progress !== undefined && !isNaN(d.progress)) setVideoProgress(d.progress); if (d.log) setProgressLog(d.log) } catch {}
         }
       } catch {}
 
@@ -185,11 +174,9 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
         body: JSON.stringify({ mode: 'apply_headline', photoUrl, bundleDir: pkg.bundleDir, folderName: pkg.folderName, headlineConfig: pkg.headlineConfig || {} }),
       }), data = await res.json()
       toast.dismiss(toastId)
-      if (data.success) {
-        setCurrentThumbnail(`${data.thumbnailUrl.split('?')[0]}?t=${Date.now()}`); toast.success('✨ Фото установлено фоном обложки!')
-        if (onRefresh) onRefresh()
-      } else { toast.error('❌ Ошибка: ' + (data.error || 'Не удалось обновить')) }
-    } catch (err) { toast.dismiss(toastId); toast.error('❌ Ошибка установки фото: ' + err.message) }
+      if (data.success) { setCurrentThumbnail(`${data.thumbnailUrl.split('?')[0]}?t=${Date.now()}`); toast.success('📸 Фото установлено обложкой!') }
+      else { toast.error('❌ Ошибка: ' + (data.error || 'Не удалось обновить')) }
+    } catch (err) { toast.dismiss(toastId); toast.error('❌ Ошибка: ' + err.message) }
   }
 
   const [lightboxUrl, setLightboxUrl] = useState(null), [showSettingsModal, setShowSettingsModal] = useState(false)
@@ -215,6 +202,25 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
     } catch (err) { toast.error('Ошибка удаления: ' + err.message) }
   }
 
+  const [autoFetchingPhotos, setAutoFetchingPhotos] = useState(false)
+  const handleAutoFetchPhotos = async () => {
+    setAutoFetchingPhotos(true)
+    const toastId = toast.loading('🖼️ ИИ анализирует текст и скачивает 100 фото...')
+    try {
+      const res = await fetch('/api/auto-fetch-photos', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folderName: pkg.folderName, bundleDir: pkg.bundleDir, title: pkg.title, count: 100 }),
+      })
+      const data = await res.json()
+      toast.dismiss(toastId)
+      if (data.success) {
+        toast.success(`🎉 Загружено ${data.count} фото в пакет!`)
+        if (onRefresh) onRefresh()
+      } else { toast.error('Ошибка: ' + (data.error || 'Не удалось загрузить фото')) }
+    } catch (e) { toast.dismiss(toastId); toast.error('Ошибка: ' + e.message) }
+    finally { setAutoFetchingPhotos(false) }
+  }
+
   const hasTxt = pkg.hasScriptTxt || pkg.hasScriptMd || (pkg.scriptTxt && pkg.scriptTxt.length > 10)
   const actualPhotoCount = pkg.photosCount || (pkg.photoUrls ? pkg.photoUrls.length : 0)
 
@@ -224,14 +230,11 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
 
       {showSettingsModal && (
         <ThumbnailSettingsModal
-          pkg={pkg}
-          currentThumbnail={currentThumbnail}
-          onClose={handleCloseSettings}
+          pkg={pkg} currentThumbnail={currentThumbnail} onClose={handleCloseSettings}
           onUpdated={(newUrl, newStyle) => {
             if (newUrl) setCurrentThumbnail(newUrl)
             if (newStyle) {
-              pkg.headlineConfig = newStyle
-              pkg.thumbnailStyle = newStyle
+              pkg.headlineConfig = newStyle; pkg.thumbnailStyle = newStyle
               if (newStyle.customLines) pkg.customLines = newStyle.customLines
               if (newStyle.text) pkg.title = newStyle.text.replace(/\r?\n/g, ' ')
             }
@@ -242,8 +245,7 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
 
       {showTitleVariantsModal && (
         <TitleVariantsModal
-          pkg={pkg}
-          onClose={() => setShowTitleVariantsModal(false)}
+          pkg={pkg} onClose={() => setShowTitleVariantsModal(false)}
           onTitleSaved={(newTitle, newThumb) => { pkg.title = newTitle; if (newThumb) setCurrentThumbnail(newThumb); if (onRefresh) onRefresh() }}
         />
       )}
@@ -292,10 +294,7 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
                   <option value="gibrid">⚡ Гибридный</option>
                 </select>
                 <button
-                  type="button"
-                  className="generate-btn"
-                  onClick={handleGenerateScript}
-                  disabled={generatingScript}
+                  type="button" className="generate-btn" onClick={handleGenerateScript} disabled={generatingScript}
                   style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', fontWeight: 700, background: '#7c3aed' }}
                   title="Сгенерировать сценарий фельетона из оригинального текста source.txt на диске"
                 >
@@ -323,6 +322,16 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
               <button className="photos-btn" onClick={() => onOpenPhotos(pkg)}>
                 📸 Управление фото ({actualPhotoCount})
+              </button>
+              <button
+                type="button"
+                className="generate-btn"
+                disabled={autoFetchingPhotos}
+                onClick={handleAutoFetchPhotos}
+                style={{ background: '#059669', padding: '0.4rem 0.8rem', fontSize: '0.8rem', fontWeight: 700 }}
+                title="Автоматически найти и скачать 100 подходящих фото по тексту из интернета"
+              >
+                {autoFetchingPhotos ? '⏳ Загрузка 100 фото...' : '🖼️ 100 фото автоматом'}
               </button>
             </div>
           </div>
@@ -367,12 +376,11 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
       )}
       {showYouTubeModal && (
         <YouTubeMetadataModal
-          pkg={pkg}
+          pkg={pkg} onClose={() => { setShowYouTubeModal(false); if (onRefresh) onRefresh(); }}
           onSaved={(data) => {
             const hasYt = Boolean(data?.description || data?.title), hasFb = Boolean(data?.facebookPost)
             setYoutubeState({ hasYouTube: hasYt, hasFacebook: hasFb }); pkg.hasYouTubeMetadata = hasYt; pkg.hasFacebookPost = hasFb; if (onRefresh) onRefresh()
           }}
-          onClose={() => { setShowYouTubeModal(false); if (onRefresh) onRefresh(); }}
         />
       )}
     </div>

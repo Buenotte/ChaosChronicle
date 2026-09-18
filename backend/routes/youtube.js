@@ -183,8 +183,8 @@ router.post('/api/youtube/import-to-package', async (req, res) => {
       console.warn('Subtitles warning:', subErr.message);
     }
 
-    // 3. Download Audio (keep audio.mp3 in package for player/video)
-    const audioPath = await downloadYouTubeAudio(url, bundleDir, 'audio');
+    // 3. Download Source Audio for Whisper transcription
+    const audioPath = await downloadYouTubeAudio(url, bundleDir, 'yt_source_audio');
 
     // 4. If subtitles missing or short, transcribe audio with Whisper
     if (!rawText || rawText.length < 120) {
@@ -284,8 +284,9 @@ ${rawText}
       word_count: wordCount,
       created_at: new Date().toISOString(),
       photos: metadata.thumbnail ? ['/news-static/' + folderName + '/photos/yt_original_cover.jpg'] : [],
-      audio: 'audio.mp3',
-      hasAudio: fs.existsSync(audioPath),
+      audio: null,
+      hasAudio: false,
+      sourceAudio: fs.existsSync(audioPath) ? 'yt_source_audio.mp3' : null,
       video: 'video.mp4',
       youtubeMetadata: {
         id: metadata.id,
