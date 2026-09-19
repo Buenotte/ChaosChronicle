@@ -8,6 +8,7 @@ import { SHORTS_FONTS, TEXT_COLORS, BOX_COLORS, wrapShortsText } from './shorts/
 
 export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortState, generatingShort, onGenerateShort, onClose }) {
   const cfg = pkg?.shortsConfig || {}
+  const [duration, setDuration] = useState(cfg.duration || pkg?.short_duration || 25)
   const [text, setText] = useState(cfg.hookTitle || pkg?.title || '')
   const [font, setFont] = useState(cfg.font || 'impact')
   const [fontSize, setFontSize] = useState(cfg.fontSize || 110)
@@ -139,7 +140,7 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          bundleDir: pkg?.bundleDir, folderName: pkg?.folderName, hookTitle: text, font, fontSize: Number(fontSize) || 110,
+          bundleDir: pkg?.bundleDir, folderName: pkg?.folderName, duration: Number(duration) || 25, hookTitle: text, font, fontSize: Number(fontSize) || 110,
           fontColor, strokeWidth: Number(strokeWidth) || 0, strokeColor, shadowDistance: Number(shadowDistance) || 0,
           shadowColor, shadowStyle, wordColors, wordFontSizes, boxEnabled: !!boxEnabled, boxColor,
           boxOpacity: boxEnabled ? Number(boxOpacity) || 75 : 0, posY: Number(posY) || 200, lineBadges, selectedPhoto,
@@ -157,6 +158,7 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
   const handleApply = async () => {
     if (!onGenerateShort) return
     const res = await onGenerateShort({
+      duration: Number(duration) || 25,
       hookTitle: text, font, fontSize: Number(fontSize) || 110, fontColor, strokeWidth: Number(strokeWidth) || 0, strokeColor,
       shadowDistance: Number(shadowDistance) || 0, shadowColor, shadowStyle, wordColors, wordFontSizes, boxEnabled: !!boxEnabled,
       boxColor, boxOpacity: boxEnabled ? Number(boxOpacity) || 75 : 0, posY: Number(posY) || 200, lineBadges, selectedPhoto,
@@ -215,6 +217,26 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 260px', gap: '1.25rem', alignItems: 'start' }}>
             {/* Левая панель */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', minWidth: 0 }}>
+              {/* ⏱️ Длительность Shorts */}
+              <div style={{ background: '#18181b', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #3b82f6', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#38bdf8' }}>
+                    ⏱️ Длительность Shorts: <span style={{ color: '#facc15' }}>{duration} сек.</span>
+                  </label>
+                  <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>
+                    {duration <= 15 ? '⚡ Быстрый хук' : duration <= 35 ? '🔥 Оптимально для YouTube' : '🎬 Развёрнутый тизер'}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: '0.35rem' }}>
+                  {[15, 30, 60].map(sec => (
+                    <button key={sec} type="button" onClick={() => { setDuration(sec); setViewMode('editor') }} style={{ flex: 1, background: duration === sec ? '#2563eb' : '#27272a', color: '#fff', border: duration === sec ? '1px solid #60a5fa' : '1px solid #3f3f46', borderRadius: '6px', padding: '0.3rem 0.5rem', fontSize: '0.78rem', fontWeight: duration === sec ? 700 : 500, cursor: 'pointer' }}>
+                      {sec === 15 ? '⚡ 15 сек' : sec === 30 ? '🔥 30 сек' : '🎬 60 сек'}
+                    </button>
+                  ))}
+                </div>
+                <input type="range" min="10" max="60" step="1" value={duration} onChange={e => { setDuration(Number(e.target.value)); setViewMode('editor') }} style={{ width: '100%', accentColor: '#f43f5e', marginTop: '0.15rem', cursor: 'pointer' }} />
+              </div>
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
                 <label style={{ fontSize: '0.86rem', fontWeight: 700, color: '#f43f5e' }}>✏️ Текст тизера на Shorts (Enter для переноса):</label>
                 <textarea rows={2} value={text} onChange={e => { setText(e.target.value); setViewMode('editor') }} placeholder="Введите текст тизера..." style={{ background: '#111827', border: '1px solid #374151', color: '#fff', borderRadius: '8px', padding: '0.55rem 0.85rem', fontSize: '0.88rem', resize: 'vertical', width: '100%', boxSizing: 'border-box' }} />
@@ -340,11 +362,11 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
           ) : <div />}
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
             <button type="button" className="close-btn" style={{ padding: '0.5rem 0.9rem' }} onClick={onClose}>Закрыть</button>
-            <button type="button" className="copy-btn" disabled={savingConfig || generatingShort} onClick={handleSaveConfig} style={{ background: '#059669', color: '#fff', fontWeight: 700, padding: '0.5rem 1rem', fontSize: '0.84rem' }} title="Сохранить текст, шрифт, цвета и позицию в project.json">
+            <button type="button" className="copy-btn" disabled={savingConfig || generatingShort} onClick={handleSaveConfig} style={{ background: '#059669', color: '#fff', fontWeight: 700, padding: '0.5rem 1rem', fontSize: '0.84rem' }} title="Сохранить текст, шрифт, цвета, длительность и позицию в project.json">
               {savingConfig ? '⏳ Сохранение...' : '💾 Сохранить настройки'}
             </button>
             <button type="button" className="copy-btn" disabled={generatingShort} onClick={handleApply} style={{ background: 'linear-gradient(135deg, #f43f5e, #ec4899)', color: '#fff', fontWeight: 700, padding: '0.55rem 1.15rem', fontSize: '0.86rem' }}>
-              {generatingShort ? '⏳ Монтаж Shorts (4 сек)...' : '⚡ Смонтировать Short (9:16)'}
+              {generatingShort ? `⏳ Монтаж Shorts (${duration} сек)...` : `⚡ Смонтировать Short (${duration} сек)`}
             </button>
           </div>
         </div>

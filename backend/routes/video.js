@@ -336,7 +336,7 @@ router.post('/api/preview-short-frame', async (req, res) => {
 router.post('/api/save-shorts-config', (req, res) => {
   try {
     const {
-      bundleDir: inputBundleDir, folderName, hookTitle, font, fontSize, fontColor,
+      duration, hookTitle, font, fontSize, fontColor,
       strokeWidth, strokeColor, shadowDistance, shadowColor, shadowStyle,
       wordColors, wordFontSizes, boxEnabled, boxColor, boxOpacity, posY, lineBadges, selectedPhoto,
     } = req.body;
@@ -354,6 +354,7 @@ router.post('/api/save-shorts-config', (req, res) => {
     }
 
     const shortsConfig = {
+      duration: Number(duration) || 25,
       hookTitle: (hookTitle || '').trim(),
       font: font || 'impact',
       fontSize: Number(fontSize) || 110,
@@ -375,13 +376,10 @@ router.post('/api/save-shorts-config', (req, res) => {
     };
 
     manifest.shortsConfig = shortsConfig;
+    if (duration) manifest.short_duration = Number(duration);
     fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
-
     res.json({ success: true, shortsConfig, folderName: path.basename(bundleDir) });
-  } catch (err) {
-    console.error('Save shorts config error:', err.message);
-    res.status(500).json({ success: false, error: err.message });
-  }
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 export default router;

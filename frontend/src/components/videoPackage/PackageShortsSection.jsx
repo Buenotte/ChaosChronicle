@@ -12,7 +12,7 @@ export default function PackageShortsSection({
     <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid #27272a' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem', flexWrap: 'wrap', gap: '0.4rem' }}>
         <h3 style={{ fontSize: '0.95rem', color: '#f43f5e', margin: 0, display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-          📱 Вертикальный YouTube Short (9:16, 16 сек):
+          📱 Вертикальный YouTube Short (9:16):
         </h3>
         <div style={{ display: 'flex', gap: '0.45rem', flexWrap: 'wrap' }}>
           <button

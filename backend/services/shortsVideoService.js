@@ -91,7 +91,7 @@ export async function processRenderShort({
   }
 
   const totalAudioDur = getAudioDurationSeconds(audioPath);
-  const targetDur = Math.min(Math.max(Number(duration) || 16, 10), Math.min(totalAudioDur, 60));
+  const targetDur = Math.min(Math.max(Number(duration) || 20, 10), Math.min(totalAudioDur, 60));
 
   let availablePhotos = [];
   if (fs.existsSync(photosDir)) {
@@ -118,7 +118,8 @@ export async function processRenderShort({
       selectedPhotos = [customPath, ...availablePhotos.filter(p => path.basename(p) !== customPhotoName)];
     }
   }
-  selectedPhotos = selectedPhotos.slice(0, 5);
+  const photoCountLimit = Math.max(3, Math.min(availablePhotos.length, Math.round(targetDur / 3)));
+  selectedPhotos = selectedPhotos.slice(0, photoCountLimit);
   const photoCount = selectedPhotos.length;
   const perPhotoDur = targetDur / photoCount;
 
@@ -236,6 +237,7 @@ export async function processRenderShort({
   }
 
   const shortsConfig = {
+    duration: targetDur,
     hookTitle,
     font: reqFont,
     fontSize: effectiveSize,

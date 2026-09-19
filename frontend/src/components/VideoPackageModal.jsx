@@ -136,13 +136,14 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
 
   const handleGenerateShort = async (shortOpts = {}) => {
     if (!audioState.hasAudio) return toast.error('❌ Аудио-озвучка не найдена!', { description: 'Сначала сгенерируйте аудио в разделе 3 перед созданием Shorts.' })
-    const toastId = toast.loading('📱 Монтаж YouTube Shorts 9:16 (16 сек)...')
+    const targetDur = shortOpts.duration || shortsConfig?.duration || pkg?.short_duration || 25
+    const toastId = toast.loading(`📱 Монтаж YouTube Shorts 9:16 (${targetDur} сек)...`)
     try {
       setGeneratingShort(true)
       const mergedOpts = { ...(shortsConfig || {}), ...shortOpts }
       const res = await fetch('/api/render-short', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bundleDir: pkg.bundleDir, folderName: pkg.folderName, duration: 16, hookTitle: pkg.title || '', ...mergedOpts }),
+        body: JSON.stringify({ bundleDir: pkg.bundleDir, folderName: pkg.folderName, duration: targetDur, hookTitle: pkg.title || '', ...mergedOpts }),
       }), data = await res.json()
       toast.dismiss(toastId)
       if (data.success) {
