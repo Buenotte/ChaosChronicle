@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 
 export default function ShortsCustomPlayer({ src, onEditMode }) {
   const videoRef = useRef(null)
-  const [isPlaying, setIsPlaying] = useState(true)
+  const [isPlaying, setIsPlaying] = useState(false)
   const [isMuted, setIsMuted] = useState(false)
   const [progress, setProgress] = useState(0)
   const [showIcon, setShowIcon] = useState(false)
@@ -10,7 +10,7 @@ export default function ShortsCustomPlayer({ src, onEditMode }) {
   useEffect(() => {
     if (videoRef.current) {
       try { videoRef.current.load() } catch {}
-      videoRef.current.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false))
+      setIsPlaying(false)
     }
   }, [src])
 
@@ -64,14 +64,29 @@ export default function ShortsCustomPlayer({ src, onEditMode }) {
         src={src}
         loop
         playsInline
-        autoPlay
         muted={isMuted}
         onTimeUpdate={handleTimeUpdate}
         style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
       />
 
+      {/* Floating Play Button when paused */}
+      {!isPlaying && (
+        <div style={{
+          position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          pointerEvents: 'none', background: 'rgba(0,0,0,0.35)', transition: 'all 0.2s ease'
+        }}>
+          <div style={{
+            background: 'rgba(244,63,94,0.9)', borderRadius: '50%', width: '64px', height: '64px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.8rem', color: '#fff',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.6)', paddingLeft: '4px'
+          }}>
+            ▶
+          </div>
+        </div>
+      )}
+
       {/* Floating Play/Pause Feedback Icon */}
-      {showIcon && (
+      {showIcon && isPlaying && (
         <div style={{
           position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
           pointerEvents: 'none', background: 'rgba(0,0,0,0.25)', transition: 'all 0.3s ease'
@@ -80,7 +95,7 @@ export default function ShortsCustomPlayer({ src, onEditMode }) {
             background: 'rgba(0,0,0,0.7)', borderRadius: '50%', width: '56px', height: '56px',
             display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.6rem', color: '#fff'
           }}>
-            {isPlaying ? '▶' : '⏸'}
+            ▶
           </div>
         </div>
       )}

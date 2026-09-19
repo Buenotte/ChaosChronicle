@@ -36,7 +36,7 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
   })
   const [selectedPhoto, setSelectedPhoto] = useState(cfg.selectedPhoto || null)
   const [isDragging, setIsDragging] = useState(false)
-  const [viewMode, setViewMode] = useState(shortState?.hasShort ? 'video' : 'editor')
+  const [viewMode, setViewMode] = useState('editor')
   const [realFrameUrl, setRealFrameUrl] = useState(null)
   const [renderingFrame, setRenderingFrame] = useState(false)
   const [savingConfig, setSavingConfig] = useState(false)
@@ -46,10 +46,6 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
   const currentBgSrc = selectedPhoto
     ? (selectedPhoto.startsWith('/news-static/') ? selectedPhoto : `/news-static/${pkg?.folderName}/${selectedPhoto}`)
     : (previewPhotoUrl || (photoList[0] ? (photoList[0].startsWith('/news-static/') ? photoList[0] : `/news-static/${pkg?.folderName}/${photoList[0]}`) : ''))
-
-  useEffect(() => {
-    if (shortState?.hasShort && shortState?.shortUrl) setViewMode('video')
-  }, [shortState?.shortUrl])
 
   const activeColorHex = TEXT_COLORS.find(c => c.id === fontColor)?.hex || '#FFE600'
   const activeBoxHex = BOX_COLORS.find(c => c.id === boxColor)?.hex || '#000000'
