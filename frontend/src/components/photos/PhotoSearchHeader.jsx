@@ -1,6 +1,7 @@
 export default function PhotoSearchHeader({
   searchQuery,
   setSearchQuery,
+  onQueryChange,
   onSearch,
   searching,
   isLoading,
@@ -8,7 +9,14 @@ export default function PhotoSearchHeader({
   onAutoFetch100,
   autoFetching,
   onOpenQueries,
+  onOpenQueriesModal,
 }) {
+  const handleQueryChange = (val) => {
+    if (typeof onQueryChange === 'function') onQueryChange(val);
+    if (typeof setSearchQuery === 'function') setSearchQuery(val);
+  };
+  const handleOpenQueries = onOpenQueries || onOpenQueriesModal;
+
   const handleSubmit = (e) => {
     if (e && e.preventDefault) e.preventDefault();
     onSearch('all');
@@ -34,8 +42,8 @@ export default function PhotoSearchHeader({
       </label>
       <input
         type="text"
-        value={searchQuery}
-        onChange={e => setSearchQuery(e.target.value)}
+        value={searchQuery || ''}
+        onChange={e => handleQueryChange(e.target.value)}
         placeholder="Ключевые слова для поиска..."
         style={{
           flex: 1,
@@ -148,10 +156,10 @@ export default function PhotoSearchHeader({
           {searching && currentEngine === 'yandex' ? '⏳...' : '🔴 Yandex'}
         </button>
 
-        {onOpenQueries && (
+        {handleOpenQueries && (
           <button
             type="button"
-            onClick={onOpenQueries}
+            onClick={handleOpenQueries}
             disabled={isLoading || autoFetching}
             style={{
               background: '#4f46e5',

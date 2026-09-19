@@ -276,8 +276,9 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
         </div>
 
         <PhotoSearchHeader
-          searchQuery={searchQuery} onQueryChange={setSearchQuery} onSearch={handleCustomSearch}
-          currentEngine={currentEngine} searching={searching} autoFetching={autoFetching}
+          searchQuery={searchQuery} setSearchQuery={setSearchQuery} onQueryChange={setSearchQuery}
+          onSearch={handleCustomSearch} currentEngine={currentEngine} searching={searching}
+          isLoading={isLoading} autoFetching={autoFetching} onOpenQueries={() => setShowQueriesModal(true)}
           onOpenQueriesModal={() => setShowQueriesModal(true)} onAutoFetch100={() => handleAutoFetch100(null, 100)}
         />
 
