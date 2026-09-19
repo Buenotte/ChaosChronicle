@@ -14,14 +14,13 @@ export default function ShortsCustomPlayer({ src, onEditMode }) {
     }
   }, [src])
 
-  const togglePlay = () => {
+  const togglePlay = (e) => {
+    if (e && e.stopPropagation) e.stopPropagation()
     if (!videoRef.current) return
     if (videoRef.current.paused) {
-      videoRef.current.play()
-      setIsPlaying(true)
+      videoRef.current.play().catch(err => console.error('Play error:', err))
     } else {
       videoRef.current.pause()
-      setIsPlaying(false)
     }
     setShowIcon(true)
     setTimeout(() => setShowIcon(false), 600)
@@ -65,6 +64,8 @@ export default function ShortsCustomPlayer({ src, onEditMode }) {
         loop
         playsInline
         muted={isMuted}
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
         onTimeUpdate={handleTimeUpdate}
         style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
       />
