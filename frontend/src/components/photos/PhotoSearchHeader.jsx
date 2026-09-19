@@ -5,21 +5,16 @@ export default function PhotoSearchHeader({
   onSearch,
   searching,
   isLoading,
-  currentEngine,
-  onAutoFetch100,
-  autoFetching,
-  onOpenQueries,
-  onOpenQueriesModal,
+  currentEngine = 'all',
 }) {
   const handleQueryChange = (val) => {
     if (typeof onQueryChange === 'function') onQueryChange(val);
     if (typeof setSearchQuery === 'function') setSearchQuery(val);
   };
-  const handleOpenQueries = onOpenQueries || onOpenQueriesModal;
 
   const handleSubmit = (e) => {
     if (e && e.preventDefault) e.preventDefault();
-    onSearch('all');
+    onSearch(currentEngine || 'all');
   };
 
   return (
@@ -44,56 +39,37 @@ export default function PhotoSearchHeader({
         type="text"
         value={searchQuery || ''}
         onChange={e => handleQueryChange(e.target.value)}
-        placeholder="Ключевые слова для поиска..."
+        placeholder="Введите слово для поиска (например: слон, ракета, ученый)..."
         style={{
           flex: 1,
-          minWidth: '200px',
+          minWidth: '220px',
           background: '#020617',
           border: '1px solid #334155',
           color: '#f8fafc',
-          padding: '0.42rem 0.75rem',
+          padding: '0.45rem 0.75rem',
           borderRadius: '6px',
-          fontSize: '0.85rem',
+          fontSize: '0.88rem',
         }}
+        autoFocus
       />
 
-      <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-        <button
-          type="button"
-          onClick={() => onSearch('article')}
-          disabled={isLoading}
-          style={{
-            background: currentEngine === 'article' ? '#059669' : '#047857',
-            border: '1px solid #34d399',
-            color: '#fff',
-            fontWeight: 700,
-            padding: '0.42rem 0.75rem',
-            borderRadius: '6px',
-            fontSize: '0.8rem',
-            whiteSpace: 'nowrap',
-            cursor: isLoading ? 'default' : 'pointer',
-          }}
-          title="Искать фото из всех СМИ и новостных агентств по этой теме новости"
-        >
-          {searching && currentEngine === 'article' ? '⏳...' : '📰 СМИ по теме'}
-        </button>
-
+      <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
         <button
           type="submit"
           disabled={isLoading}
-          className="copy-btn"
           style={{
-            background: currentEngine === 'all' ? '#2563eb' : '#1e293b',
-            border: '1px solid #475569',
-            color: '#f8fafc',
+            background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+            border: '1px solid #3b82f6',
+            color: '#ffffff',
             fontWeight: 700,
-            padding: '0.42rem 0.75rem',
-            fontSize: '0.8rem',
-            whiteSpace: 'nowrap',
+            padding: '0.45rem 0.9rem',
+            borderRadius: '6px',
+            fontSize: '0.82rem',
+            cursor: isLoading ? 'default' : 'pointer',
+            boxShadow: '0 2px 8px rgba(37, 99, 235, 0.3)',
           }}
-          title="Поиск по всем источникам (СМИ, Bing, Yandex, Pinterest)"
         >
-          {searching && currentEngine === 'all' ? '⏳...' : '🔎 Все'}
+          {searching ? '⏳ Поиск...' : '🔍 Найти'}
         </button>
 
         <button
@@ -104,36 +80,15 @@ export default function PhotoSearchHeader({
             background: currentEngine === 'bing' ? '#0284c7' : '#0369a1',
             border: '1px solid #38bdf8',
             color: '#fff',
-            fontWeight: 700,
-            padding: '0.42rem 0.75rem',
+            fontWeight: 600,
+            padding: '0.42rem 0.7rem',
             borderRadius: '6px',
             fontSize: '0.8rem',
-            whiteSpace: 'nowrap',
             cursor: isLoading ? 'default' : 'pointer',
           }}
-          title="Искать фото ТОЛЬКО в Bing"
+          title="Поиск в Bing"
         >
-          {searching && currentEngine === 'bing' ? '⏳...' : '🔵 Bing'}
-        </button>
-
-        <button
-          type="button"
-          onClick={() => onSearch('pinterest')}
-          disabled={isLoading}
-          style={{
-            background: currentEngine === 'pinterest' ? '#be123c' : '#e11d48',
-            border: '1px solid #fb7185',
-            color: '#fff',
-            fontWeight: 700,
-            padding: '0.42rem 0.75rem',
-            borderRadius: '6px',
-            fontSize: '0.8rem',
-            whiteSpace: 'nowrap',
-            cursor: isLoading ? 'default' : 'pointer',
-          }}
-          title="Искать фото ТОЛЬКО в Pinterest"
-        >
-          {searching && currentEngine === 'pinterest' ? '⏳...' : '📌 Pinterest'}
+          🔵 Bing
         </button>
 
         <button
@@ -144,61 +99,54 @@ export default function PhotoSearchHeader({
             background: currentEngine === 'yandex' ? '#b91c1c' : '#dc2626',
             border: '1px solid #f87171',
             color: '#fff',
-            fontWeight: 700,
-            padding: '0.42rem 0.75rem',
+            fontWeight: 600,
+            padding: '0.42rem 0.7rem',
             borderRadius: '6px',
             fontSize: '0.8rem',
-            whiteSpace: 'nowrap',
             cursor: isLoading ? 'default' : 'pointer',
           }}
-          title="Искать фото ТОЛЬКО в Yandex"
+          title="Поиск в Yandex"
         >
-          {searching && currentEngine === 'yandex' ? '⏳...' : '🔴 Yandex'}
+          🔴 Yandex
         </button>
 
-        {handleOpenQueries && (
-          <button
-            type="button"
-            onClick={handleOpenQueries}
-            disabled={isLoading || autoFetching}
-            style={{
-              background: '#4f46e5',
-              border: '1px solid #6366f1',
-              color: '#fff',
-              fontWeight: 700,
-              padding: '0.42rem 0.75rem',
-              borderRadius: '6px',
-              fontSize: '0.8rem',
-              whiteSpace: 'nowrap',
-              cursor: (isLoading || autoFetching) ? 'default' : 'pointer',
-            }}
-            title="Посмотреть и скопировать список поисковых запросов ИИ по тексту статьи"
-          >
-            📋 Запросы ИИ
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => onSearch('pinterest')}
+          disabled={isLoading}
+          style={{
+            background: currentEngine === 'pinterest' ? '#be123c' : '#e11d48',
+            border: '1px solid #fb7185',
+            color: '#fff',
+            fontWeight: 600,
+            padding: '0.42rem 0.7rem',
+            borderRadius: '6px',
+            fontSize: '0.8rem',
+            cursor: isLoading ? 'default' : 'pointer',
+          }}
+          title="Поиск в Pinterest"
+        >
+          📌 Pinterest
+        </button>
 
-        {onAutoFetch100 && (
-          <button
-            type="button"
-            onClick={onAutoFetch100}
-            disabled={isLoading || autoFetching}
-            style={{
-              background: '#059669',
-              border: '1px solid #10b981',
-              color: '#fff',
-              fontWeight: 700,
-              padding: '0.42rem 0.75rem',
-              borderRadius: '6px',
-              fontSize: '0.8rem',
-              whiteSpace: 'nowrap',
-              cursor: (isLoading || autoFetching) ? 'default' : 'pointer',
-            }}
-            title="Автоматически найти и скачать 100 подходящих фото по тексту из интернета"
-          >
-            {autoFetching ? '⏳ Загрузка 100 фото...' : '✨ 100 фото по тексту'}
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => onSearch('article')}
+          disabled={isLoading}
+          style={{
+            background: currentEngine === 'article' ? '#059669' : '#047857',
+            border: '1px solid #34d399',
+            color: '#fff',
+            fontWeight: 600,
+            padding: '0.42rem 0.7rem',
+            borderRadius: '6px',
+            fontSize: '0.8rem',
+            cursor: isLoading ? 'default' : 'pointer',
+          }}
+          title="Поиск в СМИ по теме"
+        >
+          📰 СМИ
+        </button>
       </div>
     </form>
   );

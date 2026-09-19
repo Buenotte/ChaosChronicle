@@ -3,14 +3,13 @@ import { toast } from 'sonner'
 import ImageLightboxModal from './ImageLightboxModal'
 import PhotoCardItem from './photos/PhotoCardItem'
 import PhotoSearchHeader from './photos/PhotoSearchHeader'
-import PhotoQueriesModal from './photos/PhotoQueriesModal'
 
 export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoading, onClose, onSaved, onReload }) {
   if (!newsTopic) return null
 
   const modalBodyRef = useRef(null)
   const [items, setItems] = useState([])
-  const [searchQuery, setSearchQuery] = useState(newsTopic.title || '')
+  const [searchQuery, setSearchQuery] = useState('')
   const [currentEngine, setCurrentEngine] = useState('all')
   const [searchPage, setSearchPage] = useState(1)
   const [searching, setSearching] = useState(false)
@@ -20,17 +19,14 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
   const [savedCount, setSavedCount] = useState(null)
   const [hasOrderChanged, setHasOrderChanged] = useState(false)
   const [lightboxUrl, setLightboxUrl] = useState(null), [isFullscreen, setIsFullscreen] = useState(false)
-  const [autoFetching, setAutoFetching] = useState(false)
-  const [showQueriesModal, setShowQueriesModal] = useState(false)
 
   useEffect(() => {
     setItems(photos || [])
-    if (newsTopic?.title) setSearchQuery(newsTopic.title)
-  }, [photos, newsTopic?.title])
+  }, [photos])
 
   const handleCustomSearch = async (engine = 'all', overrideQuery = null) => {
     const q = (overrideQuery !== null && overrideQuery !== undefined ? overrideQuery : searchQuery).trim()
-    if (!q) { toast.error('Введите ключевые слова для поиска фото'); return }
+    if (!q) { toast.error('Введите ключевое слово для поиска фото'); return }
     if (overrideQuery) setSearchQuery(overrideQuery)
     setSearching(true); setCurrentEngine(engine); setSearchPage(1)
     const engineLabels = { all: 'по всем источникам', article: 'из статьи', bing: 'в Bing', pinterest: 'в Pinterest', yandex: 'в Yandex' }
@@ -58,31 +54,6 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
     } catch (err) {
       toast.dismiss(toastId); toast.error('Ошибка запроса: ' + err.message)
     } finally { setSearching(false) }
-  }
-
-  const handleAutoFetch100 = async (customQueries = null, customCount = 100) => {
-    setAutoFetching(true)
-    const count = Number(customCount) || 100
-    const toastId = toast.loading(`🖼️ ИИ ищет и загружает ${count} фото...`)
-    try {
-      const folderName = newsTopic.folderName || newsTopic.matchingPkg?.folderName || ''
-      const bundleDir = newsTopic.bundleDir || newsTopic.matchingPkg?.bundleDir || ''
-      const scriptText = newsTopic.scriptText || newsTopic.scriptTxt || newsTopic.text || ''
-      const res = await fetch('/api/auto-fetch-photos', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ folderName, bundleDir, title: newsTopic.title, scriptText, count, customQueries }),
-      })
-      const data = await res.json()
-      toast.dismiss(toastId)
-      if (data.success && data.photos) {
-        const bust = Date.now()
-        setItems(data.photos.map(p => ({ url: `/news-static/${data.folderName}/${p}?t=${bust}`, source: 'На диске', isSavedLocal: true })))
-        setSavedCount(data.count); setHasOrderChanged(false)
-        if (onSaved) onSaved()
-        toast.success(`🎉 Загружено ${data.count} уникальных фото в пакет!`)
-      } else { toast.error('Ошибка: ' + (data.error || 'Не удалось загрузить фото')) }
-    } catch (e) { toast.dismiss(toastId); toast.error('Ошибка: ' + e.message) }
-    finally { setAutoFetching(false) }
   }
 
   const handleRemovePhoto = async (e, indexToRemove) => {
@@ -212,7 +183,7 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
       toast.dismiss(tId)
       if (data.success) {
         if (data.removed > 0) {
-          toast.success(`🎉 Удалено ${data.removed} дубликатов! Осталось: ${data.total}`)
+          toast.success(`🎉 Удалено дубликатов: ${data.removed}! Осталось: ${data.total}`)
           if (onSaved) onSaved(); handleCustomSearch('all')
         } else toast.info('Дубликатов не найдено — все фото уникальны!')
       } else toast.error('Ошибка: ' + data.error)
@@ -224,14 +195,6 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
   return (
     <div className="modal-overlay" onClick={onClose}>
       <ImageLightboxModal imageUrl={lightboxUrl} title={newsTopic.title} onClose={() => setLightboxUrl(null)} />
-      <PhotoQueriesModal
-        isOpen={showQueriesModal} onClose={() => setShowQueriesModal(false)}
-        folderName={newsTopic.folderName || newsTopic.matchingPkg?.folderName || ''}
-        bundleDir={newsTopic.bundleDir || newsTopic.matchingPkg?.bundleDir || ''}
-        title={newsTopic.title || ''} scriptText={newsTopic.scriptText || newsTopic.text || ''}
-        onSelectQuery={(q) => handleCustomSearch('all', q)}
-        onAutoFetchWithQueries={(customQueries, count) => handleAutoFetch100(customQueries, count)}
-      />
       <div
         className="modal-content" onClick={e => e.stopPropagation()}
         style={isFullscreen ? { maxWidth: '100vw', width: '100vw', height: '100vh', maxHeight: '100vh', borderRadius: 0, margin: 0, display: 'flex', flexDirection: 'column' } : { maxWidth: '1020px', width: '96%', maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}
@@ -278,13 +241,12 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
         <PhotoSearchHeader
           searchQuery={searchQuery} setSearchQuery={setSearchQuery} onQueryChange={setSearchQuery}
           onSearch={handleCustomSearch} currentEngine={currentEngine} searching={searching}
-          isLoading={isLoading} autoFetching={autoFetching} onOpenQueries={() => setShowQueriesModal(true)}
-          onOpenQueriesModal={() => setShowQueriesModal(true)} onAutoFetch100={() => handleAutoFetch100(null, 100)}
+          isLoading={isLoading}
         />
 
         <div ref={modalBodyRef} onDragOver={handleContainerDragOver} className="modal-body" style={{ flex: 1, overflowY: 'auto', padding: '1.25rem' }}>
           {isLoading && <div className="empty-state"><p>⟳ Поиск репортажных фотографий по запросу «{searchQuery}»...</p></div>}
-          {!isLoading && items.length === 0 && <div className="empty-state"><p>📷 Фотографий не найдено.</p></div>}
+          {!isLoading && items.length === 0 && <div className="empty-state"><p>📷 Фотографий пока не загружено. Введите слово в поле выше и нажмите «🔍 Найти».</p></div>}
           {!isLoading && items.length > 0 && (
             <>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.25)', padding: '0.45rem 0.75rem', borderRadius: '6px', marginBottom: '0.75rem', fontSize: '0.78rem', color: '#93c5fd' }}>

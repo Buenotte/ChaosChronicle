@@ -264,20 +264,18 @@ export async function searchLiveNewsPhotos(queryTitle, customQuery = '', page = 
       const isJunk = junkWords.some(j => itemTitleLower.includes(j) || imgUrlLower.includes(j));
       if (isJunk) return;
 
-      const oldYearMatch = /(201\d|202[0-5])/.test(itemTitleLower) || /(201\d|202[0-5])/.test(imgUrlLower);
-      if (oldYearMatch) return;
+      if (!customQuery || !customQuery.trim()) {
+        const oldYearMatch = /(201\d|202[0-5])/.test(itemTitleLower) || /(201\d|202[0-5])/.test(imgUrlLower);
+        if (oldYearMatch) return;
 
-      const hasMonthName = /(января|февраля|марта|апреля|мая|июня|июля|сентября|октября|ноября|декабря)/i.test(itemTitleLower);
-      const hasDotDate = /(0[1-9]|[12][0-9]|3[01])\.(0[1-9]|1[0-2])/.test(itemTitleLower) || /(0[1-9]|[12][0-9]|3[01])\.(0[1-9]|1[0-2])/.test(imgUrlLower);
-      const isAugust = /августа/i.test(itemTitleLower);
+        const hasMonthName = /(января|февраля|марта|апреля|мая|июня|июля|сентября|октября|ноября|декабря)/i.test(itemTitleLower);
+        const hasDotDate = /(0[1-9]|[12][0-9]|3[01])\.(0[1-9]|1[0-2])/.test(itemTitleLower) || /(0[1-9]|[12][0-9]|3[01])\.(0[1-9]|1[0-2])/.test(imgUrlLower);
+        if (hasMonthName || hasDotDate) return;
 
-      if (hasMonthName || hasDotDate) return;
-      if (isAugust && !/1[23]\s*августа/i.test(itemTitleLower)) return;
-
-      const matchesCount = lowerKeyNouns.filter(noun => itemTitleLower.includes(noun) || imgUrlLower.includes(noun)).length;
-      const matchesPrimary = primarySubject && (itemTitleLower.includes(primarySubject) || imgUrlLower.includes(primarySubject));
-
-      if (!matchesPrimary && matchesCount < 2) return;
+        const matchesCount = lowerKeyNouns.filter(noun => itemTitleLower.includes(noun) || imgUrlLower.includes(noun)).length;
+        const matchesPrimary = primarySubject && (itemTitleLower.includes(primarySubject) || imgUrlLower.includes(primarySubject));
+        if (!matchesPrimary && matchesCount < 2) return;
+      }
 
       seen.add(imgUrl);
 
