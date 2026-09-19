@@ -25,11 +25,12 @@ export function buildStyledFeuilletonPrompt(newsTitle, newsSummary = '', styleKe
   const scriptsDir = path.resolve(__dirname, '../../scripts');
   const effectiveKey = styleKey === 'analytics' ? 'gibrid' : styleKey;
   const styleConfig = STYLES[effectiveKey] || STYLES.golubuzki;
-  const stylePath = path.join(scriptsDir, styleConfig.file);
   let styleGuide = '';
-
-  if (fs.existsSync(stylePath)) {
-    try { styleGuide = fs.readFileSync(stylePath, 'utf-8').slice(0, 2400); } catch {}
+  if (styleConfig?.file) {
+    const stylePath = path.join(scriptsDir, styleConfig.file);
+    if (fs.existsSync(stylePath)) {
+      try { styleGuide = fs.readFileSync(stylePath, 'utf-8').slice(0, 2400); } catch {}
+    }
   }
 
   const isAnalytics = tone === 'analytics';

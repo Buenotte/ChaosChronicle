@@ -115,9 +115,11 @@ export async function generateYouTubeMetadata({
   const effectiveStyle = (style === 'analytics') ? 'gibrid' : style;
   const styleCfg = STYLES[effectiveStyle] || STYLES.golubuzki;
   let styleGuide = '';
-  const stylePath = path.join(scriptsDir, styleCfg.file);
-  if (fs.existsSync(stylePath)) {
-    try { styleGuide = fs.readFileSync(stylePath, 'utf-8').slice(0, 1500); } catch {}
+  if (styleCfg?.file) {
+    const stylePath = path.join(scriptsDir, styleCfg.file);
+    if (fs.existsSync(stylePath)) {
+      try { styleGuide = fs.readFileSync(stylePath, 'utf-8').slice(0, 1500); } catch {}
+    }
   }
 
   const fallbackTitle = `🔥 ${effectiveTitle.toUpperCase().slice(0, 65)} | ChaosChronicle`;

@@ -49,9 +49,11 @@ export async function generateFacebookPost({ folderName, bundleDir: inputBundleD
 
   const styleConfig = STYLES[style] || STYLES.golubuzki;
   let styleGuide = '';
-  const styleFilePath = path.join(scriptsDir, styleConfig.file);
-  if (fs.existsSync(styleFilePath)) {
-    try { styleGuide = fs.readFileSync(styleFilePath, 'utf-8').slice(0, 1800); } catch {}
+  if (styleConfig?.file) {
+    const styleFilePath = path.join(scriptsDir, styleConfig.file);
+    if (fs.existsSync(styleFilePath)) {
+      try { styleGuide = fs.readFileSync(styleFilePath, 'utf-8').slice(0, 1800); } catch {}
+    }
   }
 
   const fallback = `🔥 ${effectiveTitle.toUpperCase()}\n\nФакты, скрытые мотивы и реальные последствия события.\n\n📺 Смотрите подробности на канале Chaos Chronicle:\n👉 [ССЫЛКА НА ВАШЕ ВИДЕО В YOUTUBE] 🔔\n\n🔔 Подпишитесь, чтобы не пропустить новые сводки! 🔔\n\n#ChaosChronicle #Chaos_Chronicle #новости #политика #события`;
