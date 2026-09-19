@@ -25,9 +25,7 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
 
   useEffect(() => {
     setItems(photos || [])
-    if (newsTopic?.title) {
-      setSearchQuery(newsTopic.title)
-    }
+    if (newsTopic?.title) setSearchQuery(newsTopic.title)
   }, [photos, newsTopic?.title])
 
   const handleCustomSearch = async (engine = 'all', overrideQuery = null) => {
@@ -35,7 +33,7 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
     if (!q) { toast.error('Введите ключевые слова для поиска фото'); return }
     if (overrideQuery) setSearchQuery(overrideQuery)
     setSearching(true); setCurrentEngine(engine); setSearchPage(1)
-    const engineLabels = { all: 'по всем источникам', article: 'из оригинальной статьи', bing: 'в Bing', pinterest: 'в Pinterest', yandex: 'в Yandex' }
+    const engineLabels = { all: 'по всем источникам', article: 'из статьи', bing: 'в Bing', pinterest: 'в Pinterest', yandex: 'в Yandex' }
     const toastId = toast.loading(`🔎 Поиск фото ${engineLabels[engine] || ''}...`, { description: q.slice(0, 50) })
     try {
       const folderName = newsTopic.folderName || newsTopic.matchingPkg?.folderName || ''
@@ -47,58 +45,44 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
       if (data.success) {
         const incoming = data.photos || []
         setItems(prev => {
-          const localSaved = prev.filter(p => p?.isSavedLocal || (typeof p === 'string' && p.startsWith('/news-static/')) || (p?.url && p.url.startsWith('/news-static/')))
-          const incomingLocal = incoming.filter(p => p?.isSavedLocal || (typeof p === 'string' && p.startsWith('/news-static/')) || (p?.url && p.url.startsWith('/news-static/')))
-          const allLocal = [...localSaved]
-          const localUrls = new Set(allLocal.map(p => typeof p === 'string' ? p : p?.url))
-          incomingLocal.forEach(p => {
-            const u = typeof p === 'string' ? p : p?.url
-            if (!localUrls.has(u)) { localUrls.add(u); allLocal.push(p) }
-          })
-          const incomingWeb = incoming.filter(p => !localUrls.has(typeof p === 'string' ? p : p?.url))
-          return [...allLocal, ...incomingWeb]
+          const isLoc = p => p?.isSavedLocal || (typeof p === 'string' && p.startsWith('/news-static/')) || p?.url?.startsWith('/news-static/')
+          const allLocal = prev.filter(isLoc)
+          const seenU = new Set(allLocal.map(p => typeof p === 'string' ? p : p?.url))
+          incoming.filter(isLoc).forEach(p => { const u = typeof p === 'string' ? p : p?.url; if (!seenU.has(u)) { seenU.add(u); allLocal.push(p) } })
+          return [...allLocal, ...incoming.filter(p => !seenU.has(typeof p === 'string' ? p : p?.url))]
         })
         toast.success(`Найдено ${data.photos?.length || 0} фото!`, { duration: 2500 })
       } else {
-        toast.error('Ошибка поиска фото: ' + (data.error || 'Ничего не найдено'), { duration: 3000 })
+        toast.error('Ошибка поиска: ' + (data.error || 'Ничего не найдено'))
       }
     } catch (err) {
-      toast.dismiss(toastId)
-      toast.error('Ошибка запроса: ' + err.message, { duration: 3000 })
-    } finally {
-      setSearching(false)
-    }
+      toast.dismiss(toastId); toast.error('Ошибка запроса: ' + err.message)
+    } finally { setSearching(false) }
   }
 
   const handleAutoFetch100 = async (customQueries = null, customCount = 100) => {
     setAutoFetching(true)
-    const targetCount = Number(customCount) || 100
-    const toastId = toast.loading(`🖼️ ИИ ищет и загружает ${targetCount} фото...`, { description: 'Поиск лучших кадров на Bing и DuckDuckGo...' })
+    const count = Number(customCount) || 100
+    const toastId = toast.loading(`🖼️ ИИ ищет и загружает ${count} фото...`)
     try {
       const folderName = newsTopic.folderName || newsTopic.matchingPkg?.folderName || ''
       const bundleDir = newsTopic.bundleDir || newsTopic.matchingPkg?.bundleDir || ''
       const scriptText = newsTopic.scriptText || newsTopic.scriptTxt || newsTopic.text || ''
       const res = await fetch('/api/auto-fetch-photos', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ folderName, bundleDir, title: newsTopic.title, scriptText, count: targetCount, customQueries }),
+        body: JSON.stringify({ folderName, bundleDir, title: newsTopic.title, scriptText, count, customQueries }),
       })
       const data = await res.json()
       toast.dismiss(toastId)
       if (data.success && data.photos) {
         const bust = Date.now()
         setItems(data.photos.map(p => ({ url: `/news-static/${data.folderName}/${p}?t=${bust}`, source: 'На диске', isSavedLocal: true })))
-        setSavedCount(data.count)
-        setHasOrderChanged(false)
+        setSavedCount(data.count); setHasOrderChanged(false)
         if (onSaved) onSaved()
-        toast.success(`🎉 Загружено ${data.count} фото в пакет!`)
-      } else {
-        toast.error('Ошибка: ' + (data.error || 'Не удалось загрузить фото'))
-      }
-    } catch (e) {
-      toast.dismiss(toastId); toast.error('Ошибка: ' + e.message)
-    } finally {
-      setAutoFetching(false)
-    }
+        toast.success(`🎉 Загружено ${data.count} уникальных фото в пакет!`)
+      } else { toast.error('Ошибка: ' + (data.error || 'Не удалось загрузить фото')) }
+    } catch (e) { toast.dismiss(toastId); toast.error('Ошибка: ' + e.message) }
+    finally { setAutoFetching(false) }
   }
 
   const handleRemovePhoto = async (e, indexToRemove) => {
@@ -106,14 +90,14 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
     const photoToRemove = items[indexToRemove]
     const imgSrc = typeof photoToRemove === 'string' ? photoToRemove : (photoToRemove?.url || '')
     const extractedFolder = imgSrc.match(/\/news-static\/([^/]+)\//)?.[1]
-    if (imgSrc && imgSrc.startsWith('/news-static/')) {
+    if (imgSrc.startsWith('/news-static/')) {
       try {
-        const res = await fetch('/api/delete-photo', {
+        await fetch('/api/delete-photo', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ photoUrl: imgSrc, bundleDir: newsTopic?.bundleDir, folderName: newsTopic?.folderName || extractedFolder }),
-        }), data = await res.json()
-        if (data.success && data.deleted) toast.success('🗑️ Фото удалено с диска!')
-      } catch (err) { console.error('Fehler beim Löschen des Fotos:', err) }
+        })
+        toast.success('🗑️ Фото удалено с диска!')
+      } catch {}
     } else { toast.info('Фото удалено из списка') }
     setItems(prev => prev.filter((_, idx) => idx !== indexToRemove))
     setHasOrderChanged(true)
@@ -134,7 +118,6 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
     if (topZone < 80 && topZone > 0) modalBodyRef.current.scrollTop -= Math.max(10, Math.round((80 - topZone) * 0.8))
     else if (bottomZone < 80 && bottomZone > 0) modalBodyRef.current.scrollTop += Math.max(10, Math.round((80 - bottomZone) * 0.8))
   }
-  const handleDragEnd = () => { setDraggedIndex(null); setDragOverIndex(null) }
   const handleDrop = (e, targetIndex) => {
     e.preventDefault()
     if (draggedIndex === null || draggedIndex === targetIndex) { setDraggedIndex(null); setDragOverIndex(null); return }
@@ -145,24 +128,22 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
   const handleLoadMorePhotos = async () => {
     const nextPage = searchPage + 1
     setLoadingMore(true)
-    const toastId = toast.loading(`🔎 Поиск следующих фото (страница ${nextPage})...`)
+    const toastId = toast.loading(`🔎 Поиск фото (страница ${nextPage})...`)
     try {
       const folderName = newsTopic.folderName || newsTopic.matchingPkg?.folderName || ''
       const bundleDir = newsTopic.bundleDir || newsTopic.matchingPkg?.bundleDir || ''
       const params = new URLSearchParams({ title: newsTopic.title || '', articleId: newsTopic.id || '', url: newsTopic.url || '', folderName, bundleDir, query: searchQuery.trim(), forceLive: 'true', page: String(nextPage), engine: currentEngine })
-      const res = await fetch(`/api/news-photos?${params}`)
-      const data = await res.json()
+      const res = await fetch(`/api/news-photos?${params}`), data = await res.json()
       toast.dismiss(toastId)
       if (data.success && data.photos?.length > 0) {
-        const existingUrls = new Set(items.map(p => (typeof p === 'string' ? p : p.url)))
-        const newUnique = data.photos.filter(p => !existingUrls.has(p.url))
-        if (newUnique.length > 0) {
-          setItems(prev => [...prev, ...newUnique])
-          setSearchPage(nextPage)
-          toast.success(`📸 Добавлено +${newUnique.length} новых фото! Всего: ${items.length + newUnique.length}`, { duration: 2500 })
-        } else { toast.info('Новых дополнительных фото не найдено', { duration: 2500 }) }
-      } else { toast.info('Больше фото не найдено', { duration: 2500 }) }
-    } catch (err) { toast.dismiss(toastId); toast.error('Ошибка поиска: ' + err.message, { duration: 3000 }) }
+        const existU = new Set(items.map(p => (typeof p === 'string' ? p : p.url)))
+        const newU = data.photos.filter(p => !existU.has(p.url))
+        if (newU.length > 0) {
+          setItems(prev => [...prev, ...newU]); setSearchPage(nextPage)
+          toast.success(`📸 Добавлено +${newU.length} новых фото! Всего: ${items.length + newU.length}`)
+        } else toast.info('Новых фото не найдено')
+      } else toast.info('Больше фото не найдено')
+    } catch (err) { toast.dismiss(toastId); toast.error('Ошибка: ' + err.message) }
     finally { setLoadingMore(false) }
   }
 
@@ -170,79 +151,89 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
     if (e?.stopPropagation) e.stopPropagation()
     const photoToSave = items[index]
     const imgSrc = typeof photoToSave === 'string' ? photoToSave : (photoToSave?.url || '')
-    if (!imgSrc) return
-    if (imgSrc.startsWith('/news-static/')) return toast.info('Это фото уже сохранено на диске')
-
+    if (!imgSrc || imgSrc.startsWith('/news-static/')) return toast.info('Фото уже на диске')
     setSavingSingleIndex(index)
-    const toastId = toast.loading('💾 Скачивание фото в папку news/...', { description: 'Сохранение оригинального файла...' })
+    const toastId = toast.loading('💾 Скачивание фото...')
     try {
-      const extractedFolder = items.map(p => (typeof p === 'string' ? p : p?.url || '')).find(u => u.includes('/news-static/'))?.match(/\/news-static\/([^/]+)\//)?.[1]
-      const folderName = newsTopic.folderName || newsTopic.matchingPkg?.folderName || extractedFolder
-      const bundleDir = newsTopic.bundleDir || newsTopic.matchingPkg?.bundleDir
+      const extracted = items.map(p => (typeof p === 'string' ? p : p?.url || '')).find(u => u.includes('/news-static/'))?.match(/\/news-static\/([^/]+)\//)?.[1]
+      const folderName = newsTopic.folderName || newsTopic.matchingPkg?.folderName || extracted
       const res = await fetch('/api/save-single-photo', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: newsTopic.title, folderName, bundleDir, photoUrl: imgSrc }),
+        body: JSON.stringify({ title: newsTopic.title, folderName, bundleDir: newsTopic.bundleDir, photoUrl: imgSrc }),
       })
       const data = await res.json()
       toast.dismiss(toastId)
-      if (!res.ok || !data.success) throw new Error(data.error || 'Ошибка скачивания фото')
+      if (!res.ok || !data.success) throw new Error(data.error || 'Ошибка скачивания')
       setItems(prev => prev.map((p, idx) => idx === index ? { ...(typeof p === 'object' ? p : {}), url: data.localUrl, source: 'На диске', isSavedLocal: true } : p))
       setSavedCount(data.totalPhotos)
       if (onSaved) onSaved()
-      toast.success(`📸 Фото сохранено: ${data.filename}!`, { description: `Папка: news/${data.folderName}/photos/`, duration: 2500 })
-    } catch (err) { toast.dismiss(toastId); toast.error('Ошибка сохранения фото: ' + err.message, { duration: 3000 }) }
+      toast.success(data.alreadySaved ? 'Фото уже есть на диске (дубликат предотвращён)' : `📸 Сохранено: ${data.filename}!`)
+    } catch (err) { toast.dismiss(toastId); toast.error('Ошибка: ' + err.message) }
     finally { setSavingSingleIndex(null) }
   }
 
   const handleSavePhotosToFolder = async () => {
     if (items.length === 0) return
     setSavingPhotos(true)
-    const toastId = toast.loading(`💾 Сохранение ${items.length} фото в news/...`, { description: 'Запись файлов на диск в новом порядке...' })
+    const toastId = toast.loading(`💾 Сохранение ${items.length} фото...`)
     try {
-      const extractedFolder = items.map(p => (typeof p === 'string' ? p : p?.url || '')).find(u => u.includes('/news-static/'))?.match(/\/news-static\/([^/]+)\//)?.[1]
-      const folderName = newsTopic.folderName || newsTopic.matchingPkg?.folderName || extractedFolder
-      const bundleDir = newsTopic.bundleDir || newsTopic.matchingPkg?.bundleDir
+      const extracted = items.map(p => (typeof p === 'string' ? p : p?.url || '')).find(u => u.includes('/news-static/'))?.match(/\/news-static\/([^/]+)\//)?.[1]
+      const folderName = newsTopic.folderName || newsTopic.matchingPkg?.folderName || extracted
       const res = await fetch('/api/save-news-photos', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: newsTopic.title, folderName, bundleDir, photos: items.map(p => (typeof p === 'string' ? p : p.url)) }),
+        body: JSON.stringify({ title: newsTopic.title, folderName, bundleDir: newsTopic.bundleDir, photos: items.map(p => (typeof p === 'string' ? p : p.url)) }),
       })
       const data = await res.json()
       toast.dismiss(toastId)
-      if (!res.ok || !data.success) throw new Error(data.error || 'Ошибка сохранения фото')
-      setSavedCount(data.savedPhotosCount)
-      setHasOrderChanged(false)
+      if (!res.ok || !data.success) throw new Error(data.error || 'Ошибка сохранения')
+      setSavedCount(data.savedPhotosCount); setHasOrderChanged(false)
       if (data.photos && data.folderName) {
         const bust = Date.now()
         setItems(data.photos.map(relPath => ({ url: `/news-static/${data.folderName}/${relPath}?t=${bust}`, source: 'На диске', isSavedLocal: true })))
       }
       if (onSaved) onSaved()
-      toast.success(`📸 Порядок ${data.savedPhotosCount || items.length} фото сохранен на диске!`, { description: `Папка: news/${data.folderName}/photos/`, duration: 2500 })
-    } catch (err) { toast.dismiss(toastId); toast.error('Ошибка сохранения фото: ' + err.message, { duration: 3000 }) }
+      const diff = items.length - data.savedPhotosCount
+      const diffMsg = diff > 0 ? ` (удалено ${diff} дубликатов)` : ''
+      toast.success(`📸 Сохранено ${data.savedPhotosCount} уникальных фото${diffMsg}!`)
+    } catch (err) { toast.dismiss(toastId); toast.error('Ошибка: ' + err.message) }
     finally { setSavingPhotos(false) }
+  }
+
+  const handleDeduplicate = async () => {
+    const extracted = items.map(p => (typeof p === 'string' ? p : p?.url || '')).find(u => u.includes('/news-static/'))?.match(/\/news-static\/([^/]+)\//)?.[1]
+    const folderName = newsTopic.folderName || newsTopic.matchingPkg?.folderName || extracted
+    const tId = toast.loading('🧹 Поиск и удаление дубликатов...')
+    try {
+      const res = await fetch('/api/deduplicate-photos', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folderName, bundleDir: newsTopic.bundleDir }),
+      })
+      const data = await res.json()
+      toast.dismiss(tId)
+      if (data.success) {
+        if (data.removed > 0) {
+          toast.success(`🎉 Удалено ${data.removed} дубликатов! Осталось: ${data.total}`)
+          if (onSaved) onSaved(); handleCustomSearch('all')
+        } else toast.info('Дубликатов не найдено — все фото уникальны!')
+      } else toast.error('Ошибка: ' + data.error)
+    } catch (e) { toast.dismiss(tId); toast.error('Ошибка: ' + e.message) }
   }
 
   const isLoading = initialLoading || searching
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <ImageLightboxModal
-        imageUrl={lightboxUrl}
-        title={newsTopic.title}
-        onClose={() => setLightboxUrl(null)}
-      />
+      <ImageLightboxModal imageUrl={lightboxUrl} title={newsTopic.title} onClose={() => setLightboxUrl(null)} />
       <PhotoQueriesModal
-        isOpen={showQueriesModal}
-        onClose={() => setShowQueriesModal(false)}
+        isOpen={showQueriesModal} onClose={() => setShowQueriesModal(false)}
         folderName={newsTopic.folderName || newsTopic.matchingPkg?.folderName || ''}
         bundleDir={newsTopic.bundleDir || newsTopic.matchingPkg?.bundleDir || ''}
-        title={newsTopic.title || ''}
-        scriptText={newsTopic.scriptText || newsTopic.text || ''}
+        title={newsTopic.title || ''} scriptText={newsTopic.scriptText || newsTopic.text || ''}
         onSelectQuery={(q) => handleCustomSearch('all', q)}
         onAutoFetchWithQueries={(customQueries, count) => handleAutoFetch100(customQueries, count)}
       />
       <div
-        className="modal-content"
-        onClick={e => e.stopPropagation()}
+        className="modal-content" onClick={e => e.stopPropagation()}
         style={isFullscreen ? { maxWidth: '100vw', width: '100vw', height: '100vh', maxHeight: '100vh', borderRadius: 0, margin: 0, display: 'flex', flexDirection: 'column' } : { maxWidth: '1020px', width: '96%', maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}
       >
         <div className="modal-header">
@@ -250,34 +241,33 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
             <span className="modal-badge" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
               📸 Поиск и управление фото
             </span>
-            <h2 className="modal-title" style={{ fontSize: '1.15rem', marginTop: '0.3rem' }}>
-              {newsTopic.title}
-            </h2>
+            <h2 className="modal-title" style={{ fontSize: '1.15rem', marginTop: '0.3rem' }}>{newsTopic.title}</h2>
             <div className="modal-stats" style={{ marginTop: '0.3rem' }}>
               {items.length > 0 && <span>🖼️ В списке: {items.length} фото</span>}
               {savedCount !== null && <span className="saved-status-badge">🟢 {savedCount} сохранено в news/photos/</span>}
             </div>
           </div>
           <div className="modal-header-actions" style={{ display: 'flex', gap: '0.45rem', alignItems: 'center' }}>
+            {items.length > 1 && (
+              <button
+                type="button" onClick={handleDeduplicate}
+                style={{ background: '#334155', border: '1px solid #475569', color: '#cbd5e1', borderRadius: '6px', padding: '0.4rem 0.65rem', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600 }}
+                title="Удалить одинаковые фото по содержимому (MD5)"
+              >
+                🧹 Без дублей
+              </button>
+            )}
             {items.length > 0 && (
               <button
-                className="save-bundle-btn"
-                onClick={handleSavePhotosToFolder}
-                disabled={savingPhotos}
-                style={{
-                  background: hasOrderChanged ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                  fontWeight: 700,
-                  boxShadow: hasOrderChanged ? '0 0 14px rgba(245, 158, 11, 0.6)' : 'none',
-                }}
+                className="save-bundle-btn" onClick={handleSavePhotosToFolder} disabled={savingPhotos}
+                style={{ background: hasOrderChanged ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)', fontWeight: 700 }}
               >
                 {savingPhotos ? '⏳ Сохранение...' : hasOrderChanged ? `💾 Сохранить порядок (${items.length})` : `💾 Сохранить ${items.length} фото`}
               </button>
             )}
             <button
-              type="button"
-              onClick={() => setIsFullscreen(prev => !prev)}
-              style={{ background: isFullscreen ? '#2563eb' : '#1e293b', border: '1px solid #475569', color: '#fff', borderRadius: '6px', padding: '0.4rem 0.6rem', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.3rem' }}
-              title={isFullscreen ? 'Свернуть в окно' : 'Развернуть на весь экран'}
+              type="button" onClick={() => setIsFullscreen(prev => !prev)}
+              style={{ background: isFullscreen ? '#2563eb' : '#1e293b', border: '1px solid #475569', color: '#fff', borderRadius: '6px', padding: '0.4rem 0.6rem', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600 }}
             >
               {isFullscreen ? '🗗 В окно' : '⛶ Во весь экран'}
             </button>
@@ -285,87 +275,37 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
           </div>
         </div>
 
-        {/* Панель поиска с выбором движка */}
         <PhotoSearchHeader
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-          onSearch={handleCustomSearch}
-          searching={searching}
-          isLoading={isLoading}
-          currentEngine={currentEngine}
-          onAutoFetch100={handleAutoFetch100}
-          autoFetching={autoFetching}
-          onOpenQueries={() => setShowQueriesModal(true)}
+          searchQuery={searchQuery} onQueryChange={setSearchQuery} onSearch={handleCustomSearch}
+          currentEngine={currentEngine} searching={searching} autoFetching={autoFetching}
+          onOpenQueriesModal={() => setShowQueriesModal(true)} onAutoFetch100={() => handleAutoFetch100(null, 100)}
         />
 
         <div ref={modalBodyRef} onDragOver={handleContainerDragOver} className="modal-body" style={{ flex: 1, overflowY: 'auto', padding: '1.25rem' }}>
-          {isLoading && (
-            <div className="empty-state">
-              <p>⟳ Поиск репортажных фотографий по запросу «{searchQuery}»...</p>
-            </div>
-          )}
-
-          {!isLoading && items.length === 0 && (
-            <div className="empty-state">
-              <p>📷 Фотографий не найдено. Попробуйте изменить ключевые слова выше и нажать «Искать фото».</p>
-            </div>
-          )}
-
+          {isLoading && <div className="empty-state"><p>⟳ Поиск репортажных фотографий по запросу «{searchQuery}»...</p></div>}
+          {!isLoading && items.length === 0 && <div className="empty-state"><p>📷 Фотографий не найдено.</p></div>}
           {!isLoading && items.length > 0 && (
             <>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.25)', padding: '0.45rem 0.75rem', borderRadius: '6px', marginBottom: '0.75rem', fontSize: '0.78rem', color: '#93c5fd' }}>
                 <span>💡 <b>Drag & Drop:</b> Перетаскивайте фото на любую позицию (или используйте ⬅️ / ➡️).</span>
                 <span style={{ color: '#e2e8f0', fontWeight: 600 }}>Всего: {items.length} кадров</span>
               </div>
-
-              {draggedIndex !== null && draggedIndex > 0 && (
-                <div
-                  onDragOver={(e) => { e.preventDefault(); setDragOverIndex(-1) }}
-                  onDrop={(e) => handleDrop(e, 0)}
-                  style={{
-                    border: dragOverIndex === -1 ? '2px dashed #38bdf8' : '2px dashed rgba(56, 189, 248, 0.4)',
-                    background: dragOverIndex === -1 ? 'rgba(56, 189, 248, 0.25)' : 'rgba(15, 23, 42, 0.65)',
-                    borderRadius: '8px',
-                    padding: '0.65rem',
-                    textAlign: 'center',
-                    marginBottom: '0.75rem',
-                    color: dragOverIndex === -1 ? '#38bdf8' : '#cbd5e1',
-                    fontSize: '0.82rem',
-                    fontWeight: 700,
-                    transition: 'all 0.15s ease-out',
-                  }}
-                >
-                  ⭐ Бросьте сюда, чтобы сделать #1 (Самым первым в видео)
-                </div>
-              )}
               <div className={`multi-source-photos-grid ${isFullscreen ? 'fullscreen-grid' : ''}`}>
                 {items.map((photo, i) => (
                   <PhotoCardItem
-                    key={i}
-                    photo={photo}
-                    index={i}
-                    totalCount={items.length}
-                    isSingleSaving={savingSingleIndex === i}
-                    isDragged={draggedIndex === i}
-                    isDragOver={dragOverIndex === i}
-                    onLightbox={setLightboxUrl}
-                    onRemove={handleRemovePhoto}
-                    onSaveSingle={handleSaveSinglePhoto}
-                    onMove={handleMovePhoto}
-                    onDragStart={handleDragStart}
-                    onDragOver={handleDragOver}
-                    onDragEnd={handleDragEnd}
-                    onDrop={handleDrop}
+                    key={i} photo={photo} index={i} totalCount={items.length}
+                    isSingleSaving={savingSingleIndex === i} isDragged={draggedIndex === i}
+                    isDragOver={dragOverIndex === i} onLightbox={setLightboxUrl}
+                    onRemove={handleRemovePhoto} onSaveSingle={handleSaveSinglePhoto}
+                    onMove={handleMovePhoto} onDragStart={handleDragStart}
+                    onDragOver={handleDragOver} onDrop={handleDrop}
                   />
                 ))}
               </div>
-
               <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1.5rem', marginBottom: '0.5rem' }}>
                 <button
-                  type="button"
-                  onClick={handleLoadMorePhotos}
-                  disabled={loadingMore}
-                  style={{ background: '#1e293b', border: '1px solid #475569', color: '#f8fafc', fontWeight: 700, padding: '0.65rem 1.6rem', fontSize: '0.85rem', borderRadius: '8px', cursor: loadingMore ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                  type="button" onClick={handleLoadMorePhotos} disabled={loadingMore}
+                  style={{ background: '#1e293b', border: '1px solid #475569', color: '#f8fafc', fontWeight: 700, padding: '0.65rem 1.6rem', fontSize: '0.85rem', borderRadius: '8px', cursor: loadingMore ? 'default' : 'pointer' }}
                 >
                   {loadingMore ? '⏳ Поиск следующих фото...' : `🔍 Искать ещё фото (страница ${searchPage + 1})`}
                 </button>

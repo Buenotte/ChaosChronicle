@@ -7,7 +7,7 @@ import { generateGolubuzkiTitle } from './feuilleton.js';
 import { cleanText, scrapeArticlePhotos, searchLiveNewsPhotos } from '../services/imageSearchService.js';
 import { customFontsDir, overlayRussianHeadlineOnThumbnail } from '../services/thumbnailOverlayService.js';
 import { processSetThumbnail, getDefaultThumbnailStyle, saveDefaultThumbnailStyle } from '../services/thumbnailService.js';
-import { saveNewsPhotos, saveSingleNewsPhoto, deleteNewsPhoto } from '../services/photoStorageService.js';
+import { saveNewsPhotos, saveSingleNewsPhoto, deleteNewsPhoto, deduplicatePackagePhotos } from '../services/photoStorageService.js';
 
 export { overlayRussianHeadlineOnThumbnail };
 
@@ -18,24 +18,16 @@ const router = express.Router();
 // GET /api/custom-fonts/:filename
 router.get('/api/custom-fonts/:filename', (req, res) => {
   const filePath = path.join(customFontsDir, req.params.filename);
-  if (fs.existsSync(filePath)) {
-    res.sendFile(filePath);
-  } else {
-    res.status(404).send('Font not found');
-  }
+  if (fs.existsSync(filePath)) res.sendFile(filePath);
+  else res.status(404).send('Font not found');
 });
 
 // GET /api/custom-fonts
 router.get('/api/custom-fonts', (req, res) => {
   try {
-    const files = fs.readdirSync(customFontsDir)
-      .filter(f => /\.(ttf|otf|woff|woff2)$/i.test(f))
-      .map(f => ({
-        id: f,
-        name: f.replace(/\.[^.]+$/, ''),
-        filename: f,
-        url: `/api/custom-fonts/${f}`,
-      }));
+    const files = fs.readdirSync(customFontsDir).filter(f => /\.(ttf|otf|woff|woff2)$/i.test(f)).map(f => ({
+      id: f, name: f.replace(/\.[^.]+$/, ''), filename: f, url: `/api/custom-fonts/${f}`,
+    }));
     res.json({ success: true, fonts: files });
   } catch (err) {
     res.json({ success: true, fonts: [] });
@@ -46,28 +38,11 @@ router.get('/api/custom-fonts', (req, res) => {
 router.post('/api/upload-font', async (req, res) => {
   try {
     const { filename, base64Data, fontName } = req.body;
-    if (!filename || !base64Data) {
-      return res.status(400).json({ success: false, error: 'Файл шрифта не передан' });
-    }
-
+    if (!filename || !base64Data) return res.status(400).json({ success: false, error: 'Файл шрифта не передан' });
     const safeFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const targetPath = path.join(customFontsDir, safeFilename);
-    const buffer = Buffer.from(base64Data, 'base64');
-    fs.writeFileSync(targetPath, buffer);
-
-    console.log(`🔤 Пользовательский шрифт сохранен: ${targetPath} (${buffer.length} байт)`);
-
-    res.json({
-      success: true,
-      font: {
-        id: safeFilename,
-        name: fontName || safeFilename.replace(/\.[^.]+$/, ''),
-        filename: safeFilename,
-        url: `/api/custom-fonts/${safeFilename}`,
-      }
-    });
+    fs.writeFileSync(path.join(customFontsDir, safeFilename), Buffer.from(base64Data, 'base64'));
+    res.json({ success: true, font: { id: safeFilename, name: fontName || safeFilename.replace(/\.[^.]+$/, ''), filename: safeFilename, url: `/api/custom-fonts/${safeFilename}` } });
   } catch (err) {
-    console.error('Upload font error:', err.message);
     res.status(500).json({ success: false, error: err.message });
   }
 });
@@ -75,19 +50,16 @@ router.post('/api/upload-font', async (req, res) => {
 // POST /api/delete-font
 router.post('/api/delete-font', (req, res) => {
   try {
-    const { filename, fontId } = req.body;
-    const targetFile = filename || fontId;
+    const targetFile = req.body?.filename || req.body?.fontId;
     if (!targetFile) return res.status(400).json({ success: false, error: 'Имя шрифта не указано' });
     const safeFilename = path.basename(targetFile);
     const targetPath = path.join(customFontsDir, safeFilename);
     if (fs.existsSync(targetPath)) {
       fs.unlinkSync(targetPath);
-      console.log(`🗑️ Пользовательский шрифт удален: ${safeFilename}`);
       return res.json({ success: true, deleted: safeFilename });
     }
     return res.status(404).json({ success: false, error: 'Файл шрифта не найден' });
   } catch (err) {
-    console.error('Delete font error:', err.message);
     res.status(500).json({ success: false, error: err.message });
   }
 });
@@ -366,6 +338,17 @@ router.post('/api/set-thumbnail', async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error('Set thumbnail error:', err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/deduplicate-photos
+router.post('/api/deduplicate-photos', async (req, res) => {
+  try {
+    const { folderName, bundleDir } = req.body;
+    const result = await deduplicatePackagePhotos({ folderName, bundleDir });
+    res.json(result);
+  } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });

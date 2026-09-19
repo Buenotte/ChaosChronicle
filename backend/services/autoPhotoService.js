@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -158,7 +159,7 @@ function isValidImageUrl(url) {
   return /\.(jpg|jpeg|png|webp)/i.test(url);
 }
 
-// Downloads single image and converts to base64 Data URL to prevent hanging
+// Downloads single image and converts to base64 Data URL with MD5 content hash
 async function downloadImageAsDataUrl(url) {
   try {
     const res = await fetch(url, {
@@ -173,22 +174,25 @@ async function downloadImageAsDataUrl(url) {
     if (buf.length < 4000) return null; // Skip tiny pixels / icons
     let ext = url.match(/\.(jpg|jpeg|png|webp)/i)?.[1]?.toLowerCase() || 'jpg';
     if (ext === 'jpeg') ext = 'jpg';
-    return `data:image/${ext};base64,${buf.toString('base64')}`;
+    const hash = crypto.createHash('md5').update(buf).digest('hex');
+    return { dataUrl: `data:image/${ext};base64,${buf.toString('base64')}`, hash, size: buf.length };
   } catch {
     return null;
   }
 }
 
-// Downloads images concurrently in batches of 10
+// Downloads images concurrently in batches of 10 and rejects duplicate content by hash
 async function downloadImagesInBatches(urls, targetCount = 100) {
   const downloaded = [];
+  const seenHashes = new Set();
   const batchSize = 10;
   for (let i = 0; i < urls.length && downloaded.length < targetCount; i += batchSize) {
     const chunk = urls.slice(i, i + batchSize);
     const results = await Promise.all(chunk.map(u => downloadImageAsDataUrl(u)));
-    for (const dataUrl of results) {
-      if (dataUrl) {
-        downloaded.push(dataUrl);
+    for (const item of results) {
+      if (item?.hash && !seenHashes.has(item.hash)) {
+        seenHashes.add(item.hash);
+        downloaded.push(item.dataUrl);
         if (downloaded.length >= targetCount) break;
       }
     }
@@ -227,14 +231,15 @@ export async function searchPhotosForQueries(queries = [], targetCount = 100, en
     }
   }
 
-  // Backfill from remaining pool if needed
+  // Backfill from remaining pool if needed (extra buffer to compensate for duplicates discarded by hash)
+  const maxCandidates = Math.max(targetCount + 50, Math.ceil(targetCount * 1.5));
   for (const u of pool) {
-    if (candidateUrls.length >= targetCount + 30) break;
+    if (candidateUrls.length >= maxCandidates) break;
     if (!candidateUrls.includes(u)) candidateUrls.push(u);
   }
 
   // Download concurrently up to targetCount valid image buffers
-  console.log(`🖼️ [AutoPhotos] Lade bis zu ${targetCount} Bilder parallel aus ${candidateUrls.length} Kandidaten...`);
+  console.log(`🖼️ [AutoPhotos] Lade bis zu ${targetCount} distinkte Bilder aus ${candidateUrls.length} Kandidaten...`);
   const readyDataUrls = await downloadImagesInBatches(candidateUrls, targetCount);
 
   return readyDataUrls;
