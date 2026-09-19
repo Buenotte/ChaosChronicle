@@ -336,6 +336,7 @@ router.post('/api/preview-short-frame', async (req, res) => {
 router.post('/api/save-shorts-config', (req, res) => {
   try {
     const {
+      bundleDir: inputBundleDir, folderName,
       duration, hookTitle, font, fontSize, fontColor,
       strokeWidth, strokeColor, shadowDistance, shadowColor, shadowStyle,
       wordColors, wordFontSizes, boxEnabled, boxColor, boxOpacity, posY, lineBadges, selectedPhoto,
