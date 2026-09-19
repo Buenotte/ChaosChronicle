@@ -9,7 +9,31 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const newsDir = path.resolve(__dirname, '../../news');
 
-const TITLE_STYLES = {
+export const YOUTUBE_TITLE_STYLES = {
+  scipop: {
+    name: '🌟 Научпоп & Факты (Сенсация, открытия, «Почему...»)',
+    desc: 'Научные открытия, законы природы, биология, мозг, космос, парадоксы, «Почему...», «Как устроен...». Без политики и бункерной сатиры.',
+  },
+  mystery: {
+    name: '🕵️ Тайны Истории & Загадки Прошлого',
+    desc: 'Исторические тайны, забытые экспедиции, нестыковки в хрониках, саспенс, забытые архивы. Без сатиры.',
+  },
+  tech_future: {
+    name: '🚀 Технологии Будущего & Инженерия',
+    desc: 'Прорывной искусственный интеллект, квантовые скачки, космос, роботы, мегапроекты, инженерные революции.',
+  },
+  psychology: {
+    name: '🧠 Человек & Скрытые Законы Психики',
+    desc: 'Тайны сознания, когнитивные ловушки, гормоны, сон, психология поведения, скрытые мотивы. Без интервью и гостей.',
+  },
+  storytelling: {
+    name: '🔥 Вирусный Сторителлинг (Высокий CTR)',
+    desc: 'Остросюжетная интрига, кульминация, цена ошибки, драматический выбор, максимальный интерес (CTR 20%+).',
+  },
+};
+
+export const TITLE_STYLES = {
+  ...YOUTUBE_TITLE_STYLES,
   clickbait: {
     name: '🔥 Кликбейт & YouTube Топ (CTR 20%+)',
     desc: 'Максимальная кликабельность, интрига, шок-фактор, мощные глаголы, вопросы, эффект разорвавшейся бомбы.',
@@ -32,10 +56,11 @@ const TITLE_STYLES = {
   },
 };
 
-export async function generateTitleVariants(title = '', summary = '', bundleDir = null, folderName = null, forceRegenerate = false, style = 'clickbait', text = '', keywords = '') {
+export async function generateTitleVariants(title = '', summary = '', bundleDir = null, folderName = null, forceRegenerate = false, style = 'clickbait', text = '', keywords = '', isYouTube = false) {
   let effectiveTitle = title;
   let existingVariants = [];
   let scriptContent = text || '';
+  let isYouTubePkg = Boolean(isYouTube || YOUTUBE_TITLE_STYLES[style]);
 
   let targetFolder = bundleDir;
   if (!targetFolder && folderName) {
@@ -51,6 +76,12 @@ export async function generateTitleVariants(title = '', summary = '', bundleDir 
     if (fs.existsSync(jsonPath)) {
       try {
         const manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+        isYouTubePkg = Boolean(
+          manifest.isYouTube ||
+          (manifest.source && manifest.source.toLowerCase().includes('youtube')) ||
+          (targetFolder && path.basename(targetFolder).includes('_YT_')) ||
+          Object.keys(YOUTUBE_TITLE_STYLES).includes(manifest.style)
+        );
         if (!effectiveTitle) {
           if (manifest.original_title) effectiveTitle = manifest.original_title;
           else if (manifest.title) effectiveTitle = manifest.title;
@@ -72,11 +103,31 @@ export async function generateTitleVariants(title = '', summary = '', bundleDir 
   }
 
   try {
-    const effectiveStyle = (style === 'analytics') ? 'gibrid' : style;
-    const selectedStyleConfig = TITLE_STYLES[effectiveStyle] || TITLE_STYLES.clickbait;
+    let effectiveStyle = (style === 'analytics') ? 'gibrid' : (style || (isYouTubePkg ? 'scipop' : 'clickbait'));
+    if (!TITLE_STYLES[effectiveStyle]) {
+      effectiveStyle = isYouTubePkg ? 'scipop' : 'clickbait';
+    }
+    const isYouTubeMode = Boolean(YOUTUBE_TITLE_STYLES[effectiveStyle]);
+    const selectedStyleConfig = TITLE_STYLES[effectiveStyle];
     const isAnalytics = style === 'analytics';
-    const systemPrompt = isAnalytics
-      ? `Ты — ведущий YouTube-продюсер ChaosChronicle. Твой стиль: ${selectedStyleConfig.name}.
+
+    let systemPrompt = '';
+    if (isYouTubeMode) {
+      systemPrompt = `Ты — ведущий YouTube-продюсер научно-популярных и тематических каналов с миллионной аудиторией.
+Твой стиль заголовков: ${selectedStyleConfig.name}.
+ОСОБЕННОСТИ: ${selectedStyleConfig.desc}
+Твоя задача: Создать РОВНО 10 РАЗНЫХ супер-притягательных YouTube-заголовков с высоким CTR (20%+).
+
+СТРОГИЕ ПРАВИЛА:
+1. ДЛИНА: СТРОГО 4-5 СЛОВ (идеально для обложек и ленты YouTube).
+2. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕН формат интервью: не упоминай интервьюеров, гостей, ведущих, врачей или авторов («Бузунов», «доктор», «в гостях», «интервью», «беседа»).
+3. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНЫ военная сатира, бункерные мемы и политические штампы («бункер», «дед», «санитарная зона», «денацификация», «аналоговнет», «хлопок», «скрепы»).
+4. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО писать "РАЗБИРАЕМ", "АНАЛИЗИРУЕМ", "РАЗБОР", "МЫ", "НАШ", "ГЛУБОКАЯ АНАЛИТИКА", "БЕЗ ГРОТЕСКА".
+5. Заголовки должны быть посвящены САМОЙ СУТИ темы: научному явлению, парадоксу, исторической тайне, технологии будущего, законам психики или сюжетному повороту (например: "ПОЧЕМУ МОЗГ ТРЕБУЕТ СНА", "ТАЙНА БИОЛОГИЧЕСКИХ ЧАСОВ ЧЕЛОВЕКА", "ЧТО СКРЫВАЛИ В АРХИВАХ ВЕКАМИ", "РЕВОЛЮЦИЯ ИИ КОТОРАЯ ИЗМЕНИТ ВСЕ").
+6. БЕЗ кавычек, БЕЗ нумерации, БЕЗ точек на конце.
+7. ВЫВОД: РОВНО 10 строк, по одному заголовку на строку (капсом UPPERCASE).`;
+    } else if (isAnalytics) {
+      systemPrompt = `Ты — ведущий YouTube-продюсер ChaosChronicle. Твой стиль: ${selectedStyleConfig.name}.
 ОСОБЕННОСТИ: ${selectedStyleConfig.desc}
 Твоя задача: Создать РОВНО 10 РАЗНЫХ мощных, аналитических YouTube-заголовков с высоким CTR на основе реальных фактов.
 СТРОГИЕ ПРАВИЛА:
@@ -84,8 +135,9 @@ export async function generateTitleVariants(title = '', summary = '', bundleDir 
 2. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО писать "РАЗБИРАЕМ", "АНАЛИЗИРУЕМ", "РАЗБОР", "МЫ", "НАШ", "ГЛУБОКАЯ АНАЛИТИКА", "БЕЗ ГРОТЕСКА".
 3. Серьезный нерв, геополитический контекст, точный диагноз ситуации (например: "ЦЕНА ОШИБКИ КРЕМЛЯ В КУРСКЕ", "РЕАЛЬНЫЙ ТУПИК ВОЕННОЙ МАШИНЫ", "ПОЧЕМУ ЛОМАЕТСЯ ЛОГИСТИКА ФРОНТА").
 4. БЕЗ кавычек, БЕЗ нумерации, БЕЗ точек на конце.
-5. ВЫВОД: РОВНО 10 строк, по одному заголовку на строку (капсом UPPERCASE).`
-      : `Ты — главный YouTube-продюсер ChaosChronicle и мастер хлестких, вирусных заголовков (CTR 20%+) в стиле: ${selectedStyleConfig.name}.
+5. ВЫВОД: РОВНО 10 строк, по одному заголовку на строку (капсом UPPERCASE).`;
+    } else {
+      systemPrompt = `Ты — главный YouTube-продюсер ChaosChronicle и мастер хлестких, вирусных заголовков (CTR 20%+) в стиле: ${selectedStyleConfig.name}.
 ОСОБЕННОСТИ СТИЛЯ: ${selectedStyleConfig.desc}
 Твоя задача: Создать РОВНО 10 РАЗНЫХ супер-кликабельных и острых YouTube-заголовков на основе фактов.
 СТРОГИЕ ПРАВИЛА:
@@ -96,12 +148,13 @@ export async function generateTitleVariants(title = '', summary = '', bundleDir 
    - Конкретика темы, сарказм и хлесткие слова. БЕЗ клоунады и бессмысленного абсурда.
 4. БЕЗ кавычек, БЕЗ нумерации, БЕЗ точек на конце.
 5. ВЫВОД: РОВНО 10 строк, по одному заголовку на строку (капсом UPPERCASE).`;
+    }
 
     const contextBody = scriptContent ? `\n\nДЕТАЛИ ИЗ СЦЕНАРИЯ:\n"""\n${scriptContent.slice(0, 1200)}\n"""` : '';
     const kwInstruction = keywords && keywords.trim()
       ? `\n\nОБЯЗАТЕЛЬНЫЕ КЛЮЧЕВЫЕ СЛОВА / АКЦЕНТЫ:\nОбязательно включи или обыграй в заголовках следующие слова/термины: "${keywords.trim()}".`
       : '';
-    const userPrompt = `НОВОСТЬ / ТЕМА:\n"${effectiveTitle}"${contextBody}${kwInstruction}\n\nСгенерируй 10 ${isAnalytics ? 'мощных аналитических' : 'хлестких'} заголовков из 4-5 слов для YouTube:`;
+    const userPrompt = `ТЕМА / ВИДЕО:\n"${effectiveTitle}"${contextBody}${kwInstruction}\n\nСгенерируй 10 ${isYouTubeMode ? 'захватывающих тематических' : isAnalytics ? 'мощных аналитических' : 'хлестких'} заголовков из 4-5 слов для YouTube:`;
 
   let rawLines = [];
   const geminiKey = process.env.GEMINI_API_KEY;
@@ -120,7 +173,9 @@ export async function generateTitleVariants(title = '', summary = '', bundleDir 
       if (gRes.ok) {
         const d = await gRes.json();
         const rawContent = d.candidates?.[0]?.content?.parts?.[0]?.text || '';
-        const forbiddenTitleRegex = /\b(РАЗБИРАЕМ|АНАЛИЗИРУЕМ|РАЗБОР|ГЛУБОКАЯ АНАЛИТИКА|БЕЗ ГРОТЕСКА)\b/i;
+        const forbiddenTitleRegex = isYouTubeMode
+          ? /\b(РАЗБИРАЕМ|АНАЛИЗИРУЕМ|РАЗБОР|ГЛУБОКАЯ АНАЛИТИКА|БЕЗ ГРОТЕСКА|БУНКЕР|БУНКЕРНЫЙ|ДЕНАЦИФИКАЦИЯ|САНИТАРНАЯ ЗОНА|АНАЛОГОВНЕТ|СКРЕПЫ|В ГОСТЯХ|ИНТЕРВЬЮ)\b/i
+          : /\b(РАЗБИРАЕМ|АНАЛИЗИРУЕМ|РАЗБОР|ГЛУБОКАЯ АНАЛИТИКА|БЕЗ ГРОТЕСКА)\b/i;
         rawLines = rawContent.split('\n')
           .map(l => l.replace(/^[\d\s.\-•*]+/, '').replace(/["'«»`]/g, '').trim().toUpperCase())
           .filter(l => l.length > 5 && l.split(/\s+/).length >= 3 && l.split(/\s+/).length <= 7 && !forbiddenTitleRegex.test(l));
@@ -147,7 +202,9 @@ export async function generateTitleVariants(title = '', summary = '', bundleDir 
         if (aiRes.ok) {
           const data = await aiRes.json();
           const rawContent = data.choices?.[0]?.message?.content || '';
-          const forbiddenTitleRegex = /\b(РАЗБИРАЕМ|АНАЛИЗИРУЕМ|РАЗБОР|ГЛУБОКАЯ АНАЛИТИКА|БЕЗ ГРОТЕСКА)\b/i;
+          const forbiddenTitleRegex = isYouTubeMode
+            ? /\b(РАЗБИРАЕМ|АНАЛИЗИРУЕМ|РАЗБОР|ГЛУБОКАЯ АНАЛИТИКА|БЕЗ ГРОТЕСКА|БУНКЕР|БУНКЕРНЫЙ|ДЕНАЦИФИКАЦИЯ|САНИТАРНАЯ ЗОНА|АНАЛОГОВНЕТ|СКРЕПЫ|В ГОСТЯХ|ИНТЕРВЬЮ)\b/i
+            : /\b(РАЗБИРАЕМ|АНАЛИЗИРУЕМ|РАЗБОР|ГЛУБОКАЯ АНАЛИТИКА|БЕЗ ГРОТЕСКА)\b/i;
           rawLines = rawContent.split('\n')
             .map(l => l.replace(/^[\d\s.\-•*]+/, '').replace(/["'«»`]/g, '').trim().toUpperCase())
             .filter(l => l.length > 5 && l.split(/\s+/).length >= 3 && l.split(/\s+/).length <= 7 && !forbiddenTitleRegex.test(l));
@@ -163,9 +220,9 @@ export async function generateTitleVariants(title = '', summary = '', bundleDir 
     const words = effectiveTitle.split(/\s+/).filter(Boolean);
     const base = words.slice(0, 5).join(' ').toUpperCase();
     if (base && !uniqueVariants.includes(base)) uniqueVariants.push(base);
-    const v2 = `${base} ПО ПЛАНУ`;
+    const v2 = isYouTubeMode ? `ТАЙНА: ${base}` : `${base} ПО ПЛАНУ`;
     if (!uniqueVariants.includes(v2)) uniqueVariants.push(v2);
-    const v3 = `РЕАЛЬНОСТЬ: ${base}`;
+    const v3 = isYouTubeMode ? `ПРАВДА: ${base}` : `РЕАЛЬНОСТЬ: ${base}`;
     if (!uniqueVariants.includes(v3)) uniqueVariants.push(v3);
   }
   const finalVariants = uniqueVariants.length > 0 ? uniqueVariants : (existingVariants.length > 0 ? existingVariants : [effectiveTitle]);

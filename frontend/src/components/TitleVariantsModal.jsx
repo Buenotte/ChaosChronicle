@@ -1,14 +1,22 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
-import { FEUILLETON_STYLES } from '../lib/utils'
+import { FEUILLETON_STYLES, YOUTUBE_TOPIC_STYLES } from '../lib/utils'
 import { COLORS } from './thumbnail/TypographyStyleControls'
 
 export default function TitleVariantsModal({ pkg, onClose, onTitleSaved }) {
   if (!pkg) return null
 
+  const isYouTube = Boolean(
+    pkg.isYouTube || pkg.youtubeMetadata ||
+    (pkg.source && pkg.source.toLowerCase().includes('youtube')) ||
+    (pkg.folderName && pkg.folderName.includes('_YT_')) ||
+    ['scipop', 'mystery', 'tech_future', 'psychology', 'storytelling'].includes(pkg.style)
+  )
+  const defaultStyle = isYouTube ? (pkg.title_variants_style || pkg.style || 'scipop') : (pkg.title_variants_style || 'clickbait')
+
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [selectedStyle, setSelectedStyle] = useState(pkg.title_variants_style || 'clickbait')
+  const [selectedStyle, setSelectedStyle] = useState(defaultStyle)
   const [variants, setVariants] = useState(pkg.title_variants || [])
   const [selectedTitle, setSelectedTitle] = useState(pkg.title || '')
   const [originalNewsTitle, setOriginalNewsTitle] = useState(pkg.original_title || pkg.title || '')
@@ -19,6 +27,7 @@ export default function TitleVariantsModal({ pkg, onClose, onTitleSaved }) {
   const fetchVariants = async (force = false, overrideStyle = null) => {
     const styleToUse = overrideStyle || selectedStyle
     const effectiveTopic = originalNewsTitle.trim() || pkg.original_title || pkg.title || ''
+    const isYtStyle = ['scipop', 'mystery', 'tech_future', 'psychology', 'storytelling'].includes(styleToUse)
     try {
       setLoading(true)
       const res = await fetch('/api/generate-title-variants', {
@@ -33,6 +42,7 @@ export default function TitleVariantsModal({ pkg, onClose, onTitleSaved }) {
           style: styleToUse,
           forceRegenerate: force,
           keywords: titleKeywords.trim(),
+          isYouTube: isYtStyle,
         }),
       })
       const data = await res.json()
@@ -114,7 +124,7 @@ export default function TitleVariantsModal({ pkg, onClose, onTitleSaved }) {
               ⚡ 10 вариантов заголовков
             </h2>
             <p style={{ fontSize: '0.8rem', color: '#9ca3af', margin: '0.25rem 0 0 0' }}>
-              Хлесткие, вирусные заголовки 4–5 слов для YouTube и превью
+              {isYouTube ? 'Хлесткие, цепляющие YouTube-заголовки 4–5 слов без сатиры' : 'Хлесткие, вирусные заголовки 4–5 слов для YouTube и превью'}
             </p>
           </div>
           <button className="modal-close" onClick={onClose}>✕</button>
@@ -148,7 +158,7 @@ export default function TitleVariantsModal({ pkg, onClose, onTitleSaved }) {
                 value={titleKeywords}
                 onChange={e => setTitleKeywords(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') fetchVariants(true) }}
-                placeholder="Например: дефолт, бункер, капуста, санкции, F-16..."
+                placeholder={isYouTube ? "Например: мозг, сон, память, циркадные ритмы..." : "Например: дефолт, бункер, капуста, санкции, F-16..."}
                 style={{ width: '100%', background: '#09090b', border: '1px solid #0284c7', borderRadius: '6px', padding: '0.45rem 0.65rem', color: '#facc15', fontSize: '0.86rem', fontWeight: 600, outline: 'none', boxSizing: 'border-box' }}
               />
             </div>
@@ -157,9 +167,16 @@ export default function TitleVariantsModal({ pkg, onClose, onTitleSaved }) {
           {/* Панель выбора авторского стиля */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', background: '#131b2e', padding: '0.5rem 0.85rem', borderRadius: '8px', border: '1px solid #1e3a8a' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <label style={{ fontSize: '0.85rem', fontWeight: 700, color: '#93c5fd', whiteSpace: 'nowrap' }}>🎭 Стиль автора:</label>
+              <label style={{ fontSize: '0.85rem', fontWeight: 700, color: '#93c5fd', whiteSpace: 'nowrap' }}>
+                ⚡ Стиль заголовков:
+              </label>
               <select value={selectedStyle} onChange={handleStyleChange} disabled={loading} style={{ background: '#0a101f', border: '1px solid #2563eb', color: '#fff', padding: '0.35rem 0.65rem', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>
-                {FEUILLETON_STYLES.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                <optgroup label="🎬 YouTube (Научпоп, Тайны, Сторителлинг)">
+                  {YOUTUBE_TOPIC_STYLES.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </optgroup>
+                <optgroup label="🎭 Авторские (Сатира, Голобуцкий, Военный)">
+                  {FEUILLETON_STYLES.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </optgroup>
               </select>
             </div>
             <button type="button" className="copy-btn" disabled={loading} onClick={() => fetchVariants(true)} style={{ background: '#2563eb', fontSize: '0.8rem', padding: '0.35rem 0.75rem', fontWeight: 700 }}>

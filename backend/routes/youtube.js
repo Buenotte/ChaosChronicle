@@ -10,6 +10,7 @@ import {
   downloadThumbnail,
   downloadSubtitlesIfAvailable,
 } from '../services/youtubeService.js';
+import { generateTitleVariants } from '../services/packageTitleService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -138,6 +139,30 @@ async function generateScriptWithAI(systemInstruction, userInstruction, maxToken
   throw new Error('Не удалось сгенерировать текст: ИИ API недоступен');
 }
 
+export async function buildYouTubeScript(rawText, selectedStyle, metadata = {}) {
+  const systemInstruction = selectedStyle.systemInstruction || YOUTUBE_STYLES.scipop.systemInstruction;
+  const userPrompt = `ИСТОЧНИК: YouTube-видео "${metadata.title || 'YouTube'}" (Канал: ${metadata.channel || ''})
+${metadata.duration ? `ПРОДОЛЖИТЕЛЬНОСТЬ: ${Math.round(metadata.duration / 60)} мин.` : ''}
+
+ТЕКСТ ИЗ АУДИО / СУТЬ ВИДЕО:
+"""
+${rawText.slice(0, 60000)}
+"""
+
+ЗАДАЧА:
+На основе фактов и сути создай ЗАХВАТЫВАЮЩИЙ, ЦЕЛЬНЫЙ 3-МИНУТНЫЙ ТЕКСТ (СТРОГО 400–550 СЛОВ) в выбранном стиле («${selectedStyle.name}»).
+
+ЖЕЛЕЗНЫЕ ПРАВИЛА:
+1. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕН ФОРМАТ ИНТЕРВЬЮ: Никаких упоминаний ведущих, гостей или экспертов (ЗАПРЕЩЕНО: «Сегодня у нас в гостях...», «Бузунов», «доктор», «наш гость»).
+2. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНЫ ДИАЛОГИ И ПРИВЕТСТВИЯ: Никаких «Добрый день», реплик и символов «>>» или «&gt;&gt;».
+3. РАССКАЗЫВАЙ ТОЛЬКО О САМОЙ ТЕМЕ: Захватывающе объясняй сами явления, факты, парадоксы зрителю напрямую.
+4. Мощный хук с первых секунд, живой язык, чистый монолог без скобок.
+5. Готовый связный текст монолога для диктора (400–550 слов):`;
+
+  const rawGenerated = await generateScriptWithAI(systemInstruction, userPrompt, 8000);
+  return rawGenerated.replace(/&gt;&gt;/g, '').replace(/>>/g, '').replace(/^[\-\u2013\u2014]\s+/gm, '').replace(/^(Добрый (день|вечер|утро)|Здравствуйте)[^.!?\n]*[.!?\n]+/gmi, '').trim();
+}
+
 // POST /api/youtube/info - Preview metadata only
 router.post('/api/youtube/info', async (req, res) => {
   try {
@@ -204,32 +229,7 @@ router.post('/api/youtube/import-to-package', async (req, res) => {
 
     // 5. Generate 3-minute Script (400-550 words) with one of 5 YouTube styles
     const selectedStyle = YOUTUBE_STYLES[style] || YOUTUBE_STYLES.scipop;
-    const systemInstruction = selectedStyle.systemInstruction;
-    const userPrompt = `ИСТОЧНИК: YouTube-видео "${metadata.title}" (Канал: ${metadata.channel})
-ПРОДОЛЖИТЕЛЬНОСТЬ ОРИГИНАЛА: ${Math.round((metadata.duration || 0) / 60)} мин.
-
-ТЕКСТ ИЗ АУДИО / СУТЬ ВИДЕО:
-"""
-${rawText.slice(0, 60000)}
-"""
-
-ЗАДАЧА:
-На основе фактов и сути создай ЗАХВАТЫВАЮЩИЙ, ЦЕЛЬНЫЙ 3-МИНУТНЫЙ ТЕКСТ (СТРОГО 400–550 СЛОВ) в выбранном стиле («${selectedStyle.name}»).
-
-ЖЕЛЕЗНЫЕ ПРАВИЛА:
-1. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕН ФОРМАТ ИНТЕРВЬЮ: Никаких упоминаний ведущих, интервьюеров, гостей или экспертов (ЗАПРЕЩЕНО: «Сегодня у нас в гостях...», «Доктор Бузунов рассказал...», «наш гость пояснил»).
-2. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНЫ ДИАЛОГИ И ПРИВЕТСТВИЯ: Никаких «Добрый день», диалоговых реплик и символов «>>» или «&gt;&gt;».
-3. РАССКАЗЫВАЙ ТОЛЬКО О САМОЙ ТЕМЕ: Захватывающе объясняй сами явления, научные факты, парадоксы и суть проблемы напрямую зрителю.
-4. Мощный интригующий хук с первых секунд, живой и образный язык, чистый монолог без скобок и шаблонов.
-5. Готовый связный текст монолога для диктора (400–550 слов):`;
-
-    const rawGenerated = await generateScriptWithAI(systemInstruction, userPrompt, 8000);
-    const generatedScript = rawGenerated
-      .replace(/&gt;&gt;/g, '')
-      .replace(/>>/g, '')
-      .replace(/^[\-\u2013\u2014]\s+/gm, '')
-      .replace(/^(Добрый (день|вечер|утро)|Здравствуйте)[^.!?\n]*[.!?\n]+/gmi, '')
-      .trim();
+    const generatedScript = await buildYouTubeScript(rawText, selectedStyle, metadata);
     const wordCount = generatedScript.split(/\s+/).filter(Boolean).length;
 
     // 6. Download Thumbnail
@@ -269,10 +269,23 @@ ${rawText}
       fs.writeFileSync(path.join(bundleDir, 'transcript.json'), JSON.stringify(transcriptResult, null, 2), 'utf-8');
     }
 
+    // 7. Generate YouTube title variants (4-5 words, no satire/bunker memes)
+    let titleVariants = [];
+    try {
+      const tvRes = await generateTitleVariants(metadata.title, rawText.slice(0, 500), bundleDir, folderName, true, selectedStyle.id, generatedScript, '');
+      titleVariants = tvRes?.variants || [];
+    } catch (tErr) {
+      console.warn('Failed to generate YouTube title variants:', tErr.message);
+    }
+    const chosenTitle = (titleVariants.length > 0) ? titleVariants[0] : metadata.title;
+
     // 8. Save project.json manifest
     const manifest = {
-      title: metadata.title,
+      title: chosenTitle,
       original_title: metadata.title,
+      title_variants: titleVariants,
+      title_variants_style: selectedStyle.id,
+      isYouTube: true,
       url: metadata.url,
       date: new Date().toISOString(),
       model,
@@ -301,7 +314,8 @@ ${rawText}
       success: true,
       folderName,
       bundleDir,
-      title: metadata.title,
+      title: chosenTitle,
+      titleVariants,
       text: generatedScript,
       wordCount,
       metadata,
@@ -311,6 +325,57 @@ ${rawText}
   } catch (err) {
     console.error('YouTube import to package error:', err);
     res.status(500).json({ success: false, error: err.message || 'Ошибка обработки YouTube видео' });
+  }
+});
+
+// POST /api/youtube/regenerate-script
+router.post('/api/youtube/regenerate-script', async (req, res) => {
+  try {
+    const { bundleDir, folderName, style = 'scipop', model = 'gemini' } = req.body;
+    const targetFolder = bundleDir || (folderName ? path.join(newsDir, folderName) : null);
+    if (!targetFolder || !fs.existsSync(targetFolder)) return res.status(404).json({ success: false, error: 'Папка пакета не найдена' });
+
+    let sourceText = '';
+    const origPath = path.join(targetFolder, 'original_news.txt'), txtPath = path.join(targetFolder, 'script.txt');
+    if (fs.existsSync(origPath)) sourceText = fs.readFileSync(origPath, 'utf-8');
+    else if (fs.existsSync(txtPath)) sourceText = fs.readFileSync(txtPath, 'utf-8');
+    if (!sourceText.trim()) return res.status(400).json({ success: false, error: 'Исходный текст для генерации отсутствует' });
+
+    const selectedStyle = YOUTUBE_STYLES[style] || YOUTUBE_STYLES.scipop;
+    let meta = {};
+    const jsonPath = path.join(targetFolder, 'project.json');
+    if (fs.existsSync(jsonPath)) {
+      try { meta = JSON.parse(fs.readFileSync(jsonPath, 'utf-8')); } catch {}
+    }
+
+    const generatedScript = await buildYouTubeScript(sourceText, selectedStyle, { title: meta.title || meta.original_title, channel: meta.youtubeMetadata?.channel });
+    const wordCount = generatedScript.split(/\s+/).filter(Boolean).length;
+    fs.writeFileSync(txtPath, generatedScript, 'utf-8');
+
+    let titleVariants = [];
+    try {
+      const tvRes = await generateTitleVariants(meta.original_title || meta.title || '', sourceText.slice(0, 500), targetFolder, folderName, true, selectedStyle.id, generatedScript, '', true);
+      titleVariants = tvRes?.variants || [];
+    } catch {}
+
+    if (fs.existsSync(jsonPath)) {
+      try {
+        const m = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+        m.style = selectedStyle.id;
+        m.style_name = selectedStyle.name;
+        m.word_count = wordCount;
+        m.isYouTube = true;
+        if (titleVariants.length > 0) {
+          m.title_variants = titleVariants;
+          m.title_variants_style = selectedStyle.id;
+        }
+        fs.writeFileSync(jsonPath, JSON.stringify(m, null, 2), 'utf-8');
+      } catch {}
+    }
+
+    res.json({ success: true, text: generatedScript, titleVariants, wordCount, style: selectedStyle.id });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 

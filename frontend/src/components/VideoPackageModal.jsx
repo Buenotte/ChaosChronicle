@@ -11,10 +11,13 @@ import PackageAudioSection from './videoPackage/PackageAudioSection'
 import PackageVideoSection from './videoPackage/PackageVideoSection'
 import PackageShortsSection from './videoPackage/PackageShortsSection'
 import PackageYouTubeSection from './videoPackage/PackageYouTubeSection'
+import { FEUILLETON_STYLES, YOUTUBE_TOPIC_STYLES } from '../lib/utils'
 
 export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText, onOpenAudio, onOpenVideo, onClose, onRefresh }) {
   if (!pkg) return null
 
+  const isYouTube = Boolean(pkg.isYouTube || pkg.youtubeMetadata || pkg.source?.toLowerCase().includes('youtube') || pkg.folderName?.includes('_YT_') || ['scipop', 'mystery', 'tech_future', 'psychology', 'storytelling'].includes(pkg.style))
+  const scriptStyles = isYouTube ? YOUTUBE_TOPIC_STYLES : FEUILLETON_STYLES
   const videoRef = useRef(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0), [duration, setDuration] = useState(0)
@@ -48,22 +51,25 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
   const handleLoadedMetadata = () => { if (videoRef.current) setDuration(videoRef.current.duration); }
   const seekVideo = (e) => { const time = parseFloat(e.target.value); if (videoRef.current) { videoRef.current.currentTime = time; setCurrentTime(time); } }
 
-  const [selectedScriptStyle, setSelectedScriptStyle] = useState(pkg.style || 'golubuzki')
+  const [selectedScriptStyle, setSelectedScriptStyle] = useState(pkg.style || (isYouTube ? 'scipop' : 'golubuzki'))
   const [generatingScript, setGeneratingScript] = useState(false)
 
   const handleGenerateScript = async () => {
-    const toastId = toast.loading(`✍️ Генерация сценария из source.txt...`)
+    const isYt = ['scipop', 'mystery', 'tech_future', 'psychology', 'storytelling'].includes(selectedScriptStyle)
+    const toastId = toast.loading(isYt ? '✍️ Генерация YouTube сценария...' : '✍️ Генерация сценария...')
     try {
       setGeneratingScript(true)
-      const res = await fetch('/api/generate-feuilleton', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ folderName: pkg.folderName, bundleDir: pkg.bundleDir, title: pkg.title || pkg.original_title, summary: pkg.summary || pkg.original_news || '', url: pkg.url || '', style: selectedScriptStyle, saveToPackage: true }),
-      }), data = await res.json()
+      const endpoint = isYt ? '/api/youtube/regenerate-script' : '/api/generate-feuilleton'
+      const payload = isYt ? { folderName: pkg.folderName, bundleDir: pkg.bundleDir, style: selectedScriptStyle }
+        : { folderName: pkg.folderName, bundleDir: pkg.bundleDir, title: pkg.title || pkg.original_title, summary: pkg.summary || pkg.original_news || '', url: pkg.url || '', style: selectedScriptStyle, saveToPackage: true }
+      const res = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+      const data = await res.json()
       toast.dismiss(toastId)
-      if (data.success && data.feuilleton) {
-        pkg.hasScriptTxt = true; pkg.hasScriptMd = true; pkg.scriptTxt = data.feuilleton.text; if (data.feuilleton.title) pkg.title = data.feuilleton.title
-        toast.success(`✍️ Фельетон (${data.feuilleton.words} слов) готов и сохранен!`); if (onRefresh) onRefresh()
-      } else { toast.error('❌ Ошибка генерации: ' + (data.error || 'Ошибка')) }
+      if (data.success && (data.text || data.feuilleton)) {
+        pkg.hasScriptTxt = true; pkg.hasScriptMd = true; pkg.scriptTxt = data.text || data.feuilleton.text
+        if (data.feuilleton?.title) pkg.title = data.feuilleton.title; if (data.titleVariants?.length) pkg.title_variants = data.titleVariants
+        toast.success(`✍️ Сценарий готов и сохранен!`); if (onRefresh) onRefresh()
+      } else { toast.error('❌ Ошибка: ' + (data.error || 'Ошибка')) }
     } catch (err) { toast.dismiss(toastId); toast.error('❌ Ошибка: ' + err.message) }
     finally { setGeneratingScript(false) }
   }
@@ -88,10 +94,7 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
     const toastId = toast.loading('🎙️ Генерация аудио-озвучки...')
     try {
       setGeneratingAudio(true)
-      const res = await fetch('/api/generate-audio', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bundleDir: pkg.bundleDir, folderName: pkg.folderName, voice: selectedVoice }),
-      })
+      const res = await fetch('/api/generate-audio', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bundleDir: pkg.bundleDir, folderName: pkg.folderName, voice: selectedVoice }) })
       const data = await res.json()
       if (data?.success) {
         setAudioState({ hasAudio: true, audioUrl: data.audioUrl }); toast.success('🎙️ Озвучка успешно сгенерирована!', { id: toastId })
@@ -283,28 +286,24 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
               </h3>
               <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
                 <select
-                  value={selectedScriptStyle}
-                  onChange={e => setSelectedScriptStyle(e.target.value)}
+                  value={selectedScriptStyle} onChange={e => setSelectedScriptStyle(e.target.value)}
                   style={{ background: '#1e293b', color: '#f8fafc', border: '1px solid #334155', borderRadius: '6px', fontSize: '0.8rem', padding: '0.35rem 0.5rem', cursor: 'pointer' }}
                 >
-                  <option value="golubuzki">🎭 Голобуцкий (Сатира)</option>
-                  <option value="clickbait">🔥 Кликбейт (YouTube)</option>
-                  <option value="kasjanov">🪖 Касьянов (Военный)</option>
-                  <option value="klimovski">🔬 Климовский (Геополитика)</option>
-                  <option value="gibrid">⚡ Гибридный</option>
+                  <optgroup label="🎬 YouTube стили">{YOUTUBE_TOPIC_STYLES.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</optgroup>
+                  <optgroup label="🎭 Авторские (Сатира)">{FEUILLETON_STYLES.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</optgroup>
                 </select>
                 <button
                   type="button" className="generate-btn" onClick={handleGenerateScript} disabled={generatingScript}
                   style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', fontWeight: 700, background: '#7c3aed' }}
-                  title="Сгенерировать сценарий фельетона из оригинального текста source.txt на диске"
+                  title="Сгенерировать сценарий из исходного текста на диске"
                 >
-                  {generatingScript ? '⏳ ИИ пишет...' : hasTxt ? '🔄 Перегенерировать' : '✍️ Создать фельетон'}
+                  {generatingScript ? '⏳ ИИ пишет...' : hasTxt ? '🔄 Перегенерировать' : (isYouTube ? '✍️ Создать сценарий' : '✍️ Создать фельетон')}
                 </button>
               </div>
             </div>
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
               <button className="copy-btn" style={{ background: '#3b82f6' }} onClick={() => onOpenScriptText(pkg)}>📜 Открыть и редактировать текст</button>
-              <button className="copy-btn" style={{ background: '#ec4899', fontWeight: 600 }} onClick={() => setShowTitleVariantsModal(true)}>⚡ Выбрать из 10 заголовков (Голобуцкий)</button>
+              <button className="copy-btn" style={{ background: '#ec4899', fontWeight: 600 }} onClick={() => setShowTitleVariantsModal(true)}>⚡ 10 вариантов заголовков</button>
             </div>
           </div>
 
@@ -375,13 +374,10 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
         <ShortsEditorModal pkg={pkg} previewPhotoUrl={pkg.photoUrls?.[0] || currentThumbnail} shortState={shortState} generatingShort={generatingShort} onGenerateShort={(opts) => handleGenerateShort(opts)} onClose={() => setShowShortsEditorModal(false)} />
       )}
       {showYouTubeModal && (
-        <YouTubeMetadataModal
-          pkg={pkg} onClose={() => { setShowYouTubeModal(false); if (onRefresh) onRefresh(); }}
-          onSaved={(data) => {
-            const hasYt = Boolean(data?.description || data?.title), hasFb = Boolean(data?.facebookPost)
-            setYoutubeState({ hasYouTube: hasYt, hasFacebook: hasFb }); pkg.hasYouTubeMetadata = hasYt; pkg.hasFacebookPost = hasFb; if (onRefresh) onRefresh()
-          }}
-        />
+        <YouTubeMetadataModal pkg={pkg} onClose={() => { setShowYouTubeModal(false); if (onRefresh) onRefresh(); }} onSaved={(data) => {
+          const hasYt = Boolean(data?.description || data?.title), hasFb = Boolean(data?.facebookPost)
+          setYoutubeState({ hasYouTube: hasYt, hasFacebook: hasFb }); pkg.hasYouTubeMetadata = hasYt; pkg.hasFacebookPost = hasFb; if (onRefresh) onRefresh()
+        }} />
       )}
     </div>
   )

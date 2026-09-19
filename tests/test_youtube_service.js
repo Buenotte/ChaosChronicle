@@ -61,8 +61,36 @@ async function runYouTubeTests() {
   const manifest = JSON.parse(fs.readFileSync(path.join(pkgDir, 'project.json'), 'utf-8'));
   assert.strictEqual(manifest.hasAudio, false, 'hasAudio must be false until voiced');
   assert.strictEqual(manifest.style, 'scipop', 'Manifest must store scipop style');
+  assert.strictEqual(manifest.isYouTube, true, 'Manifest must have isYouTube: true');
   assert.ok(manifest.word_count > 0, 'Manifest must have word count');
+  assert.ok(Array.isArray(manifest.title_variants) && manifest.title_variants.length > 0, 'Must have title variants');
+  assert.ok(manifest.title, 'Must have chosen title');
+  // Verify no bunker/satire clichés in YouTube titles
+  const forbiddenRegex = /(?:бункер|дед|санитарная|денацификац|аналоговнет|хлопок|скреп)/i;
+  for (const t of manifest.title_variants) {
+    assert.ok(!forbiddenRegex.test(t), `YouTube title "${t}" must not contain satire clichés`);
+  }
   console.log(`  ✅ Package created successfully: ${importData.folderName} (${importData.wordCount} words)`);
+  console.log(`  ✅ YouTube title variants (${manifest.title_variants.length}):`, manifest.title_variants.slice(0, 3));
+
+  // 4. Test /api/youtube/regenerate-script endpoint
+  console.log('  ⚡ Testing /api/youtube/regenerate-script with psychology style...');
+  const regenRes = await fetch('http://localhost:3001/api/youtube/regenerate-script', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      bundleDir: pkgDir,
+      folderName: importData.folderName,
+      style: 'psychology',
+      model: 'gemini',
+    }),
+  });
+  assert.strictEqual(regenRes.status, 200, 'Regenerate API must return 200');
+  const regenData = await regenRes.json();
+  assert.ok(regenData.success, 'Regenerate script must succeed');
+  assert.strictEqual(regenData.style, 'psychology', 'Style must be updated to psychology');
+  assert.ok(regenData.text && regenData.text.length > 100, 'Regenerated text must exist');
+  console.log(`  ✅ Regenerated script with psychology style (${regenData.wordCount} words)`);
 
   // Cleanup test package
   try {
