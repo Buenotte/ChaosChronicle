@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { toast } from 'sonner'
-import { FEUILLETON_STYLES, AI_MODELS } from '../lib/utils'
+import { FEUILLETON_STYLES, YOUTUBE_TOPIC_STYLES, AI_MODELS } from '../lib/utils'
+
+const ALL_STYLES = [...YOUTUBE_TOPIC_STYLES, ...FEUILLETON_STYLES]
 
 export default function YouTubeMetadataModal({ pkg, onSaved, onClose }) {
   if (!pkg) return null
@@ -23,7 +25,7 @@ export default function YouTubeMetadataModal({ pkg, onSaved, onClose }) {
 
   const fetchMetadata = async (force = false, styleOverride = selectedStyle, toneOverride = selectedTone) => {
     setLoading(true)
-    const styleLabel = FEUILLETON_STYLES.find(s => s.id === styleOverride)?.name?.split(' (')[0] || 'Кликбейт'
+    const styleLabel = ALL_STYLES.find(s => s.id === styleOverride)?.name?.split(' (')[0] || 'Стиль'
     const toastId = force ? toast.loading(`🤖 Генерация всех метаданных...`) : null
     try {
       const res = await fetch('/api/youtube-metadata', {
@@ -152,7 +154,7 @@ export default function YouTubeMetadataModal({ pkg, onSaved, onClose }) {
         if (json.tags !== undefined) setTags(json.tags)
         if (json.hashtags !== undefined) setHashtags(json.hashtags)
         if (json.facebookPost !== undefined) setFacebookPost(json.facebookPost)
-        if (json.style && FEUILLETON_STYLES.some(s => s.id === json.style)) setSelectedStyle(json.style)
+        if (json.style && ALL_STYLES.some(s => s.id === json.style)) setSelectedStyle(json.style)
         toast.success(`📂 Метаданные успешно загружены из файла "${file.name}"!`)
       } catch (err) {
         toast.error('Ошибка парсинга JSON-файла: ' + err.message)
@@ -174,7 +176,7 @@ export default function YouTubeMetadataModal({ pkg, onSaved, onClose }) {
     toast.success('📋 Все метаданные скопированы в буфер!')
   }
 
-  const currentStyleObj = FEUILLETON_STYLES.find(s => s.id === selectedStyle)
+  const currentStyleObj = ALL_STYLES.find(s => s.id === selectedStyle)
 
   return (
     <div className="modal-overlay" onClick={e => { e.stopPropagation(); onClose(); }}>
@@ -200,22 +202,24 @@ export default function YouTubeMetadataModal({ pkg, onSaved, onClose }) {
               {pkg.title}
             </h2>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
                 <span style={{ fontSize: '0.8rem', color: '#9ca3af', fontWeight: 600 }}>🎭 Стиль:</span>
-                {FEUILLETON_STYLES.map(s => (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedStyle(s.id)
-                      fetchMetadata(false, s.id, selectedTone)
-                    }}
-                    className={`saved-status-badge ${selectedStyle === s.id ? 'active' : 'inactive'} clickable`}
-                    style={{ fontSize: '0.75rem', padding: '0.2rem 0.55rem' }}
-                  >
-                    {s.icon} {s.name.split(' (')[0]}
-                  </button>
-                ))}
+                <select
+                  value={selectedStyle}
+                  onChange={e => {
+                    const newStyle = e.target.value
+                    setSelectedStyle(newStyle)
+                    fetchMetadata(false, newStyle, selectedTone)
+                  }}
+                  style={{ background: '#0d1117', border: '1px solid #30363d', color: '#e6edf3', borderRadius: '6px', padding: '0.25rem 0.5rem', fontSize: '0.82rem', fontWeight: 600 }}
+                >
+                  <optgroup label="🎬 Тематические стили YouTube">
+                    {YOUTUBE_TOPIC_STYLES.map(s => (<option key={s.id} value={s.id}>{s.icon} {s.name}</option>))}
+                  </optgroup>
+                  <optgroup label="🎭 Авторские стили">
+                    {FEUILLETON_STYLES.map(s => (<option key={s.id} value={s.id}>{s.icon} {s.name}</option>))}
+                  </optgroup>
+                </select>
               </div>
 
               {/* JSON Toolbar: Datei Export/Import */}
@@ -368,12 +372,8 @@ export default function YouTubeMetadataModal({ pkg, onSaved, onClose }) {
             🔄 {loading ? 'Генерация...' : `Сгенерировать (${currentStyleObj?.name?.split(' (')[0] || 'стиль'})`}
           </button>
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            <button type="button" className="copy-btn" style={{ background: '#10b981', fontWeight: 700, padding: '0.6rem 1rem' }} onClick={handleSaveToProject} disabled={savingJson}>
-              {savingJson ? '⏳' : '💾 Сохранить'}
-            </button>
-            <button type="button" className="copy-btn" style={{ background: '#dc2626', fontWeight: 700, padding: '0.6rem 1rem' }} onClick={copyAll}>
-              ⚡ Скопировать всё
-            </button>
+            <button type="button" className="copy-btn" style={{ background: '#10b981', fontWeight: 700, padding: '0.6rem 1rem' }} onClick={handleSaveToProject} disabled={savingJson}>{savingJson ? '⏳' : '💾 Сохранить'}</button>
+            <button type="button" className="copy-btn" style={{ background: '#dc2626', fontWeight: 700, padding: '0.6rem 1rem' }} onClick={copyAll}>⚡ Скопировать всё</button>
             <button type="button" className="close-btn" onClick={onClose}>Закрыть</button>
           </div>
         </div>

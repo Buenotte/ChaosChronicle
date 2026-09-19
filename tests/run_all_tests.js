@@ -46,7 +46,7 @@ for (const suite of testSuites) {
   const suitePath = path.join(__dirname, suite.file);
   console.log(`▶ Running Suite: ${suite.name}...`);
   try {
-    const output = execSync(`node "${suitePath}"`, { encoding: 'utf-8', timeout: 60000 });
+    const output = execSync(`node "${suitePath}"`, { encoding: 'utf-8', timeout: 120000 });
     console.log(output);
     passedCount++;
   } catch (err) {

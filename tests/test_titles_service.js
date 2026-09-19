@@ -48,9 +48,26 @@ async function runTitleTests() {
   const variantsData = await variantsRes.json();
   assert.ok(variantsData.success, 'Title variants must succeed');
   assert.ok(Array.isArray(variantsData.variants), 'Variants must be an array');
-  assert.ok(variantsData.variants.length >= 3, 'Must return at least 3-10 variants');
-  console.log(`  ✅ 10 Variants generated (${variantsData.variants.length} options):`);
+  assert.strictEqual(variantsData.variants.length, 10, 'Must return exactly 10 variants');
+  console.log(`  ✅ 10 Classic Variants generated (${variantsData.variants.length} options):`);
   variantsData.variants.slice(0, 3).forEach((v, i) => console.log(`     ${i + 1}. ${v}`));
+
+  // 3. Generate 10 YouTube Title Variants
+  const ytVariantsRes = await fetchWithRetry('http://localhost:3001/api/generate-title-variants', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      title: 'Как мозг формирует воспоминания во время сна',
+      style: 'scipop',
+      isYouTube: true,
+    }),
+  });
+  assert.strictEqual(ytVariantsRes.status, 200, 'YouTube title variants API must return 200');
+  const ytData = await ytVariantsRes.json();
+  assert.ok(ytData.success, 'YouTube title variants must succeed');
+  assert.strictEqual(ytData.variants.length, 10, 'YouTube variants must be exactly 10');
+  console.log(`  ✅ 10 YouTube Variants generated (${ytData.variants.length} options):`);
+  ytData.variants.slice(0, 3).forEach((v, i) => console.log(`     ${i + 1}. ${v}`));
 }
 
 runTitleTests()

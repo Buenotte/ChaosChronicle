@@ -116,7 +116,7 @@ export async function generateTitleVariants(title = '', summary = '', bundleDir 
       systemPrompt = `Ты — ведущий YouTube-продюсер научно-популярных и тематических каналов с миллионной аудиторией.
 Твой стиль заголовков: ${selectedStyleConfig.name}.
 ОСОБЕННОСТИ: ${selectedStyleConfig.desc}
-Твоя задача: Создать РОВНО 10 РАЗНЫХ супер-притягательных YouTube-заголовков с высоким CTR (20%+).
+Твоя задача: Создать от 12 до 15 РАЗНЫХ супер-притягательных YouTube-заголовков с высоким CTR (20%+).
 
 СТРОГИЕ ПРАВИЛА:
 1. ДЛИНА: СТРОГО 4-5 СЛОВ (идеально для обложек и ленты YouTube).
@@ -125,21 +125,21 @@ export async function generateTitleVariants(title = '', summary = '', bundleDir 
 4. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО писать "РАЗБИРАЕМ", "АНАЛИЗИРУЕМ", "РАЗБОР", "МЫ", "НАШ", "ГЛУБОКАЯ АНАЛИТИКА", "БЕЗ ГРОТЕСКА".
 5. Заголовки должны быть посвящены САМОЙ СУТИ темы: научному явлению, парадоксу, исторической тайне, технологии будущего, законам психики или сюжетному повороту (например: "ПОЧЕМУ МОЗГ ТРЕБУЕТ СНА", "ТАЙНА БИОЛОГИЧЕСКИХ ЧАСОВ ЧЕЛОВЕКА", "ЧТО СКРЫВАЛИ В АРХИВАХ ВЕКАМИ", "РЕВОЛЮЦИЯ ИИ КОТОРАЯ ИЗМЕНИТ ВСЕ").
 6. БЕЗ кавычек, БЕЗ нумерации, БЕЗ точек на конце.
-7. ВЫВОД: РОВНО 10 строк, по одному заголовку на строку (капсом UPPERCASE).`;
+7. ВЫВОД: СТРОГО 12-15 строк, по одному заголовку на строку (капсом UPPERCASE).`;
     } else if (isAnalytics) {
       systemPrompt = `Ты — ведущий YouTube-продюсер ChaosChronicle. Твой стиль: ${selectedStyleConfig.name}.
 ОСОБЕННОСТИ: ${selectedStyleConfig.desc}
-Твоя задача: Создать РОВНО 10 РАЗНЫХ мощных, аналитических YouTube-заголовков с высоким CTR на основе реальных фактов.
+Твоя задача: Создать от 12 до 15 РАЗНЫХ мощных, аналитических YouTube-заголовков с высоким CTR на основе реальных фактов.
 СТРОГИЕ ПРАВИЛА:
 1. ДЛИНА: СТРОГО 4-5 СЛОВ.
 2. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО писать "РАЗБИРАЕМ", "АНАЛИЗИРУЕМ", "РАЗБОР", "МЫ", "НАШ", "ГЛУБОКАЯ АНАЛИТИКА", "БЕЗ ГРОТЕСКА".
 3. Серьезный нерв, геополитический контекст, точный диагноз ситуации (например: "ЦЕНА ОШИБКИ КРЕМЛЯ В КУРСКЕ", "РЕАЛЬНЫЙ ТУПИК ВОЕННОЙ МАШИНЫ", "ПОЧЕМУ ЛОМАЕТСЯ ЛОГИСТИКА ФРОНТА").
 4. БЕЗ кавычек, БЕЗ нумерации, БЕЗ точек на конце.
-5. ВЫВОД: РОВНО 10 строк, по одному заголовку на строку (капсом UPPERCASE).`;
+5. ВЫВОД: СТРОГО 12-15 строк, по одному заголовку на строку (капсом UPPERCASE).`;
     } else {
       systemPrompt = `Ты — главный YouTube-продюсер ChaosChronicle и мастер хлестких, вирусных заголовков (CTR 20%+) в стиле: ${selectedStyleConfig.name}.
 ОСОБЕННОСТИ СТИЛЯ: ${selectedStyleConfig.desc}
-Твоя задача: Создать РОВНО 10 РАЗНЫХ супер-кликабельных и острых YouTube-заголовков на основе фактов.
+Твоя задача: Создать от 12 до 15 РАЗНЫХ супер-кликабельных и острых YouTube-заголовков на основе фактов.
 СТРОГИЕ ПРАВИЛА:
 1. ДЛИНА: СТРОГО 4-5 СЛОВ (идеально для обложек и ленты).
 2. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО писать "РАЗБИРАЕМ", "АНАЛИЗИРУЕМ", "РАЗБОР", "МЫ", "НАШ". Пиши про факты и события!
@@ -147,14 +147,14 @@ export async function generateTitleVariants(title = '', summary = '', bundleDir 
    - Столкновение фактов и реальности (например: "БУНКЕР ОБЪЯВИЛ ПОБЕДУ НАД РЕАЛЬНОСТЬЮ", "СВЕРХДЕРЖАВА ПЕРЕШЛА НА КИТАЙСКИЕ БОЛТЫ", "ПАРАД АНАЛОГОВНЕТОВ В ГЛУБОКОМ ТЫЛУ").
    - Конкретика темы, сарказм и хлесткие слова. БЕЗ клоунады и бессмысленного абсурда.
 4. БЕЗ кавычек, БЕЗ нумерации, БЕЗ точек на конце.
-5. ВЫВОД: РОВНО 10 строк, по одному заголовку на строку (капсом UPPERCASE).`;
+5. ВЫВОД: СТРОГО 12-15 строк, по одному заголовку на строку (капсом UPPERCASE).`;
     }
 
     const contextBody = scriptContent ? `\n\nДЕТАЛИ ИЗ СЦЕНАРИЯ:\n"""\n${scriptContent.slice(0, 1200)}\n"""` : '';
     const kwInstruction = keywords && keywords.trim()
       ? `\n\nОБЯЗАТЕЛЬНЫЕ КЛЮЧЕВЫЕ СЛОВА / АКЦЕНТЫ:\nОбязательно включи или обыграй в заголовках следующие слова/термины: "${keywords.trim()}".`
       : '';
-    const userPrompt = `ТЕМА / ВИДЕО:\n"${effectiveTitle}"${contextBody}${kwInstruction}\n\nСгенерируй 10 ${isYouTubeMode ? 'захватывающих тематических' : isAnalytics ? 'мощных аналитических' : 'хлестких'} заголовков из 4-5 слов для YouTube:`;
+    const userPrompt = `ТЕМА / ВИДЕО:\n"${effectiveTitle}"${contextBody}${kwInstruction}\n\nСгенерируй от 12 до 15 ${isYouTubeMode ? 'захватывающих тематических' : isAnalytics ? 'мощных аналитических' : 'хлестких'} заголовков из 4-5 слов для YouTube:`;
 
   let rawLines = [];
   const geminiKey = process.env.GEMINI_API_KEY;
@@ -215,17 +215,35 @@ export async function generateTitleVariants(title = '', summary = '', bundleDir 
     }
   }
 
-  const uniqueVariants = Array.from(new Set(rawLines)).slice(0, 10);
-  if (uniqueVariants.length < 3 && effectiveTitle) {
-    const words = effectiveTitle.split(/\s+/).filter(Boolean);
-    const base = words.slice(0, 5).join(' ').toUpperCase();
-    if (base && !uniqueVariants.includes(base)) uniqueVariants.push(base);
-    const v2 = isYouTubeMode ? `ТАЙНА: ${base}` : `${base} ПО ПЛАНУ`;
-    if (!uniqueVariants.includes(v2)) uniqueVariants.push(v2);
-    const v3 = isYouTubeMode ? `ПРАВДА: ${base}` : `РЕАЛЬНОСТЬ: ${base}`;
-    if (!uniqueVariants.includes(v3)) uniqueVariants.push(v3);
+  const uniqueVariants = Array.from(new Set(rawLines)).filter(Boolean);
+  if (uniqueVariants.length < 10) {
+    const rawWords = (effectiveTitle || 'НОВОСТИ И СОБЫТИЯ').split(/\s+/).filter(Boolean);
+    const base = rawWords.slice(0, 5).join(' ').toUpperCase() || 'НОВОСТИ ДНЯ';
+    const fallbackTemplates = isYouTubeMode ? [
+      `ТАЙНА: ${base}`, `ПРАВДА: ${base}`, `ПОЧЕМУ: ${base}`, `РЕАЛЬНОСТЬ: ${base}`, `ШОК: ${base}`,
+      `СКРЫТЫЙ СМЫСЛ: ${base}`, `КАК УСТРОЕН: ${base}`, `ОШИБКА: ${base}`, `СЕНСАЦИЯ: ${base}`,
+      `ЧТО СКРЫВАЛИ: ${base}`, `ГЛАВНЫЙ СЕКРЕТ: ${base}`, `ЭТО МЕНЯЕТ ВСЕ: ${base}`,
+    ] : [
+      `${base} СТРОГО ПО ПЛАНУ`, `РЕАЛЬНОСТЬ: ${base}`, `СВЕРХДЕРЖАВА: ${base}`,
+      `ТРИУМФ НАД РЕАЛЬНОСТЬЮ: ${base}`, `НОВЫЙ ПРОРЫВ: ${base}`, `ПАРАД ПОБЕДЫ: ${base}`,
+      `ФИНАЛЬНЫЙ АККОРД: ${base}`, `НЕОЖИДАННЫЙ ПОВОРОТ: ${base}`, `${base} БЕЗ ПАНИКИ`,
+      `ВНЕЗАПНЫЙ ФИНИШ: ${base}`, `СКЛАД ПЕРЕХВАТИЛ УДАР: ${base}`, `ИДЕАЛЬНЫЙ ПЛАН: ${base}`,
+    ];
+
+    for (const fb of fallbackTemplates) {
+      if (uniqueVariants.length >= 10) break;
+      const cleanFb = fb.replace(/\s+/g, ' ').trim().toUpperCase();
+      if (!uniqueVariants.includes(cleanFb)) uniqueVariants.push(cleanFb);
+    }
+
+    let padIdx = 1;
+    while (uniqueVariants.length < 10) {
+      const padTitle = isYouTubeMode ? `ТАЙНЫ И ФАКТЫ ВЫПУСК ${padIdx}` : `РЕАЛЬНОСТЬ ПО ПЛАНУ ВЫПУСК ${padIdx}`;
+      if (!uniqueVariants.includes(padTitle)) uniqueVariants.push(padTitle);
+      padIdx++;
+    }
   }
-  const finalVariants = uniqueVariants.length > 0 ? uniqueVariants : (existingVariants.length > 0 ? existingVariants : [effectiveTitle]);
+  const finalVariants = uniqueVariants.slice(0, 10);
 
     if (jsonPath && fs.existsSync(jsonPath) && finalVariants.length > 0) {
       try {
