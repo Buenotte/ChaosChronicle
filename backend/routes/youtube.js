@@ -11,79 +11,15 @@ import {
   downloadSubtitlesIfAvailable,
 } from '../services/youtubeService.js';
 import { generateTitleVariants } from '../services/packageTitleService.js';
+import { YOUTUBE_STYLES } from '../services/youtubeStyles.js';
+import { extractTwentyFactsFromTranscript } from '../services/youtubeFactsService.js';
+
+export { YOUTUBE_STYLES };
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const router = express.Router();
 const newsDir = path.resolve(__dirname, '../../news');
-
-export const YOUTUBE_STYLES = {
-  scipop: {
-    id: 'scipop',
-    name: '🌟 Увлекательный Научпоп & Факты',
-    systemInstruction: `Ты — ведущий научно-популярного YouTube-канала (в духе Veritasium, Kurzgesagt, Научпок).
-Твоя задача — создать захватывающий, ясный и доступный рассказ на 3 минуты (СТРОГО 400–550 слов).
-Правила:
-- Ошеломляющий хук с первой секунды: парадокс природы, необычный факт или вопрос, взрывающий шаблоны.
-- Доступные и яркие аналогии на простых примерах, объясняющие сложные вещи на пальцах.
-- Эффект «вау» и неподдельный восторг перед законами Вселенной и науки.
-- КАТЕГОРИЧЕСКИ БЕЗ формата интервью: не упоминай ведущих, интервьюеров и имена гостей/экспертов («У нас в гостях...», «Доктор Бузунов рассказал...»). Рассказывай только о САМИХ научных явлениях и фактах напрямую зрителю.
-- БЕЗ диалогов, БЕЗ символов «>>», БЕЗ приветствий («Всем привет») и концовок («Ставьте лайки»).
-- СТРОГО цельный авторский монолог диктора на чистом русском языке.`,
-  },
-  mystery: {
-    id: 'mystery',
-    name: '🕵️ Тайны Истории & Загадки Прошлого',
-    systemInstruction: `Ты — ведущий топового документально-исторического YouTube-канала с атмосферой глубокого саспенса и расследования.
-Твоя задача — создать интригующий документальный монолог на 3 минуты (СТРОГО 400–550 слов).
-Правила:
-- Загадочное начало: забытый артефакт, исчезнувшая экспедиция, нестыковка в официальной хронике.
-- Нагнетание интриги шаг за шагом, как в детективном триллере, с опорой на реальные факты и детали.
-- Кинематографичный язык документального расследования, удерживающий напряжение.
-- КАТЕГОРИЧЕСКИ БЕЗ формата интервью: никаких гостей, экспертов («в студии...», «наш эксперт...»). Рассказывай только саму тайну и события прошлого напрямую зрителю.
-- БЕЗ диалогов, БЕЗ символов «>>», БЕЗ приветствий, прощаний и ремарок в скобках.
-- СТРОГО цельный монолог для озвучки.`,
-  },
-  tech_future: {
-    id: 'tech_future',
-    name: '🚀 Технологии Будущего & Инженерия',
-    systemInstruction: `Ты — визионер технологий, космических открытий и революционной инженерии на YouTube.
-Твоя задача — создать вдохновляющий и динамичный рассказ на 3 минуты (СТРОГО 400–550 слов).
-Правила:
-- Старт с масштаба: как изобретение или открытие изменит цивилизацию в ближайшие годы.
-- Понятный разбор инженерных решений: алгоритмы ИИ, мегаструктуры, космические миссии, квантовые скачки.
-- Высокий темп, технологический оптимизм, смелый взгляд за горизонт возможностей.
-- КАТЕГОРИЧЕСКИ БЕЗ формата интервью: никаких бесед, подкастов и имен спикеров. Рассказывай только о самих технологиях, инженерных решениях и будущем.
-- БЕЗ диалогов, БЕЗ символов «>>», БЕЗ приветствий и шаблонных клише.
-- СТРОГО готовый монолог диктора для озвучки.`,
-  },
-  psychology: {
-    id: 'psychology',
-    name: '🧠 Человек & Скрытые Законы Психики',
-    systemInstruction: `Ты — исследователь поведения человека, тайн мозга и эволюционной психологии на YouTube.
-Твоя задача — создать переворачивающий сознание психологический монолог на 3 минуты (СТРОГО 400–550 слов).
-Правила:
-- Мгновенный крючок в зрителя: демонстрация когнитивной ошибки или ловушки мозга, в которую человек попадает каждый день.
-- Разбор психологических механизмов: гормоны, эволюционные инстинкты, парадоксы выбора и скрытые мотивы.
-- Диалог напрямую с аудиторией, побуждающий взглянуть на себя совершенно по-новому.
-- КАТЕГОРИЧЕСКИ БЕЗ формата интервью: никаких гостей, ведущих и упоминания интервью («у меня в студии...», «гость программы...»). Только чистая психология и работа мозга.
-- БЕЗ диалогов, БЕЗ символов «>>», БЕЗ приветствий и ссылок.
-- СТРОГО чистый текст авторского монолога для диктора.`,
-  },
-  storytelling: {
-    id: 'storytelling',
-    name: '🔥 Вирусный Топ-Сторителлинг (Высокий CTR)',
-    systemInstruction: `Ты — мастер вирусного сторителлинга на YouTube с удержанием внимания 100% от начала до конца.
-Твоя задача — упаковать историю в остросюжетный, кинематографичный рассказ на 3 минуты (СТРОГО 400–550 слов).
-Правила:
-- Взрывное начало на первой секунде: кульминация, ставка «всё или ничего» или драматический выбор.
-- Открытые петли (open loops) и эмоциональные качели: от отчаяния к триумфу, от загадки к откровению.
-- Плотный динамичный слог, изобилие глаголов действия, хлесткий ритм.
-- КАТЕГОРИЧЕСКИ БЕЗ формата интервью: никаких упоминаний спикеров видео, ведущих или диалогов («Здравствуйте — Здравствуйте»). Рассказывай историю как единый захватывающий сюжет.
-- БЕЗ диалогов, БЕЗ символов «>>», БЕЗ призывов подписаться и скобок.
-- СТРОГО чистый монолог для озвучки.`,
-  },
-};
 
 // Helper to call Gemini 3.8 Flash direct or OpenRouter
 async function generateScriptWithAI(systemInstruction, userInstruction, maxTokens = 8000) {
@@ -109,7 +45,7 @@ async function generateScriptWithAI(systemInstruction, userInstruction, maxToken
         if (text && text.trim().length > 100) return text.trim();
       }
     } catch (err) {
-      console.warn('Gemini 3.8 direct generation failed, trying OpenRouter:', err.message);
+      console.warn('Gemini direct script generation failed, trying OpenRouter:', err.message);
     }
   }
 
@@ -141,23 +77,27 @@ async function generateScriptWithAI(systemInstruction, userInstruction, maxToken
 
 export async function buildYouTubeScript(rawText, selectedStyle, metadata = {}) {
   const systemInstruction = selectedStyle.systemInstruction || YOUTUBE_STYLES.scipop.systemInstruction;
-  const userPrompt = `ИСТОЧНИК: YouTube-видео "${metadata.title || 'YouTube'}" (Канал: ${metadata.channel || ''})
-${metadata.duration ? `ПРОДОЛЖИТЕЛЬНОСТЬ: ${Math.round(metadata.duration / 60)} мин.` : ''}
+  let factsPrompt = '';
+  if (metadata.selectedFacts && Array.isArray(metadata.selectedFacts) && metadata.selectedFacts.length > 0) {
+    factsPrompt = `\nВЫБРАННЫЕ ПОЛЬЗОВАТЕЛЕМ КЛЮЧЕВЫЕ ФАКТЫ ДЛЯ СЦЕНАРИЯ:\n` +
+      metadata.selectedFacts.map((f, i) => `${i + 1}. [${f.title}]: ${f.text}`).join('\n') +
+      `\nСТРОГОЕ ТРЕБОВАНИЕ: Построй 3-минутный монолог ИМЕННО вокруг этих фактов! Раскрой их детали и парадоксы. Не отвлекайся на посторонние темы.\n`;
+  }
 
+  const userPrompt = `ИСТОЧНИК: YouTube "${metadata.title || 'YouTube'}" (${metadata.channel || ''})
+${metadata.duration ? `ПРОДОЛЖИТЕЛЬНОСТЬ: ${Math.round(metadata.duration / 60)} мин.` : ''}
+${factsPrompt}
 ТЕКСТ ИЗ АУДИО / СУТЬ ВИДЕО:
 """
 ${rawText.slice(0, 60000)}
 """
-
 ЗАДАЧА:
-На основе фактов и сути создай ЗАХВАТЫВАЮЩИЙ, ЦЕЛЬНЫЙ 3-МИНУТНЫЙ ТЕКСТ (СТРОГО 400–550 СЛОВ) в выбранном стиле («${selectedStyle.name}»).
-
-ЖЕЛЕЗНЫЕ ПРАВИЛА:
-1. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕН ФОРМАТ ИНТЕРВЬЮ: Никаких упоминаний ведущих, гостей или экспертов (ЗАПРЕЩЕНО: «Сегодня у нас в гостях...», «Бузунов», «доктор», «наш гость»).
-2. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНЫ ДИАЛОГИ И ПРИВЕТСТВИЯ: Никаких «Добрый день», реплик и символов «>>» или «&gt;&gt;».
-3. РАССКАЗЫВАЙ ТОЛЬКО О САМОЙ ТЕМЕ: Захватывающе объясняй сами явления, факты, парадоксы зрителю напрямую.
-4. Мощный хук с первых секунд, живой язык, чистый монолог без скобок.
-5. Готовый связный текст монолога для диктора (400–550 слов):`;
+Создай ЗАХВАТЫВАЮЩИЙ, ЦЕЛЬНЫЙ 3-МИНУТНЫЙ ТЕКСТ (СТРОГО 400–550 СЛОВ) в стиле «${selectedStyle.name}».
+ПРАВИЛА:
+1. КАТЕГОРИЧЕСКИ БЕЗ ФОРМАТА ИНТЕРВЬЮ: Никаких гостей, интервьюеров и ведущих («Сегодня у нас...», «доктор», «Бузунов»).
+2. БЕЗ ДИАЛОГОВ И ПРИВЕТСТВИЙ: Никаких «Добрый день», реплик и символов «>>».
+3. РАССКАЗЫВАЙ ТОЛЬКО О САМОЙ ТЕМЕ: Захватывающе объясняй факты и явления зрителю напрямую.
+4. Мощный хук с первых секунд, чистый монолог диктора (400–550 слов):`;
 
   const rawGenerated = await generateScriptWithAI(systemInstruction, userPrompt, 8000);
   return rawGenerated.replace(/&gt;&gt;/g, '').replace(/>>/g, '').replace(/^[\-\u2013\u2014]\s+/gm, '').replace(/^(Добрый (день|вечер|утро)|Здравствуйте)[^.!?\n]*[.!?\n]+/gmi, '').trim();
@@ -167,9 +107,7 @@ ${rawText.slice(0, 60000)}
 router.post('/api/youtube/info', async (req, res) => {
   try {
     const { url } = req.body;
-    if (!isValidYouTubeUrl(url)) {
-      return res.status(400).json({ success: false, error: 'Некорректная ссылка на YouTube' });
-    }
+    if (!isValidYouTubeUrl(url)) return res.status(400).json({ success: false, error: 'Некорректная ссылка на YouTube' });
     const metadata = await fetchYouTubeMetadata(url);
     res.json({ success: true, metadata });
   } catch (err) {
@@ -177,18 +115,54 @@ router.post('/api/youtube/info', async (req, res) => {
   }
 });
 
+// POST /api/youtube/extract-facts - Extract 20 key facts
+router.post('/api/youtube/extract-facts', async (req, res) => {
+  try {
+    const { url } = req.body;
+    if (!isValidYouTubeUrl(url)) return res.status(400).json({ success: false, error: 'Некорректная ссылка на YouTube' });
+
+    const metadata = await fetchYouTubeMetadata(url);
+    const tempDir = path.join(newsDir, `_temp_yt_${Date.now()}`);
+    fs.mkdirSync(tempDir, { recursive: true });
+
+    let rawText = '';
+    try {
+      const subText = await downloadSubtitlesIfAvailable(url, tempDir);
+      if (subText && subText.length > 80) rawText = subText;
+    } catch {}
+
+    if (!rawText || rawText.length < 120) {
+      try {
+        const audioPath = await downloadYouTubeAudio(url, tempDir, 'temp_fact_audio');
+        const tr = await transcribeAudioFile(audioPath, 'base');
+        if (tr?.text && tr.text.length > 30) rawText = tr.text;
+      } catch (err) {
+        console.warn('Audio transcription warning for facts:', err.message);
+      }
+    }
+
+    try { fs.rmSync(tempDir, { recursive: true, force: true }); } catch {}
+
+    if (!rawText || rawText.length < 40) {
+      rawText = `${metadata.title}\n\n${metadata.description || ''}`;
+    }
+
+    const facts = await extractTwentyFactsFromTranscript(rawText, metadata.title);
+    res.json({ success: true, metadata, facts, factsCount: facts.length });
+  } catch (err) {
+    console.error('Extract facts error:', err);
+    res.status(500).json({ success: false, error: err.message || 'Ошибка извлечения фактов' });
+  }
+});
+
 // POST /api/youtube/import-to-package - Complete pipeline
 router.post('/api/youtube/import-to-package', async (req, res) => {
-  const { url, style = 'scipop', model = 'gemini' } = req.body;
-
-  if (!isValidYouTubeUrl(url)) {
-    return res.status(400).json({ success: false, error: 'Пожалуйста, укажите корректную ссылку на YouTube видео или Shorts' });
-  }
+  const { url, style = 'scipop', model = 'gemini', selectedFacts = null } = req.body;
+  if (!isValidYouTubeUrl(url)) return res.status(400).json({ success: false, error: 'Укажите корректную ссылку на YouTube' });
 
   try {
     if (!fs.existsSync(newsDir)) fs.mkdirSync(newsDir, { recursive: true });
 
-    // 1. Fetch metadata
     const metadata = await fetchYouTubeMetadata(url);
     const dateStr = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 16);
     const safeTitle = (metadata.title || 'YouTube').replace(/[^a-zA-Z0-9а-яА-ЯёЁ]/g, '_').replace(/_+/g, '_').slice(0, 75);
@@ -196,30 +170,21 @@ router.post('/api/youtube/import-to-package', async (req, res) => {
     const bundleDir = path.join(newsDir, folderName);
     fs.mkdirSync(bundleDir, { recursive: true });
 
-    // 2. Try fast subtitles first
     let rawText = '';
     let transcriptResult = null;
     try {
       const subText = await downloadSubtitlesIfAvailable(url, bundleDir);
-      if (subText && subText.length > 80) {
-        rawText = subText;
-      }
-    } catch (subErr) {
-      console.warn('Subtitles warning:', subErr.message);
-    }
+      if (subText && subText.length > 80) rawText = subText;
+    } catch {}
 
-    // 3. Download Source Audio for Whisper transcription
     const audioPath = await downloadYouTubeAudio(url, bundleDir, 'yt_source_audio');
 
-    // 4. If subtitles missing or short, transcribe audio with Whisper
     if (!rawText || rawText.length < 120) {
       try {
         transcriptResult = await transcribeAudioFile(audioPath, 'base');
-        if (transcriptResult?.text && transcriptResult.text.length > 30) {
-          rawText = transcriptResult.text;
-        }
-      } catch (transcribeErr) {
-        console.warn('Audio transcription warning:', transcribeErr.message);
+        if (transcriptResult?.text && transcriptResult.text.length > 30) rawText = transcriptResult.text;
+      } catch (err) {
+        console.warn('Audio transcription warning:', err.message);
       }
     }
 
@@ -227,12 +192,10 @@ router.post('/api/youtube/import-to-package', async (req, res) => {
       rawText = `${metadata.title}\n\n${metadata.description || 'Видеоматериал YouTube'}`;
     }
 
-    // 5. Generate 3-minute Script (400-550 words) with one of 5 YouTube styles
     const selectedStyle = YOUTUBE_STYLES[style] || YOUTUBE_STYLES.scipop;
-    const generatedScript = await buildYouTubeScript(rawText, selectedStyle, metadata);
+    const generatedScript = await buildYouTubeScript(rawText, selectedStyle, { ...metadata, selectedFacts });
     const wordCount = generatedScript.split(/\s+/).filter(Boolean).length;
 
-    // 6. Download Thumbnail
     const thumbDir = path.join(bundleDir, 'thumbnail');
     const photosDir = path.join(bundleDir, 'photos');
     fs.mkdirSync(thumbDir, { recursive: true });
@@ -243,24 +206,19 @@ router.post('/api/youtube/import-to-package', async (req, res) => {
       await downloadThumbnail(metadata.thumbnail, path.join(photosDir, 'yt_original_cover.jpg'));
     }
 
-    // 7. Save package files
     fs.writeFileSync(path.join(bundleDir, 'script.txt'), generatedScript, 'utf-8');
     fs.writeFileSync(path.join(bundleDir, 'source.txt'), rawText, 'utf-8');
     fs.writeFileSync(path.join(bundleDir, 'original_news.txt'), rawText, 'utf-8');
 
     const mdContent = `# 🎬 ${metadata.title}
-**Источник:** YouTube · ${metadata.channel} | **Длина оригинала:** ${metadata.duration || 0} сек.
-**Ссылка:** ${metadata.url}
-**Стиль:** ${selectedStyle.name} | **Сгенерировано слов:** ${wordCount} (~3 мин. чтения)
-
+**Источник:** YouTube · ${metadata.channel} | **Длина:** ${metadata.duration || 0} сек.
+**Стиль:** ${selectedStyle.name} | **Слов:** ${wordCount} (~3 мин.)
+${selectedFacts?.length ? `\n### 📌 Выбранные факты:\n${selectedFacts.map(f => `- **${f.title}**: ${f.text}`).join('\n')}\n` : ''}
 ---
-
 ## 🎙️ Сценарий YouTube видео (3 минуты)
 ${generatedScript}
-
 ---
-
-## 📝 Исходный транскрипт аудио / Описание
+## 📝 Исходный транскрипт
 ${rawText}
 `;
     fs.writeFileSync(path.join(bundleDir, 'script.md'), mdContent, 'utf-8');
@@ -269,17 +227,13 @@ ${rawText}
       fs.writeFileSync(path.join(bundleDir, 'transcript.json'), JSON.stringify(transcriptResult, null, 2), 'utf-8');
     }
 
-    // 7. Generate YouTube title variants (4-5 words, no satire/bunker memes)
     let titleVariants = [];
     try {
       const tvRes = await generateTitleVariants(metadata.title, rawText.slice(0, 500), bundleDir, folderName, true, selectedStyle.id, generatedScript, '');
       titleVariants = tvRes?.variants || [];
-    } catch (tErr) {
-      console.warn('Failed to generate YouTube title variants:', tErr.message);
-    }
+    } catch {}
     const chosenTitle = (titleVariants.length > 0) ? titleVariants[0] : metadata.title;
 
-    // 8. Save project.json manifest
     const manifest = {
       title: chosenTitle,
       original_title: metadata.title,
@@ -291,6 +245,7 @@ ${rawText}
       model,
       style: selectedStyle.id,
       style_name: selectedStyle.name,
+      selectedFacts: selectedFacts || null,
       source: `YouTube: ${metadata.channel}`,
       summary: rawText.slice(0, 600),
       original_news: rawText,
@@ -323,7 +278,7 @@ ${rawText}
       transcript: transcriptResult,
     });
   } catch (err) {
-    console.error('YouTube import to package error:', err);
+    console.error('YouTube import error:', err);
     res.status(500).json({ success: false, error: err.message || 'Ошибка обработки YouTube видео' });
   }
 });
@@ -331,7 +286,7 @@ ${rawText}
 // POST /api/youtube/regenerate-script
 router.post('/api/youtube/regenerate-script', async (req, res) => {
   try {
-    const { bundleDir, folderName, style = 'scipop', model = 'gemini' } = req.body;
+    const { bundleDir, folderName, style = 'scipop' } = req.body;
     const targetFolder = bundleDir || (folderName ? path.join(newsDir, folderName) : null);
     if (!targetFolder || !fs.existsSync(targetFolder)) return res.status(404).json({ success: false, error: 'Папка пакета не найдена' });
 
@@ -339,7 +294,7 @@ router.post('/api/youtube/regenerate-script', async (req, res) => {
     const origPath = path.join(targetFolder, 'original_news.txt'), txtPath = path.join(targetFolder, 'script.txt');
     if (fs.existsSync(origPath)) sourceText = fs.readFileSync(origPath, 'utf-8');
     else if (fs.existsSync(txtPath)) sourceText = fs.readFileSync(txtPath, 'utf-8');
-    if (!sourceText.trim()) return res.status(400).json({ success: false, error: 'Исходный текст для генерации отсутствует' });
+    if (!sourceText.trim()) return res.status(400).json({ success: false, error: 'Исходный текст отсутствует' });
 
     const selectedStyle = YOUTUBE_STYLES[style] || YOUTUBE_STYLES.scipop;
     let meta = {};
@@ -348,7 +303,11 @@ router.post('/api/youtube/regenerate-script', async (req, res) => {
       try { meta = JSON.parse(fs.readFileSync(jsonPath, 'utf-8')); } catch {}
     }
 
-    const generatedScript = await buildYouTubeScript(sourceText, selectedStyle, { title: meta.title || meta.original_title, channel: meta.youtubeMetadata?.channel });
+    const generatedScript = await buildYouTubeScript(sourceText, selectedStyle, {
+      title: meta.title || meta.original_title,
+      channel: meta.youtubeMetadata?.channel,
+      selectedFacts: meta.selectedFacts,
+    });
     const wordCount = generatedScript.split(/\s+/).filter(Boolean).length;
     fs.writeFileSync(txtPath, generatedScript, 'utf-8');
 
