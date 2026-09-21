@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { toast } from 'sonner'
-import { FEUILLETON_STYLES, AI_MODELS } from '../lib/utils'
+import { FEUILLETON_STYLES, YOUTUBE_TOPIC_STYLES, AI_MODELS } from '../lib/utils'
 import ScriptHookGenerator from './script/ScriptHookGenerator'
+import ScriptToolbar from './script/ScriptToolbar'
 
 export default function NewsScriptModal({ pkg, onClose, onSaved }) {
   if (!pkg) return null
@@ -9,7 +10,7 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
   const [text, setText] = useState(pkg.scriptTxt || pkg.scriptMd || '')
   const [originalNews, setOriginalNews] = useState(pkg.original_news || pkg.summary || pkg.originalNews || '')
   const [showOriginal, setShowOriginal] = useState(true)
-  const [selectedStyle, setSelectedStyle] = useState('golubuzki')
+  const [selectedStyle, setSelectedStyle] = useState(pkg.style || (pkg.isYouTube ? 'scipop' : 'golubuzki'))
   const [selectedModel, setSelectedModel] = useState(pkg.model || 'gemini')
   const [selectedTone, setSelectedTone] = useState(pkg.tone || 'grotesque')
   const [savingText, setSavingText] = useState(false)
@@ -79,31 +80,33 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
     }
   }, [isDragging])
 
-  const handleRegenerateScript = async (styleToUse = selectedStyle, modelToUse = selectedModel, toneToUse = selectedTone) => {
+  const handleRegenerateScript = async (styleToUse = selectedStyle, modelToUse = selectedModel, toneToUse = selectedTone, chosenFacts = null) => {
     setRegenerating(true)
-    const styleName = FEUILLETON_STYLES.find(s => s.id === styleToUse)?.name || styleToUse
+    const isYt = ['scipop', 'mystery', 'tech_future', 'psychology', 'storytelling'].includes(styleToUse) || pkg.isYouTube
+    const allStyles = [...FEUILLETON_STYLES, ...YOUTUBE_TOPIC_STYLES]
+    const styleName = allStyles.find(s => s.id === styleToUse)?.name || styleToUse
     const modelName = AI_MODELS.find(m => m.id === modelToUse)?.name || modelToUse
     const toneLabel = toneToUse === 'analytics' ? '🧠 Аналитика' : '💥 Сатира'
-    const toastId = toast.loading(`🔄 Перегенерация текста (${toneLabel})...`, {
+    const toastId = toast.loading(chosenFacts?.length ? `✨ Сценарий по ${chosenFacts.length} фактам...` : `🔄 Перегенерация текста (${toneLabel})...`, {
       description: `${modelName} | ${styleName}`,
     })
 
     try {
-      const res = await fetch('/api/generate-feuilleton', {
+      const endpoint = isYt ? '/api/youtube/regenerate-script' : '/api/generate-feuilleton'
+      const payload = isYt
+        ? { folderName: pkg.folderName, bundleDir: pkg.bundleDir, style: styleToUse, selectedFacts: chosenFacts }
+        : {
+            folderName: pkg.folderName, bundleDir: pkg.bundleDir, url: pkg.url || pkg.link || '',
+            title: pkg.original_title || pkg.title,
+            summary: chosenFacts?.length ? chosenFacts.map(f => `${f.title}: ${f.text}`).join('\n\n') : (originalNews || pkg.original_news || pkg.summary || (text ? text.slice(0, 350) : '') || ''),
+            style: styleToUse, tone: toneToUse, source: pkg.source || '', model: modelToUse,
+            saveToPackage: Boolean(pkg.folderName || pkg.bundleDir),
+          }
+
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          folderName: pkg.folderName,
-          bundleDir: pkg.bundleDir,
-          url: pkg.url || pkg.link || '',
-          title: pkg.original_title || pkg.title,
-          summary: originalNews || pkg.original_news || pkg.summary || (text ? text.slice(0, 350) : '') || '',
-          style: styleToUse,
-          tone: toneToUse,
-          source: pkg.source || '',
-          model: modelToUse,
-          saveToPackage: Boolean(pkg.folderName || pkg.bundleDir),
-        }),
+        body: JSON.stringify(payload),
       })
 
       const data = await res.json()
@@ -116,9 +119,11 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
         pkg.scriptTxt = newText
         pkg.hasScriptTxt = true
         pkg.hasScriptMd = true
+        if (chosenFacts) pkg.selectedFacts = chosenFacts
+        else pkg.selectedFacts = null
         if (fData.title) pkg.title = fData.title
         if (onSaved) onSaved()
-        toast.success('✨ Новый вариант текста готов и сохранен!', { id: toastId })
+        toast.success(chosenFacts?.length ? `🎉 Сценарий создан по ${chosenFacts.length} ключевым фактам!` : '✨ Новый вариант текста готов и сохранен!', { id: toastId })
       } else {
         toast.warning('Ответ ИИ не содержит нового текста', { id: toastId })
       }
@@ -209,30 +214,19 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
 
         <div className="modal-body">
 
-          {/* Панель выбора стиля, модели ИИ и перегенерации текста */}
-          <div style={{ background: '#0f172a', padding: '0.65rem 0.9rem', borderRadius: '8px', border: '1px solid #1e293b', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.6rem', marginBottom: '0.75rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#94a3b8' }}>🤖 Модель:</span>
-                <select value={selectedModel} onChange={e => { setSelectedModel(e.target.value); handleRegenerateScript(selectedStyle, e.target.value) }} disabled={regenerating} style={{ background: '#020617', color: '#f8fafc', border: '1px solid #334155', borderRadius: '6px', padding: '0.35rem 0.65rem', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer' }}>
-                  {AI_MODELS.map(m => (<option key={m.id} value={m.id}>{m.icon} {m.name}</option>))}
-                </select>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#94a3b8' }}>🎨 Стиль:</span>
-                <select value={selectedStyle} onChange={e => { setSelectedStyle(e.target.value); handleRegenerateScript(e.target.value, selectedModel) }} disabled={regenerating} style={{ background: '#020617', color: '#f8fafc', border: '1px solid #334155', borderRadius: '6px', padding: '0.35rem 0.65rem', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer' }}>
-                  {FEUILLETON_STYLES.map(s => (<option key={s.id} value={s.id}>{s.icon} {s.name}</option>))}
-                </select>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', background: '#0f172a', borderRadius: '6px', padding: '2px', border: '1px solid #334155' }}>
-                <button type="button" onClick={() => setSelectedTone('grotesque')} style={{ background: selectedTone === 'grotesque' ? '#dc2626' : 'transparent', color: selectedTone === 'grotesque' ? '#fff' : '#94a3b8', border: 'none', borderRadius: '4px', padding: '0.24rem 0.5rem', fontSize: '0.75rem', fontWeight: selectedTone === 'grotesque' ? 700 : 500, cursor: 'pointer' }}>💥 Сатира</button>
-                <button type="button" onClick={() => setSelectedTone('analytics')} style={{ background: selectedTone === 'analytics' ? '#2563eb' : 'transparent', color: selectedTone === 'analytics' ? '#fff' : '#94a3b8', border: 'none', borderRadius: '4px', padding: '0.24rem 0.5rem', fontSize: '0.75rem', fontWeight: selectedTone === 'analytics' ? 700 : 500, cursor: 'pointer' }}>🧠 Аналитика</button>
-              </div>
-            </div>
-            <button type="button" className="refresh-btn" onClick={() => handleRegenerateScript(selectedStyle, selectedModel, selectedTone)} disabled={regenerating} style={{ fontSize: '0.8rem', padding: '0.38rem 0.85rem', background: '#1e293b', border: '1px solid #475569', color: '#f8fafc', fontWeight: 700, borderRadius: '6px', cursor: 'pointer' }}>
-              🔄 {regenerating ? '⏳ Генерация...' : 'Сгенерировать (AI)'}
-            </button>
-          </div>
+          {/* Панель выбора стиля, модели ИИ и опций перегенерации текста */}
+          <ScriptToolbar
+            pkg={pkg}
+            originalNews={originalNews}
+            selectedModel={selectedModel}
+            setSelectedModel={setSelectedModel}
+            selectedStyle={selectedStyle}
+            setSelectedStyle={setSelectedStyle}
+            selectedTone={selectedTone}
+            setSelectedTone={setSelectedTone}
+            regenerating={regenerating}
+            onRegenerate={handleRegenerateScript}
+          />
 
           {/* Исходный текст Telegram / Новости */}
           {originalNews && (
