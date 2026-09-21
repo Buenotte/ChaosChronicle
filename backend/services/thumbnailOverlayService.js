@@ -288,7 +288,7 @@ export function overlayRussianHeadlineOnThumbnail(imagePath, russianTitle, optio
       const safeAssPath = assTempFile.replace(/\\/g, '/').replace(/:/g, '\\:');
       const safeCustomFontsDir = customFontsDir.replace(/\\/g, '/').replace(/:/g, '\\:');
       const vf = `scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720${drawBoxFilter},subtitles=filename='${safeAssPath}':fontsdir='${safeCustomFontsDir}'`;
-      execFileSync('ffmpeg', ['-y', '-i', imagePath, '-vf', vf, '-frames:v', '1', '-q:v', '2', tempOut]);
+      execFileSync('ffmpeg', ['-y', '-i', imagePath, '-vf', vf, '-frames:v', '1', '-update', '1', '-q:v', '2', tempOut]);
     } finally {
       try { fs.unlinkSync(assTempFile); } catch {}
     }

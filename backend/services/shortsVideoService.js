@@ -45,6 +45,29 @@ export function wrapShortsText(rawText, maxChars = 12) {
   return wrappedLines.join('\n');
 }
 
+export function resolveShortsPhoto(photoPath, targetFolder) {
+  if (!photoPath) return null;
+  const clean = String(photoPath).split('?')[0];
+  if (path.isAbsolute(clean) && fs.existsSync(clean)) return clean;
+  if (clean.startsWith('/news-static/')) {
+    const cleanSubPath = clean.replace('/news-static/', '');
+    const cand = path.join(newsDir, decodeURIComponent(cleanSubPath));
+    if (fs.existsSync(cand)) return cand;
+  }
+  if (clean.includes('thumbnail')) {
+    const t1 = path.join(targetFolder, 'thumbnail', 'thumbnail.jpg'), t2 = path.join(targetFolder, 'thumbnail', 'raw_background.jpg'), t3 = path.join(targetFolder, 'thumbnail.jpg');
+    if (fs.existsSync(t1)) return t1;
+    if (fs.existsSync(t2)) return t2;
+    if (fs.existsSync(t3)) return t3;
+  }
+  const photosDir = path.join(targetFolder, 'photos');
+  const candPhotos = path.join(photosDir, path.basename(clean));
+  if (fs.existsSync(candPhotos)) return candPhotos;
+  const candRel = path.join(targetFolder, clean.replace(/^[/\\]+/, ''));
+  if (fs.existsSync(candRel)) return candRel;
+  return null;
+}
+
 export async function processRenderShort({
   bundleDir: inputBundleDir,
   folderName,
@@ -100,9 +123,9 @@ export async function processRenderShort({
       .map(f => path.join(photosDir, f));
   }
 
-  if (availablePhotos.length === 0) {
-    const thumbPath = path.join(targetFolder, 'thumbnail', 'thumbnail.jpg');
-    if (fs.existsSync(thumbPath)) availablePhotos.push(thumbPath);
+  const thumbPath = path.join(targetFolder, 'thumbnail', 'thumbnail.jpg');
+  if (fs.existsSync(thumbPath) && !availablePhotos.includes(thumbPath)) {
+    availablePhotos.push(thumbPath);
   }
 
   if (availablePhotos.length === 0) {
@@ -110,12 +133,11 @@ export async function processRenderShort({
   }
 
   // Берем фото с учетом выбранного главного фото
-  let selectedPhotos = availablePhotos;
+  let selectedPhotos = [...availablePhotos];
   if (selectedPhoto) {
-    const customPhotoName = path.basename(selectedPhoto);
-    const customPath = path.join(photosDir, customPhotoName);
-    if (fs.existsSync(customPath)) {
-      selectedPhotos = [customPath, ...availablePhotos.filter(p => path.basename(p) !== customPhotoName)];
+    const customPath = resolveShortsPhoto(selectedPhoto, targetFolder);
+    if (customPath && fs.existsSync(customPath)) {
+      selectedPhotos = [customPath, ...availablePhotos.filter(p => path.resolve(p) !== path.resolve(customPath))];
     }
   }
   const photoCountLimit = Math.max(3, Math.min(availablePhotos.length, Math.round(targetDur / 3)));
@@ -291,7 +313,7 @@ export async function processPreviewShortFrame(options) {
   let targetFolder = inputBundleDir || (folderName ? path.join(newsDir, folderName) : null);
   if (!targetFolder || !fs.existsSync(targetFolder)) throw new Error('Папка не найдена');
   const photosDir = path.join(targetFolder, 'photos');
-  let basePhoto = selectedPhoto ? path.join(photosDir, path.basename(selectedPhoto)) : null;
+  let basePhoto = resolveShortsPhoto(selectedPhoto, targetFolder);
   if (!basePhoto || !fs.existsSync(basePhoto)) {
     const files = fs.existsSync(photosDir) ? fs.readdirSync(photosDir).filter(f => /\.(jpg|jpeg|png|webp)$/i.test(f)) : [];
     basePhoto = files[0] ? path.join(photosDir, files[0]) : path.join(targetFolder, 'thumbnail', 'thumbnail.jpg');

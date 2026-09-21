@@ -52,10 +52,12 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
     }).catch(() => {})
   }, [])
 
-  const photoList = Array.isArray(pkg?.photoUrls) && pkg.photoUrls.length > 0 ? pkg.photoUrls : (Array.isArray(pkg?.photos) ? pkg.photos : [])
+  const thumbCover = (pkg?.hasThumbnail || pkg?.thumbnailUrl) && pkg?.folderName ? `/news-static/${pkg.folderName}/thumbnail/thumbnail.jpg` : null
+  const rawList = Array.isArray(pkg?.photoUrls) && pkg.photoUrls.length > 0 ? pkg.photoUrls : (Array.isArray(pkg?.photos) ? pkg.photos : [])
+  const photoList = thumbCover ? [thumbCover, ...rawList.filter(p => !p.includes('thumbnail'))] : rawList
   const currentBgSrc = selectedPhoto
     ? (selectedPhoto.startsWith('/news-static/') ? selectedPhoto : `/news-static/${pkg?.folderName}/${selectedPhoto}`)
-    : (previewPhotoUrl || (photoList[0] ? (photoList[0].startsWith('/news-static/') ? photoList[0] : `/news-static/${pkg?.folderName}/${photoList[0]}`) : ''))
+    : (thumbCover || previewPhotoUrl || (photoList[0] ? (photoList[0].startsWith('/news-static/') ? photoList[0] : `/news-static/${pkg?.folderName}/${photoList[0]}`) : ''))
 
   const FONT_SCALE_CSS = 0.812
   const activeColorHex = TEXT_COLORS.find(c => c.id === fontColor)?.hex || '#FFE600'

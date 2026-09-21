@@ -26,11 +26,12 @@ export default function BackgroundPhotoSelector({
       <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.35rem' }}>
         {photoList.map((p, idx) => {
           const pUrl = p.startsWith('/news-static/') ? p : `/news-static/${folderName}/${p}`
-          const isSelected = selectedBgPhoto === p || selectedBgPhoto === pUrl
+          const isThumb = p.includes('thumbnail')
           return (
             <div
               key={idx}
               onClick={() => onSelectPhoto(p)}
+              title={isThumb ? '⭐ Обложка пакета (thumbnail.jpg)' : `Фото #${idx + 1}`}
               style={{
                 position: 'relative',
                 flexShrink: 0,
@@ -39,12 +40,17 @@ export default function BackgroundPhotoSelector({
                 borderRadius: '6px',
                 overflow: 'hidden',
                 cursor: 'pointer',
-                border: isSelected ? '2px solid #ec4899' : '1px solid #3f3f46',
+                border: isSelected ? '2px solid #ec4899' : (isThumb ? '2px solid #facc15' : '1px solid #3f3f46'),
                 transform: isSelected ? 'scale(1.04)' : 'none',
                 transition: 'transform 0.15s ease',
               }}
             >
               <img src={pUrl} alt={`Photo ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              {isThumb && !isSelected && (
+                <div style={{ position: 'absolute', bottom: 2, left: 2, background: 'rgba(0,0,0,0.8)', color: '#facc15', fontSize: '0.62rem', padding: '1px 4px', borderRadius: '3px', fontWeight: 700 }}>
+                  ⭐ Обложка
+                </div>
+              )}
               {isSelected && (
                 <div style={{ position: 'absolute', inset: 0, background: 'rgba(236,72,153,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '0.75rem', fontWeight: 800 }}>
                   ✓ ВЫБРАНО

@@ -78,7 +78,7 @@ export default function App() {
 
   const fetchSavedPackages = useCallback(async () => {
     try {
-      const res = await fetch('/api/saved-packages')
+      const res = await fetch('/api/saved-packages?force=true')
       const data = await res.json()
       if (data.success) {
         const pkgs = data.packages || []

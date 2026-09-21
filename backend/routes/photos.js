@@ -8,6 +8,7 @@ import { cleanText, scrapeArticlePhotos, searchLiveNewsPhotos } from '../service
 import { customFontsDir, overlayRussianHeadlineOnThumbnail } from '../services/thumbnailOverlayService.js';
 import { processSetThumbnail, getDefaultThumbnailStyle, saveDefaultThumbnailStyle } from '../services/thumbnailService.js';
 import { saveNewsPhotos, saveSingleNewsPhoto, deleteNewsPhoto, deduplicatePackagePhotos } from '../services/photoStorageService.js';
+import { invalidatePackagesCache } from './packages.js';
 
 export { overlayRussianHeadlineOnThumbnail };
 
@@ -335,6 +336,7 @@ router.post('/api/save-default-thumbnail-style', (req, res) => {
 router.post('/api/set-thumbnail', async (req, res) => {
   try {
     const result = await processSetThumbnail(req.body);
+    invalidatePackagesCache();
     res.json(result);
   } catch (err) {
     console.error('Set thumbnail error:', err.message);

@@ -12,16 +12,19 @@ const newsDir = path.resolve(__dirname, '../../news');
 
 export function resolveSourcePhoto(targetPhoto, targetFolder) {
   if (!targetPhoto) return null;
-  if (path.isAbsolute(targetPhoto) && fs.existsSync(targetPhoto)) return targetPhoto;
-  if (targetPhoto.startsWith('/news-static/')) {
-    const cleanSubPath = targetPhoto.replace('/news-static/', '').split('?')[0];
+  const clean = String(targetPhoto).split('?')[0];
+  if (path.isAbsolute(clean) && fs.existsSync(clean)) return clean;
+  if (clean.startsWith('/news-static/')) {
+    const cleanSubPath = clean.replace('/news-static/', '');
     const cand = path.join(newsDir, decodeURIComponent(cleanSubPath));
     if (fs.existsSync(cand)) return cand;
   }
-  const candRel = path.join(targetFolder, targetPhoto.replace(/^[/\\]+/, ''));
+  const candRel = path.join(targetFolder, clean.replace(/^[/\\]+/, ''));
   if (fs.existsSync(candRel)) return candRel;
-  const candPhotos = path.join(targetFolder, 'photos', path.basename(targetPhoto));
+  const candPhotos = path.join(targetFolder, 'photos', path.basename(clean));
   if (fs.existsSync(candPhotos)) return candPhotos;
+  const candThumb = path.join(targetFolder, 'thumbnail', path.basename(clean));
+  if (fs.existsSync(candThumb)) return candThumb;
   return null;
 }
 
@@ -164,7 +167,7 @@ export async function processSetThumbnail({
       boxStyle: (effectiveConfig.boxStyle === 'per_line' || effectiveConfig.lineBadges?.enabled) ? 'per_line' : (effectiveConfig.boxStyle || (effectiveConfig.hasBox ? 'dark_soft' : 'none')),
       boxOpacity: finalOp,
       lineBadges: effectiveConfig.lineBadges ? { ...effectiveConfig.lineBadges, opacity: finalOp } : (effectiveConfig.boxStyle === 'per_line' ? { enabled: true, style: 'solid', shadow: 'soft', tiltMode: 'none', color: '#000000', opacity: finalOp } : null),
-      photoUrl: photoUrl || effectiveConfig.photoUrl || null,
+      photoUrl: (photoUrl !== undefined) ? photoUrl : (effectiveConfig.photoUrl || null),
       updatedAt: new Date().toISOString(),
     };
 
@@ -187,7 +190,7 @@ export async function processSetThumbnail({
 
   // A) Nur Headline neu formatieren oder gewähltes Foto als Hintergrund verwenden
   if (mode !== 'generate_ai' && mode !== 'auto') {
-    const targetPhoto = photoUrl || effectiveConfig.photoUrl;
+    const targetPhoto = (photoUrl !== undefined) ? photoUrl : effectiveConfig.photoUrl;
     let sourceFile = resolveSourcePhoto(targetPhoto, targetFolder);
 
     if (!sourceFile && !fs.existsSync(rawBackgroundPath)) {
@@ -199,13 +202,19 @@ export async function processSetThumbnail({
     }
 
     if (sourceFile && fs.existsSync(sourceFile)) {
-      const scaleCmd = `ffmpeg -y -i "${sourceFile}" -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720[v]" -map "[v]" -frames:v 1 -q:v 2 "${destSub}"`;
-      try {
-        execSync(scaleCmd, { timeout: 10000 });
-      } catch {
-        fs.copyFileSync(sourceFile, destSub);
+      const isSameAsDest = path.resolve(sourceFile) === path.resolve(destSub);
+      const isRawBg = path.resolve(sourceFile) === path.resolve(rawBackgroundPath);
+      if (!isSameAsDest && !isRawBg) {
+        const scaleCmd = `ffmpeg -y -i "${sourceFile}" -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720[v]" -map "[v]" -frames:v 1 -update 1 -q:v 2 "${destSub}"`;
+        try {
+          execSync(scaleCmd, { timeout: 10000 });
+        } catch {
+          fs.copyFileSync(sourceFile, destSub);
+        }
+        fs.copyFileSync(destSub, rawBackgroundPath);
+      } else if (isRawBg) {
+        fs.copyFileSync(rawBackgroundPath, destSub);
       }
-      fs.copyFileSync(destSub, rawBackgroundPath);
     } else if (photoUrl && photoUrl.startsWith('http')) {
       try {
         const imgRes = await fetch(photoUrl, { signal: AbortSignal.timeout(6000) });

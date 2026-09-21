@@ -22,7 +22,7 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
   const [hasBox, setHasBox] = useState(isInitBadges ? true : !!cfg.hasBox), [boxStyle, setBoxStyle] = useState(isInitBadges ? 'per_line' : (cfg.boxStyle || (cfg.hasBox ? 'dark_soft' : 'none'))), [boxOpacity, setBoxOpacity] = useState(initOp)
   const [lineBadges, setLineBadges] = useState(cfg.lineBadges ? { ...cfg.lineBadges, enabled: isInitBadges, opacity: initOp } : { enabled: isInitBadges, style: 'solid', shadow: 'soft', tiltMode: 'none', lineTilts: null, color: '#000000', lineColors: null, opacity: initOp })
   const [selectedBgPhoto, setSelectedBgPhoto] = useState(null), [saving, setSaving] = useState(false), [generatingTitle, setGeneratingTitle] = useState(false)
-  const [realThumbnailUrl, setRealThumbnailUrl] = useState(null), [previewMode, setPreviewMode] = useState('css'), [renderingPreview, setRenderingPreview] = useState(false)
+  const [realThumbnailUrl, setRealThumbnailUrl] = useState(currentThumbnail || (pkg?.folderName ? `/news-static/${pkg.folderName}/thumbnail/thumbnail.jpg` : null)), [previewMode, setPreviewMode] = useState('css'), [renderingPreview, setRenderingPreview] = useState(false)
   const [titleTone, setTitleTone] = useState(pkg?.style === 'analytics' || pkg?.tone === 'analytics' ? 'analytics' : 'satire'), [titleVariants, setTitleVariants] = useState(Array.isArray(pkg.title_variants) ? pkg.title_variants : []), [loadingVariants, setLoadingVariants] = useState(false)
 
   const getHeadlineConfig = () => {
@@ -38,6 +38,7 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
       offsetX: offsetX !== undefined && offsetX !== null ? Number(offsetX) : 50, textAlign: textAlign || 'center',
       hasBox: finalBoxStyle !== 'none', boxStyle: finalBoxStyle, boxOpacity: finalOp,
       lineBadges: { ...(lineBadges || {}), enabled: isBadgesOn, opacity: finalOp },
+      photoUrl: selectedBgPhoto || null,
     }
   }
 
@@ -51,7 +52,9 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
       })
       const data = await res.json()
       if (data.success && data.thumbnailUrl) {
-        setRealThumbnailUrl(`${data.thumbnailUrl.split('?')[0]}?t=${Date.now()}`); setPreviewMode('real'); toast.success('⚡ Реальный рендер готов!', { duration: 1200 })
+        const fresh = `${data.thumbnailUrl.split('?')[0]}?t=${Date.now()}`
+        setRealThumbnailUrl(fresh); setPreviewMode('real'); toast.success('⚡ Реальный рендер готов!', { duration: 1200 })
+        if (onUpdated) onUpdated(fresh, data.style)
       }
     } catch (err) { toast.error('Ошибка: ' + err.message) }
     finally { setRenderingPreview(false) }
@@ -88,7 +91,7 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
     const isBadges = c.boxStyle === 'per_line' || Boolean(c.lineBadges?.enabled), opVal = c.lineBadges?.opacity !== undefined ? Number(c.lineBadges.opacity) : (c.boxOpacity !== undefined ? Number(c.boxOpacity) : 85)
     if (isBadges) { setBoxStyle('per_line'); setHasBox(true); setLineBadges(prev => ({ ...(prev || {}), ...(c.lineBadges || {}), enabled: true, opacity: opVal })) }
     else { if (c.hasBox !== undefined) setHasBox(Boolean(c.hasBox)); if (c.boxStyle !== undefined) setBoxStyle(c.boxStyle); else if (c.hasBox) setBoxStyle('dark_soft'); if (c.lineBadges) setLineBadges(c.lineBadges) }
-    setBoxOpacity(opVal); if (c.photoUrl) setSelectedBgPhoto(c.photoUrl)
+    setBoxOpacity(opVal); if (c.photoUrl !== undefined) setSelectedBgPhoto(c.photoUrl || null)
   }
 
   const fetchThumbnailStyle = async () => {
@@ -162,8 +165,7 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
 
   const handleDeleteFont = async (fontId, fontName) => {
     try {
-      const res = await fetch('/api/delete-font', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fontId }) })
-      const data = await res.json()
+      const res = await fetch('/api/delete-font', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fontId }) }), data = await res.json()
       if (data.success) {
         toast.success(`🗑️ Шрифт "${fontName}" удален`); setCustomFonts(prev => prev.filter(f => f.id !== fontId))
         if (font === fontId) { setFont('impact'); setFontFamilyName('Impact, "Arial Black", sans-serif'); }
@@ -213,11 +215,9 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
       const data = await res.json()
       toast.dismiss(toastId)
       if (data.success) {
-        if (data.thumbnailUrl) {
-          const freshThumb = `${data.thumbnailUrl.split('?')[0]}?t=${Date.now()}`
-          setRealThumbnailUrl(freshThumb)
-          if (onUpdated) onUpdated(freshThumb, data.style)
-        } else if (onUpdated) onUpdated(null, data.style)
+        const freshThumb = data.thumbnailUrl ? `${data.thumbnailUrl.split('?')[0]}?t=${Date.now()}` : null
+        if (freshThumb) { setRealThumbnailUrl(freshThumb); if (onUpdated) onUpdated(freshThumb, data.style); }
+        else if (onUpdated) onUpdated(null, data.style)
         if (data.style) applyStyleObject(data.style)
         toast.success('✨ Обложка и стиль сохранены!')
       } else toast.error('Ошибка: ' + (data.error || 'Не удалось обновить'))
