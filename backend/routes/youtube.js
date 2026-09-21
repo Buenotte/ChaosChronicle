@@ -115,17 +115,52 @@ router.post('/api/youtube/info', async (req, res) => {
   }
 });
 
-// POST /api/youtube/extract-facts - Extract 20 key facts
+// POST /api/youtube/extract-facts - Extract 20 key facts (from URL, package folder, or raw text)
 router.post('/api/youtube/extract-facts', async (req, res) => {
   try {
-    const { url } = req.body;
-    if (!isValidYouTubeUrl(url)) return res.status(400).json({ success: false, error: 'Некорректная ссылка на YouTube' });
+    const { url, folderName, bundleDir: inputBundleDir, text: inputText, title: inputTitle, force = false } = req.body;
+    let rawText = (inputText || '').trim(), title = (inputTitle || '').trim();
+    const targetFolder = inputBundleDir || (folderName ? path.join(newsDir, folderName) : null);
+
+    // 1. Из существующего пакета на диске
+    if (targetFolder && fs.existsSync(targetFolder)) {
+      const jsonPath = path.join(targetFolder, 'project.json');
+      let manifest = {};
+      if (fs.existsSync(jsonPath)) {
+        try { manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8')); } catch {}
+      }
+      if (!title) title = manifest.title || manifest.original_title || path.basename(targetFolder);
+      if (!force && Array.isArray(manifest.facts) && manifest.facts.length > 0) {
+        return res.json({ success: true, facts: manifest.facts, factsCount: manifest.facts.length, title, cached: true });
+      }
+      if (!rawText) {
+        const origPath = path.join(targetFolder, 'original_news.txt'), srcPath = path.join(targetFolder, 'source.txt'), mdPath = path.join(targetFolder, 'script.md');
+        if (fs.existsSync(origPath)) rawText = fs.readFileSync(origPath, 'utf-8');
+        else if (fs.existsSync(srcPath)) rawText = fs.readFileSync(srcPath, 'utf-8');
+        else if (fs.existsSync(mdPath)) rawText = fs.readFileSync(mdPath, 'utf-8');
+        else if (manifest.original_news || manifest.summary) rawText = manifest.original_news || manifest.summary;
+      }
+      if (rawText && rawText.length >= 40) {
+        const facts = await extractTwentyFactsFromTranscript(rawText, title);
+        manifest.facts = facts;
+        fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
+        return res.json({ success: true, facts, factsCount: facts.length, title });
+      }
+    }
+
+    // 2. Из переданного текста
+    if (rawText && rawText.length >= 40) {
+      const facts = await extractTwentyFactsFromTranscript(rawText, title || 'Материал');
+      return res.json({ success: true, facts, factsCount: facts.length, title: title || 'Материал' });
+    }
+
+    // 3. Скачивание по YouTube URL
+    if (!isValidYouTubeUrl(url)) return res.status(400).json({ success: false, error: 'Укажите ссылку на YouTube или текст для анализа' });
 
     const metadata = await fetchYouTubeMetadata(url);
     const tempDir = path.join(newsDir, `_temp_yt_${Date.now()}`);
     fs.mkdirSync(tempDir, { recursive: true });
 
-    let rawText = '';
     try {
       const subText = await downloadSubtitlesIfAvailable(url, tempDir);
       if (subText && subText.length > 80) rawText = subText;
@@ -136,16 +171,11 @@ router.post('/api/youtube/extract-facts', async (req, res) => {
         const audioPath = await downloadYouTubeAudio(url, tempDir, 'temp_fact_audio');
         const tr = await transcribeAudioFile(audioPath, 'base');
         if (tr?.text && tr.text.length > 30) rawText = tr.text;
-      } catch (err) {
-        console.warn('Audio transcription warning for facts:', err.message);
-      }
+      } catch (err) { console.warn('Audio transcription warning for facts:', err.message); }
     }
 
     try { fs.rmSync(tempDir, { recursive: true, force: true }); } catch {}
-
-    if (!rawText || rawText.length < 40) {
-      rawText = `${metadata.title}\n\n${metadata.description || ''}`;
-    }
+    if (!rawText || rawText.length < 40) rawText = `${metadata.title}\n\n${metadata.description || ''}`;
 
     const facts = await extractTwentyFactsFromTranscript(rawText, metadata.title);
     res.json({ success: true, metadata, facts, factsCount: facts.length });
@@ -286,7 +316,7 @@ ${rawText}
 // POST /api/youtube/regenerate-script
 router.post('/api/youtube/regenerate-script', async (req, res) => {
   try {
-    const { bundleDir, folderName, style = 'scipop' } = req.body;
+    const { bundleDir, folderName, style = 'scipop', selectedFacts } = req.body;
     const targetFolder = bundleDir || (folderName ? path.join(newsDir, folderName) : null);
     if (!targetFolder || !fs.existsSync(targetFolder)) return res.status(404).json({ success: false, error: 'Папка пакета не найдена' });
 
@@ -303,10 +333,11 @@ router.post('/api/youtube/regenerate-script', async (req, res) => {
       try { meta = JSON.parse(fs.readFileSync(jsonPath, 'utf-8')); } catch {}
     }
 
+    const effectiveFacts = selectedFacts !== undefined ? selectedFacts : meta.selectedFacts;
     const generatedScript = await buildYouTubeScript(sourceText, selectedStyle, {
       title: meta.title || meta.original_title,
       channel: meta.youtubeMetadata?.channel,
-      selectedFacts: meta.selectedFacts,
+      selectedFacts: effectiveFacts,
     });
     const wordCount = generatedScript.split(/\s+/).filter(Boolean).length;
     fs.writeFileSync(txtPath, generatedScript, 'utf-8');
@@ -324,6 +355,7 @@ router.post('/api/youtube/regenerate-script', async (req, res) => {
         m.style_name = selectedStyle.name;
         m.word_count = wordCount;
         m.isYouTube = true;
+        if (selectedFacts !== undefined) m.selectedFacts = selectedFacts;
         if (titleVariants.length > 0) {
           m.title_variants = titleVariants;
           m.title_variants_style = selectedStyle.id;

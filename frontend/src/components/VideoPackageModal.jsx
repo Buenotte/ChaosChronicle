@@ -11,6 +11,7 @@ import PackageAudioSection from './videoPackage/PackageAudioSection'
 import PackageVideoSection from './videoPackage/PackageVideoSection'
 import PackageShortsSection from './videoPackage/PackageShortsSection'
 import PackageYouTubeSection from './videoPackage/PackageYouTubeSection'
+import PackageScriptSection from './videoPackage/PackageScriptSection'
 import { FEUILLETON_STYLES, YOUTUBE_TOPIC_STYLES } from '../lib/utils'
 
 export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText, onOpenAudio, onOpenVideo, onClose, onRefresh }) {
@@ -52,27 +53,6 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
   const seekVideo = (e) => { const time = parseFloat(e.target.value); if (videoRef.current) { videoRef.current.currentTime = time; setCurrentTime(time); } }
 
   const [selectedScriptStyle, setSelectedScriptStyle] = useState(pkg.style || (isYouTube ? 'scipop' : 'golubuzki'))
-  const [generatingScript, setGeneratingScript] = useState(false)
-
-  const handleGenerateScript = async () => {
-    const isYt = ['scipop', 'mystery', 'tech_future', 'psychology', 'storytelling'].includes(selectedScriptStyle)
-    const toastId = toast.loading(isYt ? '✍️ Генерация YouTube сценария...' : '✍️ Генерация сценария...')
-    try {
-      setGeneratingScript(true)
-      const endpoint = isYt ? '/api/youtube/regenerate-script' : '/api/generate-feuilleton'
-      const payload = isYt ? { folderName: pkg.folderName, bundleDir: pkg.bundleDir, style: selectedScriptStyle }
-        : { folderName: pkg.folderName, bundleDir: pkg.bundleDir, title: pkg.title || pkg.original_title, summary: pkg.summary || pkg.original_news || '', url: pkg.url || '', style: selectedScriptStyle, saveToPackage: true }
-      const res = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-      const data = await res.json()
-      toast.dismiss(toastId)
-      if (data.success && (data.text || data.feuilleton)) {
-        pkg.hasScriptTxt = true; pkg.hasScriptMd = true; pkg.scriptTxt = data.text || data.feuilleton.text
-        if (data.feuilleton?.title) pkg.title = data.feuilleton.title; if (data.titleVariants?.length) pkg.title_variants = data.titleVariants
-        toast.success(`✍️ Сценарий готов и сохранен!`); if (onRefresh) onRefresh()
-      } else { toast.error('❌ Ошибка: ' + (data.error || 'Ошибка')) }
-    } catch (err) { toast.dismiss(toastId); toast.error('❌ Ошибка: ' + err.message) }
-    finally { setGeneratingScript(false) }
-  }
 
   const handleSaveAsNative = async () => {
     if (!currentThumbnail) return
@@ -280,33 +260,16 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
 
         <div className="modal-body">
           {/* 1. Скрипт текста и Заголовок */}
-          <div style={{ marginBottom: '1.25rem', background: '#090d16', padding: '0.85rem 1rem', borderRadius: '8px', border: '1px solid #1e293b' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem', flexWrap: 'wrap', gap: '0.4rem' }}>
-              <h3 style={{ fontSize: '0.95rem', color: '#9ca3af', margin: 0 }}>
-                1. Сценарий: {hasTxt && <span style={{ color: '#10b981', fontSize: '0.8rem', fontWeight: 600 }}>({pkg.scriptTxt?.split(/\s+/).filter(Boolean).length || pkg.word_count || 0} слов ✅)</span>}
-              </h3>
-              <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-                <select
-                  value={selectedScriptStyle} onChange={e => setSelectedScriptStyle(e.target.value)}
-                  style={{ background: '#1e293b', color: '#f8fafc', border: '1px solid #334155', borderRadius: '6px', fontSize: '0.8rem', padding: '0.35rem 0.5rem', cursor: 'pointer' }}
-                >
-                  <optgroup label="🎬 YouTube стили">{YOUTUBE_TOPIC_STYLES.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</optgroup>
-                  <optgroup label="🎭 Авторские (Сатира)">{FEUILLETON_STYLES.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</optgroup>
-                </select>
-                <button
-                  type="button" className="generate-btn" onClick={handleGenerateScript} disabled={generatingScript}
-                  style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', fontWeight: 700, background: '#7c3aed' }}
-                  title="Сгенерировать сценарий из исходного текста на диске"
-                >
-                  {generatingScript ? '⏳ ИИ пишет...' : hasTxt ? '🔄 Перегенерировать' : (isYouTube ? '✍️ Создать сценарий' : '✍️ Создать фельетон')}
-                </button>
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-              <button className="copy-btn" style={{ background: '#3b82f6' }} onClick={() => onOpenScriptText(pkg)}>📜 Открыть и редактировать текст</button>
-              <button className="copy-btn" style={{ background: '#ec4899', fontWeight: 600 }} onClick={() => setShowTitleVariantsModal(true)}>⚡ 10 вариантов заголовков</button>
-            </div>
-          </div>
+          <PackageScriptSection
+            pkg={pkg}
+            selectedScriptStyle={selectedScriptStyle}
+            setSelectedScriptStyle={setSelectedScriptStyle}
+            isYouTube={isYouTube}
+            hasTxt={hasTxt}
+            onOpenScriptText={onOpenScriptText}
+            onOpenTitleVariants={() => setShowTitleVariantsModal(true)}
+            onRefresh={onRefresh}
+          />
 
           {/* 1.5 Обложка (Thumbnail) */}
           <PackageThumbnailSection
