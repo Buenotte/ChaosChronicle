@@ -42,17 +42,28 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
   const [savingConfig, setSavingConfig] = useState(false)
   const previewRef = useRef(null)
 
+  useEffect(() => {
+    fetch('/api/custom-fonts').then(r => r.json()).then(data => {
+      if (data?.success && Array.isArray(data.fonts)) {
+        data.fonts.forEach(async (f) => {
+          try { const fontFace = new FontFace(f.name, `url(${f.url})`); await fontFace.load(); document.fonts.add(fontFace) } catch {}
+        })
+      }
+    }).catch(() => {})
+  }, [])
+
   const photoList = Array.isArray(pkg?.photoUrls) && pkg.photoUrls.length > 0 ? pkg.photoUrls : (Array.isArray(pkg?.photos) ? pkg.photos : [])
   const currentBgSrc = selectedPhoto
     ? (selectedPhoto.startsWith('/news-static/') ? selectedPhoto : `/news-static/${pkg?.folderName}/${selectedPhoto}`)
     : (previewPhotoUrl || (photoList[0] ? (photoList[0].startsWith('/news-static/') ? photoList[0] : `/news-static/${pkg?.folderName}/${photoList[0]}`) : ''))
 
+  const FONT_SCALE_CSS = 0.812
   const activeColorHex = TEXT_COLORS.find(c => c.id === fontColor)?.hex || '#FFE600'
   const activeBoxHex = BOX_COLORS.find(c => c.id === boxColor)?.hex || '#000000'
   const activeStrokeHex = STROKE_COLORS.find(c => c.id === strokeColor)?.hex || '#000000'
   const activeShadowHex = SHADOW_COLORS.find(c => c.id === shadowColor)?.hex || '#000000'
   const activeFontFamily = SHORTS_FONTS.find(f => f.id === font)?.family || 'Impact, sans-serif'
-  const activeShadowCss = shadowDistance > 0 ? `${((shadowDistance / 1080) * 240).toFixed(2)}px ${((shadowDistance / 1080) * 240).toFixed(2)}px 0px ${activeShadowHex}` : 'none'
+  const activeShadowCss = shadowDistance > 0 ? `${(((shadowDistance * FONT_SCALE_CSS) / 1080) * 240).toFixed(2)}px ${(((shadowDistance * FONT_SCALE_CSS) / 1080) * 240).toFixed(2)}px 0px ${activeShadowHex}` : 'none'
 
   const maxChars = Math.max(4, Math.floor(920 / ((Number(fontSize) || 110) * 0.58)))
   const displayText = wrapShortsText(text, maxChars) || 'ТЕКСТ ТИЗЕРА'
@@ -314,7 +325,7 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
                 ) : (
                   <>
                     {currentBgSrc && (<img src={currentBgSrc} alt="Shorts Preview" draggable={false} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 1, pointerEvents: 'none' }} />)}
-                    <div style={{ position: 'absolute', top: `${(posY / 1920) * 100}%`, left: '50%', transform: 'translateX(-50%)', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', textAlign: 'center', zIndex: 10, pointerEvents: 'none' }}>
+                    <div style={{ position: 'absolute', top: `${(posY / 1920) * 100}%`, left: '50%', transform: 'translateX(-50%)', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', textAlign: 'center', zIndex: 10, pointerEvents: 'none' }}>
                       {(() => {
                         let wordGlobalIdx = 0
                         return displayText.split('\n').map((line, lIdx) => {
@@ -326,14 +337,14 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
                                 style={{
                                   ...innerStyle,
                                   fontFamily: activeFontFamily, lineHeight: 1, fontWeight: 900, textTransform: 'uppercase',
-                                  WebkitTextStroke: strokeWidth > 0 ? `${((strokeWidth / 1080) * 240).toFixed(2)}px ${activeStrokeHex}` : 'none', textShadow: activeShadowCss,
+                                  WebkitTextStroke: strokeWidth > 0 ? `${(((strokeWidth * FONT_SCALE_CSS) / 1080) * 240).toFixed(2)}px ${activeStrokeHex}` : 'none', textShadow: activeShadowCss,
                                 }}
                               >
                                 {lineWords.map((w, wSubIdx) => {
                                   const curIdx = wordGlobalIdx++, wCol = (wordColors && wordColors[curIdx]) ? wordColors[curIdx] : fontColor
                                   const wColHex = TEXT_COLORS.find(c => c.id === wCol)?.hex || activeColorHex
                                   const wSz = (wordFontSizes && wordFontSizes[curIdx] && Number(wordFontSizes[curIdx]) > 0) ? Number(wordFontSizes[curIdx]) : Number(fontSize)
-                                  return (<span key={wSubIdx} style={{ color: wColHex, fontSize: `${(wSz / 1080) * 240}px`, margin: wSubIdx > 0 ? '0 0 0 0.28em' : '0', display: 'inline-block' }}>{w}</span>)
+                                  return (<span key={wSubIdx} style={{ color: wColHex, fontSize: `${((wSz * FONT_SCALE_CSS) / 1080) * 240}px`, margin: wSubIdx > 0 ? '0 0 0 0.28em' : '0', display: 'inline-block' }}>{w}</span>)
                                 })}
                               </span>
                             </span>
