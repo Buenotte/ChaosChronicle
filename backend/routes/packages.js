@@ -138,12 +138,8 @@ const handleSavePackage = async (req, res) => {
       }
     }
 
-    res.json({
-      success: true,
-      bundleDir,
-      folderName: path.basename(bundleDir),
-      savedPhotosCount: savedPhotos.length,
-    });
+    invalidatePackagesCache();
+    res.json({ success: true, bundleDir, folderName: path.basename(bundleDir), savedPhotosCount: savedPhotos.length });
   } catch (err) {
     console.error('Save package error:', err.message);
     res.status(500).json({ success: false, error: err.message });
@@ -153,9 +149,16 @@ const handleSavePackage = async (req, res) => {
 router.post('/api/save-package', handleSavePackage);
 router.post('/api/save-news-package', handleSavePackage);
 
+let savedPackagesCache = null, savedPackagesLastFetch = 0;
+export const invalidatePackagesCache = () => { savedPackagesCache = null; savedPackagesLastFetch = 0; };
+
 // GET /api/saved-packages
 router.get('/api/saved-packages', async (req, res) => {
   try {
+    const isForce = req.query.force === 'true';
+    if (!isForce && savedPackagesCache && (Date.now() - savedPackagesLastFetch < 10000)) {
+      return res.json({ success: true, packages: savedPackagesCache, cached: true });
+    }
     const newsDir = path.resolve(__dirname, '../../news');
     if (!fs.existsSync(newsDir)) return res.json({ success: true, packages: [] });
 
@@ -237,6 +240,7 @@ router.get('/api/saved-packages', async (req, res) => {
       });
     }
 
+    savedPackagesCache = packages; savedPackagesLastFetch = Date.now();
     res.json({ success: true, packages });
   } catch (err) {
     console.error('List packages error:', err.message);
@@ -251,6 +255,7 @@ router.post('/api/delete-package', (req, res) => {
     const bundleDir = req.body.bundleDir || (req.body.folderName ? path.join(newsDir, req.body.folderName) : null);
     if (!bundleDir || !fs.existsSync(bundleDir)) return res.status(404).json({ success: false, error: 'Папка не найдена' });
     fs.rmSync(bundleDir, { recursive: true, force: true });
+    invalidatePackagesCache();
     res.json({ success: true, deleted: path.basename(bundleDir) });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });

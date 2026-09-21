@@ -16,7 +16,8 @@ export default function App() {
   const [error, setError] = useState(null)
   const [backendStatus, setBackendStatus] = useState('checking')
   const [lastRefresh, setLastRefresh] = useState('')
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState(''), [visibleCount, setVisibleCount] = useState(30)
+  useEffect(() => { setVisibleCount(30) }, [category, search])
 
   // Feuilleton Generation State
   const [generatingId, setGeneratingId] = useState(null)
@@ -220,23 +221,21 @@ export default function App() {
       return savedItems.filter(a => matchesSearch(a, q))
     }
 
+    const prePkgs = (savedPackages || []).map(p => ({
+      pkg: p,
+      t: cleanMatchTitle(p?.title).slice(0, 14),
+      o: cleanMatchTitle(p?.original_title).slice(0, 14),
+      f: cleanMatchTitle(p?.folderName?.replace(/^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}_/, '')).slice(0, 14),
+    }))
     const regularWithPkg = articles.map(a => {
       const artClean = cleanMatchTitle(a?.title)
-      const matchingPkg = (savedPackages || []).find(p => {
-        if (!artClean) return false
-        const pkgTitleClean = cleanMatchTitle(p?.title)
-        const pkgOrigClean = cleanMatchTitle(p?.original_title)
-        const pkgFolderClean = cleanMatchTitle(p?.folderName?.replace(/^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}_/, ''))
-
-        if (pkgOrigClean && (artClean.includes(pkgOrigClean.slice(0, 14)) || pkgOrigClean.includes(artClean.slice(0, 14)))) return true
-        if (pkgTitleClean && (artClean.includes(pkgTitleClean.slice(0, 14)) || pkgTitleClean.includes(artClean.slice(0, 14)))) return true
-        if (pkgFolderClean && (artClean.includes(pkgFolderClean.slice(0, 14)) || pkgFolderClean.includes(artClean.slice(0, 14)))) return true
-        return false
-      })
-
-      if (matchingPkg) {
-        const effectiveUrl = a.url || a.link || matchingPkg.url || matchingPkg.original_url || null
-        return { ...a, url: effectiveUrl, matchingPkg: { ...matchingPkg, url: effectiveUrl } }
+      if (!artClean) return a
+      const m = prePkgs.find(cp => (cp.o && (artClean.includes(cp.o) || cp.o.includes(artClean.slice(0, 14)))) ||
+        (cp.t && (artClean.includes(cp.t) || cp.t.includes(artClean.slice(0, 14)))) ||
+        (cp.f && (artClean.includes(cp.f) || cp.f.includes(artClean.slice(0, 14)))))
+      if (m) {
+        const effectiveUrl = a.url || a.link || m.pkg.url || m.pkg.original_url || null
+        return { ...a, url: effectiveUrl, matchingPkg: { ...m.pkg, url: effectiveUrl } }
       }
       return a
     })
@@ -308,26 +307,42 @@ export default function App() {
         )}
 
         {filtered.length > 0 && (
-          <div className="news-grid">
-            {filtered.map((article, i) => {
-              const matchingSavedPkg = article.matchingPkg
-              return (
-                <NewsCard
-                  key={article.id || i}
-                  article={article}
-                  index={i}
-                  onGenerate={handleGenerate}
-                  onSavePackage={handleSaveArticleToPackage}
-                  onOpenPhotos={handleFetchNewsPhotos}
-                  isGenerating={generatingId === article.id}
-                  isSavedPkg={!!matchingSavedPkg}
-                  savedPkg={matchingSavedPkg}
-                  onViewSavedPackage={pkg => handleOpenSavedPackage(pkg)}
-                  onOpenOriginal={art => setOriginalTextArticle(art)}
-                />
-              )
-            })}
-          </div>
+          <>
+            <div className="news-grid">
+              {filtered.slice(0, visibleCount).map((article, i) => {
+                const matchingSavedPkg = article.matchingPkg
+                return (
+                  <NewsCard
+                    key={article.id || i}
+                    article={article}
+                    index={i}
+                    onGenerate={handleGenerate}
+                    onSavePackage={handleSaveArticleToPackage}
+                    onOpenPhotos={handleFetchNewsPhotos}
+                    isGenerating={generatingId === article.id}
+                    isSavedPkg={!!matchingSavedPkg}
+                    savedPkg={matchingSavedPkg}
+                    onViewSavedPackage={pkg => handleOpenSavedPackage(pkg)}
+                    onOpenOriginal={art => setOriginalTextArticle(art)}
+                  />
+                )
+              })}
+            </div>
+            {filtered.length > visibleCount && (
+              <div style={{ display: 'flex', justifyContent: 'center', margin: '2rem 0' }}>
+                <button
+                  onClick={() => setVisibleCount(v => v + 30)}
+                  style={{
+                    padding: '0.75rem 2rem', borderRadius: '10px', background: 'var(--accent, #3b82f6)',
+                    color: '#fff', fontWeight: 700, fontSize: '0.95rem', border: 'none', cursor: 'pointer',
+                    boxShadow: '0 4px 14px rgba(59, 130, 246, 0.4)', display: 'inline-flex', alignItems: 'center', gap: '0.5rem'
+                  }}
+                >
+                  📰 Показать ещё (+{Math.min(30, filtered.length - visibleCount)}) — показано {Math.min(visibleCount, filtered.length)} из {filtered.length}
+                </button>
+              </div>
+            )}
+          </>
         )}
       </main>
 

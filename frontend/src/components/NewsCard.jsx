@@ -44,7 +44,7 @@ export default function NewsCard({
   return (
     <article
       className={`news-card ${isSaved ? 'saved-news-card' : ''}`}
-      style={{ '--cat-color': catColor, animationDelay: `${index * 30}ms` }}
+      style={{ '--cat-color': catColor, animationDelay: `${Math.min(index, 6) * 35}ms` }}
     >
       {displayImage && !imgError && (
         <div className="card-image" style={{ position: 'relative' }}>

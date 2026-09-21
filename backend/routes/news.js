@@ -197,10 +197,10 @@ let lastFetch = 0;
 if (fs.existsSync(cacheFilePath)) {
   try {
     const cachedData = JSON.parse(fs.readFileSync(cacheFilePath, 'utf-8'));
-    const maxAgeMs = 7 * 24 * 60 * 60 * 1000;
-    newsCache = (cachedData.articles || []).filter(a => !a.pubDate || (Date.now() - new Date(a.pubDate).getTime()) <= maxAgeMs);
+    const maxAgeMs = 36 * 60 * 60 * 1000; // Maximal 36 Stunden
+    newsCache = (cachedData.articles || []).filter(a => !a.pubDate || (Date.now() - new Date(a.pubDate).getTime()) <= maxAgeMs).slice(0, 150);
     lastFetch = cachedData.lastFetch || 0;
-    console.log(`📦 ${newsCache.length} frische Nachrichten (max. 7 Tage) aus Festplatten-Cache geladen.`);
+    console.log(`📦 ${newsCache.length} frische Nachrichten (max. 36h) aus Festplatten-Cache geladen.`);
     // Hintergrund-Ergänzung für fehlende Bilder
     const missingCount = newsCache.filter(a => !a.imageUrl && a.url).length;
     if (missingCount > 0) {
@@ -221,12 +221,12 @@ export async function fetchAllFeeds(forceRefresh = false) {
 
   console.log(forceRefresh ? '↻ Nachrichten werden neu im Internet gesucht...' : '📰 Erste Nachrichten-Suche...');
   const now = Date.now();
-  const maxAgeMs = 7 * 24 * 60 * 60 * 1000; // Maximal 7 Tage (1 Woche)
+  const maxAgeMs = 36 * 60 * 60 * 1000; // Maximal 36 Stunden
 
   const results = await Promise.allSettled(
     FEEDS.map(async (feed) => {
       const parsed = await parser.parseURL(feed.url);
-      return parsed.items.filter(item => {
+      return (parsed.items || []).slice(0, 8).filter(item => {
         const d = item.pubDate || item.isoDate;
         if (!d) return true;
         const time = new Date(d).getTime();
@@ -270,6 +270,7 @@ export async function fetchAllFeeds(forceRefresh = false) {
     if (normUrl) seenUrls.add(normUrl);
     if (normTitle) seenTitles.add(normTitle);
     articles.push(art);
+    if (articles.length >= 150) break;
   }
 
   newsCache = articles;
