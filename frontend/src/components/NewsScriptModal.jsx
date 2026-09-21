@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 import { FEUILLETON_STYLES, YOUTUBE_TOPIC_STYLES, AI_MODELS } from '../lib/utils'
 import ScriptHookGenerator from './script/ScriptHookGenerator'
 import ScriptToolbar from './script/ScriptToolbar'
+import ModalHeader from './common/ModalHeader'
 
 export default function NewsScriptModal({ pkg, onClose, onSaved }) {
   if (!pkg) return null
@@ -188,29 +189,15 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
         }}
         onClick={e => e.stopPropagation()}
       >
-        <div
-          className="modal-header draggable-header"
+        <ModalHeader
+          title={pkg.title}
+          badge="📜 Текст диктора (🖐️ Перетащите окно)"
+          isMaximized={isMaximized}
+          onToggleMaximize={() => setIsMaximized(!isMaximized)}
+          onClose={onClose}
           onMouseDown={handleMouseDown}
-          style={{ cursor: isDragging ? 'grabbing' : 'grab', userSelect: 'none' }}
-          title="Зажмите мышью, чтобы перетащить окно"
-        >
-          <div>
-            <span className="modal-badge saved-badge">
-              📜 Текст диктора (🖐️ Перетащите окно)
-            </span>
-            <h2 className="modal-title">{pkg.title}</h2>
-          </div>
-          <div style={{ display: 'flex', gap: '0.35rem' }}>
-            <button
-              className="modal-close"
-              onClick={() => setIsMaximized(!isMaximized)}
-              title={isMaximized ? "Свернуть окно" : "Развернуть во весь экран"}
-            >
-              {isMaximized ? '🗗' : '🗖'}
-            </button>
-            <button className="modal-close" onClick={onClose} title="Закрыть окно">✕</button>
-          </div>
-        </div>
+          isDragging={isDragging}
+        />
 
         <div className="modal-body">
 

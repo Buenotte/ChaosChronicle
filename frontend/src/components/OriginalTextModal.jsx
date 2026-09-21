@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { timeAgo } from '../lib/utils'
+import ModalHeader from './common/ModalHeader'
 
 export default function OriginalTextModal({ article, isOpen, onClose, onGenerate }) {
   const [copied, setCopied] = useState(false)
@@ -74,12 +75,12 @@ export default function OriginalTextModal({ article, isOpen, onClose, onGenerate
         style={{ maxWidth: '780px', width: '92%', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
         onClick={e => e.stopPropagation()}
       >
-        <div className="modal-header">
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.35rem' }}>
-              <span className="modal-badge" style={{ background: '#7c3aed', color: '#fff' }}>
-                📰 Исходное сообщение
-              </span>
+        <ModalHeader
+          badge="📰 Исходное сообщение"
+          badgeStyle={{ background: '#7c3aed', color: '#fff' }}
+          title={title}
+          subtitle={(
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.2rem' }}>
               <span className="modal-badge" style={{ background: '#1e293b', color: '#38bdf8', border: '1px solid #334155' }}>
                 📱 {source}
               </span>
@@ -94,12 +95,9 @@ export default function OriginalTextModal({ article, isOpen, onClose, onGenerate
                 </span>
               )}
             </div>
-            <h2 className="modal-title" style={{ fontSize: '1.2rem', lineHeight: 1.35, margin: 0 }}>
-              {title}
-            </h2>
-          </div>
-          <button className="modal-close" onClick={onClose} title="Закрыть (Esc)">✕</button>
-        </div>
+          )}
+          onClose={onClose}
+        />
 
         <div className="modal-body" style={{ flex: 1, overflowY: 'auto', padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {originalText ? (

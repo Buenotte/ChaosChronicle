@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
+import ModalHeader from './common/ModalHeader'
 
 export default function YouTubeFactsModal({
   isOpen, onClose, facts = [], videoTitle = '', onConfirm, loading = false,
@@ -60,20 +61,13 @@ export default function YouTubeFactsModal({
         }}
       >
         {/* Header */}
-        <div style={{ flexShrink: 0, padding: '1.1rem 1.5rem', borderBottom: '1px solid #2d2248', background: '#18142b', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-              <span style={{ fontSize: '1.5rem' }}>🔍</span>
-              <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#ffffff' }}>
-                20 ключевых фактов & тем из видео
-              </h2>
-            </div>
-            <p style={{ margin: '0.2rem 0 0', fontSize: '0.78rem', color: '#a78bfa' }}>
-              {videoTitle ? `«${videoTitle.slice(0, 80)}»` : 'Выберите факты для сценария'}
-            </p>
-          </div>
-          <button type="button" onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#9ca3af', fontSize: '1.4rem', cursor: 'pointer' }}>✕</button>
-        </div>
+        <ModalHeader
+          icon="🔍"
+          title="20 ключевых фактов & тем из видео"
+          subtitle={videoTitle ? `«${videoTitle.slice(0, 80)}»` : 'Выберите факты для сценария'}
+          onClose={onClose}
+          style={{ flexShrink: 0, padding: '1.1rem 1.5rem', borderBottom: '1px solid #2d2248', background: '#18142b' }}
+        />
 
         {/* Toolbar */}
         <div style={{ flexShrink: 0, padding: '0.75rem 1.5rem', background: '#161226', borderBottom: '1px solid #281e3d', display: 'flex', flexWrap: 'wrap', gap: '0.65rem', alignItems: 'center', justifyContent: 'space-between' }}>

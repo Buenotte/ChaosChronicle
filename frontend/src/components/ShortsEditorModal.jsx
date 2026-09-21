@@ -53,7 +53,7 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
   }, [])
 
   const thumbCover = (pkg?.hasThumbnail || pkg?.thumbnailUrl) && pkg?.folderName ? `/news-static/${pkg.folderName}/thumbnail/thumbnail.jpg` : null
-  const rawList = Array.isArray(pkg?.photoUrls) && pkg.photoUrls.length > 0 ? pkg.photoUrls : (Array.isArray(pkg?.photos) ? pkg.photos : [])
+  const rawList = (Array.isArray(pkg?.photoUrls) && pkg.photoUrls.length > 0 ? pkg.photoUrls : (Array.isArray(pkg?.photos) ? pkg.photos : [])).map(p => typeof p === 'string' ? p : p?.url || '').filter(Boolean)
   const photoList = thumbCover ? [thumbCover, ...rawList.filter(p => !p.includes('thumbnail'))] : rawList
   const currentBgSrc = selectedPhoto
     ? (selectedPhoto.startsWith('/news-static/') ? selectedPhoto : `/news-static/${pkg?.folderName}/${selectedPhoto}`)

@@ -25,8 +25,10 @@ export default function BackgroundPhotoSelector({
       </div>
       <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.35rem' }}>
         {photoList.map((p, idx) => {
-          const pUrl = p.startsWith('/news-static/') ? p : `/news-static/${folderName}/${p}`
-          const isThumb = p.includes('thumbnail')
+          const rawP = typeof p === 'string' ? p : p?.url || ''
+          const pUrl = rawP.startsWith('/news-static/') ? rawP : `/news-static/${folderName}/${rawP}`
+          const isThumb = rawP.includes('thumbnail')
+          const isSelected = selectedBgPhoto === p || selectedBgPhoto === rawP || selectedBgPhoto === pUrl
           return (
             <div
               key={idx}

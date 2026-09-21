@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { CATEGORIES, CATEGORY_COLOR, timeAgo } from '../lib/utils'
+import ArtifactBadge from './common/ArtifactBadge'
 
 export default function NewsCard({
   article,
@@ -8,6 +9,7 @@ export default function NewsCard({
   onSavePackage,
   onOpenPhotos,
   isGenerating,
+  isSaving,
   isSavedPkg,
   savedPkg,
   onViewSavedPackage,
@@ -130,46 +132,14 @@ export default function NewsCard({
         {/* 📦 СПИСОК ГОТОВЫХ АРТЕФАКТОВ В ПАКЕТЕ */}
         {hasAnyArtifact && (
           <div className="artifact-badges-row">
-            {(savedPkg.hasScriptTxt || savedPkg.hasScriptMd) && (
-              <span className="artifact-pill script" title="Сценарий готов (script.txt / script.md)">
-                📜 Скрипт ✅
-              </span>
-            )}
-            {savedPkg.photosCount > 0 && (
-              <span className="artifact-pill photos" title={`${savedPkg.photosCount} фото скачано в news/photos/`}>
-                📸 {savedPkg.photosCount} фото ✅
-              </span>
-            )}
-            {savedPkg.hasThumbnail && (
-              <span className="artifact-pill thumbnail" title="16:9 YouTube Обложка создана (thumbnail.jpg)">
-                ✨ 16:9 Обложка ✅
-              </span>
-            )}
-            {savedPkg.hasAudio && (
-              <span className="artifact-pill audio" title="Аудио озвучка сгенерирована (audio.mp3)">
-                🎙️ Аудио ✅
-              </span>
-            )}
-            {savedPkg.hasVideo && (
-              <span className="artifact-pill video" title="Финальное видео срендерено (video.mp4)">
-                🎬 Видео ✅
-              </span>
-            )}
-            {savedPkg.hasShort && (
-              <span className="artifact-pill shorts" title="9:16 Shorts видео срендерено (short.mp4)">
-                ⚡ Shorts ✅
-              </span>
-            )}
-            {savedPkg.hasYouTubeMetadata && (
-              <span className="artifact-pill youtube" title="YouTube метаданные готовы">
-                📺 YouTube ✅
-              </span>
-            )}
-            {savedPkg.hasFacebookPost && (
-              <span className="artifact-pill fb" title="Facebook пост готов">
-                📱 FB ✅
-              </span>
-            )}
+            {(savedPkg.hasScriptTxt || savedPkg.hasScriptMd) && <ArtifactBadge type="script" title="Сценарий готов (script.txt / script.md)" />}
+            {savedPkg.photosCount > 0 && <ArtifactBadge type="photos" count={savedPkg.photosCount} title={`${savedPkg.photosCount} фото скачано в news/photos/`} />}
+            {savedPkg.hasThumbnail && <ArtifactBadge type="thumbnail" title="16:9 YouTube Обложка создана (thumbnail.jpg)" />}
+            {savedPkg.hasAudio && <ArtifactBadge type="audio" title="Аудио озвучка сгенерирована (audio.mp3)" />}
+            {savedPkg.hasVideo && <ArtifactBadge type="video" title="Финальное видео срендерено (video.mp4)" />}
+            {savedPkg.hasShort && <ArtifactBadge type="shorts" title="9:16 Shorts видео срендерено (short.mp4)" />}
+            {savedPkg.hasYouTubeMetadata && <ArtifactBadge type="youtube" title="YouTube метаданные готовы" />}
+            {savedPkg.hasFacebookPost && <ArtifactBadge type="fb" title="Facebook пост готов" />}
           </div>
         )}
 
@@ -178,7 +148,10 @@ export default function NewsCard({
             <button
               type="button"
               className="view-saved-btn has-artifacts"
-              onClick={() => onViewSavedPackage(savedPkg || article)}
+              onClick={(e) => {
+                e.stopPropagation()
+                onViewSavedPackage && onViewSavedPackage(savedPkg || article)
+              }}
               title="Открыть готовый видео-пакет (Аудио, Фото, Сценарий)"
             >
               📂 Видео-пакет ✅
@@ -187,11 +160,23 @@ export default function NewsCard({
             <button
               type="button"
               className="generate-btn"
-              onClick={() => onSavePackage ? onSavePackage(article) : onGenerate(article)}
-              style={{ background: '#059669', borderColor: '#10b981', color: '#fff', fontWeight: 700 }}
+              disabled={isSaving}
+              onClick={(e) => {
+                e.stopPropagation()
+                if (onSavePackage) onSavePackage(article)
+                else if (onGenerate) onGenerate(article)
+              }}
+              style={{
+                background: isSaving ? '#065f46' : '#059669',
+                borderColor: '#10b981',
+                color: '#fff',
+                fontWeight: 700,
+                opacity: isSaving ? 0.75 : 1,
+                cursor: isSaving ? 'wait' : 'pointer',
+              }}
               title="Скачать оригинальную новость и фото из интернета и сохранить пакет в news/"
             >
-              💾 Сохранить в пакет
+              {isSaving ? '⏳ Создание...' : '💾 Сохранить в пакет'}
             </button>
           )}
 

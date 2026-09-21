@@ -22,6 +22,11 @@ const testSuites = [
   { name: '10. YouTube Shorts 9:16 Studio & FFmpeg Pipeline', file: 'test_shorts_engine.js' },
   { name: '11. YouTube Audio Extraction & 3-Min Script Pipeline', file: 'test_youtube_service.js' },
   { name: '12. Auto Photos 100 Engine & Web Downloader', file: 'test_auto_photos.js' },
+  { name: '13. Strict File Line Limits (<= 389 lines)', file: 'test_line_limits.js' },
+  { name: '14. Reusable Common Components & Voice Registry', file: 'test_common_components.js' },
+  { name: '15. Article Scraper & Text Extraction Pipeline', file: 'test_article_scraper.js' },
+  { name: '16. Backend API Edge Cases & Error Handling', file: 'test_backend_edge_cases.js' },
+  { name: '17. Frontend Module Resolution & Component Contracts', file: 'test_frontend_contracts.js' },
 ];
 
 let passedCount = 0;

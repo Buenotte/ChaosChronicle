@@ -28,7 +28,7 @@ export default function App() {
   const [newsPhotos, setNewsPhotos] = useState([])
   const [loadingPhotos, setLoadingPhotos] = useState(false)
 
-  const [savedPackages, setSavedPackages] = useState([]), [activeSavedPackage, setActiveSavedPackage] = useState(null)
+  const [savedPackages, setSavedPackages] = useState([]), [activeSavedPackage, setActiveSavedPackage] = useState(null), [savingPackageId, setSavingPackageId] = useState(null)
   const [scriptTextPackage, setScriptTextPackage] = useState(null), [audioPackage, setAudioPackage] = useState(null), [videoPackage, setVideoPackage] = useState(null)
   const [showCustomNewsModal, setShowCustomNewsModal] = useState(false), [showYouTubeModal, setShowYouTubeModal] = useState(false), [originalTextArticle, setOriginalTextArticle] = useState(null)
 
@@ -83,20 +83,20 @@ export default function App() {
       if (data.success) {
         const pkgs = data.packages || []
         setSavedPackages(pkgs)
-
         const params = new URLSearchParams(window.location.search)
         const pkgParam = params.get('pkg')
-
         setActiveSavedPackage(current => {
           const targetFolder = current?.folderName || pkgParam
-          if (!targetFolder) return null
+          if (!targetFolder) return current
           const found = pkgs.find(p => p.folderName === targetFolder)
           return found ? { ...(current || {}), ...found } : current
         })
+        return pkgs
       }
     } catch (err) {
       console.error('Fetch saved packages error:', err.message)
     }
+    return []
   }, [])
 
   const fetchNews = useCallback(async (cat, force = false) => {
@@ -147,10 +147,13 @@ export default function App() {
 
   const handleOpenSavedPackage = (pkg) => {
     if (!pkg) return
-    const folder = pkg.folderName || pkg.matchingPkg?.folderName
-    const found = (savedPackages || []).find(p => p.folderName === folder || (folder && p.folderName?.includes(folder)))
-    setActiveSavedPackage(found ? { ...pkg, ...found } : pkg)
-    if (folder) updateUrlState(folder)
+    const folder = pkg.folderName || pkg.matchingPkg?.folderName || (typeof pkg.id === 'string' && pkg.id.startsWith('pkg-') ? pkg.id.replace('pkg-', '') : null)
+    const cleanT = cleanMatchTitle(pkg.title)
+    const found = (savedPackages || []).find(p => (folder && p.folderName === folder) || (folder && p.folderName?.includes(folder)) || (cleanT && cleanMatchTitle(p.title) === cleanT))
+    const targetPkg = found ? { ...pkg, ...found } : pkg
+    setActiveSavedPackage(targetPkg)
+    const effectiveFolder = folder || targetPkg.folderName
+    if (effectiveFolder) updateUrlState(effectiveFolder)
   }
 
   const handleCloseSavedPackage = () => { setActiveSavedPackage(null); updateUrlState(null); }
@@ -160,6 +163,8 @@ export default function App() {
   }, [category, fetchNews, checkStatus, fetchSavedPackages])
 
   const handleSaveArticleToPackage = async (article) => {
+    const artKey = article.id || article.title
+    setSavingPackageId(artKey)
     const toastId = toast.loading('💾 Скачивание статьи и создание пакета в news/...')
     try {
       const res = await fetch('/api/save-package', {
@@ -177,13 +182,24 @@ export default function App() {
       const data = await res.json()
       if (data.success) {
         toast.success('📦 Пакет успешно сохранен на диск!', { id: toastId })
-        await fetchSavedPackages()
-        handleOpenSavedPackage({ folderName: data.folderName, bundleDir: data.bundleDir, title: article.title, url: article.url || article.link })
+        const freshPackages = await fetchSavedPackages()
+        const found = (freshPackages || []).find(p => p.folderName === data.folderName)
+        const targetPkg = found || {
+          folderName: data.folderName,
+          bundleDir: data.bundleDir,
+          title: article.title,
+          url: article.url || article.link,
+          summary: article.summary || article.original_news || '',
+          photosCount: data.savedPhotosCount || 0,
+        }
+        handleOpenSavedPackage(targetPkg)
       } else {
         toast.error('❌ Ошибка сохранения: ' + (data.error || 'Не удалось сохранить'), { id: toastId })
       }
     } catch (err) {
       toast.error('❌ Ошибка: ' + err.message, { id: toastId })
+    } finally {
+      setSavingPackageId(null)
     }
   }
 
@@ -240,8 +256,7 @@ export default function App() {
       return a
     })
 
-    if (!q) return regularWithPkg
-    return regularWithPkg.filter(a => matchesSearch(a, q))
+    return q ? regularWithPkg.filter(a => matchesSearch(a, q)) : regularWithPkg
   }, [articles, savedPackages, search, category])
 
   return (
@@ -320,6 +335,7 @@ export default function App() {
                     onSavePackage={handleSaveArticleToPackage}
                     onOpenPhotos={handleFetchNewsPhotos}
                     isGenerating={generatingId === article.id}
+                    isSaving={savingPackageId === (article.id || article.title)}
                     isSavedPkg={!!matchingSavedPkg}
                     savedPkg={matchingSavedPkg}
                     onViewSavedPackage={pkg => handleOpenSavedPackage(pkg)}
@@ -349,30 +365,17 @@ export default function App() {
       {/* Модальные окна с защитой ErrorBoundary */}
       <ErrorBoundary>
         <NewsModalsContainer
-          currentFeuilleton={currentFeuilleton}
-          setCurrentFeuilleton={setCurrentFeuilleton}
-          activeSavedPackage={activeSavedPackage}
-          handleCloseSavedPackage={handleCloseSavedPackage}
-          scriptTextPackage={scriptTextPackage}
-          setScriptTextPackage={setScriptTextPackage}
-          audioPackage={audioPackage}
-          setAudioPackage={setAudioPackage}
-          setVideoPackage={setVideoPackage}
-          photoTopic={photoTopic}
-          setPhotoTopic={setPhotoTopic}
-          newsPhotos={newsPhotos}
-          loadingPhotos={loadingPhotos}
-          handleFetchNewsPhotos={handleFetchNewsPhotos}
-          fetchSavedPackages={fetchSavedPackages}
-          showCustomNewsModal={showCustomNewsModal}
-          setShowCustomNewsModal={setShowCustomNewsModal}
-          showYouTubeModal={showYouTubeModal}
-          setShowYouTubeModal={setShowYouTubeModal}
-          onCustomNewsCreated={handleCustomNewsCreated}
-          onOpenPackage={handleOpenSavedPackage}
-          originalTextArticle={originalTextArticle}
-          setOriginalTextArticle={setOriginalTextArticle}
-          onGenerateFeuilleton={handleGenerate}
+          currentFeuilleton={currentFeuilleton} setCurrentFeuilleton={setCurrentFeuilleton}
+          activeSavedPackage={activeSavedPackage} handleCloseSavedPackage={handleCloseSavedPackage}
+          scriptTextPackage={scriptTextPackage} setScriptTextPackage={setScriptTextPackage}
+          audioPackage={audioPackage} setAudioPackage={setAudioPackage} setVideoPackage={setVideoPackage}
+          photoTopic={photoTopic} setPhotoTopic={setPhotoTopic} newsPhotos={newsPhotos}
+          loadingPhotos={loadingPhotos} handleFetchNewsPhotos={handleFetchNewsPhotos}
+          fetchSavedPackages={fetchSavedPackages} showCustomNewsModal={showCustomNewsModal}
+          setShowCustomNewsModal={setShowCustomNewsModal} showYouTubeModal={showYouTubeModal}
+          setShowYouTubeModal={setShowYouTubeModal} onCustomNewsCreated={handleCustomNewsCreated}
+          onOpenPackage={handleOpenSavedPackage} originalTextArticle={originalTextArticle}
+          setOriginalTextArticle={setOriginalTextArticle} onGenerateFeuilleton={handleGenerate}
         />
       </ErrorBoundary>
 

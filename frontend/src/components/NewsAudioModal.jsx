@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { toast } from 'sonner'
-import { VOICES } from './videoPackage/PackageAudioSection'
+import VoiceSelector, { ALL_VOICES } from './common/VoiceSelector'
+import ModalHeader from './common/ModalHeader'
 
 export default function NewsAudioModal({ pkg, onClose, onRefresh }) {
   if (!pkg) return null
@@ -72,7 +73,7 @@ export default function NewsAudioModal({ pkg, onClose, onRefresh }) {
       return
     }
     setGeneratingAudio(true)
-    const voiceObj = VOICES.find(v => v.id === selectedVoice) || VOICES[0]
+    const voiceObj = ALL_VOICES.find(v => v.id === selectedVoice) || ALL_VOICES[0]
     const toastId = toast.loading(`🎙️ Синтез речи (${voiceObj.name})...`, {
       description: 'Генерация звукового файла audio.mp3...',
     })
@@ -143,45 +144,21 @@ export default function NewsAudioModal({ pkg, onClose, onRefresh }) {
         }}
         onClick={e => e.stopPropagation()}
       >
-        <div
-          className="modal-header draggable-header"
+        <ModalHeader
+          title={pkg.title}
+          badge="🎙️ Аудио-сопровождение (🖐️ Перетащите окно)"
+          onClose={onClose}
           onMouseDown={handleMouseDown}
-          style={{ cursor: isDragging ? 'grabbing' : 'grab', userSelect: 'none' }}
-          title="Зажмите мышью, чтобы перетащить окно"
-        >
-          <div>
-            <span className="modal-badge saved-badge">
-              🎙️ Аудио-сопровождение (🖐️ Перетащите окно)
-            </span>
-            <h2 className="modal-title">{pkg.title}</h2>
-          </div>
-          <button className="modal-close" onClick={onClose}>✕</button>
-        </div>
+          isDragging={isDragging}
+        />
 
         <div className="modal-body">
-          <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', fontSize: '0.82rem', color: '#9ca3af', marginBottom: '0.4rem', fontWeight: 600 }}>
-              🗣️ Выберите голос озвучки:
-            </label>
-            <select
-              value={selectedVoice}
-              onChange={e => setSelectedVoice(e.target.value)}
-              style={{
-                width: '100%',
-                background: '#181c27',
-                border: '1px solid #3b82f6',
-                borderRadius: '8px',
-                color: '#e8eaf0',
-                padding: '0.55rem 0.75rem',
-                fontSize: '0.88rem',
-                fontWeight: 600,
-              }}
-            >
-              {VOICES.map(v => (
-                <option key={v.id} value={v.id}>{v.name}</option>
-              ))}
-            </select>
-          </div>
+          <VoiceSelector
+            selectedVoice={selectedVoice}
+            onChange={setSelectedVoice}
+            label="🗣️ Выберите голос озвучки:"
+            disabled={generatingAudio}
+          />
 
           {hasAudioFile && computedAudioUrl ? (
             <div className="audio-player-box" style={{ padding: '1.2rem' }}>

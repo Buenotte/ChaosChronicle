@@ -47,7 +47,8 @@ export default function PackageThumbnailSection({
               </div>
               <div style={{ display: 'flex', gap: '0.45rem', overflowX: 'auto', paddingBottom: '0.25rem' }}>
                 {photoUrls.map((p, idx) => {
-                  const pUrl = p.startsWith('/news-static/') ? p : `/news-static/${folderName}/${p}`
+                  const rawP = typeof p === 'string' ? p : p?.url || ''
+                  const pUrl = rawP.startsWith('/news-static/') ? rawP : `/news-static/${folderName}/${rawP}`
                   return (
                     <div
                       key={idx}

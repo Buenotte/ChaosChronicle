@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 import { CATEGORIES } from '../lib/utils'
+import ModalHeader from './common/ModalHeader'
 
 export default function CustomNewsModal({ isOpen, onClose, onNewsCreated }) {
   const [title, setTitle] = useState('')
@@ -179,22 +180,13 @@ export default function CustomNewsModal({ isOpen, onClose, onNewsCreated }) {
         }}
       >
         {/* Заголовок модального окна */}
-        <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.4rem', borderBottom: '1px solid #1f2937', background: '#131b2e' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <span style={{ fontSize: '1.4rem' }}>✍️</span>
-            <div>
-              <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#f3f4f6', fontWeight: 700 }}>Добавить свою новость</h3>
-              <p style={{ margin: 0, fontSize: '0.76rem', color: '#9ca3af' }}>Текстом или мгновенно со скриншота (YouTube, Telegram, Twitter)</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            style={{ background: 'transparent', border: 'none', color: '#9ca3af', fontSize: '1.3rem', cursor: 'pointer', padding: '0.2rem 0.5rem', borderRadius: '4px' }}
-          >
-            ✕
-          </button>
-        </div>
+        <ModalHeader
+          icon="✍️"
+          title="Добавить свою новость"
+          subtitle="Текстом или мгновенно со скриншота (YouTube, Telegram, Twitter)"
+          onClose={onClose}
+          style={{ flexShrink: 0, padding: '1rem 1.4rem', borderBottom: '1px solid #1f2937', background: '#131b2e' }}
+        />
 
         {/* Прокручиваемое тело формы */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '1.2rem 1.4rem', display: 'flex', flexDirection: 'column', gap: '1rem', overscrollBehavior: 'contain' }}>

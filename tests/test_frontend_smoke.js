@@ -1,4 +1,4 @@
-﻿import fs from 'fs';
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { parse } from '../frontend/node_modules/@babel/parser/lib/index.js';
@@ -17,9 +17,9 @@ const GLOBAL_WHITELIST = new Set([
   'Image', 'Audio', 'Date', 'Math', 'JSON', 'Object', 'Array', 'String', 'Number', 'Boolean',
   'RegExp', 'Promise', 'Error', 'SyntaxError', 'TypeError', 'ReferenceError', 'RangeError',
   'isNaN', 'isFinite', 'parseInt', 'parseFloat', 'encodeURIComponent', 'decodeURIComponent',
-  'encodeURI', 'decodeURI', 'Set', 'Map', 'WeakSet', 'WeakMap', 'Intl', 'React', 'process',
+  'encodeURI', 'decodeURI', 'Set', 'Map', 'WeakSet', 'WeakMap', 'Intl', 'React', 'ReactDOM', 'process',
   'alert', 'confirm', 'prompt', 'requestAnimationFrame', 'cancelAnimationFrame', 'location',
-  'history', 'screen', 'performance', 'crypto', 'sessionStorage', 'customElements'
+  'history', 'screen', 'performance', 'crypto', 'sessionStorage', 'customElements', 'undefined', 'null', 'this', 'globalThis', 'FontFace'
 ]);
 
 function getAllFiles(dir, exts = ['.jsx', '.js']) {
@@ -59,40 +59,53 @@ for (const filePath of files) {
 
     function collectBindings(node) {
       if (!node) return;
-      if (node.type === 'ImportSpecifier' || node.type === 'ImportDefaultSpecifier' || node.type === 'ImportNamespaceSpecifier') {
-        declaredInFile.add(node.local.name);
-      } else if (node.type === 'VariableDeclarator') {
-        if (node.id.type === 'Identifier') declaredInFile.add(node.id.name);
-        else if (node.id.type === 'ObjectPattern') {
-          node.id.properties?.forEach(p => {
-            if (p.value?.type === 'Identifier') declaredInFile.add(p.value.name);
-            else if (p.key?.type === 'Identifier') declaredInFile.add(p.key.name);
-          });
-        } else if (node.id.type === 'ArrayPattern') {
-          node.id.elements?.forEach(el => { if (el?.type === 'Identifier') declaredInFile.add(el.name); });
-        }
-      } else if (node.type === 'FunctionDeclaration' && node.id) {
+      if (node.type === 'ImportDeclaration') {
+        node.specifiers?.forEach(s => s.local?.name && declaredInFile.add(s.local.name));
+      } else if (node.type === 'ExportNamedDeclaration' && node.declaration) {
+        collectBindings(node.declaration);
+      } else if (node.type === 'ExportDefaultDeclaration' && node.declaration?.id) {
+        declaredInFile.add(node.declaration.id.name);
+      } else if (node.type === 'VariableDeclaration') {
+        node.declarations?.forEach(d => {
+          if (d.id.type === 'Identifier') declaredInFile.add(d.id.name);
+          else if (d.id.type === 'ObjectPattern') d.properties?.forEach(p => declaredInFile.add(p.value?.name || p.key?.name));
+          else if (d.id.type === 'ArrayPattern') d.elements?.forEach(el => el?.name && declaredInFile.add(el.name));
+        });
+      } else if ((node.type === 'FunctionDeclaration' || node.type === 'ClassDeclaration') && node.id) {
         declaredInFile.add(node.id.name);
       }
     }
 
+    const addPatternToScope = (p, targetScope) => {
+      if (!p) return;
+      if (p.type === 'Identifier') targetScope.add(p.name);
+      else if (p.type === 'AssignmentPattern') addPatternToScope(p.left, targetScope);
+      else if (p.type === 'ObjectPattern') p.properties?.forEach(prop => addPatternToScope(prop.value || prop.key, targetScope));
+      else if (p.type === 'ArrayPattern') p.elements?.forEach(el => addPatternToScope(el, targetScope));
+      else if (p.type === 'RestElement') addPatternToScope(p.argument, targetScope);
+    };
+
     // AST durchlaufen
-    function walk(node, scope = new Set()) {
+    function walk(node, parent = null, scope = new Set()) {
       if (!node || typeof node !== 'object') return;
       const currentScope = new Set([...scope, ...declaredInFile]);
 
       // Parameter zu Scope hinzufügen
-      if (node.type === 'FunctionDeclaration' || node.type === 'FunctionExpression' || node.type === 'ArrowFunctionExpression') {
-        node.params?.forEach(param => {
-          if (param.type === 'Identifier') currentScope.add(param.name);
-          else if (param.type === 'AssignmentPattern' && param.left?.type === 'Identifier') currentScope.add(param.left.name);
-          else if (param.type === 'ObjectPattern') {
-            param.properties?.forEach(p => {
-              if (p.value?.type === 'Identifier') currentScope.add(p.value.name);
-              else if (p.key?.type === 'Identifier') currentScope.add(p.key.name);
-            });
-          }
-        });
+      if (node.type === 'FunctionDeclaration' || node.type === 'FunctionExpression' || node.type === 'ArrowFunctionExpression' || node.type === 'ClassMethod' || node.type === 'ObjectMethod') {
+        node.params?.forEach(p => addPatternToScope(p, currentScope));
+      }
+
+      // Catch parameter
+      if (node.type === 'CatchClause' && node.param) {
+        addPatternToScope(node.param, currentScope);
+      }
+
+      // For-of / For-in / For loop variable
+      if ((node.type === 'ForOfStatement' || node.type === 'ForInStatement') && node.left?.type === 'VariableDeclaration') {
+        node.left.declarations?.forEach(d => addPatternToScope(d.id, currentScope));
+      }
+      if (node.type === 'ForStatement' && node.init?.type === 'VariableDeclaration') {
+        node.init.declarations?.forEach(d => addPatternToScope(d.id, currentScope));
       }
 
       // BlockScoped Deklarationen
@@ -116,11 +129,27 @@ for (const filePath of files) {
         });
       }
 
-      // JSX Attribute Expressions prüfen (z.B. togglePlay={togglePlay})
-      if (node.type === 'JSXExpressionContainer' && node.expression?.type === 'Identifier') {
-        const idName = node.expression.name;
-        if (!currentScope.has(idName) && !GLOBAL_WHITELIST.has(idName)) {
-          errorsFound.push({ file: relPath, line: node.loc?.start?.line, variable: idName });
+      // Prüfe alle Bezeichner (Identifiers), die als Werte/Variablen genutzt werden
+      if (node.type === 'Identifier') {
+        const isPropKey = (parent?.type === 'ObjectProperty' || parent?.type === 'ObjectMethod' || parent?.type === 'ClassMethod' || parent?.type === 'ClassProperty') && parent.key === node && !parent.computed && !parent.shorthand;
+        const isMemberProp = (parent?.type === 'MemberExpression' || parent?.type === 'OptionalMemberExpression') && parent.property === node && !parent.computed;
+        const isDeclaration = (parent?.type === 'VariableDeclarator' && parent.id === node) ||
+                              (parent?.type === 'FunctionDeclaration' && parent.id === node) ||
+                              (parent?.type === 'FunctionExpression' && parent.id === node) ||
+                              (parent?.type === 'ImportSpecifier') ||
+                              (parent?.type === 'ImportDefaultSpecifier') ||
+                              (parent?.type === 'ImportNamespaceSpecifier') ||
+                              (parent?.type === 'ExportSpecifier') ||
+                              (parent?.type === 'ClassDeclaration' && parent.id === node) ||
+                              (parent?.type === 'CatchClause' && parent.param === node) ||
+                              (parent?.type === 'JSXAttribute') ||
+                              (parent?.type === 'JSXIdentifier');
+
+        if (!isPropKey && !isMemberProp && !isDeclaration) {
+          const idName = node.name;
+          if (!currentScope.has(idName) && !GLOBAL_WHITELIST.has(idName) && !idName.startsWith('__')) {
+            errorsFound.push({ file: relPath, line: node.loc?.start?.line, variable: idName });
+          }
         }
       }
 
@@ -129,9 +158,9 @@ for (const filePath of files) {
         if (key !== 'loc' && key !== 'range') {
           const child = node[key];
           if (Array.isArray(child)) {
-            child.forEach(c => walk(c, currentScope));
+            child.forEach(c => walk(c, node, currentScope));
           } else if (child && typeof child === 'object') {
-            walk(child, currentScope);
+            walk(child, node, currentScope);
           }
         }
       }

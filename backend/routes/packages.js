@@ -88,10 +88,9 @@ const handleSavePackage = async (req, res) => {
 
     const savedPhotos = [];
     if (Array.isArray(inputPhotos) && inputPhotos.length > 0) {
-      for (let i = 0; i < inputPhotos.length; i++) {
-        const imgUrl = typeof inputPhotos[i] === 'string' ? inputPhotos[i] : inputPhotos[i]?.url;
-        if (!imgUrl) continue;
-
+      await Promise.allSettled(inputPhotos.map(async (rawItem, i) => {
+        const imgUrl = typeof rawItem === 'string' ? rawItem : rawItem?.url;
+        if (!imgUrl) return;
         try {
           if (imgUrl.startsWith('/news-static/')) {
             const rel = imgUrl.replace(/^\/news-static\//, '');
@@ -102,13 +101,12 @@ const handleSavePackage = async (req, res) => {
               const target = path.join(photosDir, imgFileName);
               if (localSrc !== target) fs.copyFileSync(localSrc, target);
               savedPhotos.push(`photos/${imgFileName}`);
-              continue;
+              return;
             }
           }
-
           const imgRes = await fetch(imgUrl, {
             headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
-            signal: AbortSignal.timeout(6000),
+            signal: AbortSignal.timeout(3500),
           });
           if (imgRes.ok) {
             const buffer = Buffer.from(await imgRes.arrayBuffer());
@@ -118,7 +116,8 @@ const handleSavePackage = async (req, res) => {
             savedPhotos.push(`photos/${imgFileName}`);
           }
         } catch {}
-      }
+      }));
+      savedPhotos.sort();
     }
 
     manifest.photos = savedPhotos;
