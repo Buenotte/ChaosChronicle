@@ -23,7 +23,6 @@ export const TEXT_COLORS = [
 export const BOX_COLORS = [
   { id: 'black', hex: '#000000', label: 'Черный' },
   { id: 'red', hex: '#FF2A2A', label: 'Красный' },
-  { id: 'blue', hex: '#1D4ED8', label: 'Синий' },
   { id: 'yellow', hex: '#FFE600', label: 'Желтый' },
   { id: 'purple', hex: '#7C3AED', label: 'Фиолетовый' },
 ]
@@ -46,3 +45,20 @@ export function wrapShortsText(rawText, maxChars = 12) {
   if (cur) wrappedLines.push(cur)
   return wrappedLines.join('\n')
 }
+
+export function extractCleanSpeechText(raw) {
+  if (!raw || typeof raw !== 'string') return ''
+  let text = raw
+  if (text.includes('##') && /##\s*🎬?\s*Сценарий/i.test(text)) {
+    const parts = text.split(/##\s*🎬?\s*Сценарий/i)
+    if (parts[1]) text = parts[1]
+  }
+  return text
+    .replace(/\[B-Roll:[^\]]*\]/gi, ' ')
+    .replace(/#+\s*[^\r\n]+/g, ' ')
+    .replace(/---+/g, ' ')
+    .replace(/[*_`«»"']/g, ' ')
+    .replace(/[\r\n\t]+/g, ' ')
+    .trim()
+}
+

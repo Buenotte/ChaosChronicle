@@ -341,6 +341,8 @@ router.post('/api/save-shorts-config', (req, res) => {
       bundleDir: inputBundleDir, folderName, duration, hookTitle, font, fontSize, fontColor,
       strokeWidth, strokeColor, shadowDistance, shadowColor, shadowStyle,
       wordColors, wordFontSizes, boxEnabled, boxColor, boxOpacity, posY, lineBadges, selectedPhoto,
+      speechSubtitlesEnabled, speechFont, speechColor, speechFontSize, speechPosY,
+      speechBoxMode, speechPacing, speechStrokeWidth, speechShadowDistance,
     } = req.body;
 
     const newsDir = path.resolve(__dirname, '../../news');
@@ -361,7 +363,17 @@ router.post('/api/save-shorts-config', (req, res) => {
       strokeColor: strokeColor || 'black', shadowDistance: Number(shadowDistance) || 0, shadowColor: shadowColor || 'black',
       shadowStyle: shadowStyle || 'hard', wordColors: wordColors || null, wordFontSizes: wordFontSizes || null,
       boxEnabled: Boolean(boxEnabled), boxColor: boxColor || 'black', boxOpacity: boxEnabled ? (Number(boxOpacity) || 75) : 0,
-      posY: Number(posY) || 200, lineBadges: lineBadges || null, selectedPhoto: selectedPhoto || null, savedAt: new Date().toISOString(),
+      posY: Number(posY) || 200, lineBadges: lineBadges || null, selectedPhoto: selectedPhoto || null,
+      speechSubtitlesEnabled: speechSubtitlesEnabled !== false,
+      speechFont: speechFont || 'impact',
+      speechColor: speechColor || 'yellow',
+      speechFontSize: Number(speechFontSize) || 115,
+      speechPosY: Number(speechPosY) || 980,
+      speechBoxMode: speechBoxMode || 'pill',
+      speechPacing: speechPacing || 'wave',
+      speechStrokeWidth: Number(speechStrokeWidth) || 12,
+      speechShadowDistance: Number(speechShadowDistance) || 6,
+      savedAt: new Date().toISOString(),
     };
 
     manifest.shortsConfig = shortsConfig;
