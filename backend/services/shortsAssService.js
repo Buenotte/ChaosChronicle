@@ -147,7 +147,7 @@ export function generateSpeechDialogueEvents(opts = {}) {
 
   const {
     speechText = '', duration = 20, totalAudioDuration = 0,
-    speechFontSize = 115, speechColor = 'yellow', speechPosY = 980,
+    speechFontSize = 115, speechColor = 'yellow', speechInactiveColor = 'white', speechPosY = 980,
     speechStrokeWidth = 12, speechStrokeColor = 'black',
     speechShadowDistance = 6, speechShadowColor = 'black',
     speechBoxMode = 'pill', speechBoxColor = 'black', speechBoxOpacity = 88,
@@ -245,7 +245,7 @@ export function generateSpeechDialogueEvents(opts = {}) {
   const strokeTag = toShortsAssTagColor(speechStrokeColor || 'black');
   const shadowTag = toShortsAssTagColor(speechShadowColor || 'black');
   const highlightTag = toShortsAssTagColor(speechColor || 'yellow');
-  const whiteTag = '&H00FFFFFF&';
+  const inactiveTag = toShortsAssTagColor(speechInactiveColor || 'white');
 
   const dialogues = [];
 
@@ -308,7 +308,7 @@ export function generateSpeechDialogueEvents(opts = {}) {
 
       const styledWords = chunk.map((tw, wIdx) => {
         const isCurrent = (wIdx === activeIdx);
-        const colTag = isCurrent ? highlightTag : whiteTag;
+        const colTag = isCurrent ? highlightTag : inactiveTag;
         const curBw = isCurrent ? bW + 2 : bW;
         const curSd = isCurrent ? sD + 2 : sD;
 
@@ -334,7 +334,7 @@ export function buildAssShortsSubtitle(wrappedText, options = {}) {
     shadowDistance = 4, shadowColor = 'black', posY = 200, wordColors, wordFontSizes,
     lineBadges, boxEnabled, boxColor, boxOpacity, showHookTitle = true,
     speechSubtitlesEnabled = true, speechText = '', duration = 20, totalAudioDuration = 0,
-    speechFontSize = 115, speechColor = 'yellow', speechPosY = 980, speechFont = 'impact',
+    speechFontSize = 115, speechColor = 'yellow', speechInactiveColor = 'white', speechPosY = 980, speechFont = 'impact',
     speechBoxMode = 'pill', speechBoxColor = 'black', speechBoxOpacity = 88,
     speechPacing = 'wave', speechStrokeWidth = 12, speechShadowDistance = 6,
   } = options;
@@ -446,7 +446,7 @@ export function buildAssShortsSubtitle(wrappedText, options = {}) {
 
   if (speechSubtitlesEnabled !== false && speechText) {
     const speechEvents = generateSpeechDialogueEvents({
-      speechText, duration, totalAudioDuration, speechFontSize, speechColor,
+      speechText, duration, totalAudioDuration, speechFontSize, speechColor, speechInactiveColor,
       speechPosY, speechStrokeWidth, speechStrokeColor: 'black',
       speechShadowDistance, speechShadowColor: 'black', speechBoxMode,
       speechBoxColor, speechBoxOpacity,

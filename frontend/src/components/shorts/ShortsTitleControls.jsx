@@ -16,7 +16,7 @@ export default function ShortsTitleControls({
   wordFontSizes, setWordFontSizes,
   posY, setPosY,
   lineBadges, setLineBadges,
-  setBoxOpacity, setBoxEnabled,
+  boxEnabled, setBoxOpacity, setBoxEnabled,
   wordsList, displayText,
   onDirty,
 }) {

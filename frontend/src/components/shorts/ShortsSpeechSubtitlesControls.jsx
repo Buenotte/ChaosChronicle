@@ -1,7 +1,7 @@
 import { TEXT_COLORS, BOX_COLORS, SHORTS_FONTS } from './shortsConfig'
 
 export default function ShortsSpeechSubtitlesControls({
-  enabled, setEnabled, font, setFont, color, setColor, fontSize, setFontSize,
+  enabled, setEnabled, font, setFont, color, setColor, inactiveColor, setInactiveColor, fontSize, setFontSize,
   posY, setPosY, boxMode, setBoxMode, boxColor, setBoxColor, boxOpacity, setBoxOpacity, pacing, setPacing, onDirty,
 }) {
   const isBoxOn = (boxMode || 'pill') !== 'none'
@@ -33,25 +33,47 @@ export default function ShortsSpeechSubtitlesControls({
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', alignItems: 'center' }}>
+          {/* 🎨 ВЫБОР ЦВЕТОВ: АКТИВНОЕ СЛОВО И ОСТАЛЬНЫЕ СЛОВА */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', background: '#090d16', padding: '0.45rem 0.6rem', borderRadius: '8px', border: '1px solid #1e293b' }}>
             <div>
-              <span style={{ fontSize: '0.74rem', color: '#94a3b8', display: 'block', marginBottom: '0.2rem' }}>🔥 Цвет ключевых слов:</span>
-              <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.72rem', color: '#38bdf8', fontWeight: 700, display: 'block', marginBottom: '0.2rem' }}>🔥 Активное слово:</span>
+              <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', flexWrap: 'wrap' }}>
                 {TEXT_COLORS.map(c => (
                   <button
                     key={c.id}
                     type="button"
                     onClick={() => { setColor(c.id); if (onDirty) onDirty(); }}
                     style={{
-                      width: '22px', height: '22px', borderRadius: '50%', background: c.hex,
-                      border: color === c.id ? '2px solid #fff' : '1px solid rgba(0,0,0,0.5)',
-                      cursor: 'pointer', boxShadow: color === c.id ? '0 0 8px #38bdf8' : 'none'
+                      width: '20px', height: '20px', borderRadius: '50%', background: c.hex,
+                      border: (color || 'yellow') === c.id ? '2px solid #fff' : '1px solid rgba(255,255,255,0.25)',
+                      cursor: 'pointer', boxShadow: (color || 'yellow') === c.id ? '0 0 8px #38bdf8' : 'none'
                     }}
-                    title={c.label}
+                    title={`Активное: ${c.label}`}
                   />
                 ))}
               </div>
             </div>
+            <div>
+              <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, display: 'block', marginBottom: '0.2rem' }}>⚪ Остальные слова:</span>
+              <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                {TEXT_COLORS.map(c => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => { if (setInactiveColor) setInactiveColor(c.id); if (onDirty) onDirty(); }}
+                    style={{
+                      width: '20px', height: '20px', borderRadius: '50%', background: c.hex,
+                      border: (inactiveColor || 'white') === c.id ? '2px solid #fff' : '1px solid rgba(255,255,255,0.25)',
+                      cursor: 'pointer', boxShadow: (inactiveColor || 'white') === c.id ? '0 0 8px #a855f7' : 'none'
+                    }}
+                    title={`Остальные: ${c.label}`}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '0.5rem', alignItems: 'center' }}>
             <div>
               <span style={{ fontSize: '0.74rem', color: '#94a3b8', display: 'block', marginBottom: '0.2rem' }}>🌊 Режим показа:</span>
               <div style={{ display: 'flex', gap: '0.25rem' }}>
@@ -60,14 +82,13 @@ export default function ShortsSpeechSubtitlesControls({
                 <button type="button" onClick={() => { setPacing('single'); if (onDirty) onDirty(); }} style={{ flex: 1, background: pacing === 'single' ? '#0284c7' : '#1e293b', color: '#fff', border: '1px solid #334155', borderRadius: '4px', padding: '0.25rem', fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer' }} title="1 слово по центру">⚡ 1 слово</button>
               </div>
             </div>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.74rem', color: '#94a3b8', display: 'block' }}>📍 Высота ({posY || 980}px):</span>
-            <div style={{ display: 'flex', gap: '0.25rem' }}>
-              <button type="button" onClick={() => { setPosY(820); if (onDirty) onDirty(); }} style={{ background: posY <= 870 ? '#0284c7' : '#1e293b', color: '#fff', border: '1px solid #334155', borderRadius: '4px', padding: '0.2rem 0.5rem', fontSize: '0.7rem', cursor: 'pointer' }}>820px</button>
-              <button type="button" onClick={() => { setPosY(980); if (onDirty) onDirty(); }} style={{ background: posY > 870 && posY < 1100 ? '#0284c7' : '#1e293b', color: '#fff', border: '1px solid #334155', borderRadius: '4px', padding: '0.2rem 0.5rem', fontSize: '0.7rem', cursor: 'pointer' }}>980px</button>
-              <button type="button" onClick={() => { setPosY(1200); if (onDirty) onDirty(); }} style={{ background: posY >= 1100 ? '#0284c7' : '#1e293b', color: '#fff', border: '1px solid #334155', borderRadius: '4px', padding: '0.2rem 0.5rem', fontSize: '0.7rem', cursor: 'pointer' }}>1200px</button>
+            <div>
+              <span style={{ fontSize: '0.74rem', color: '#94a3b8', display: 'block', marginBottom: '0.2rem' }}>📍 Высота ({posY || 980}px):</span>
+              <div style={{ display: 'flex', gap: '0.25rem' }}>
+                <button type="button" onClick={() => { setPosY(820); if (onDirty) onDirty(); }} style={{ flex: 1, background: posY <= 870 ? '#0284c7' : '#1e293b', color: '#fff', border: '1px solid #334155', borderRadius: '4px', padding: '0.25rem', fontSize: '0.7rem', cursor: 'pointer' }}>820px</button>
+                <button type="button" onClick={() => { setPosY(980); if (onDirty) onDirty(); }} style={{ flex: 1, background: posY > 870 && posY < 1100 ? '#0284c7' : '#1e293b', color: '#fff', border: '1px solid #334155', borderRadius: '4px', padding: '0.25rem', fontSize: '0.7rem', cursor: 'pointer' }}>980px</button>
+                <button type="button" onClick={() => { setPosY(1200); if (onDirty) onDirty(); }} style={{ flex: 1, background: posY >= 1100 ? '#0284c7' : '#1e293b', color: '#fff', border: '1px solid #334155', borderRadius: '4px', padding: '0.25rem', fontSize: '0.7rem', cursor: 'pointer' }}>1200px</button>
+              </div>
             </div>
           </div>
 

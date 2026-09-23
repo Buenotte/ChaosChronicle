@@ -341,7 +341,7 @@ router.post('/api/save-shorts-config', (req, res) => {
       bundleDir: inputBundleDir, folderName, duration, hookTitle, font, fontSize, fontColor,
       strokeWidth, strokeColor, shadowDistance, shadowColor, shadowStyle,
       wordColors, wordFontSizes, boxEnabled, boxColor, boxOpacity, posY, lineBadges, selectedPhoto,
-      speechSubtitlesEnabled, speechFont, speechColor, speechFontSize, speechPosY,
+      speechSubtitlesEnabled, speechFont, speechColor, speechInactiveColor, speechFontSize, speechPosY,
       speechBoxMode, speechBoxColor, speechBoxOpacity, speechPacing, speechStrokeWidth, speechShadowDistance,
     } = req.body;
 
@@ -367,6 +367,7 @@ router.post('/api/save-shorts-config', (req, res) => {
       speechSubtitlesEnabled: speechSubtitlesEnabled !== false,
       speechFont: speechFont || 'impact',
       speechColor: speechColor || 'yellow',
+      speechInactiveColor: speechInactiveColor || 'white',
       speechFontSize: Number(speechFontSize) || 115,
       speechPosY: Number(speechPosY) || 980,
       speechBoxMode: speechBoxMode || 'pill',

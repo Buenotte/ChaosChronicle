@@ -20,7 +20,7 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
   const [boxEnabled, setBoxEnabled] = useState(cfg.boxEnabled ?? true), [boxColor, setBoxColor] = useState(cfg.boxColor || 'black'), [boxOpacity, setBoxOpacity] = useState(cfg.boxOpacity ?? 75), [posY, setPosY] = useState(cfg.posY || 200)
 
   const [speechSubtitlesEnabled, setSpeechSubtitlesEnabled] = useState(cfg.speechSubtitlesEnabled ?? true), [speechFont, setSpeechFont] = useState(cfg.speechFont || 'impact')
-  const [speechColor, setSpeechColor] = useState(cfg.speechColor || 'yellow'), [speechFontSize, setSpeechFontSize] = useState(cfg.speechFontSize || 115)
+  const [speechColor, setSpeechColor] = useState(cfg.speechColor || 'yellow'), [speechInactiveColor, setSpeechInactiveColor] = useState(cfg.speechInactiveColor || 'white'), [speechFontSize, setSpeechFontSize] = useState(cfg.speechFontSize || 115)
   const [speechPosY, setSpeechPosY] = useState(cfg.speechPosY || 980), [speechBoxMode, setSpeechBoxMode] = useState(cfg.speechBoxMode || 'pill'), [speechPacing, setSpeechPacing] = useState(cfg.speechPacing || 'wave')
   const [speechBoxColor, setSpeechBoxColor] = useState(cfg.speechBoxColor || 'black'), [speechBoxOpacity, setSpeechBoxOpacity] = useState(cfg.speechBoxOpacity ?? 88)
 
@@ -82,7 +82,7 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           bundleDir: pkg.bundleDir, folderName: pkg.folderName, selectedPhoto, hookTitle: text, showHookTitle, font, fontSize: Number(fontSize) || 110, fontColor, strokeWidth: Number(strokeWidth) || 0, strokeColor, shadowDistance: Number(shadowDistance) || 0, shadowColor, shadowStyle, wordColors, wordFontSizes, boxEnabled: !!boxEnabled, boxColor, boxOpacity: boxEnabled ? Number(boxOpacity) || 75 : 0, posY: Number(posY) || 200, lineBadges,
-          speechSubtitlesEnabled, speechFont, speechColor, speechFontSize: Number(speechFontSize) || 115, speechPosY: Number(speechPosY) || 980, speechBoxMode, speechBoxColor, speechBoxOpacity: Number(speechBoxOpacity) || 88, speechPacing,
+          speechSubtitlesEnabled, speechFont, speechColor, speechInactiveColor, speechFontSize: Number(speechFontSize) || 115, speechPosY: Number(speechPosY) || 980, speechBoxMode, speechBoxColor, speechBoxOpacity: Number(speechBoxOpacity) || 88, speechPacing,
         }),
       })
       const data = await res.json()
@@ -145,7 +145,7 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
           bundleDir: pkg?.bundleDir, folderName: pkg?.folderName, duration: Number(duration) || 25, hookTitle: text, showHookTitle, font, fontSize: Number(fontSize) || 110,
           fontColor, strokeWidth: Number(strokeWidth) || 0, strokeColor, shadowDistance: Number(shadowDistance) || 0, shadowColor, shadowStyle,
           wordColors, wordFontSizes, boxEnabled: !!boxEnabled, boxColor, boxOpacity: boxEnabled ? Number(boxOpacity) || 75 : 0, posY: Number(posY) || 200, lineBadges, selectedPhoto,
-          speechSubtitlesEnabled, speechFont, speechColor, speechFontSize: Number(speechFontSize) || 115, speechPosY: Number(speechPosY) || 980, speechBoxMode, speechBoxColor, speechBoxOpacity: Number(speechBoxOpacity) || 88, speechPacing,
+          speechSubtitlesEnabled, speechFont, speechColor, speechInactiveColor, speechFontSize: Number(speechFontSize) || 115, speechPosY: Number(speechPosY) || 980, speechBoxMode, speechBoxColor, speechBoxOpacity: Number(speechBoxOpacity) || 88, speechPacing,
         }),
       })
       const data = await res.json()
@@ -163,7 +163,7 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
       duration: Number(duration) || 25, hookTitle: text, showHookTitle, font, fontSize: Number(fontSize) || 110, fontColor, strokeWidth: Number(strokeWidth) || 0, strokeColor,
       shadowDistance: Number(shadowDistance) || 0, shadowColor, shadowStyle, wordColors, wordFontSizes, boxEnabled: !!boxEnabled,
       boxColor, boxOpacity: boxEnabled ? Number(boxOpacity) || 75 : 0, posY: Number(posY) || 200, lineBadges, selectedPhoto,
-      speechSubtitlesEnabled, speechFont, speechColor, speechFontSize: Number(speechFontSize) || 115, speechPosY: Number(speechPosY) || 980, speechBoxMode, speechBoxColor, speechBoxOpacity: Number(speechBoxOpacity) || 88, speechPacing,
+      speechSubtitlesEnabled, speechFont, speechColor, speechInactiveColor, speechFontSize: Number(speechFontSize) || 115, speechPosY: Number(speechPosY) || 980, speechBoxMode, speechBoxColor, speechBoxOpacity: Number(speechBoxOpacity) || 88, speechPacing,
     })
     if (res?.success) setViewMode('video')
   }
@@ -235,7 +235,9 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
               {activeTab === 'speech' && (
                 <ShortsSpeechSubtitlesControls
                   enabled={speechSubtitlesEnabled} setEnabled={setSpeechSubtitlesEnabled}
-                  font={speechFont} setFont={setSpeechFont} color={speechColor} setColor={setSpeechColor}
+                  font={speechFont} setFont={setSpeechFont}
+                  color={speechColor} setColor={setSpeechColor}
+                  inactiveColor={speechInactiveColor} setInactiveColor={setSpeechInactiveColor}
                   fontSize={speechFontSize} setFontSize={setSpeechFontSize} posY={speechPosY} setPosY={setSpeechPosY}
                   boxMode={speechBoxMode} setBoxMode={setSpeechBoxMode}
                   boxColor={speechBoxColor} setBoxColor={setSpeechBoxColor}
@@ -256,7 +258,7 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
                   shadowDistance={shadowDistance} setShadowDistance={setShadowDistance} shadowColor={shadowColor} setShadowColor={setShadowColor}
                   wordColors={wordColors} setWordColors={setWordColors} wordFontSizes={wordFontSizes} setWordFontSizes={setWordFontSizes}
                   posY={posY} setPosY={setPosY} lineBadges={lineBadges} setLineBadges={setLineBadges}
-                  setBoxOpacity={setBoxOpacity} setBoxEnabled={setBoxEnabled}
+                  boxEnabled={boxEnabled} setBoxOpacity={setBoxOpacity} setBoxEnabled={setBoxEnabled}
                   wordsList={wordsList} displayText={displayText}
                   onDirty={() => setViewMode('editor')}
                 />
@@ -361,7 +363,9 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
 
                                 return waveWords.map((w, idx) => (
                                   <span key={idx} style={{
-                                    color: (idx === activeInWave) ? (TEXT_COLORS.find(c => c.id === speechColor)?.hex || '#FFE600') : '#FFFFFF',
+                                    color: (idx === activeInWave)
+                                      ? (TEXT_COLORS.find(c => c.id === speechColor)?.hex || '#FFE600')
+                                      : (TEXT_COLORS.find(c => c.id === speechInactiveColor)?.hex || '#FFFFFF'),
                                     transform: (idx === activeInWave) ? 'scale(1.15)' : 'scale(1)',
                                     display: 'inline-block', margin: idx > 0 ? '0 0 0 0.52em' : '0',
                                     transition: 'all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1)',
