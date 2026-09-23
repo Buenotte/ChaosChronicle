@@ -3,25 +3,29 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { scrapeArticleText } from '../services/articleScraperService.js';
+import { YOUTUBE_STYLES } from '../services/youtubeStyles.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const router = express.Router();
-
-const MODELS = {
-  gemini:   'google/gemini-2.5-flash',
-  deepseek: 'deepseek/deepseek-chat',
-};
+const MODELS = { gemini: 'google/gemini-2.5-flash', deepseek: 'deepseek/deepseek-chat' };
 
 const STYLES = {
-  golubuzki: { file: 'golubuzki_style.txt', label: '🎭 Алексей Голобуцкий', focus: 'Едкая сатира, смех как оружие, деконструкция официальной лжи врага и живой саркастический язык.' },
-  clickbait: { file: 'clickbait_style.txt', label: '🔥 Кликбейт & YouTube Топ (CTR 20%+)', focus: 'Ультра-вирусный темп, мощный шок-фактор, парадоксальные контрасты, хлесткие панчлайны и открытые петли интриги.' },
-  kasjanov: { file: 'kasjanov_style.txt', label: '🪖 Юрий Касьянов', focus: 'Военно-инженерный реализм, аналитика без штампов, глубокий разбор ТТХ, логистики и тактики.' },
-  klimovski: { file: 'klimovski_style.txt', label: '🔬 Юрий Климовский', focus: 'Клинический геополитический реализм, анатомия теневых решений Кремля, клановые интересы элит.' },
-  gibrid: { file: 'gibrid_style.txt', label: '⚡ Гибридный стиль (3 в 1)', focus: 'Синтез сатиры Голобуцкого, военного реализма Касьянова и геополитической анатомии Климовского.' },
+  golubuzki: { file: 'golubuzki_style.txt', label: '🎭 Алексей Голобуцкий', focus: 'Едкая сатира, смех как оружие, деконструкция лжи врага.' },
+  clickbait: { file: 'clickbait_style.txt', label: '🔥 Кликбейт & YouTube Топ (CTR 20%+)', focus: 'Ультра-вирусный темп, шок-фактор, открытые петли.' },
+  kasjanov: { file: 'kasjanov_style.txt', label: '🪖 Юрий Касьянов', focus: 'Военно-инженерный реализм, аналитика ТТХ, логистики и тактики.' },
+  klimovski: { file: 'klimovski_style.txt', label: '🔬 Юрий Климовский', focus: 'Клинический геополитический реализм, анатомия решений Кремля.' },
+  gibrid: { file: 'gibrid_style.txt', label: '⚡ Гибридный стиль (3 в 1)', focus: 'Синтез сатиры Голобуцкого, военного реализма и геополитики.' },
 };
 
-// ── Построитель промпта фельетона с выбором авторского стиля ──
 export function buildStyledFeuilletonPrompt(newsTitle, newsSummary = '', styleKey = 'golubuzki', tone = 'grotesque') {
+  if (YOUTUBE_STYLES[styleKey]) {
+    const ytCfg = YOUTUBE_STYLES[styleKey];
+    return {
+      systemInstruction: ytCfg.systemInstruction,
+      userInstruction: `ТЕМА: ${newsTitle}\nМАТЕРИАЛ:\n"""\n${newsSummary || ''}\n"""\n\nСоздай 3-минутный монолог (СТРОГО 400–550 слов) в стиле «${ytCfg.name}» без приветствий:`,
+    };
+  }
+
   const scriptsDir = path.resolve(__dirname, '../../scripts');
   const effectiveKey = styleKey === 'analytics' ? 'gibrid' : styleKey;
   const styleConfig = STYLES[effectiveKey] || STYLES.golubuzki;
@@ -37,45 +41,36 @@ export function buildStyledFeuilletonPrompt(newsTitle, newsSummary = '', styleKe
   const roleName = isAnalytics ? 'глубокий военный и политический аналитик' : 'ведущий сатирический колумнист и аналитик';
   const textGenre = isAnalytics ? 'увлекательный 3-минутный аналитический обзор' : 'яркий 3-минутный фельетон';
   const hookRule = isAnalytics
-    ? '2. 🎯 ПЕРВЫЕ 3 СЕКУНДЫ (СИЛЬНЫЙ АНАЛИТИЧЕСКИЙ ХУК): Первое предложение (7–12 слов) ОБЯЗАНО вскрывать скрытую суть события или интригующий вопрос, мгновенно приковывая внимание зрителя!'
-    : '2. 💥 ПЕРВЫЕ 3 СЕКУНДЫ (ВЗРЫВНОЙ ПАРАДОКСАЛЬНЫЙ ХУК): Первое предложение (7–12 слов) ОБЯЗАНО быть максимально парадоксальным столкновением противоположностей, вызывающим шок и интерес!';
+    ? '2. 🎯 ПЕРВЫЕ 3 СЕКУНДЫ (СИЛЬНЫЙ АНАЛИТИЧЕСКИЙ ХУК): Первое предложение (7–12 слов) ОБЯЗАНО вскрывать скрытую суть события!'
+    : '2. 💥 ПЕРВЫЕ 3 СЕКУНДЫ (ВЗРЫВНОЙ ХУК): Первое предложение (7–12 слов) ОБЯЗАНО быть парадоксальным столкновением противоположностей!';
   const coreRule = isAnalytics
-    ? '3. 🧠 УВЛЕКАТЕЛЬНЫЙ АНАЛИЗ И СТОРИТЕЛЛИНГ: Раскрывай причинно-следственные связи, скрытые мотивы, технологические и геополитические ставки простым, понятным языком. БЕЗ цирка, клоунады и кричащего гротеска — говори умно, логично и доказательно!'
-    : '3. 🎬 ВИЗУАЛЬНЫЙ ГРОТЕСК И МЕТАФОРЫ-МЕМЫ: Создавай 2–3 кинематографичные, сочные сцены с физическими деталями, которые зритель мгновенно видит. Рисуй смешной и абсурдный фарс!';
+    ? '3. 🧠 УВЛЕКАТЕЛЬНЫЙ АНАЛИЗ: Раскрывай причинно-следственные связи, ставки и мотивы. БЕЗ цирка и кричащего гротеска!'
+    : '3. 🎬 ВИЗУАЛЬНЫЙ ГРОТЕСК И МЕТАФОРЫ-МЕМЫ: Создавай 2–3 кинематографичные сцены с физическими деталями!';
 
   let focusDesc = styleConfig.focus;
   if (isAnalytics) {
-    if (styleKey === 'kasjanov') focusDesc = 'Военно-инженерный реализм Касьянова: профессиональный анализ ТТХ вооружений, тактики БПЛА, РЭБ, эшелонирования ПВО, логистики и реальных возможностей сторон.';
-    else if (styleKey === 'klimovski') focusDesc = 'Геополитический реализм Климовского: клиническая анатомия теневых решений, клановые интересы, расстановка сил на мировой арене, дипломатические ставки и пружины.';
-    else if (styleKey === 'golubuzki') focusDesc = 'Острая политическая публицистика Голобуцкого: последовательная деконструкция пропагандистских нарративов, факты, аргументы и политический анализ.';
-    else if (styleKey === 'gibrid') focusDesc = 'Синтез глубокого военно-технического (Касьянов) и геополитического (Климовский) анализа.';
+    if (styleKey === 'kasjanov') focusDesc = 'Военно-инженерный реализм Касьянова: анализ ТТХ, тактики БПЛА, РЭБ, ПВО и логистики.';
+    else if (styleKey === 'klimovski') focusDesc = 'Геополитический реализм Климовского: анатомия теневых решений, клановые интересы.';
+    else if (styleKey === 'golubuzki') focusDesc = 'Острая политическая публицистика Голобуцкого: деконструкция пропаганды, факты и анализ.';
+    else if (styleKey === 'gibrid') focusDesc = 'Синтез военно-технического (Касьянов) и геополитического (Климовский) анализа.';
   }
 
-  const systemInstruction = `Ты — ${roleName} канала ChaosChronicle.
-Твоя задача — написать ${textGenre} (400-550 слов) на русском языке для видео.
-
-СТРОГАЯ ПОЗИЦИЯ:
-- СТРОГО НА СТОРОНЕ УКРАИНЫ. Без ложного нейтралитета. Бескомпромиссно вскрывай кремлевскую пропаганду, имперские мифы, ложь властей РФ и военную агрессию.
-
-АВТОРСКИЙ СТИЛЬ: ${styleConfig.label} (${isAnalytics ? 'РЕЖИМ АНАЛИТИКИ' : 'РЕЖИМ САТИРЫ И ГРОТЕСКА'})
+  const systemInstruction = `Ты — ${roleName} канала ChaosChronicle. Напиши ${textGenre} (400-550 слов) на русском языке для видео.
+СТРОГАЯ ПОЗИЦИЯ: СТРОГО НА СТОРОНЕ УКРАИНЫ. Вскрывай кремлевскую пропаганду, ложь властей РФ и военную агрессию.
+АВТОРСКИЙ СТИЛЬ: ${styleConfig.label} (${isAnalytics ? 'РЕЖИМ АНАЛИТИКИ' : 'РЕЖИМ САТИРЫ'})
 ГЛАВНЫЙ ФОКУС: ${focusDesc}
 ${styleGuide && !isAnalytics ? `\nПОДРОБНОЕ РУКОВОДСТВО ПО СТИЛЮ:\n${styleGuide}\n` : ''}
-
 СТРОЖАЙШИЕ ПРАВИЛА ДЛЯ АУДИО-ОЗВУЧКИ (TTS):
-1. ПИШИ ТОЛЬКО ЧИСТЫЙ ПРОИЗНОСИМЫЙ ТЕКСТ ДИКТОРА от первого до последнего слова.
+1. ПИШИ ТОЛЬКО ЧИСТЫЙ ПРОИЗНОСИМЫЙ ТЕКСТ ДИКТОРА.
 ${hookRule}
 ${coreRule}
-4. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО НАЧИНАТЬ ТЕКСТ С ПРИВЕТСТВИЙ («Привет, друзья!», «С вами ChaosChronicle», «Здравствуйте»). Начинай СРАЗУ с сути!
-5. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО писать заголовки блоков (НЕ ПИШИ "**Блок 1: ...**"), НЕ ПИШИ тайминги "(0:00 – 0:45)".
-6. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО использовать плейсхолдеры в квадратных скобках [B-Roll:...]. Называй канал "ChaosChronicle".
-7. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО писать шаблонные концовки-клише «Работаем дальше. Без иллюзий.».
-8. ТРЕБОВАНИЕ К РАЗНООБРАЗИЮ: Каждый текст должен иметь уникальную композицию и подачу. Избегай повторов одних и тех же фраз!
-9. Текст должен звучать слитно, ритмично и мощно для записи голосовым ИИ.
-10. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО писать от первого лица ("мы", "я", "сегодня мы посмотрим", "мы видим", "наш анализ"). КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО произносить служебные клише: "Разбираем", "Анализируем", "Разбор", "Глубокая аналитика", "Без гротеска". Веди повествование строго в третьем лице через события, факты и действующих лиц!`;
+4. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО начинать с приветствий («Привет, друзья!», «С вами ChaosChronicle»).
+5. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО писать заголовки блоков («**Блок 1**»), тайминги, плейсхолдеры [B-Roll:...], концовки «Работаем дальше. Без иллюзий.».
+6. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО писать от первого лица («мы», «я», «мы разбираем», «наш анализ», «разбор полетов»). Веди повествование строго в третьем лице!`;
 
   const userInstruction = isAnalytics
-    ? `ТЕМА: ${newsTitle}\nФАКТЫ: ${newsSummary || ''}\n\nНапиши увлекательный аналитический текст в стиле ${styleConfig.label} простым и живым языком (БЕЗ вступительных приветствий, БЕЗ местоимения «мы» и слова «разбираем», сразу с сути событий):`
-    : `ТЕМА НОВОСТИ: ${newsTitle}\nКОНТЕКСТ/ФАКТЫ: ${newsSummary || ''}\n\nНапиши полный, готовый монолог фельетона в стиле ${styleConfig.label} с яркими визуальными метафорами и парадоксальным хуком (БЕЗ вступительных приветствий, сразу с сути):`;
+    ? `ТЕМА: ${newsTitle}\nФАКТЫ: ${newsSummary || ''}\n\nНапиши увлекательный аналитический текст в стиле ${styleConfig.label} простым языком (БЕЗ приветствий, сразу с сути):`
+    : `ТЕМА НОВОСТИ: ${newsTitle}\nКОНТЕКСТ/ФАКТЫ: ${newsSummary || ''}\n\nНапиши монолог фельетона в стиле ${styleConfig.label} с яркими метафорами и парадоксальным хуком (БЕЗ приветствий):`;
 
   return { systemInstruction, userInstruction };
 }
@@ -83,7 +78,6 @@ ${coreRule}
 async function callGeminiDirect(systemInstruction, userInstruction, maxTokens = 4000) {
   const geminiKey = process.env.GEMINI_API_KEY;
   if (!geminiKey || geminiKey.includes('HIER')) return null;
-
   try {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${geminiKey}`;
     const response = await fetch(url, {
@@ -92,30 +86,26 @@ async function callGeminiDirect(systemInstruction, userInstruction, maxTokens = 
       body: JSON.stringify({
         system_instruction: { parts: [{ text: systemInstruction }] },
         contents: [{ parts: [{ text: userInstruction }] }],
-        generationConfig: {
-          temperature: 0.85,
-          maxOutputTokens: maxTokens,
-        },
+        generationConfig: { temperature: 0.85, maxOutputTokens: maxTokens },
       }),
       signal: AbortSignal.timeout(30000),
     });
-
     if (!response.ok) return null;
     const data = await response.json();
     return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 }
 
-// ── Генератор хлестких заголовков (4-5 слов) СТРОГО ИЗ ТЕКСТА ──
-export async function generateGolubuzkiTitle(newsTitle, newsSummary = '', monologueText = '', tone = 'satire') {
+export async function generateGolubuzkiTitle(newsTitle, newsSummary = '', monologueText = '', tone = 'satire', style = 'golubuzki') {
   const textContext = monologueText && monologueText.trim() ? monologueText.slice(0, 1200) : (newsSummary || newsTitle);
   const isAnalytics = tone === 'analytics';
-  const sysPrompt = isAnalytics
-    ? `Ты — ведущий геополитический и военный аналитик ChaosChronicle. Создай ОДИН МОЩНЫЙ АНАЛИТИЧЕСКИЙ YouTube-заголовок (СТРОГО 4-5 СЛОВ, UPPERCASE). Серьезный диагноз и нерв темы (например: "ЦЕНА ОШИБКИ КРЕМЛЯ В КУРСКЕ", "РЕАЛЬНЫЙ ТУПИК ВОЕННОЙ МАШИНЫ"). БЕЗ клоунады, БЕЗ кавычек, БЕЗ точек.`
-    : `Ты — главный редактор YouTube-канала ChaosChronicle и мастер острой сатиры. Создай ОДИН ХЛЕСТКИЙ сатирический YouTube-заголовок (СТРОГО 4-5 СЛОВ, UPPERCASE). Острый парадокс реальности (например: "БУНКЕР ОБЪЯВИЛ ПОБЕДУ НАД РЕАЛЬНОСТЬЮ", "СВЕРХДЕРЖАВА ПЕРЕШЛА НА КИТАЙСКИЕ БОЛТЫ"). БЕЗ клоунады, БЕЗ кавычек, БЕЗ точек.`;
-  const userPrompt = `ТЕКСТ:\n"""\n${textContext}\n"""\n\nСоздай 1 ${isAnalytics ? 'аналитический' : 'хлесткий сатирический'} заголовок из 4-5 слов капсом:`;
+  const isYt = ['scipop', 'mystery', 'tech_future', 'psychology', 'storytelling'].includes(style);
+  const sysPrompt = isYt
+    ? `Ты — ведущий YouTube-продюсер. Создай 1 ЗАХВАТЫВАЮЩИЙ заголовок по теме (СТРОГО 4-5 СЛОВ, UPPERCASE). Главная суть/интрига. БЕЗ политики и сатиры.`
+    : isAnalytics
+    ? `Ты — военный аналитик ChaosChronicle. Создай 1 МОЩНЫЙ АНАЛИТИЧЕСКИЙ YouTube-заголовок (СТРОГО 4-5 СЛОВ, UPPERCASE). Серьезный диагноз и нерв темы. БЕЗ клоунады.`
+    : `Ты — мастер острой сатиры. Создай 1 ХЛЕСТКИЙ сатирический YouTube-заголовок (СТРОГО 4-5 СЛОВ, UPPERCASE). Острый парадокс реальности. БЕЗ клоунады.`;
+  const userPrompt = `ТЕКСТ:\n"""\n${textContext}\n"""\n\nСоздай 1 заголовок из 4-5 слов капсом:`;
 
   try {
     const directTitle = await callGeminiDirect(sysPrompt, userPrompt, 1200);
@@ -124,9 +114,7 @@ export async function generateGolubuzkiTitle(newsTitle, newsSummary = '', monolo
       const words = clean.split(/\s+/).filter(Boolean);
       if (words.length >= 3 && words.length <= 6) return clean.toUpperCase();
     }
-  } catch (err) {
-    console.warn('Direct title fallback:', err.message);
-  }
+  } catch {}
 
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (apiKey && !apiKey.includes('HIER')) {
@@ -150,9 +138,7 @@ export async function generateGolubuzkiTitle(newsTitle, newsSummary = '', monolo
           if (words.length >= 3 && words.length <= 6) return text.toUpperCase();
         }
       }
-    } catch (err) {
-      console.warn('Title generation fallback:', err.message);
-    }
+    } catch {}
   }
   return (newsTitle || 'ГЛАВНАЯ НОВОСТЬ ДНЯ').split(/\s+/).slice(0, 5).join(' ').toUpperCase();
 }
@@ -183,15 +169,11 @@ function cleanSpeechTextForAudio(rawText) {
     .trim();
 }
 
-// POST /api/generate-feuilleton
-// WICHTIG: Generiert den Text NUR im Speicher ohne automatisches Speichern auf Festplatte!
 router.post('/api/generate-feuilleton', async (req, res) => {
   const { title, summary, model = 'gemini', source, style = 'golubuzki', tone = 'grotesque' } = req.body;
   if (!title) return res.status(400).json({ error: 'Title is required' });
 
   let effectiveSummary = (summary || req.body.original_news || req.body.originalNews || req.body.sourceText || '').trim();
-
-  // 1. Zuerst prüfen, ob bereits eine source.txt auf Festplatte existiert
   const folderName = req.body.folderName || req.body.matchingPkg?.folderName || '';
   const bundleDir = req.body.bundleDir || req.body.matchingPkg?.bundleDir || '';
   if (folderName || bundleDir) {
@@ -204,7 +186,6 @@ router.post('/api/generate-feuilleton', async (req, res) => {
     }
   }
 
-  // 2. Wenn Web-URL vorhanden ist und Text kurz ist, vollstaendigen Originaltext der Internetseite scrapen
   const articleUrl = req.body.url || req.body.link || req.body.matchingPkg?.url || '';
   if (effectiveSummary.length < 300 && articleUrl && /^https?:\/\//i.test(articleUrl)) {
     try {
@@ -238,7 +219,7 @@ router.post('/api/generate-feuilleton', async (req, res) => {
     const text = cleanSpeechTextForAudio(rawText);
     const words = text.split(/\s+/).filter(Boolean).length;
     const minutes = Math.round((words / 140) * 10) / 10;
-    const punchyTitle = await generateGolubuzkiTitle(title, effectiveSummary, text);
+    const punchyTitle = await generateGolubuzkiTitle(title, effectiveSummary, text, tone, style);
 
     const feuilletonObj = {
       title: punchyTitle || title,
@@ -287,15 +268,13 @@ router.post('/api/generate-feuilleton', async (req, res) => {
   }
 });
 
-// ── Генератор 5 выверенных 3-секундных хуков для YouTube ──
 export async function generateYouTubeHooks(newsTitle, newsSummary = '', scriptText = '', styleKey = 'golubuzki', tone = 'grotesque') {
   const context = scriptText && scriptText.trim() ? scriptText.slice(0, 1200) : (newsSummary || newsTitle);
   const isAnalytics = tone === 'analytics' || styleKey === 'analytics';
 
   const sysInst = isAnalytics
-    ? `Ты — главный редактор аналитического YouTube-канала. Твоя задача — создать ровно 5 СИЛЬНЫХ, ИНТРИГУЮЩИХ 3-секундных хуков (СТРОГО 1 предложение, 8–15 слов) для удержания зрителя.
-СТРОГО БЕЗ ГРОТЕСКА, БЕЗ КЛОУНАДЫ, БЕЗ БРЕДА И БЕЗ ДЕШЕВОГО КЛИКБЕЙТА.
-Каждый хук должен быть умным, реалистичным, бить в самую суть и обозначать реальные геополитические или военные ставки.
+    ? `Ты — главный редактор аналитического YouTube-канала. Создай ровно 5 СИЛЬНЫХ, ИНТРИГУЮЩИХ 3-секундных хуков (СТРОГО 1 предложение, 8–15 слов).
+СТРОГО БЕЗ ГРОТЕСКА, БЕЗ КЛОУНАДЫ, БЕЗ БРЕДА.
 ФОРМАТ (СТРОГО JSON-массив из 5 объектов):
 [
   { "id": "intrigue", "type": "🎯 Скрытая суть", "hook": "Точное интригующее предложение о подоплеке события..." },
@@ -304,18 +283,18 @@ export async function generateYouTubeHooks(newsTitle, newsSummary = '', scriptTe
   { "id": "turning_point", "type": "⚡ Точка невозврата", "hook": "Предложение о необратимости начавшихся процессов..." },
   { "id": "fact", "type": "🔍 Неудобный факт", "hook": "Жесткий реальный факт, меняющий всю картину..." }
 ]`
-    : `Ты — мастер острой политической сатиры и публицистики. Твоя задача — создать ровно 5 ХЛЕСТКИХ, ОСТРОУМНЫХ 3-секундных хуков (СТРОГО 1 предложение, 8–15 слов).
-СТРОГО БЕЗ КЛОУНАДЫ И БЕЗ БРЕДОВОГО СЮРРЕАЛИЗМА. Хуки должны быть острыми, ироничными, но ПРИВЯЗАННЫМИ К РЕАЛЬНОСТИ, а не вымышленным бредом.
+    : `Ты — мастер острой сатиры. Создай ровно 5 ХЛЕСТКИХ, ОСТРОУМНЫХ 3-секундных хуков (СТРОГО 1 предложение, 8–15 слов).
+СТРОГО БЕЗ КЛОУНАДЫ. Привязка к реальности.
 ФОРМАТ (СТРОГО JSON-массив из 5 объектов):
 [
-  { "id": "paradox", "type": "💥 Парадокс реальности", "hook": "Острое предложение о крахе грандиозных иллюзий..." },
+  { "id": "paradox", "type": "💥 Парадокс реальности", "hook": "Острое предложение о крахе иллюзий..." },
   { "id": "satire", "type": "🎭 Едкая ирония", "hook": "Хлесткое саркастическое предложение по поводу события..." },
-  { "id": "scene", "type": "🎬 Меткий образ", "hook": "Яркая, но жизненная и точная метафора ситуации..." },
-  { "id": "diagnosis", "type": "⚡ Политический диагноз", "hook": "Беспощадный и точный вывод о природе случившегося..." },
-  { "id": "punch", "type": "🎯 Точный панчлайн", "hook": "Остроумный панч, бьющий в нерв кремлевской пропаганды..." }
+  { "id": "scene", "type": "🎬 Меткий образ", "hook": "Яркая, но жизненная метафора ситуации..." },
+  { "id": "diagnosis", "type": "⚡ Политический диагноз", "hook": "Беспощадный вывод о природе случившегося..." },
+  { "id": "punch", "type": "🎯 Точный панчлайн", "hook": "Остроумный панч в нерв темы..." }
 ]`;
 
-  const userInst = `ТЕМА: ${newsTitle}\nКОНТЕКСТ:\n"""\n${context}\n"""\n\nСоздай 5 сбалансированных хуков в формате JSON:`;
+  const userInst = `ТЕМА: ${newsTitle}\nКОНТЕКСТ:\n"""\n${context}\n"""\n\nСоздай 5 хуков в формате JSON:`;
 
   try {
     let raw = await callGeminiDirect(sysInst, userInst, 2500);
@@ -346,9 +325,7 @@ export async function generateYouTubeHooks(newsTitle, newsSummary = '', scriptTe
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
     }
-  } catch (e) {
-    console.warn('generateYouTubeHooks error:', e.message);
-  }
+  } catch (e) {}
 
   const shortTitle = (newsTitle || 'главной темы').replace(/["'«»`]/g, '').slice(0, 45);
   return isAnalytics ? [
@@ -366,7 +343,6 @@ export async function generateYouTubeHooks(newsTitle, newsSummary = '', scriptTe
   ];
 }
 
-// POST /api/generate-hooks
 router.post('/api/generate-hooks', async (req, res) => {
   try {
     const { title = '', summary = '', text = '', style = 'golubuzki', tone = 'grotesque' } = req.body;

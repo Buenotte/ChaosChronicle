@@ -45,19 +45,16 @@ export function stripBloggerNames(text = '') {
 }
 
 export function cleanExtractedTitle(raw = '', fallback = '') {
-  let t = (raw || '').trim();
-  t = t.replace(/```(?:json)?/gi, '').replace(/```/g, '').trim();
+  let t = (raw || '').trim().replace(/```(?:json)?/gi, '').replace(/```/g, '').trim();
   t = t.replace(/^\{?\s*"?(?:title|youtube_title|заголовок)"?\s*:\s*"?/i, '');
   t = t.replace(/,\s*"?(?:youtube_description|description|tags|facebookPost)[\s\S]*$/i, '');
-  t = t.replace(/["'{}]+/g, '').trim();
-  t = t.replace(/^(?:title|заголовок)[:\s-]+/i, '').trim();
+  t = t.replace(/["'{}]+/g, '').trim().replace(/^(?:title|заголовок)[:\s-]+/i, '').trim();
   t = stripBloggerNames(t);
   if (!t || t.length < 5) t = fallback;
   if (!t.toLowerCase().includes('chaos chronicle') && !t.toLowerCase().includes('chaoschronicle')) {
     t = `${t} | Chaos Chronicle`;
   }
-  t = t.replace(/(?:\s*\|\s*Chaos\s*Chronicle\s*)+/gi, ' | Chaos Chronicle');
-  return t.slice(0, 95);
+  return t.replace(/(?:\s*\|\s*Chaos\s*Chronicle\s*)+/gi, ' | Chaos Chronicle').slice(0, 95);
 }
 
 const MODEL_MAP = {
@@ -66,45 +63,38 @@ const MODEL_MAP = {
 };
 
 export async function generateYouTubeMetadata({
-  title = '',
-  text = '',
-  folderName,
-  bundleDir: inputBundleDir,
-  force = false,
-  style = 'clickbait',
-  tone = 'grotesque',
-  model = 'gemini',
-  section = 'all',
-  keywords = '',
+  title = '', text = '', folderName, bundleDir: inputBundleDir,
+  force = false, style = 'clickbait', tone = 'grotesque',
+  model = 'gemini', section = 'all', keywords = '',
 }) {
-  let bundleDir = inputBundleDir;
-  if (!bundleDir && folderName) {
-    bundleDir = path.join(newsDir, folderName);
-  }
-
+  let bundleDir = inputBundleDir || (folderName ? path.join(newsDir, folderName) : null);
   const jsonPath = bundleDir ? path.join(bundleDir, 'project.json') : null;
+  const separateJsonPath = bundleDir ? path.join(bundleDir, 'youtube_metadata.json') : null;
   let manifest = {};
   if (jsonPath && fs.existsSync(jsonPath)) {
-    try {
-      manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
-      const cached = manifest.youtubeMetadata && (manifest.youtubeMetadata[style] || (!force && manifest.youtubeMetadata.title ? manifest.youtubeMetadata : null));
-      if (!force && section === 'all' && cached && cached.title && cached.facebookPost) {
-        return { success: true, ...cached, style, fromCache: true };
-      }
-    } catch {}
+    try { manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8')); } catch {}
+  }
+  let separateMeta = null;
+  if (separateJsonPath && fs.existsSync(separateJsonPath)) {
+    try { separateMeta = JSON.parse(fs.readFileSync(separateJsonPath, 'utf-8')); } catch {}
   }
 
   if (!force && section === 'all') {
-    return {
-      success: true,
-      notGenerated: true,
-      title: '',
-      description: '',
-      tags: '',
-      hashtags: '',
-      facebookPost: '',
-      style,
-    };
+    let cached = manifest.youtubeMetadata && manifest.youtubeMetadata[style];
+    if (!cached && manifest.youtubeMetadata && manifest.youtubeMetadata.style === style && (manifest.youtubeMetadata.title || manifest.youtubeMetadata.description)) {
+      cached = manifest.youtubeMetadata;
+    }
+    if (!cached && separateMeta && separateMeta.style === style && (separateMeta.title || separateMeta.description || separateMeta.facebookPost)) {
+      cached = separateMeta;
+    }
+    if (cached && (cached.title || cached.description || cached.facebookPost)) {
+      return {
+        success: true, title: cached.title || '', description: cached.description || '',
+        tags: cached.tags || '', hashtags: cached.hashtags || '', facebookPost: cached.facebookPost || '',
+        style: cached.style || style, tone: cached.tone || tone, fromCache: true,
+      };
+    }
+    return { success: true, notGenerated: true, title: '', description: '', tags: '', hashtags: '', facebookPost: '', style };
   }
 
   const effectiveTitle = manifest.title || title || 'Мировые новости';
@@ -114,14 +104,6 @@ export async function generateYouTubeMetadata({
 
   const effectiveStyle = (style === 'analytics') ? 'gibrid' : style;
   const styleCfg = STYLES[effectiveStyle] || STYLES.golubuzki;
-  let styleGuide = '';
-  if (styleCfg?.file) {
-    const stylePath = path.join(scriptsDir, styleCfg.file);
-    if (fs.existsSync(stylePath)) {
-      try { styleGuide = fs.readFileSync(stylePath, 'utf-8').slice(0, 1500); } catch {}
-    }
-  }
-
   const fallbackTitle = `🔥 ${effectiveTitle.toUpperCase().slice(0, 65)} | ChaosChronicle`;
   const fallbackDesc = `${effectiveTitle}.\n\n⚡ Главные факты и скрытые мотивы\n⚡ Последствия для фронта и мировой геополитики\n⚡ Реальный расклад сил\n\n🔔 Подписывайтесь на канал ChaosChronicle, жмите на колокольчик 🔔 и пишите комментарии!\n\n#ChaosChronicle #новости #политика #аналитика #геополитика`;
   const fallbackTags = `ChaosChronicle, новости, мировые новости, политика, аналитика, геополитика, факты, события, ${effectiveTitle.slice(0, 30)}`;
@@ -149,7 +131,6 @@ export async function generateYouTubeMetadata({
   }
 
   const chosenModel = MODEL_MAP[model] || model || 'google/gemini-2.5-flash';
-
   const isAnalytics = (style === 'analytics' || tone === 'analytics');
   const isYtTopic = ['scipop', 'mystery', 'tech_future', 'psychology', 'storytelling'].includes(effectiveStyle);
 
@@ -163,7 +144,7 @@ export async function generateYouTubeMetadata({
 СТРОЖАЙШИЕ ЗАПРЕТЫ (КАТЕГОРИЧЕСКИ НЕЛЬЗЯ ПИСАТЬ):
 - КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО писать от первого лица («мы», «я», «мы разбираем», «наш анализ», «мы видим», «сегодня мы»).
 - КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО использовать слова и штампы: «Разбираем», «Анализируем», «Разбор», «Глубокая аналитика», «Без гротеска».
-${isYtTopic ? '- КАТЕГОРИЧЕСКИ ЗАПРЕЩЕН формат интервью: не упоминай имена гостей, врачей или интервьюеров («Бузунов», «доктор», «в гостях», «интервью»).' : ''}
+${isYtTopic ? '- КАТЕГОРИЧЕСКИ ЗАПРЕЩЕН формат интервью: не упоминай имена гостей, врачей или интервьюеров.' : ''}
 - ПОВЕСТВОВАНИЕ СТРОГО В ТРЕТЬЕМ ЛИЦЕ: говори прямо о фактах, событиях, решениях, ТТХ и последствиях!`;
 
   let systemPrompt = `Ты — ведущий YouTube-продюсер канала Chaos Chronicle.
@@ -174,43 +155,28 @@ ${strictNegativeRule}`;
 
   if (section === 'title') {
     systemPrompt += isYtTopic
-      ? `\nСоздай ТОЛЬКО 1 захватывающий YouTube-заголовок (до 75 символов) с интригой/научным парадоксом и эмодзи | Chaos Chronicle. БЕЗ сатиры и политики.
-Ответь СТРОГО JSON: { "title": "..." }`
+      ? `\nСоздай ТОЛЬКО 1 захватывающий YouTube-заголовок (до 75 символов) с интригой/научным парадоксом и эмодзи | Chaos Chronicle. БЕЗ сатиры и политики.\nОтветь СТРОГО JSON: { "title": "..." }`
       : isAnalytics
-      ? `\nСоздай ТОЛЬКО 1 ёмкий, интригующий аналитический YouTube-заголовок (до 75 символов) с сутью интриги и эмодзи | Chaos Chronicle. БЕЗ гротескного цирка.
-Ответь СТРОГО JSON: { "title": "..." }`
-      : `\nСоздай ТОЛЬКО 1 убойный, супер-кликабельный YouTube-заголовок (до 75 символов) с интригой/парадоксом и эмодзи | Chaos Chronicle.
-Ответь СТРОГО JSON: { "title": "..." }`;
+      ? `\nСоздай ТОЛЬКО 1 ёмкий, интригующий аналитический YouTube-заголовок (до 75 символов) с сутью интриги и эмодзи | Chaos Chronicle. БЕЗ гротескного цирка.\nОтветь СТРОГО JSON: { "title": "..." }`
+      : `\nСоздай ТОЛЬКО 1 убойный, супер-кликабельный YouTube-заголовок (до 75 символов) с интригой/парадоксом и эмодзи | Chaos Chronicle.\nОтветь СТРОГО JSON: { "title": "..." }`;
   } else if (section === 'description') {
-    systemPrompt += isAnalytics
-      ? `\nСоздай ТОЛЬКО описание для YouTube БЕЗ приветствий (суть события в 1-2 ёмких абзацах без штампов, 3 ключевых тезиса ⚡ с фактами и последствиями, призыв 🔔, хэштеги), а также keywords теги и хэштеги.
-Ответь СТРОГО JSON: { "description": "...", "tags": "...", "hashtags": "..." }`
-      : `\nСоздай ТОЛЬКО описание для YouTube БЕЗ приветствий (суть с визуальным гротеском, 3 тезиса ⚡ с парадоксами и метафорами из текста, призыв 🔔, хэштеги), а также keywords теги и хэштеги.
-Ответь СТРОГО JSON: { "description": "...", "tags": "...", "hashtags": "..." }`;
+    systemPrompt += isYtTopic
+      ? `\nСоздай ТОЛЬКО описание для YouTube БЕЗ приветствий (суть темы в 1-2 ёмких абзацах, 3 ключевых факта ⚡ по теме, призыв 🔔, тематические хэштеги), а также keywords теги и хэштеги. БЕЗ сатиры и политики.\nОтветь СТРОГО JSON: { "description": "...", "tags": "...", "hashtags": "..." }`
+      : isAnalytics
+      ? `\nСоздай ТОЛЬКО описание для YouTube БЕЗ приветствий (суть события в 1-2 ёмких абзацах, 3 ключевых тезиса ⚡ с фактами и последствиями, призыв 🔔, хэштеги), а также keywords теги и хэштеги.\nОтветь СТРОГО JSON: { "description": "...", "tags": "...", "hashtags": "..." }`
+      : `\nСоздай ТОЛЬКО описание для YouTube БЕЗ приветствий (суть с визуальным гротеском, 3 тезиса ⚡ с метафорами из текста, призыв 🔔, хэштеги), а также keywords теги и хэштеги.\nОтветь СТРОГО JSON: { "description": "...", "tags": "...", "hashtags": "..." }`;
   } else if (section === 'facebookPost') {
-    systemPrompt += isAnalytics
-      ? `\nСоздай ТОЛЬКО готовый пост для Facebook (40-70 слов, БЕЗ приветствий, раскрывающий суть и последствия события, ссылка 👉 [ССЫЛКА НА ВАШЕ ВИДЕО В YOUTUBE] 🔔, фраза «Подпишитесь, чтобы не пропустить новые сводки! 🔔», хэштеги).
-Ответь СТРОГО JSON: { "facebookPost": "..." }`
-      : `\nСоздай ТОЛЬКО готовый вирусный пост для Facebook (40-70 слов, БЕЗ приветствий, с сочным сатирическим гротеском и парадоксом из текста, ссылка 👉 [ССЫЛКА НА ВАШЕ ВИДЕО В YOUTUBE] 🔔, фраза «Подпишитесь, чтобы не пропустить новые сводки! 🔔», хэштеги).
-Ответь СТРОГО JSON: { "facebookPost": "..." }`;
+    systemPrompt += isYtTopic
+      ? `\nСоздай ТОЛЬКО готовый пост для Facebook (40-70 слов, БЕЗ приветствий, раскрывающий научный факт/интригу темы, ссылка 👉 [ССЫЛКА НА ВАШЕ ВИДЕО В YOUTUBE] 🔔, фраза «Подпишитесь, чтобы не пропустить новые сводки! 🔔», тематические хэштеги). БЕЗ сатиры.\nОтветь СТРОГО JSON: { "facebookPost": "..." }`
+      : isAnalytics
+      ? `\nСоздай ТОЛЬКО готовый пост для Facebook (40-70 слов, БЕЗ приветствий, раскрывающий суть и последствия события, ссылка 👉 [ССЫЛКА НА ВАШЕ ВИДЕО В YOUTUBE] 🔔, фраза «Подпишитесь, чтобы не пропустить новые сводки! 🔔», хэштеги).\nОтветь СТРОГО JSON: { "facebookPost": "..." }`
+      : `\nСоздай ТОЛЬКО готовый вирусный пост для Facebook (40-70 слов, БЕЗ приветствий, с сочным сатирическим гротеском и парадоксом из текста, ссылка 👉 [ССЫЛКА НА ВАШЕ ВИДЕО В YOUTUBE] 🔔, фраза «Подпишитесь, чтобы не пропустить новые сводки! 🔔», хэштеги).\nОтветь СТРОГО JSON: { "facebookPost": "..." }`;
   } else {
-    systemPrompt += isAnalytics
-      ? `\nОтветь СТРОГО JSON:
-{
-  "title": "Интригующий аналитический заголовок (до 75 символов) с эмодзи | Chaos Chronicle",
-  "description": "Описание YouTube БЕЗ приветствий: суть темы (факты, скрытые мотивы, расстановка сил), 3 пункта ⚡ с фактами/последствиями, призыв 🔔, хэштеги.",
-  "tags": "Теги через запятую для YouTube Studio (без слова сатира и имен)",
-  "hashtags": "#ChaosChronicle #новости #аналитика #политика #геополитика",
-  "facebookPost": "Короткий пост для Facebook: суть и скрытые мотивы события без цензуры"
-}`
-      : `\nОтветь СТРОГО JSON:
-{
-  "title": "Хлёсткий кликабельный YouTube-заголовок (до 75 символов) с парадоксом и эмодзи | Chaos Chronicle",
-  "description": "Описание YouTube БЕЗ приветствий: суть темы с ярким гротеском, 3 пункта ⚡ с метафорами из текста, призыв 🔔, хэштеги.",
-  "tags": "Теги через запятую для YouTube Studio (без слова сатира и имен)",
-  "hashtags": "#ChaosChronicle #новости #аналитика #политика #геополитика",
-  "facebookPost": "Короткий вирусный пост для Facebook с ярким сатирическим парадоксом и гротеском"
-}`;
+    systemPrompt += isYtTopic
+      ? `\nОтветь СТРОГО JSON:\n{\n  "title": "Захватывающий YouTube-заголовок (до 75 символов) с парадоксом/интригой и эмодзи | Chaos Chronicle",\n  "description": "Описание темы для YouTube БЕЗ приветствий: 1-2 ёмких абзаца, 3 пункта ⚡ с фактами/парадоксами, призыв 🔔, тематические хэштеги.",\n  "tags": "Теги через запятую для YouTube Studio по теме выпуска",\n  "hashtags": "#ChaosChronicle #научпоп #факты #наука #история #технологии",\n  "facebookPost": "Пост для Facebook: увлекательный факт или интрига темы без цензуры и политики"\n}`
+      : isAnalytics
+      ? `\nОтветь СТРОГО JSON:\n{\n  "title": "Интригующий аналитический заголовок (до 75 символов) с эмодзи | Chaos Chronicle",\n  "description": "Описание YouTube БЕЗ приветствий: суть темы (факты, скрытые мотивы, расстановка сил), 3 пункта ⚡ с фактами/последствиями, призыв 🔔, хэштеги.",\n  "tags": "Теги через запятую для YouTube Studio (без слова сатира и имен)",\n  "hashtags": "#ChaosChronicle #новости #аналитика #политика #геополитика",\n  "facebookPost": "Короткий пост для Facebook: суть и скрытые мотивы события без цензуры"\n}`
+      : `\nОтветь СТРОГО JSON:\n{\n  "title": "Хлёсткий кликабельный YouTube-заголовок (до 75 символов) с парадоксом и эмодзи | Chaos Chronicle",\n  "description": "Описание YouTube БЕЗ приветствий: суть темы с ярким гротеском, 3 пункта ⚡ с метафорами из текста, призыв 🔔, хэштеги.",\n  "tags": "Теги через запятую для YouTube Studio (без слова сатира и имен)",\n  "hashtags": "#ChaosChronicle #новости #аналитика #политика #геополитика",\n  "facebookPost": "Короткий вирусный пост для Facebook с ярким сатирическим парадоксом и гротеском"\n}`;
   }
 
   const kwInstruction = keywords && keywords.trim()
@@ -316,10 +282,7 @@ ${strictNegativeRule}`;
 }
 
 export function saveYouTubeMetadataJson({ bundleDir: inputBundleDir, folderName, title, description, tags, hashtags, facebookPost, style = 'golubuzki', tone = 'grotesque' }) {
-  let bundleDir = inputBundleDir;
-  if (!bundleDir && folderName) {
-    bundleDir = path.join(newsDir, folderName);
-  }
+  let bundleDir = inputBundleDir || (folderName ? path.join(newsDir, folderName) : null);
   if (!bundleDir || !fs.existsSync(bundleDir)) {
     return { success: false, error: 'Папка пакета не найдена' };
   }
@@ -341,13 +304,11 @@ export function saveYouTubeMetadataJson({ bundleDir: inputBundleDir, folderName,
       const manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
       if (!manifest.youtubeMetadata || typeof manifest.youtubeMetadata !== 'object') manifest.youtubeMetadata = {};
       manifest.youtubeMetadata[style] = metadata;
-      manifest.youtubeMetadata.title = metadata.title;
-      manifest.youtubeMetadata.description = metadata.description;
-      manifest.youtubeMetadata.tags = metadata.tags;
-      manifest.youtubeMetadata.hashtags = metadata.hashtags;
-      manifest.youtubeMetadata.facebookPost = metadata.facebookPost;
-      manifest.youtubeMetadata.tone = metadata.tone;
-      manifest.youtubeMetadata.savedAt = metadata.savedAt;
+      Object.assign(manifest.youtubeMetadata, {
+        title: metadata.title, description: metadata.description, tags: metadata.tags,
+        hashtags: metadata.hashtags, facebookPost: metadata.facebookPost, style: metadata.style,
+        tone: metadata.tone, savedAt: metadata.savedAt,
+      });
       fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
     } catch {}
   }

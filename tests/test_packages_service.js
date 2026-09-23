@@ -32,6 +32,43 @@ async function runPackagesTests() {
   const updateData = await updateRes.json();
   assert.ok(updateData.success, 'Update title must return success');
   console.log('  ✅ POST /api/update-package-title passed');
+
+  // 3. Save and Load YouTube Metadata
+  const testMetaPayload = {
+    folderName: samplePkg.folderName,
+    title: 'ТЕСТОВЫЙ ЗАГОЛОВОК ДЛЯ YOUTUBE',
+    description: 'Тестовое описание ролика с деталями и фактами.',
+    tags: 'тест, новости, youtube',
+    hashtags: '#тест #новости',
+    facebookPost: 'Тестовый пост для Facebook',
+    style: 'scipop',
+    tone: 'analytics',
+  };
+  const saveMetaRes = await fetch('http://localhost:3001/api/save-youtube-metadata', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(testMetaPayload),
+  });
+  const saveMetaData = await saveMetaRes.json();
+  assert.ok(saveMetaData.success, 'Save YouTube metadata must return success');
+  console.log('  ✅ POST /api/save-youtube-metadata passed (persisted to project.json & youtube_metadata.json)');
+
+  // Verify loading saved metadata from cache/disk
+  const loadMetaRes = await fetch('http://localhost:3001/api/youtube-metadata', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      folderName: samplePkg.folderName,
+      force: false,
+      style: 'scipop',
+      section: 'all',
+    }),
+  });
+  const loadMetaData = await loadMetaRes.json();
+  assert.ok(loadMetaData.success, 'Load metadata must return success');
+  assert.strictEqual(loadMetaData.title, testMetaPayload.title, 'Loaded title must match saved title');
+  assert.strictEqual(loadMetaData.description, testMetaPayload.description, 'Loaded description must match saved description');
+  console.log('  ✅ POST /api/youtube-metadata verified loading saved data from cache & disk');
 }
 
 runPackagesTests()

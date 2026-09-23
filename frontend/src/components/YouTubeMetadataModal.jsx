@@ -10,18 +10,19 @@ export default function YouTubeMetadataModal({ pkg, onSaved, onClose }) {
   const fileInputRef = useRef(null)
   const [loading, setLoading] = useState(false)
   const [savingJson, setSavingJson] = useState(false)
-  const [selectedStyle, setSelectedStyle] = useState(pkg.style || 'clickbait')
-  const [selectedTone, setSelectedTone] = useState(pkg.tone || (pkg.style === 'analytics' ? 'analytics' : 'grotesque'))
+  const metaInit = pkg?.youtubeMetadata || {}
+  const [selectedStyle, setSelectedStyle] = useState(metaInit.style || pkg?.style || 'clickbait')
+  const [selectedTone, setSelectedTone] = useState(metaInit.tone || pkg?.tone || (pkg?.style === 'analytics' ? 'analytics' : 'grotesque'))
   const [titleModel, setTitleModel] = useState('gemini')
   const [descModel, setDescModel] = useState('gemini')
   const [fbModel, setFbModel] = useState('gemini')
   const [sectionLoading, setSectionLoading] = useState(null)
   const [metaKeywords, setMetaKeywords] = useState('')
-  const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
-  const [tags, setTags] = useState('')
-  const [hashtags, setHashtags] = useState('')
-  const [facebookPost, setFacebookPost] = useState('')
+  const [title, setTitle] = useState(metaInit.title || '')
+  const [description, setDescription] = useState(metaInit.description || '')
+  const [tags, setTags] = useState(metaInit.tags || '')
+  const [hashtags, setHashtags] = useState(metaInit.hashtags || '')
+  const [facebookPost, setFacebookPost] = useState(metaInit.facebookPost || '')
 
   const fetchMetadata = async (force = false, styleOverride = selectedStyle, toneOverride = selectedTone) => {
     setLoading(true)
@@ -36,11 +37,11 @@ export default function YouTubeMetadataModal({ pkg, onSaved, onClose }) {
       const data = await res.json()
       if (data.success) {
         if (!data.notGenerated) {
-          setTitle(data.title || '')
-          setDescription(data.description || '')
-          setTags(data.tags || '')
-          setHashtags(data.hashtags || '')
-          setFacebookPost(data.facebookPost || '')
+          if (data.title !== undefined) setTitle(data.title || '')
+          if (data.description !== undefined) setDescription(data.description || '')
+          if (data.tags !== undefined) setTags(data.tags || '')
+          if (data.hashtags !== undefined) setHashtags(data.hashtags || '')
+          if (data.facebookPost !== undefined) setFacebookPost(data.facebookPost || '')
           if (force && toastId) toast.success(`✨ Метаданные (${styleLabel}) готовы!`, { id: toastId })
         }
       } else {
@@ -107,8 +108,12 @@ export default function YouTubeMetadataModal({ pkg, onSaved, onClose }) {
       })
       const data = await res.json()
       if (data.success) {
+        if (!pkg.youtubeMetadata) pkg.youtubeMetadata = {}
+        Object.assign(pkg.youtubeMetadata, { title, description, tags, hashtags, facebookPost, style: selectedStyle, tone: selectedTone })
+        pkg.hasYouTubeMetadata = Boolean(title || description)
+        pkg.hasFacebookPost = Boolean(facebookPost)
         toast.success('💾 Метаданные успешно сохранены в проект (JSON)!')
-        if (onSaved) onSaved({ title, description, tags, hashtags, facebookPost })
+        if (onSaved) onSaved({ title, description, tags, hashtags, facebookPost, style: selectedStyle, tone: selectedTone })
       } else {
         toast.error('Ошибка сохранения: ' + (data.error || 'Неизвестная ошибка'))
       }
@@ -120,25 +125,11 @@ export default function YouTubeMetadataModal({ pkg, onSaved, onClose }) {
   }
 
   const handleDownloadJson = () => {
-    const payload = {
-      title,
-      description,
-      tags,
-      hashtags,
-      facebookPost,
-      style: selectedStyle,
-      exportedAt: new Date().toISOString(),
-      folderName: pkg.folderName || '',
-    }
+    const payload = { title, description, tags, hashtags, facebookPost, style: selectedStyle, exportedAt: new Date().toISOString(), folderName: pkg.folderName || '' }
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `youtube_metadata_${pkg.folderName || 'package'}.json`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
+    const url = URL.createObjectURL(blob), a = document.createElement('a')
+    a.href = url; a.download = `youtube_metadata_${pkg.folderName || 'package'}.json`
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url)
     toast.success('📥 Файл youtube_metadata.json успешно скачан!')
   }
 
@@ -156,12 +147,9 @@ export default function YouTubeMetadataModal({ pkg, onSaved, onClose }) {
         if (json.facebookPost !== undefined) setFacebookPost(json.facebookPost)
         if (json.style && ALL_STYLES.some(s => s.id === json.style)) setSelectedStyle(json.style)
         toast.success(`📂 Метаданные успешно загружены из файла "${file.name}"!`)
-      } catch (err) {
-        toast.error('Ошибка парсинга JSON-файла: ' + err.message)
-      }
+      } catch (err) { toast.error('Ошибка парсинга JSON-файла: ' + err.message) }
     }
-    reader.readAsText(file)
-    e.target.value = ''
+    reader.readAsText(file); e.target.value = ''
   }
 
   const copyToClipboard = (text, label) => {
@@ -220,6 +208,16 @@ export default function YouTubeMetadataModal({ pkg, onSaved, onClose }) {
                     {FEUILLETON_STYLES.map(s => (<option key={s.id} value={s.id}>{s.icon} {s.name}</option>))}
                   </optgroup>
                 </select>
+                <button
+                  type="button"
+                  onClick={() => fetchMetadata(true, selectedStyle, selectedTone)}
+                  disabled={loading}
+                  className="copy-btn"
+                  style={{ background: '#ec4899', color: '#fff', fontSize: '0.75rem', padding: '0.25rem 0.55rem', fontWeight: 600 }}
+                  title="Сгенерировать метаданные под выбранный стиль"
+                >
+                  ✨ Сгенерировать
+                </button>
               </div>
 
               {/* JSON Toolbar: Datei Export/Import */}
@@ -368,7 +366,7 @@ export default function YouTubeMetadataModal({ pkg, onSaved, onClose }) {
         </div>
 
         <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
-          <button type="button" className="refresh-btn" onClick={() => fetchMetadata(true, selectedStyle)} disabled={loading} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <button type="button" className="refresh-btn" onClick={() => fetchMetadata(true, selectedStyle, selectedTone)} disabled={loading} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
             🔄 {loading ? 'Генерация...' : `Сгенерировать (${currentStyleObj?.name?.split(' (')[0] || 'стиль'})`}
           </button>
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>

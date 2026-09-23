@@ -213,9 +213,11 @@ router.get('/api/saved-packages', async (req, res) => {
       if (fs.existsSync(styleJsonPath)) { try { thumbnailStyle = JSON.parse(fs.readFileSync(styleJsonPath, 'utf-8')); } catch {} }
       if (!thumbnailStyle && manifest.headlineConfig) thumbnailStyle = manifest.headlineConfig;
 
-      const ytMeta = manifest.youtubeMetadata;
-      const hasYouTubeMetadata = Boolean(ytMeta && (ytMeta.description || ytMeta.clickbait?.description || ytMeta.golubuzki?.description));
-      const hasFacebookPost = Boolean((manifest.facebookPosts && Object.keys(manifest.facebookPosts).length > 0) || (ytMeta && (ytMeta.facebookPost || ytMeta.clickbait?.facebookPost || ytMeta.golubuzki?.facebookPost)));
+      const ytMetaJsonPath = path.join(bundleDir, 'youtube_metadata.json');
+      let ytMeta = manifest.youtubeMetadata;
+      if (!ytMeta && fs.existsSync(ytMetaJsonPath)) { try { ytMeta = JSON.parse(fs.readFileSync(ytMetaJsonPath, 'utf-8')); } catch {} }
+      const hasYouTubeMetadata = Boolean(fs.existsSync(ytMetaJsonPath) || (ytMeta && (ytMeta.description || ytMeta.title || Object.values(ytMeta).some(v => v && typeof v === 'object' && (v.description || v.title)))));
+      const hasFacebookPost = Boolean((manifest.facebookPosts && Object.keys(manifest.facebookPosts).length > 0) || (ytMeta && (ytMeta.facebookPost || Object.values(ytMeta).some(v => v && typeof v === 'object' && v.facebookPost))));
 
       const sourceTxtPath = path.join(bundleDir, 'source.txt'), origNewsPath = path.join(bundleDir, 'original_news.txt');
       let origNewsText = '';
@@ -358,13 +360,8 @@ router.post('/api/update-package-title', async (req, res) => {
     }
     if (!newTitle || !newTitle.trim()) return res.status(400).json({ success: false, error: 'Заголовок не может быть пустым' });
 
-    const titleOptions = {};
-    if (lineSpacing !== undefined) titleOptions.lineSpacing = Number(lineSpacing);
-    if (lineColors !== undefined) titleOptions.lineColors = lineColors;
-    if (fontSize !== undefined) titleOptions.fontSize = fontSize;
-    if (fontColor !== undefined) titleOptions.fontColor = fontColor;
-    if (font !== undefined) titleOptions.font = font;
-
+    const titleOptions = { lineSpacing, lineColors, fontSize, fontColor, font };
+    Object.keys(titleOptions).forEach(k => titleOptions[k] === undefined && delete titleOptions[k]);
     res.json(updatePackageTitle(targetFolder, newTitle, updateThumbnail, titleOptions));
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
@@ -376,7 +373,11 @@ router.post('/api/youtube-metadata', async (req, res) => {
 
 // POST /api/save-youtube-metadata
 router.post('/api/save-youtube-metadata', (req, res) => {
-  try { res.json(saveYouTubeMetadataJson(req.body)); } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+  try {
+    const result = saveYouTubeMetadataJson(req.body);
+    invalidatePackagesCache();
+    res.json(result);
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 export default router;

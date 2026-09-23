@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
-import { FEUILLETON_STYLES, AI_MODELS } from '../lib/utils'
+import { FEUILLETON_STYLES, YOUTUBE_TOPIC_STYLES, AI_MODELS } from '../lib/utils'
 import ScriptHookGenerator from './script/ScriptHookGenerator'
+
+const ALL_STYLES = [...YOUTUBE_TOPIC_STYLES, ...FEUILLETON_STYLES]
 
 export default function FeuilletonModal({ feuilleton, onOpenPhotos, onOpenPackage, onClose, onRefreshPackages }) {
   if (!feuilleton) return null
@@ -10,7 +12,9 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onOpenPackag
   const [currentTitle, setCurrentTitle] = useState(feuilleton.title || '')
   const [selectedStyle, setSelectedStyle] = useState(feuilleton.style || feuilleton.scriptStyle || 'kasjanov')
   const [selectedModel, setSelectedModel] = useState(feuilleton.modelName || feuilleton.model || 'gemini')
-  const [selectedTone, setSelectedTone] = useState(feuilleton.tone || 'grotesque'), [regenerating, setRegenerating] = useState(false), [saving, setSaving] = useState(false)
+  const [selectedTone, setSelectedTone] = useState(feuilleton.tone || 'grotesque')
+  const [regenerating, setRegenerating] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [savedInfo, setSavedInfo] = useState(feuilleton.bundleDir || feuilleton.matchingPkg ? (feuilleton.matchingPkg || feuilleton) : null)
 
   useEffect(() => {
@@ -44,9 +48,11 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onOpenPackag
 
   const handleRegenerateStyle = async (newStyle = selectedStyle, newModel = selectedModel, newTone = selectedTone) => {
     setSelectedStyle(newStyle); setSelectedModel(newModel); setSelectedTone(newTone); setRegenerating(true)
-    const styleName = FEUILLETON_STYLES.find(s => s.id === newStyle)?.name || newStyle
+    const styleName = ALL_STYLES.find(s => s.id === newStyle)?.name || newStyle
     const modelName = AI_MODELS.find(m => m.id === newModel)?.name || newModel
-    const toastId = toast.loading(`🔄 Генерация текста (${newTone === 'analytics' ? '🧠 Аналитика' : '💥 Сатира'})...`, { description: `${modelName} | ${styleName}` })
+    const isYt = ['scipop', 'mystery', 'tech_future', 'psychology', 'storytelling'].includes(newStyle)
+    const toastLabel = isYt ? `🎬 Генерация сценария (${styleName.split(' (')[0]})` : `🔄 Генерация текста (${newTone === 'analytics' ? '🧠 Аналитика' : '💥 Сатира'})`
+    const toastId = toast.loading(toastLabel + '...', { description: `${modelName} | ${styleName}` })
 
     try {
       const res = await fetch('/api/generate-feuilleton', {
@@ -75,7 +81,7 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onOpenPackag
         if (fData.title) feuilleton.matchingPkg.title = fData.title
       }
       if (onRefreshPackages) onRefreshPackages()
-      toast.success('✨ Новый вариант фельетона готов!', { id: toastId })
+      toast.success('✨ Новый вариант сценария готов!', { id: toastId })
     } catch (err) { toast.error('Ошибка перегенерации', { id: toastId, description: err.message }) }
     finally { setRegenerating(false) }
   }
@@ -108,6 +114,8 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onOpenPackag
     finally { setSaving(false) }
   }
 
+  const isCurrentStyleYt = ['scipop', 'mystery', 'tech_future', 'psychology', 'storytelling'].includes(selectedStyle)
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div
@@ -118,8 +126,8 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onOpenPackag
         <div className="modal-header">
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
-              <span className="modal-badge" style={{ background: '#7c3aed', color: '#fff' }}>
-                🎭 3-Минутный Сатирический Фельетон
+              <span className="modal-badge" style={{ background: isCurrentStyleYt ? '#059669' : '#7c3aed', color: '#fff' }}>
+                {isCurrentStyleYt ? '🎬 3-Мин. YouTube Сценарий' : '🎭 3-Минутный Фельетон / Аналитика'}
               </span>
               {savedInfo ? (
                 <button
@@ -193,7 +201,7 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onOpenPackag
                 <button type="button" onClick={() => setSelectedTone('grotesque')} disabled={regenerating} style={{ background: selectedTone === 'grotesque' ? '#7c2d12' : '#0f172a', border: selectedTone === 'grotesque' ? '2px solid #f97316' : '1px solid #334155', color: selectedTone === 'grotesque' ? '#fff' : '#94a3b8', borderRadius: '8px', padding: '0.6rem 0.8rem', cursor: 'pointer', textAlign: 'left', fontWeight: selectedTone === 'grotesque' ? 700 : 500, fontSize: '0.85rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                     <span>💥</span>
-                    <div><div>Сатира</div><div style={{ fontSize: '0.7rem', color: selectedTone === 'grotesque' ? '#fdba74' : '#64748b' }}>Едкая ирония, метафоры и сатирический памфлет</div></div>
+                    <div><div>Сатира & Гротеск</div><div style={{ fontSize: '0.7rem', color: selectedTone === 'grotesque' ? '#fdba74' : '#64748b' }}>Едкая ирония, метафоры и сатирический памфлет</div></div>
                   </div>
                 </button>
                 <button type="button" onClick={() => setSelectedTone('analytics')} disabled={regenerating} style={{ background: selectedTone === 'analytics' ? '#1e3a8a' : '#0f172a', border: selectedTone === 'analytics' ? '2px solid #3b82f6' : '1px solid #334155', color: selectedTone === 'analytics' ? '#fff' : '#94a3b8', borderRadius: '8px', padding: '0.6rem 0.8rem', cursor: 'pointer', textAlign: 'left', fontWeight: selectedTone === 'analytics' ? 700 : 500, fontSize: '0.85rem' }}>
@@ -205,9 +213,24 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onOpenPackag
               </div>
             </div>
 
-            {/* 3. Выбор Авторского Стиля */}
+            {/* 3. Выбор Стиля: YouTube Тематика & Авторские */}
             <div style={{ background: '#181c27', padding: '1rem', borderRadius: '10px', border: '1px solid #232936' }}>
-              <label style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f3f4f6', display: 'block', marginBottom: '0.55rem' }}>🎭 3. Выберите автора / стилистический фокус:</label>
+              <label style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f3f4f6', display: 'block', marginBottom: '0.55rem' }}>🎭 3. Выберите стиль сценария:</label>
+              
+              <div style={{ fontSize: '0.78rem', color: '#38bdf8', fontWeight: 700, marginBottom: '0.4rem' }}>🎬 ТЕМАТИЧЕСКИЕ СТИЛИ YOUTUBE:</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.5rem', marginBottom: '0.9rem' }}>
+                {YOUTUBE_TOPIC_STYLES.map(s => {
+                  const isSel = selectedStyle === s.id
+                  return (
+                    <button key={s.id} type="button" onClick={() => setSelectedStyle(s.id)} disabled={regenerating} style={{ background: isSel ? '#065f46' : '#0f172a', border: isSel ? '2px solid #34d399' : '1px solid #334155', color: isSel ? '#fff' : '#94a3b8', borderRadius: '8px', padding: '0.6rem 0.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: isSel ? 700 : 500, fontSize: '0.85rem', textAlign: 'left' }}>
+                      <span style={{ fontSize: '1.2rem' }}>{s.icon}</span>
+                      <div><div>{s.name.split(' (')[0]}</div><div style={{ fontSize: '0.7rem', color: isSel ? '#d1fae5' : '#64748b' }}>{s.description || 'Наука, факты, технологии'}</div></div>
+                    </button>
+                  )
+                })}
+              </div>
+
+              <div style={{ fontSize: '0.78rem', color: '#c084fc', fontWeight: 700, marginBottom: '0.4rem' }}>🎭 АВТОРСКИЕ СТИЛИ (САТИРА):</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.5rem' }}>
                 {FEUILLETON_STYLES.map(s => {
                   const isSel = selectedStyle === s.id
@@ -235,7 +258,12 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onOpenPackag
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                   <span style={{ fontSize: '0.86rem', fontWeight: 600, color: '#93c5fd' }}>🎨 Стиль:</span>
                   <select value={selectedStyle} onChange={e => setSelectedStyle(e.target.value)} disabled={regenerating} style={{ background: '#1e293b', color: '#fff', border: '1px solid #3b82f6', borderRadius: '6px', padding: '0.4rem 0.65rem', fontSize: '0.84rem', fontWeight: 600, cursor: 'pointer' }}>
-                    {FEUILLETON_STYLES.map(s => (<option key={s.id} value={s.id}>{s.icon} {s.name}</option>))}
+                    <optgroup label="🎬 YouTube стили">
+                      {YOUTUBE_TOPIC_STYLES.map(s => (<option key={s.id} value={s.id}>{s.name}</option>))}
+                    </optgroup>
+                    <optgroup label="🎭 Авторские (Сатира)">
+                      {FEUILLETON_STYLES.map(s => (<option key={s.id} value={s.id}>{s.icon} {s.name}</option>))}
+                    </optgroup>
                   </select>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', background: '#0f172a', borderRadius: '6px', padding: '2px', border: '1px solid #334155' }}>
@@ -282,12 +310,12 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onOpenPackag
               <button
                 type="button" onClick={() => handleRegenerateStyle(selectedStyle, selectedModel, selectedTone)} disabled={regenerating}
                 style={{
-                  background: selectedTone === 'analytics' ? 'linear-gradient(135deg, #1d4ed8 0%, #0284c7 100%)' : 'linear-gradient(135deg, #7c3aed 0%, #2563eb 100%)',
+                  background: isCurrentStyleYt ? 'linear-gradient(135deg, #059669 0%, #0284c7 100%)' : (selectedTone === 'analytics' ? 'linear-gradient(135deg, #1d4ed8 0%, #0284c7 100%)' : 'linear-gradient(135deg, #7c3aed 0%, #2563eb 100%)'),
                   color: '#fff', border: 'none', borderRadius: '8px', padding: '0.65rem 1.4rem', fontSize: '0.95rem', fontWeight: 700,
                   cursor: regenerating ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 3px 12px rgba(124, 58, 237, 0.4)'
                 }}
               >
-                {regenerating ? '⏳ ИИ пишет текст...' : (selectedTone === 'analytics' ? '🚀 Создать аналитику (3 мин)' : '🚀 Создать фельетон (3 мин)')}
+                {regenerating ? '⏳ ИИ пишет текст...' : (isCurrentStyleYt ? '🚀 Создать YouTube сценарий (3 мин)' : (selectedTone === 'analytics' ? '🚀 Создать аналитику (3 мин)' : '🚀 Создать фельетон (3 мин)'))}
               </button>
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                 {savedInfo && onOpenPackage && (

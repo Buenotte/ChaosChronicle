@@ -1,4 +1,4 @@
-import { CATEGORIES, AI_MODELS, FEUILLETON_STYLES } from '../../lib/utils'
+import { CATEGORIES, AI_MODELS, FEUILLETON_STYLES, YOUTUBE_TOPIC_STYLES } from '../../lib/utils'
 
 export default function AppHeader({
   selectedModel,
@@ -24,21 +24,30 @@ export default function AppHeader({
         </div>
 
         <div className="header-actions" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
-          {/* Выбор стиля фельетона */}
+          {/* Выбор стиля сценария / фельетона */}
           <div className="model-select-wrap">
             <span className="model-label">🎭 Стиль:</span>
             <select
               className="model-select"
               value={selectedStyle}
               onChange={e => setSelectedStyle(e.target.value)}
-              title="Выберите авторский стиль фельетона (Голобуцкий, Касьянов, Климовский или Гибридный)"
+              title="Выберите стиль (YouTube научпоп, технологии, тайны или авторская сатира)"
               style={{ background: '#1c1829', borderColor: '#8b5cf6' }}
             >
-              {FEUILLETON_STYLES.map(s => (
-                <option key={s.id} value={s.id}>
-                  {s.icon} {s.name}
-                </option>
-              ))}
+              <optgroup label="🎬 YouTube стили">
+                {YOUTUBE_TOPIC_STYLES.map(s => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label="🎭 Авторские (Сатира)">
+                {FEUILLETON_STYLES.map(s => (
+                  <option key={s.id} value={s.id}>
+                    {s.icon} {s.name}
+                  </option>
+                ))}
+              </optgroup>
             </select>
           </div>
 
