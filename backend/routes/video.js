@@ -342,7 +342,7 @@ router.post('/api/save-shorts-config', (req, res) => {
       strokeWidth, strokeColor, shadowDistance, shadowColor, shadowStyle,
       wordColors, wordFontSizes, boxEnabled, boxColor, boxOpacity, posY, lineBadges, selectedPhoto,
       speechSubtitlesEnabled, speechFont, speechColor, speechFontSize, speechPosY,
-      speechBoxMode, speechPacing, speechStrokeWidth, speechShadowDistance,
+      speechBoxMode, speechBoxColor, speechBoxOpacity, speechPacing, speechStrokeWidth, speechShadowDistance,
     } = req.body;
 
     const newsDir = path.resolve(__dirname, '../../news');
@@ -370,6 +370,8 @@ router.post('/api/save-shorts-config', (req, res) => {
       speechFontSize: Number(speechFontSize) || 115,
       speechPosY: Number(speechPosY) || 980,
       speechBoxMode: speechBoxMode || 'pill',
+      speechBoxColor: speechBoxColor || 'black',
+      speechBoxOpacity: Number(speechBoxOpacity) || 88,
       speechPacing: speechPacing || 'wave',
       speechStrokeWidth: Number(speechStrokeWidth) || 12,
       speechShadowDistance: Number(speechShadowDistance) || 6,

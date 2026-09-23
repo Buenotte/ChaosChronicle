@@ -22,6 +22,7 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
   const [speechSubtitlesEnabled, setSpeechSubtitlesEnabled] = useState(cfg.speechSubtitlesEnabled ?? true), [speechFont, setSpeechFont] = useState(cfg.speechFont || 'impact')
   const [speechColor, setSpeechColor] = useState(cfg.speechColor || 'yellow'), [speechFontSize, setSpeechFontSize] = useState(cfg.speechFontSize || 115)
   const [speechPosY, setSpeechPosY] = useState(cfg.speechPosY || 980), [speechBoxMode, setSpeechBoxMode] = useState(cfg.speechBoxMode || 'pill'), [speechPacing, setSpeechPacing] = useState(cfg.speechPacing || 'wave')
+  const [speechBoxColor, setSpeechBoxColor] = useState(cfg.speechBoxColor || 'black'), [speechBoxOpacity, setSpeechBoxOpacity] = useState(cfg.speechBoxOpacity ?? 88)
 
   const [lineBadges, setLineBadges] = useState(cfg.lineBadges || {
     enabled: cfg.boxEnabled ?? true, style: 'solid', shadow: 'soft', tiltMode: 'none', lineTilts: null,
@@ -81,7 +82,7 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           bundleDir: pkg.bundleDir, folderName: pkg.folderName, selectedPhoto, hookTitle: text, showHookTitle, font, fontSize: Number(fontSize) || 110, fontColor, strokeWidth: Number(strokeWidth) || 0, strokeColor, shadowDistance: Number(shadowDistance) || 0, shadowColor, shadowStyle, wordColors, wordFontSizes, boxEnabled: !!boxEnabled, boxColor, boxOpacity: boxEnabled ? Number(boxOpacity) || 75 : 0, posY: Number(posY) || 200, lineBadges,
-          speechSubtitlesEnabled, speechFont, speechColor, speechFontSize: Number(speechFontSize) || 115, speechPosY: Number(speechPosY) || 980, speechBoxMode, speechPacing,
+          speechSubtitlesEnabled, speechFont, speechColor, speechFontSize: Number(speechFontSize) || 115, speechPosY: Number(speechPosY) || 980, speechBoxMode, speechBoxColor, speechBoxOpacity: Number(speechBoxOpacity) || 88, speechPacing,
         }),
       })
       const data = await res.json()
@@ -144,7 +145,7 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
           bundleDir: pkg?.bundleDir, folderName: pkg?.folderName, duration: Number(duration) || 25, hookTitle: text, showHookTitle, font, fontSize: Number(fontSize) || 110,
           fontColor, strokeWidth: Number(strokeWidth) || 0, strokeColor, shadowDistance: Number(shadowDistance) || 0, shadowColor, shadowStyle,
           wordColors, wordFontSizes, boxEnabled: !!boxEnabled, boxColor, boxOpacity: boxEnabled ? Number(boxOpacity) || 75 : 0, posY: Number(posY) || 200, lineBadges, selectedPhoto,
-          speechSubtitlesEnabled, speechFont, speechColor, speechFontSize: Number(speechFontSize) || 115, speechPosY: Number(speechPosY) || 980, speechBoxMode, speechPacing,
+          speechSubtitlesEnabled, speechFont, speechColor, speechFontSize: Number(speechFontSize) || 115, speechPosY: Number(speechPosY) || 980, speechBoxMode, speechBoxColor, speechBoxOpacity: Number(speechBoxOpacity) || 88, speechPacing,
         }),
       })
       const data = await res.json()
@@ -162,7 +163,7 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
       duration: Number(duration) || 25, hookTitle: text, showHookTitle, font, fontSize: Number(fontSize) || 110, fontColor, strokeWidth: Number(strokeWidth) || 0, strokeColor,
       shadowDistance: Number(shadowDistance) || 0, shadowColor, shadowStyle, wordColors, wordFontSizes, boxEnabled: !!boxEnabled,
       boxColor, boxOpacity: boxEnabled ? Number(boxOpacity) || 75 : 0, posY: Number(posY) || 200, lineBadges, selectedPhoto,
-      speechSubtitlesEnabled, speechFont, speechColor, speechFontSize: Number(speechFontSize) || 115, speechPosY: Number(speechPosY) || 980, speechBoxMode, speechPacing,
+      speechSubtitlesEnabled, speechFont, speechColor, speechFontSize: Number(speechFontSize) || 115, speechPosY: Number(speechPosY) || 980, speechBoxMode, speechBoxColor, speechBoxOpacity: Number(speechBoxOpacity) || 88, speechPacing,
     })
     if (res?.success) setViewMode('video')
   }
@@ -223,10 +224,10 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
               {/* 🔀 ПЕРЕКЛЮЧАТЕЛЬ РЕЖИМОВ: СУБТИТРЫ РЕЧИ / ЗАГОЛОВОК */}
               <div style={{ display: 'flex', gap: '0.35rem', background: '#0b1120', padding: '4px', borderRadius: '8px', border: '1px solid #334155' }}>
                 <button type="button" onClick={() => setActiveTab('speech')} style={{ flex: 1, background: activeTab === 'speech' ? '#0284c7' : 'transparent', color: '#fff', border: 'none', borderRadius: '6px', padding: '0.45rem 0.5rem', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}>
-                  🎬 Субтитры речи {speechSubtitlesEnabled ? '🟢' : '⚪'}
+                  🎬 Субтитры {speechSubtitlesEnabled ? '🟢' : '⚪'}
                 </button>
                 <button type="button" onClick={() => setActiveTab('title')} style={{ flex: 1, background: activeTab === 'title' ? '#f43f5e' : 'transparent', color: '#fff', border: 'none', borderRadius: '6px', padding: '0.45rem 0.5rem', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}>
-                  🔝 Заголовок (Хук) {showHookTitle ? '🟢' : '⚪'}
+                  🔝 Заголовок {showHookTitle ? '🟢' : '⚪'}
                 </button>
               </div>
 
@@ -236,7 +237,10 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
                   enabled={speechSubtitlesEnabled} setEnabled={setSpeechSubtitlesEnabled}
                   font={speechFont} setFont={setSpeechFont} color={speechColor} setColor={setSpeechColor}
                   fontSize={speechFontSize} setFontSize={setSpeechFontSize} posY={speechPosY} setPosY={setSpeechPosY}
-                  boxMode={speechBoxMode} setBoxMode={setSpeechBoxMode} pacing={speechPacing} setPacing={setSpeechPacing}
+                  boxMode={speechBoxMode} setBoxMode={setSpeechBoxMode}
+                  boxColor={speechBoxColor} setBoxColor={setSpeechBoxColor}
+                  boxOpacity={speechBoxOpacity} setBoxOpacity={setSpeechBoxOpacity}
+                  pacing={speechPacing} setPacing={setSpeechPacing}
                   onDirty={() => setViewMode('editor')}
                 />
               )}
@@ -325,36 +329,50 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
                         opacity: activeTab === 'speech' ? 1 : 0.28,
                         transition: 'opacity 0.25s ease',
                       }}>
-                        <span style={{
-                          fontFamily: activeSpeechFontFamily, fontSize: `${((speechFontSize * FONT_SCALE_CSS) / 1080) * 240}px`, fontWeight: 900,
-                          textTransform: 'uppercase', lineHeight: 1.1, color: '#FFFFFF', WebkitTextStroke: '1.8px #000',
-                          textShadow: '0 3px 8px rgba(0,0,0,0.95), 2px 2px 0 #000',
-                          background: speechBoxMode === 'none' ? 'transparent' : 'rgba(0, 0, 0, 0.88)',
-                          border: speechBoxMode === 'glow' ? `1.5px solid ${TEXT_COLORS.find(c => c.id === speechColor)?.hex || '#FFE600'}` : 'none',
-                          boxShadow: speechBoxMode === 'glow' ? `0 0 10px ${TEXT_COLORS.find(c => c.id === speechColor)?.hex || '#FFE600'}` : (speechBoxMode === 'none' ? 'none' : '0 4px 15px rgba(0,0,0,0.7)'),
-                          padding: speechBoxMode === 'none' ? '0' : '4px 12px', borderRadius: '8px', display: 'inline-block',
-                        }}>
-                          {(() => {
-                            const rawSpeech = extractCleanSpeechText(speechScriptText || pkg?.scriptTxt || pkg?.scriptMd || text || '')
-                            const rawWords = rawSpeech.split(/\s+/).filter(Boolean)
-                            const isSingle = speechPacing === 'single', isTwo = speechPacing === 'blitz' || speechPacing === 'two'
-                            const waveSize = isSingle ? 1 : (isTwo ? 2 : 4), totalWords = rawWords.length > 0 ? rawWords.length : 4
-                            const activeGlobal = globalWordIdx % totalWords, waveStart = Math.floor(activeGlobal / waveSize) * waveSize
-                            const waveWords = rawWords.length > 0 ? rawWords.slice(waveStart, waveStart + waveSize) : (isSingle ? ['СУБТИТРЫ'] : ['СУБТИТРЫ', 'РЕЧИ', 'В', 'КАДРЕ'])
-                            const activeInWave = activeGlobal % waveSize
+                        {(() => {
+                          const speechBoxHex = BOX_COLORS.find(c => c.id === speechBoxColor)?.hex || (typeof speechBoxColor === 'string' && speechBoxColor.startsWith('#') ? speechBoxColor : '#000000')
+                          const sbR = parseInt(speechBoxHex.slice(1, 3) || '0', 16) || 0
+                          const sbG = parseInt(speechBoxHex.slice(3, 5) || '0', 16) || 0
+                          const sbB = parseInt(speechBoxHex.slice(5, 7) || '0', 16) || 0
+                          const sbAlpha = ((Number(speechBoxOpacity) ?? 88) / 100).toFixed(2)
+                          const speechBgRgba = `rgba(${sbR}, ${sbG}, ${sbB}, ${sbAlpha})`
+                          const speechRadius = speechBoxMode === 'solid' ? '4px' : (speechBoxMode === 'pill' ? '20px' : '8px')
+                          const speechBorder = speechBoxMode === 'glow' ? `1.5px solid ${TEXT_COLORS.find(c => c.id === speechColor)?.hex || '#FFE600'}` : 'none'
+                          const speechShadow = speechBoxMode === 'glow' ? `0 0 12px ${TEXT_COLORS.find(c => c.id === speechColor)?.hex || '#FFE600'}` : (speechBoxMode === 'none' ? 'none' : '0 4px 15px rgba(0,0,0,0.7)')
 
-                            return waveWords.map((w, idx) => (
-                              <span key={idx} style={{
-                                color: (idx === activeInWave) ? (TEXT_COLORS.find(c => c.id === speechColor)?.hex || '#FFE600') : '#FFFFFF',
-                                transform: (idx === activeInWave) ? 'scale(1.15)' : 'scale(1)',
-                                display: 'inline-block', margin: idx > 0 ? '0 0 0 0.52em' : '0',
-                                transition: 'all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                              }}>
-                                {w}
-                              </span>
-                            ))
-                          })()}
-                        </span>
+                          return (
+                            <span style={{
+                              fontFamily: activeSpeechFontFamily, fontSize: `${((speechFontSize * FONT_SCALE_CSS) / 1080) * 240}px`, fontWeight: 900,
+                              textTransform: 'uppercase', lineHeight: 1.1, color: '#FFFFFF', WebkitTextStroke: '1.8px #000',
+                              textShadow: '0 3px 8px rgba(0,0,0,0.95), 2px 2px 0 #000',
+                              background: speechBoxMode === 'none' ? 'transparent' : speechBgRgba,
+                              border: speechBorder,
+                              boxShadow: speechShadow,
+                              padding: speechBoxMode === 'none' ? '0' : '4px 14px', borderRadius: speechRadius, display: 'inline-block',
+                            }}>
+                              {(() => {
+                                const rawSpeech = extractCleanSpeechText(speechScriptText || pkg?.scriptTxt || pkg?.scriptMd || text || '')
+                                const rawWords = rawSpeech.split(/\s+/).filter(Boolean)
+                                const isSingle = speechPacing === 'single', isTwo = speechPacing === 'blitz' || speechPacing === 'two'
+                                const waveSize = isSingle ? 1 : (isTwo ? 2 : 4), totalWords = rawWords.length > 0 ? rawWords.length : 4
+                                const activeGlobal = globalWordIdx % totalWords, waveStart = Math.floor(activeGlobal / waveSize) * waveSize
+                                const waveWords = rawWords.length > 0 ? rawWords.slice(waveStart, waveStart + waveSize) : (isSingle ? ['СУБТИТРЫ'] : ['СУБТИТРЫ', 'РЕЧИ', 'В', 'КАДРЕ'])
+                                const activeInWave = activeGlobal % waveSize
+
+                                return waveWords.map((w, idx) => (
+                                  <span key={idx} style={{
+                                    color: (idx === activeInWave) ? (TEXT_COLORS.find(c => c.id === speechColor)?.hex || '#FFE600') : '#FFFFFF',
+                                    transform: (idx === activeInWave) ? 'scale(1.15)' : 'scale(1)',
+                                    display: 'inline-block', margin: idx > 0 ? '0 0 0 0.52em' : '0',
+                                    transition: 'all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                                  }}>
+                                    {w}
+                                  </span>
+                                ))
+                              })()}
+                            </span>
+                          )
+                        })()}
                       </div>
                     )}
 

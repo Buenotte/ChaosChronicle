@@ -72,6 +72,34 @@ export default function ShortsTitleControls({
             </div>
           </div>
 
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#090d16', padding: '0.45rem 0.65rem', borderRadius: '6px', border: '1px solid #374151' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+              <span style={{ fontSize: '0.76rem', fontWeight: 700, color: (lineBadges?.enabled || (boxEnabled && lineBadges?.enabled !== false)) ? '#f59e0b' : '#9ca3af' }}>
+                🏷️ Плашки под строками:
+              </span>
+              <span style={{ fontSize: '0.72rem', color: (lineBadges?.enabled || (boxEnabled && lineBadges?.enabled !== false)) ? '#10b981' : '#ef4444', fontWeight: 700 }}>
+                {(lineBadges?.enabled || (boxEnabled && lineBadges?.enabled !== false)) ? 'ВКЛ' : 'ВЫКЛ (Без плашек)'}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                const next = !(lineBadges?.enabled || (boxEnabled && lineBadges?.enabled !== false))
+                setBoxEnabled(next)
+                setLineBadges(prev => ({ ...(prev || {}), enabled: next }))
+                onDirty()
+              }}
+              style={{
+                background: (lineBadges?.enabled || (boxEnabled && lineBadges?.enabled !== false)) ? '#ef444422' : '#10b98122',
+                color: (lineBadges?.enabled || (boxEnabled && lineBadges?.enabled !== false)) ? '#ef4444' : '#10b981',
+                border: (lineBadges?.enabled || (boxEnabled && lineBadges?.enabled !== false)) ? '1px solid #ef4444' : '1px solid #10b981',
+                borderRadius: '5px', padding: '0.2rem 0.55rem', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer'
+              }}
+            >
+              {(lineBadges?.enabled || (boxEnabled && lineBadges?.enabled !== false)) ? '❌ Выключить плашки' : '✨ Включить плашки'}
+            </button>
+          </div>
+
           <LineBadgeControls lineBadges={lineBadges} setLineBadges={(newBadges) => { setLineBadges(newBadges); onDirty() }} previewLines={displayText.split('\n').filter(Boolean)} setBoxOpacity={(op) => { setBoxOpacity(op); onDirty() }} setHasBox={(has) => { setBoxEnabled(has); onDirty() }} />
         </>
       )}

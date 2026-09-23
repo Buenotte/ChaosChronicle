@@ -96,8 +96,9 @@ def render_subtitle_frame(cfg, chunk_words, active_idx):
     stroke_rgb   = to_rgb(cfg.get('stroke_color',    'black'))
     stroke_w     = max(0, int(cfg.get('stroke_width', 8)))
     shadow_d     = max(1, int(cfg.get('shadow_dist',  6)))
-    box_mode     = cfg.get('box_mode', 'pill')  # 'pill'=highlight-box, 'glow'=glow, 'none'=no box
+    box_mode     = cfg.get('box_mode', 'pill')  # 'pill'=highlight-box, 'glow'=glow, 'solid'=rectangle, 'none'=no box
     box_opacity  = float(cfg.get('box_opacity', 0.88))
+    box_rgb      = to_rgb(cfg.get('box_color', 'black'))
 
     # ------------------------------------------------------------------
     # 1) Measure all words and wrap into lines (max line width ~ W - 140px)
@@ -179,11 +180,12 @@ def render_subtitle_frame(cfg, chunk_words, active_idx):
         box_x = max(10, (W - box_w) // 2)
         box_y = pos_y - box_h // 2
         
+        box_radius = 6 if box_mode == 'solid' else 28
         if box_mode == 'glow':
             glow_col = active_rgb + (200,)
-            draw_rounded_rect(d, [box_x - 4, box_y - 4, box_x + box_w + 4, box_y + box_h + 4], 32, glow_col)
+            draw_rounded_rect(d, [box_x - 4, box_y - 4, box_x + box_w + 4, box_y + box_h + 4], box_radius + 4, glow_col)
             
-        draw_rounded_rect(d, [box_x, box_y, box_x + box_w, box_y + box_h], 28, (0, 0, 0, int(box_opacity * 255)))
+        draw_rounded_rect(d, [box_x, box_y, box_x + box_w, box_y + box_h], box_radius, box_rgb + (int(box_opacity * 255),))
 
     # ------------------------------------------------------------------
     # 4) Soft drop shadow

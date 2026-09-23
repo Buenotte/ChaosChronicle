@@ -118,7 +118,8 @@ export async function processRenderShort({
   shadowColor = 'black', wordColors = null, wordFontSizes = null, posY = 200, shadowStyle = 'hard',
   boxEnabled = true, boxColor = 'black', boxOpacity = 75, lineBadges = null, selectedPhoto = null,
   speechSubtitlesEnabled = true, speechColor = 'yellow', speechFontSize = 115, speechPosY = 980,
-  speechFont = 'impact', speechBoxMode = 'pill', speechPacing = 'wave', speechStrokeWidth = 12,
+  speechFont = 'impact', speechBoxMode = 'pill', speechBoxColor = 'black', speechBoxOpacity = 88,
+  speechPacing = 'wave', speechStrokeWidth = 12,
   speechShadowDistance = 6, speechText: inputSpeech = null,
 }) {
   let targetFolder = inputBundleDir || (folderName ? path.join(newsDir, folderName) : null);
@@ -260,7 +261,8 @@ export async function processRenderShort({
             stroke_width: 8,
             shadow_dist: 6,
             box_mode: speechBoxMode || 'pill',
-            box_opacity: 0.88,
+            box_color: speechBoxColor || 'black',
+            box_opacity: ((Number(speechBoxOpacity) ?? 88) / 100),
             out_dir: subtitleTempDir.replace(/\\/g, '/'),
             word_events: wordEvents,
           };
@@ -292,7 +294,9 @@ export async function processRenderShort({
       speechText, duration: targetDur, totalAudioDuration: totalAudioDur,
       speechFontSize: Number(speechFontSize) || 115, speechColor: speechColor || 'yellow',
       speechPosY: Number(speechPosY) || 980, speechFont: speechFont || reqFont || 'impact',
-      speechBoxMode: speechBoxMode || 'pill', speechPacing: speechPacing || 'wave',
+      speechBoxMode: speechBoxMode || 'pill', speechBoxColor: speechBoxColor || 'black',
+      speechBoxOpacity: Number(speechBoxOpacity) || 88,
+      speechPacing: speechPacing || 'wave',
       speechStrokeWidth: Number(speechStrokeWidth) || 12,
       speechShadowDistance: Number(speechShadowDistance) || 6, whisperWords,
     });
@@ -400,7 +404,8 @@ export async function processPreviewShortFrame(options) {
     shadowColor = 'black', wordColors = null, wordFontSizes = null, posY = 200, shadowStyle = 'hard',
     boxEnabled = true, boxColor = 'black', boxOpacity = 75, lineBadges = null,
     speechSubtitlesEnabled = true, speechColor = 'yellow', speechFontSize = 115, speechPosY = 980,
-    speechFont = 'impact', speechBoxMode = 'pill', speechPacing = 'wave', speechStrokeWidth = 12,
+    speechFont = 'impact', speechBoxMode = 'pill', speechBoxColor = 'black', speechBoxOpacity = 88,
+    speechPacing = 'wave', speechStrokeWidth = 12,
     speechShadowDistance = 6, speechText: inputSpeech = null,
   } = options;
   let targetFolder = inputBundleDir || (folderName ? path.join(newsDir, folderName) : null);
@@ -466,7 +471,8 @@ export async function processPreviewShortFrame(options) {
           stroke_width: 8,
           shadow_dist: 6,
           box_mode: speechBoxMode || 'pill',
-          box_opacity: 0.88,
+          box_color: speechBoxColor || 'black',
+          box_opacity: ((Number(speechBoxOpacity) ?? 88) / 100),
           out_dir: subtitleTempDir.replace(/\\/g, '/'),
           word_events: wordEvents.slice(0, 1), // Only need first chunk for preview frame
         };
@@ -496,7 +502,9 @@ export async function processPreviewShortFrame(options) {
       speechText, duration: 20, totalAudioDuration: 20,
       speechFontSize: Number(speechFontSize) || 115, speechColor: speechColor || 'yellow',
       speechPosY: Number(speechPosY) || 980, speechFont: speechFont || reqFont || 'impact',
-      speechBoxMode: speechBoxMode || 'pill', speechPacing: speechPacing || 'wave',
+      speechBoxMode: speechBoxMode || 'pill', speechBoxColor: speechBoxColor || 'black',
+      speechBoxOpacity: Number(speechBoxOpacity) || 88,
+      speechPacing: speechPacing || 'wave',
       speechStrokeWidth: Number(speechStrokeWidth) || 12,
       speechShadowDistance: Number(speechShadowDistance) || 6, whisperWords: null,
     });

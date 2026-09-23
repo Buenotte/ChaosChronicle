@@ -150,7 +150,8 @@ export function generateSpeechDialogueEvents(opts = {}) {
     speechFontSize = 115, speechColor = 'yellow', speechPosY = 980,
     speechStrokeWidth = 12, speechStrokeColor = 'black',
     speechShadowDistance = 6, speechShadowColor = 'black',
-    speechBoxMode = 'pill', speechPacing = 'wave', speechFont = 'Russo One',
+    speechBoxMode = 'pill', speechBoxColor = 'black', speechBoxOpacity = 88,
+    speechPacing = 'wave', speechFont = 'Russo One',
   } = opts;
 
   if (!speechText || typeof speechText !== 'string') return [];
@@ -278,12 +279,19 @@ export function generateSpeechDialogueEvents(opts = {}) {
       const boxH = Math.round(baseFontSize * 0.92) + 32;
       const badgeX = Math.max(20, Math.round(540 - boxW / 2));
       const badgeY = Math.round(speechPosY - boxH / 2);
-      const r = 20;
+      const r = speechBoxMode === 'solid' ? 6 : 20;
       const poly = `m ${r} 0 l ${boxW - r} 0 l ${boxW} ${r} l ${boxW} ${boxH - r} l ${boxW - r} ${boxH} l ${r} ${boxH} l 0 ${boxH - r} l 0 ${r}`;
-      const boxAlpha = speechBoxMode === 'glow' ? '20' : '15';
+      
+      const op = Math.max(0, Math.min(100, Number(speechBoxOpacity) || 88));
+      const assAlphaNum = Math.round(255 * (1 - op / 100));
+      const boxAlpha = assAlphaNum.toString(16).padStart(2, '0').toUpperCase();
+      const rawHex = (speechBoxColor && BOX_COLORS.find(c => c.id === speechBoxColor)?.hex) || (typeof speechBoxColor === 'string' && speechBoxColor.startsWith('#') ? speechBoxColor : '#000000');
+      const hex = rawHex.replace('#', '');
+      const rHex = hex.slice(0, 2) || '00', gHex = hex.slice(2, 4) || '00', bHex = hex.slice(4, 6) || '00';
+      const assBoxCol = `&H00${bHex}${gHex}${rHex}&`;
       const borderTag = speechBoxMode === 'glow' ? `\\bord5\\3c${highlightTag}` : '\\bord0';
 
-      dialogues.push(`Dialogue: 1,${chunkStartTime},${chunkEndTime},Badge,,0,0,0,,{\\an7\\pos(${badgeX},${badgeY})\\fad(30,30)\\c&H000000&\\1a&H${boxAlpha}&${borderTag}\\shad8\\blur4\\4c&H000000&\\4a&H${boxAlpha}&\\p1}${poly}{\\p0}`);
+      dialogues.push(`Dialogue: 1,${chunkStartTime},${chunkEndTime},Badge,,0,0,0,,{\\an7\\pos(${badgeX},${badgeY})\\fad(30,30)\\c${assBoxCol}\\1a&H${boxAlpha}&${borderTag}\\shad8\\blur4\\4c&H000000&\\4a&H${boxAlpha}&\\p1}${poly}{\\p0}`);
     }
 
     chunk.forEach((activeTw, activeIdx) => {
@@ -327,7 +335,8 @@ export function buildAssShortsSubtitle(wrappedText, options = {}) {
     lineBadges, boxEnabled, boxColor, boxOpacity, showHookTitle = true,
     speechSubtitlesEnabled = true, speechText = '', duration = 20, totalAudioDuration = 0,
     speechFontSize = 115, speechColor = 'yellow', speechPosY = 980, speechFont = 'impact',
-    speechBoxMode = 'pill', speechPacing = 'wave', speechStrokeWidth = 12, speechShadowDistance = 6,
+    speechBoxMode = 'pill', speechBoxColor = 'black', speechBoxOpacity = 88,
+    speechPacing = 'wave', speechStrokeWidth = 12, speechShadowDistance = 6,
   } = options;
 
   const fontNameMap = {
@@ -440,6 +449,7 @@ export function buildAssShortsSubtitle(wrappedText, options = {}) {
       speechText, duration, totalAudioDuration, speechFontSize, speechColor,
       speechPosY, speechStrokeWidth, speechStrokeColor: 'black',
       speechShadowDistance, speechShadowColor: 'black', speechBoxMode,
+      speechBoxColor, speechBoxOpacity,
       speechPacing, speechFont: assSpeechFontName, whisperWords: options.whisperWords,
     });
     dialogues.push(...speechEvents);
