@@ -238,20 +238,35 @@ export async function saveSingleNewsPhoto({ title = 'News', bundleDir: inputBund
   if (!fs.existsSync(photosDir)) fs.mkdirSync(photosDir, { recursive: true });
 
   let buffer = null;
-  if (photoUrl.startsWith('/news-static/')) {
-    const rel = decodeURIComponent(photoUrl.replace(/^\/news-static\//, ''));
+  let ext = 'jpg';
+  if (photoUrl.startsWith('data:image/')) {
+    const m = photoUrl.match(/^data:image\/([a-zA-Z0-9]+);base64,(.+)$/);
+    if (m) {
+      ext = m[1] === 'jpeg' ? 'jpg' : m[1];
+      buffer = Buffer.from(m[2], 'base64');
+    }
+  } else if (photoUrl.startsWith('/news-static/')) {
+    const rel = decodeURIComponent(photoUrl.replace(/^\/news-static\//, '').split('?')[0]);
     const fullP = path.resolve(newsDir, rel);
     if (fs.existsSync(fullP)) buffer = fs.readFileSync(fullP);
+    const mExt = rel.match(/\.(jpg|jpeg|png|webp|avif)/i)?.[1];
+    if (mExt) ext = mExt === 'jpeg' ? 'jpg' : mExt.toLowerCase();
   } else {
+    const cleanU = photoUrl.split('?')[0];
+    const mExt = cleanU.match(/\.(jpg|jpeg|png|webp|avif)/i)?.[1];
+    if (mExt) ext = mExt === 'jpeg' ? 'jpg' : mExt.toLowerCase();
     const imgRes = await fetch(photoUrl, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36' },
-      signal: AbortSignal.timeout(8000),
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+      },
+      signal: AbortSignal.timeout(12000),
     });
     if (!imgRes.ok) throw new Error(`Download-Fehler (HTTP ${imgRes.status})`);
     buffer = Buffer.from(await imgRes.arrayBuffer());
   }
 
-  if (!buffer || buffer.length < 2000) throw new Error('Ungültige Bilddaten');
+  if (!buffer || buffer.length < 50) throw new Error('Ungültige Bilddaten');
 
   // Prüfe gegen existierende Fotos auf Duplikate
   const folderBase = path.basename(bundleDir);
@@ -270,8 +285,7 @@ export async function saveSingleNewsPhoto({ title = 'News', bundleDir: inputBund
   }
 
   const nextNum = existingFiles.length + 1;
-  const ext = photoUrl.match(/\.(jpg|jpeg|png|webp)/i)?.[1] || 'jpg';
-  const targetFilename = `photo_${String(nextNum).padStart(2, '0')}.${ext}`;
+  const targetFilename = `photo_${String(nextNum).padStart(2, '0')}.${ext || 'jpg'}`;
   fs.writeFileSync(path.join(photosDir, targetFilename), buffer);
 
   const jsonPath = path.join(bundleDir, 'project.json');

@@ -4,25 +4,90 @@ import ImageLightboxModal from './ImageLightboxModal'
 import PhotoCardItem from './photos/PhotoCardItem'
 import PhotoSearchHeader from './photos/PhotoSearchHeader'
 
-export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoading, onClose, onSaved, onReload }) {
+export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoading, onClose, onSaved }) {
   if (!newsTopic) return null
 
-  const modalBodyRef = useRef(null)
+  const modalBodyRef = useRef(null), fileInputRef = useRef(null)
   const [items, setItems] = useState([])
-  const [searchQuery, setSearchQuery] = useState('')
-  const [currentEngine, setCurrentEngine] = useState('all')
-  const [searchPage, setSearchPage] = useState(1)
-  const [searching, setSearching] = useState(false)
-  const [loadingMore, setLoadingMore] = useState(false)
-  const [savingPhotos, setSavingPhotos] = useState(false)
-  const [savingSingleIndex, setSavingSingleIndex] = useState(null)
-  const [savedCount, setSavedCount] = useState(null)
-  const [hasOrderChanged, setHasOrderChanged] = useState(false)
+  const [searchQuery, setSearchQuery] = useState(''), [currentEngine, setCurrentEngine] = useState('all'), [searchPage, setSearchPage] = useState(1)
+  const [searching, setSearching] = useState(false), [loadingMore, setLoadingMore] = useState(false), [savingPhotos, setSavingPhotos] = useState(false)
+  const [savingSingleIndex, setSavingSingleIndex] = useState(null), [savedCount, setSavedCount] = useState(null), [hasOrderChanged, setHasOrderChanged] = useState(false)
   const [lightboxUrl, setLightboxUrl] = useState(null), [isFullscreen, setIsFullscreen] = useState(false)
 
+  useEffect(() => { setItems(photos || []) }, [photos])
+
+  const savePastedPhoto = async (urlOrBase64, desc = 'из буфера') => {
+    const toastId = toast.loading(`📥 Сохранение фото (${desc})...`)
+    try {
+      const extracted = items.map(p => (typeof p === 'string' ? p : p?.url || '')).find(u => u.includes('/news-static/'))?.match(/\/news-static\/([^/]+)\//)?.[1]
+      const folderName = newsTopic.folderName || newsTopic.matchingPkg?.folderName || extracted
+      const res = await fetch('/api/save-single-photo', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: newsTopic.title, folderName, bundleDir: newsTopic.bundleDir, photoUrl: urlOrBase64 }),
+      })
+      const data = await res.json()
+      toast.dismiss(toastId)
+      if (!res.ok || !data.success) throw new Error(data.error || 'Не удалось сохранить изображение')
+
+      const newPhotoObj = { url: data.localUrl || urlOrBase64, source: 'На диске', isSavedLocal: true }
+      setItems(prev => {
+        const exist = new Set(prev.map(p => typeof p === 'string' ? p : p?.url))
+        if (exist.has(newPhotoObj.url)) return prev
+        return [newPhotoObj, ...prev]
+      })
+      if (data.totalPhotos) setSavedCount(data.totalPhotos)
+      if (onSaved) onSaved()
+      toast.success(data.alreadySaved ? 'Фото уже есть на диске' : '🎉 Фото успешно добавлено и сохранено в новость!')
+    } catch (err) {
+      toast.dismiss(toastId); toast.error('Ошибка добавления фото: ' + err.message)
+    }
+  }
+
+  // Обработчик вставки Ctrl+V из буфера обмена (картинка или ссылка)
   useEffect(() => {
-    setItems(photos || [])
-  }, [photos])
+    const handlePaste = async (e) => {
+      const activeEl = document.activeElement
+      const isSearchInput = activeEl && activeEl.tagName === 'INPUT' && activeEl.type === 'text'
+      const itemsCb = e.clipboardData?.items || []
+      let handled = false
+
+      for (let i = 0; i < itemsCb.length; i++) {
+        const it = itemsCb[i]
+        if (it.type && it.type.startsWith('image/')) {
+          e.preventDefault(); handled = true
+          const file = it.getAsFile()
+          if (file) {
+            const reader = new FileReader()
+            reader.onload = (ev) => savePastedPhoto(ev.target.result, 'Ctrl+V картинка')
+            reader.readAsDataURL(file)
+          }
+          break
+        }
+      }
+
+      if (!handled) {
+        const text = e.clipboardData?.getData('text')?.trim() || ''
+        if (text && /^https?:\/\//i.test(text)) {
+          const isDirectImg = /\.(jpg|jpeg|png|webp|avif|gif)(\?.*)?$/i.test(text) || text.includes('pinimg.com') || text.includes('images')
+          if (isDirectImg || !isSearchInput) {
+            e.preventDefault()
+            savePastedPhoto(text, 'Ctrl+V ссылка')
+          }
+        }
+      }
+    }
+    window.addEventListener('paste', handlePaste)
+    return () => window.removeEventListener('paste', handlePaste)
+  }, [newsTopic, items])
+
+  const handleManualFileUpload = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => savePastedPhoto(ev.target.result, file.name)
+    reader.readAsDataURL(file)
+    e.target.value = ''
+  }
 
   const handleCustomSearch = async (engine = 'all', overrideQuery = null) => {
     const q = (overrideQuery !== null && overrideQuery !== undefined ? overrideQuery : searchQuery).trim()
@@ -35,31 +100,25 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
       const folderName = newsTopic.folderName || newsTopic.matchingPkg?.folderName || ''
       const bundleDir = newsTopic.bundleDir || newsTopic.matchingPkg?.bundleDir || ''
       const params = new URLSearchParams({ title: newsTopic.title || '', articleId: newsTopic.id || '', url: newsTopic.url || '', folderName, bundleDir, query: q, forceLive: 'true', page: '1', engine })
-      const res = await fetch(`/api/news-photos?${params}`)
-      const data = await res.json()
+      const res = await fetch(`/api/news-photos?${params}`), data = await res.json()
       toast.dismiss(toastId)
       if (data.success) {
         const incoming = data.photos || []
         setItems(prev => {
           const isLoc = p => p?.isSavedLocal || (typeof p === 'string' && p.startsWith('/news-static/')) || p?.url?.startsWith('/news-static/')
-          const allLocal = prev.filter(isLoc)
-          const seenU = new Set(allLocal.map(p => typeof p === 'string' ? p : p?.url))
+          const allLocal = prev.filter(isLoc), seenU = new Set(allLocal.map(p => typeof p === 'string' ? p : p?.url))
           incoming.filter(isLoc).forEach(p => { const u = typeof p === 'string' ? p : p?.url; if (!seenU.has(u)) { seenU.add(u); allLocal.push(p) } })
           return [...allLocal, ...incoming.filter(p => !seenU.has(typeof p === 'string' ? p : p?.url))]
         })
         toast.success(`Найдено ${data.photos?.length || 0} фото!`, { duration: 2500 })
-      } else {
-        toast.error('Ошибка поиска: ' + (data.error || 'Ничего не найдено'))
-      }
-    } catch (err) {
-      toast.dismiss(toastId); toast.error('Ошибка запроса: ' + err.message)
-    } finally { setSearching(false) }
+      } else { toast.error('Ошибка поиска: ' + (data.error || 'Ничего не найдено')) }
+    } catch (err) { toast.dismiss(toastId); toast.error('Ошибка запроса: ' + err.message) }
+    finally { setSearching(false) }
   }
 
   const handleRemovePhoto = async (e, indexToRemove) => {
     if (e?.stopPropagation) e.stopPropagation()
-    const photoToRemove = items[indexToRemove]
-    const imgSrc = typeof photoToRemove === 'string' ? photoToRemove : (photoToRemove?.url || '')
+    const photoToRemove = items[indexToRemove], imgSrc = typeof photoToRemove === 'string' ? photoToRemove : (photoToRemove?.url || '')
     const extractedFolder = imgSrc.match(/\/news-static\/([^/]+)\//)?.[1]
     if (imgSrc.startsWith('/news-static/')) {
       try {
@@ -70,8 +129,7 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
         toast.success('🗑️ Фото удалено с диска!')
       } catch {}
     } else { toast.info('Фото удалено из списка') }
-    setItems(prev => prev.filter((_, idx) => idx !== indexToRemove))
-    setHasOrderChanged(true)
+    setItems(prev => prev.filter((_, idx) => idx !== indexToRemove)); setHasOrderChanged(true)
     if (onSaved) onSaved()
   }
 
@@ -120,8 +178,7 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
 
   const handleSaveSinglePhoto = async (e, index) => {
     if (e?.stopPropagation) e.stopPropagation()
-    const photoToSave = items[index]
-    const imgSrc = typeof photoToSave === 'string' ? photoToSave : (photoToSave?.url || '')
+    const photoToSave = items[index], imgSrc = typeof photoToSave === 'string' ? photoToSave : (photoToSave?.url || '')
     if (!imgSrc || imgSrc.startsWith('/news-static/')) return toast.info('Фото уже на диске')
     setSavingSingleIndex(index)
     const toastId = toast.loading('💾 Скачивание фото...')
@@ -164,8 +221,7 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
       }
       if (onSaved) onSaved()
       const diff = items.length - data.savedPhotosCount
-      const diffMsg = diff > 0 ? ` (удалено ${diff} дубликатов)` : ''
-      toast.success(`📸 Сохранено ${data.savedPhotosCount} уникальных фото${diffMsg}!`)
+      toast.success(`📸 Сохранено ${data.savedPhotosCount} уникальных фото${diff > 0 ? ` (удалено ${diff} дубликатов)` : ''}!`)
     } catch (err) { toast.dismiss(toastId); toast.error('Ошибка: ' + err.message) }
     finally { setSavingPhotos(false) }
   }
@@ -195,6 +251,7 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
   return (
     <div className="modal-overlay" onClick={onClose}>
       <ImageLightboxModal imageUrl={lightboxUrl} title={newsTopic.title} onClose={() => setLightboxUrl(null)} />
+      <input type="file" ref={fileInputRef} accept="image/*" style={{ display: 'none' }} onChange={handleManualFileUpload} />
       <div
         className="modal-content" onClick={e => e.stopPropagation()}
         style={isFullscreen ? { maxWidth: '100vw', width: '100vw', height: '100vh', maxHeight: '100vh', borderRadius: 0, margin: 0, display: 'flex', flexDirection: 'column' } : { maxWidth: '1020px', width: '96%', maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}
@@ -210,7 +267,29 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
               {savedCount !== null && <span className="saved-status-badge">🟢 {savedCount} сохранено в news/photos/</span>}
             </div>
           </div>
-          <div className="modal-header-actions" style={{ display: 'flex', gap: '0.45rem', alignItems: 'center' }}>
+          <div className="modal-header-actions" style={{ display: 'flex', gap: '0.45rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <button
+              type="button" onClick={() => fileInputRef.current?.click()}
+              style={{ background: '#4338ca', border: '1px solid #6366f1', color: '#fff', borderRadius: '6px', padding: '0.4rem 0.65rem', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600 }}
+              title="Загрузить файл картинки с диска"
+            >
+              📁 Загрузить
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  const clipText = await navigator.clipboard.readText()
+                  if (clipText && /^https?:\/\//i.test(clipText.trim())) {
+                    await savePastedPhoto(clipText.trim(), 'кнопка Вставить')
+                  } else { toast.info('Скопируйте картинку или ссылку в буфер обмена и нажмите Ctrl+V') }
+                } catch { toast.info('Нажмите Ctrl + V на клавиатуре для быстрой вставки скопированного фото!') }
+              }}
+              style={{ background: '#0284c7', border: '1px solid #38bdf8', color: '#fff', borderRadius: '6px', padding: '0.4rem 0.65rem', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600 }}
+              title="Вставить скопированную картинку или ссылку (Ctrl + V)"
+            >
+              📋 Вставить (Ctrl+V)
+            </button>
             {items.length > 1 && (
               <button
                 type="button" onClick={handleDeduplicate}
@@ -246,11 +325,18 @@ export default function NewsPhotosModal({ newsTopic, photos, loading: initialLoa
 
         <div ref={modalBodyRef} onDragOver={handleContainerDragOver} className="modal-body" style={{ flex: 1, overflowY: 'auto', padding: '1.25rem' }}>
           {isLoading && <div className="empty-state"><p>⟳ Поиск репортажных фотографий по запросу «{searchQuery}»...</p></div>}
-          {!isLoading && items.length === 0 && <div className="empty-state"><p>📷 Фотографий пока не загружено. Введите слово в поле выше и нажмите «🔍 Найти».</p></div>}
+          {!isLoading && items.length === 0 && (
+            <div className="empty-state">
+              <p>📷 Фотографий пока не загружено.</p>
+              <p style={{ fontSize: '0.82rem', color: '#94a3b8', marginTop: '0.4rem' }}>
+                Введите слово для поиска или скопируйте картинку с любого сайта (Pinterest, Google) и нажмите <b>Ctrl + V</b> прямо здесь!
+              </p>
+            </div>
+          )}
           {!isLoading && items.length > 0 && (
             <>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.25)', padding: '0.45rem 0.75rem', borderRadius: '6px', marginBottom: '0.75rem', fontSize: '0.78rem', color: '#93c5fd' }}>
-                <span>💡 <b>Drag & Drop:</b> Перетаскивайте фото на любую позицию (или используйте ⬅️ / ➡️).</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.25)', padding: '0.45rem 0.75rem', borderRadius: '6px', marginBottom: '0.75rem', fontSize: '0.78rem', color: '#93c5fd', flexWrap: 'wrap', gap: '0.4rem' }}>
+                <span>💡 <b>Совет:</b> Нажмите <b>Ctrl + V</b> в любом месте окна, чтобы мгновенно добавить скопированное фото.</span>
                 <span style={{ color: '#e2e8f0', fontWeight: 600 }}>Всего: {items.length} кадров</span>
               </div>
               <div className={`multi-source-photos-grid ${isFullscreen ? 'fullscreen-grid' : ''}`}>
