@@ -295,7 +295,7 @@ router.get('/api/package-script-text', (req, res) => {
 // POST /api/save-script-text
 router.post('/api/save-script-text', async (req, res) => {
   try {
-    const { bundleDir: inputBundleDir, folderName, text } = req.body;
+    const { bundleDir: inputBundleDir, folderName, text, originalNews } = req.body;
     const newsDir = path.resolve(__dirname, '../../news');
     let targetDir = inputBundleDir || (folderName ? path.join(newsDir, folderName) : null);
     if (!targetDir || !fs.existsSync(targetDir)) {
@@ -305,17 +305,70 @@ router.post('/api/save-script-text', async (req, res) => {
       }
     }
     if (!targetDir || !fs.existsSync(targetDir)) return res.status(404).json({ success: false, error: 'Папка пакета не найдена на диске' });
-    fs.writeFileSync(path.join(targetDir, 'script.txt'), text, 'utf-8');
+    
+    if (typeof text === 'string') {
+      fs.writeFileSync(path.join(targetDir, 'script.txt'), text, 'utf-8');
+    }
+
+    if (typeof originalNews === 'string' && originalNews.trim()) {
+      fs.writeFileSync(path.join(targetDir, 'source.txt'), originalNews, 'utf-8');
+      fs.writeFileSync(path.join(targetDir, 'original_news.txt'), originalNews, 'utf-8');
+    }
+
     const jsonPath = path.join(targetDir, 'project.json');
     if (fs.existsSync(jsonPath)) {
       try {
         const manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
-        manifest.word_count = text.split(/\s+/).filter(Boolean).length;
-        manifest.text_updated_at = new Date().toISOString();
+        if (typeof text === 'string') {
+          manifest.word_count = text.split(/\s+/).filter(Boolean).length;
+          manifest.text_updated_at = new Date().toISOString();
+        }
+        if (typeof originalNews === 'string' && originalNews.trim()) {
+          manifest.original_news = originalNews;
+          manifest.summary = originalNews;
+        }
         fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
       } catch {}
     }
-    res.json({ success: true, bundleDir: targetDir, folderName: path.basename(targetDir), text });
+
+    // Update script.md
+    try {
+      const origToUse = (typeof originalNews === 'string' && originalNews.trim()) ? originalNews : (fs.existsSync(path.join(targetDir, 'source.txt')) ? fs.readFileSync(path.join(targetDir, 'source.txt'), 'utf-8') : '');
+      const scriptToUse = (typeof text === 'string') ? text : (fs.existsSync(path.join(targetDir, 'script.txt')) ? fs.readFileSync(path.join(targetDir, 'script.txt'), 'utf-8') : '');
+      const origSection = origToUse ? `## 📝 Исходное сообщение / Новость (Telegram / Источник)\n${origToUse}\n\n---\n\n` : '';
+      const mdContent = `# 🎭 ${path.basename(targetDir)}\n\n${origSection}## 🎬 Сценарий / Текст для озвучки\n${scriptToUse}\n`;
+      fs.writeFileSync(path.join(targetDir, 'script.md'), mdContent, 'utf-8');
+    } catch {}
+
+    res.json({ success: true, bundleDir: targetDir, folderName: path.basename(targetDir), text, originalNews });
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+});
+
+// POST /api/scrape-article-url
+router.post('/api/scrape-article-url', async (req, res) => {
+  try {
+    const { url, bundleDir: inputBundleDir, folderName } = req.body;
+    if (!url) return res.status(400).json({ success: false, error: 'URL статьи не указан' });
+    const fullText = await scrapeArticleText(url);
+    if (!fullText) return res.status(404).json({ success: false, error: 'Не удалось извлечь текст статьи со страницы' });
+
+    const newsDir = path.resolve(__dirname, '../../news');
+    const targetDir = inputBundleDir || (folderName ? path.join(newsDir, folderName) : null);
+    if (targetDir && fs.existsSync(targetDir)) {
+      fs.writeFileSync(path.join(targetDir, 'source.txt'), fullText, 'utf-8');
+      fs.writeFileSync(path.join(targetDir, 'original_news.txt'), fullText, 'utf-8');
+      const jsonPath = path.join(targetDir, 'project.json');
+      if (fs.existsSync(jsonPath)) {
+        try {
+          const m = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+          m.original_news = fullText;
+          m.summary = fullText;
+          fs.writeFileSync(jsonPath, JSON.stringify(m, null, 2), 'utf-8');
+        } catch {}
+      }
+    }
+
+    res.json({ success: true, text: fullText });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 

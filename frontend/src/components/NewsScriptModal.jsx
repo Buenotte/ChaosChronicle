@@ -16,6 +16,8 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
   const [selectedTone, setSelectedTone] = useState(pkg.tone || 'grotesque')
   const [savingText, setSavingText] = useState(false)
   const [regenerating, setRegenerating] = useState(false)
+  const [isEditingOriginal, setIsEditingOriginal] = useState(false)
+  const [scrapingUrl, setScrapingUrl] = useState(false)
 
   // Drag & Drop State für Verschiebbarkeit
   const [pos, setPos] = useState({ x: 0, y: 0 })
@@ -136,10 +138,10 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
   }
 
   const handleSaveText = async () => {
-    if (!text.trim()) return
+    if (!text.trim() && !originalNews.trim()) return
     setSavingText(true)
-    const toastId = toast.loading('Сохранение script.txt в папку news/...', {
-      description: 'Обновление файла дикторского текста...',
+    const toastId = toast.loading('Сохранение script.txt и оригинала...', {
+      description: 'Обновление файлов на диске...',
     })
 
     try {
@@ -150,18 +152,22 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
           bundleDir: pkg.bundleDir,
           folderName: pkg.folderName,
           text,
+          originalNews,
         }),
       })
 
       const data = await res.json()
       if (!res.ok || !data.success) throw new Error(data.error || 'Ошибка сохранения текста')
 
+      pkg.scriptTxt = text
+      pkg.original_news = originalNews
+      pkg.summary = originalNews
       if (onSaved) onSaved()
 
-      toast.success('📜 Текст script.txt успешно обновлен!', {
+      toast.success('💾 Сценарий и оригинальная новость успешно сохранены!', {
         id: toastId,
-        description: `Сохранено в news/${data.folderName}/script.txt`,
-        duration: 10000,
+        description: `Сохранено в news/${data.folderName}/script.txt и source.txt`,
+        duration: 6000,
       })
     } catch (err) {
       toast.error('Ошибка сохранения текста', {
@@ -173,7 +179,45 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
     }
   }
 
+  const handleScrapeArticle = async () => {
+    const targetUrl = pkg.url || pkg.link || pkg.original_url
+    if (!targetUrl) {
+      toast.error('URL статьи не найден в пакете')
+      return
+    }
+    setScrapingUrl(true)
+    const toastId = toast.loading('🌐 Загрузка полного текста статьи по ссылке...', {
+      description: targetUrl,
+    })
+    try {
+      const res = await fetch('/api/scrape-article-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: targetUrl,
+          bundleDir: pkg.bundleDir,
+          folderName: pkg.folderName,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) throw new Error(data.error || 'Не удалось загрузить статью')
+
+      setOriginalNews(data.fullText)
+      pkg.original_news = data.fullText
+      pkg.summary = data.fullText
+      setShowOriginal(true)
+      if (onSaved) onSaved()
+      toast.success(`🎉 Полная статья загружена (${data.wordCount || data.fullText.split(/\s+/).filter(Boolean).length} слов)!`, { id: toastId })
+    } catch (err) {
+      toast.error('Ошибка загрузки статьи', { id: toastId, description: err.message })
+    } finally {
+      setScrapingUrl(false)
+    }
+  }
+
   const [isMaximized, setIsMaximized] = useState(false)
+
+  const articleUrl = pkg.url || pkg.link || pkg.original_url
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -215,43 +259,78 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
             onRegenerate={handleRegenerateScript}
           />
 
-          {/* Исходный текст Telegram / Новости */}
-          {originalNews && (
-            <div style={{ background: '#0b1120', border: '1px solid #38bdf8', borderRadius: '8px', padding: '0.65rem 0.85rem', marginBottom: '0.75rem', boxShadow: '0 2px 8px rgba(0,0,0,0.35)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem' }}>
-                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <span>📰</span> ИСХОДНАЯ НОВОСТЬ ({pkg.source || 'Telegram / Источник'}):
-                  <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 500 }}>
-                    ({originalNews.split(/\s+/).filter(Boolean).length} слов)
-                  </span>
+          {/* Исходный текст Telegram / Новости / Статьи */}
+          <div style={{ background: '#0b1120', border: '1px solid #38bdf8', borderRadius: '8px', padding: '0.65rem 0.85rem', marginBottom: '0.75rem', boxShadow: '0 2px 8px rgba(0,0,0,0.35)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem' }}>
+              <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <span>📰</span> ИСХОДНАЯ НОВОСТЬ ({pkg.source || 'Telegram / Источник'}):
+                <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 500 }}>
+                  ({originalNews ? originalNews.split(/\s+/).filter(Boolean).length : 0} слов)
                 </span>
-                <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+              </span>
+              <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                {articleUrl && (
+                  <button
+                    type="button"
+                    onClick={handleScrapeArticle}
+                    disabled={scrapingUrl}
+                    style={{ background: '#0369a1', border: '1px solid #0284c7', color: '#fff', borderRadius: '4px', padding: '0.18rem 0.5rem', fontSize: '0.72rem', cursor: scrapingUrl ? 'not-allowed' : 'pointer', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                    title="Загрузить полный текст статьи с оригинального сайта по ссылке"
+                  >
+                    {scrapingUrl ? '⏳ Загрузка...' : '🌐 Загрузить по ссылке'}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setIsEditingOriginal(!isEditingOriginal)}
+                  style={{ background: isEditingOriginal ? '#16a34a' : '#1e293b', border: '1px solid #334155', color: isEditingOriginal ? '#fff' : '#38bdf8', borderRadius: '4px', padding: '0.18rem 0.5rem', fontSize: '0.72rem', cursor: 'pointer', fontWeight: 600 }}
+                  title="Редактировать или вставить полный оригинальный текст новости"
+                >
+                  {isEditingOriginal ? '💾 Готово' : '✏️ Редактировать'}
+                </button>
+                {originalNews && (
                   <button
                     type="button"
                     onClick={() => {
                       navigator.clipboard.writeText(originalNews);
                       toast.success('Оригинальный текст скопирован!');
                     }}
-                    style={{ background: '#1e293b', border: '1px solid #334155', color: '#38bdf8', borderRadius: '4px', padding: '0.15rem 0.45rem', fontSize: '0.72rem', cursor: 'pointer', fontWeight: 600 }}
+                    style={{ background: '#1e293b', border: '1px solid #334155', color: '#38bdf8', borderRadius: '4px', padding: '0.18rem 0.5rem', fontSize: '0.72rem', cursor: 'pointer', fontWeight: 600 }}
                   >
                     📋 Копировать
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowOriginal(!showOriginal)}
-                    style={{ background: 'transparent', border: '1px solid #334155', color: '#94a3b8', borderRadius: '4px', padding: '0.15rem 0.45rem', fontSize: '0.72rem', cursor: 'pointer' }}
-                  >
-                    {showOriginal ? 'Свернуть ▲' : 'Развернуть ▼'}
-                  </button>
-                </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setShowOriginal(!showOriginal)}
+                  style={{ background: 'transparent', border: '1px solid #334155', color: '#94a3b8', borderRadius: '4px', padding: '0.18rem 0.45rem', fontSize: '0.72rem', cursor: 'pointer' }}
+                >
+                  {showOriginal ? 'Свернуть ▲' : 'Развернуть ▼'}
+                </button>
               </div>
-              {showOriginal && (
-                <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid #1e293b', fontSize: '0.86rem', color: '#f1f5f9', lineHeight: '1.55', maxHeight: '180px', overflowY: 'auto', whiteSpace: 'pre-wrap', background: '#030712', padding: '0.5rem 0.65rem', borderRadius: '6px' }}>
-                  {originalNews}
-                </div>
-              )}
             </div>
-          )}
+
+            {showOriginal && (
+              <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid #1e293b' }}>
+                {isEditingOriginal ? (
+                  <textarea
+                    value={originalNews}
+                    onChange={e => setOriginalNews(e.target.value)}
+                    placeholder="Вставьте или отредактируйте полный оригинальный текст новости здесь..."
+                    style={{
+                      width: '100%', minHeight: '140px', background: '#030712', color: '#f8fafc',
+                      border: '1px solid #38bdf8', borderRadius: '6px', padding: '0.5rem 0.65rem',
+                      fontSize: '0.86rem', lineHeight: '1.5', fontFamily: 'inherit', resize: 'vertical',
+                    }}
+                  />
+                ) : (
+                  <div style={{ fontSize: '0.86rem', color: '#f1f5f9', lineHeight: '1.55', maxHeight: '180px', overflowY: 'auto', whiteSpace: 'pre-wrap', background: '#030712', padding: '0.5rem 0.65rem', borderRadius: '6px' }}>
+                    {originalNews || <span style={{ color: '#64748b', fontStyle: 'italic' }}>Оригинальный текст пуст. Нажмите «✏️ Редактировать» чтобы вставить текст{articleUrl ? ' или «🌐 Загрузить по ссылке»' : ''}.</span>}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* ⚡ 3-секундные вирусные хуки для YouTube */}
           <ScriptHookGenerator

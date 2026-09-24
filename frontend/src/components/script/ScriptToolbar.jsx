@@ -83,34 +83,53 @@ export default function ScriptToolbar({
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap' }}>
-        {/* Опция 1: Извлечь 20 фактов и выбрать */}
-        <button
-          type="button"
-          onClick={handleOpenFacts}
-          disabled={regenerating || factsLoading}
-          style={{
-            fontSize: '0.8rem', padding: '0.36rem 0.75rem', background: '#d97706', border: 'none',
-            color: '#fff', fontWeight: 700, borderRadius: '6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
-          }}
-          title="Извлечь 20 фактов из оригинального текста и сгенерировать по выбранным"
-        >
-          {factsLoading ? '⏳ Анализ...' : '🔍 Выбрать из 20 фактов'}
-        </button>
-
-        {/* Опция 2: Сгенерировать напрямую из оригинальной новости целиком */}
+      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+        {/* Главная кнопка: Сгенерировать текст (AI) */}
         <button
           type="button"
           className="refresh-btn"
           onClick={() => onRegenerate(selectedStyle, selectedModel, selectedTone, null)}
           disabled={regenerating}
           style={{
-            fontSize: '0.8rem', padding: '0.36rem 0.75rem', background: '#7c3aed', border: 'none',
-            color: '#f8fafc', fontWeight: 700, borderRadius: '6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+            fontSize: '0.82rem',
+            padding: '0.42rem 0.9rem',
+            background: 'linear-gradient(135deg, #7c3aed, #4f46e5)',
+            border: '1px solid #8b5cf6',
+            color: '#ffffff',
+            fontWeight: 700,
+            borderRadius: '6px',
+            cursor: regenerating ? 'not-allowed' : 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            boxShadow: '0 2px 10px rgba(124, 58, 237, 0.45)',
           }}
-          title="Сгенерировать текст из оригинальной новости целиком"
+          title="Сгенерировать дикторский текст из оригинала с помощью ИИ"
         >
-          {regenerating ? '⏳ Генерация...' : '🔄 Из оригинала целиком'}
+          {regenerating ? '⏳ Генерация...' : '✨ Сгенерировать текст (AI)'}
+        </button>
+
+        {/* Дополнительная опция: Извлечь 20 фактов и выбрать */}
+        <button
+          type="button"
+          onClick={handleOpenFacts}
+          disabled={regenerating || factsLoading}
+          style={{
+            fontSize: '0.8rem',
+            padding: '0.42rem 0.75rem',
+            background: '#b45309',
+            border: '1px solid #d97706',
+            color: '#fff',
+            fontWeight: 600,
+            borderRadius: '6px',
+            cursor: (regenerating || factsLoading) ? 'not-allowed' : 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.35rem',
+          }}
+          title="Извлечь 20 фактов из оригинального текста и сгенерировать по выбранным"
+        >
+          {factsLoading ? '⏳ Анализ...' : '🔍 Выбрать из 20 фактов'}
         </button>
       </div>
 
