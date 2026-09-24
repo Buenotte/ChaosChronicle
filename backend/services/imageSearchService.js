@@ -179,14 +179,22 @@ export async function fetchYandexPhotos(query) {
 
 export async function fetchPinterestPhotos(query) {
   try {
-    const results = await fetchDDGPhotos(`${query} site:pinterest.com`);
-    return results
-      .filter(r => r.image && r.image.includes('pinimg.com'))
-      .map(r => ({
-        image: r.image,
+    const queries = [`${query} site:pinterest.com`, `${query} site:pinimg.com`];
+    const results = await Promise.all(queries.map(q => fetchBingPhotos(q)));
+    const flat = results.flat();
+    const seen = new Set();
+    const list = [];
+    for (const r of flat) {
+      if (!r.image || seen.has(r.image)) continue;
+      seen.add(r.image);
+      const highResImg = r.image.replace(/\/(236x|474x|564x)\//, '/736x/');
+      list.push({
+        image: highResImg,
         title: r.title || query,
         source: 'Pinterest',
-      }));
+      });
+    }
+    return list;
   } catch {
     return [];
   }
@@ -264,7 +272,7 @@ export async function searchLiveNewsPhotos(queryTitle, customQuery = '', page = 
       const isJunk = junkWords.some(j => itemTitleLower.includes(j) || imgUrlLower.includes(j));
       if (isJunk) return;
 
-      if (!customQuery || !customQuery.trim()) {
+      if (engine !== 'pinterest' && (!customQuery || !customQuery.trim())) {
         const oldYearMatch = /(201\d|202[0-5])/.test(itemTitleLower) || /(201\d|202[0-5])/.test(imgUrlLower);
         if (oldYearMatch) return;
 
@@ -280,24 +288,28 @@ export async function searchLiveNewsPhotos(queryTitle, customQuery = '', page = 
       seen.add(imgUrl);
 
       let providerName = 'Информагентство';
-      try {
-        const hostname = new URL(imgUrl).hostname.replace(/^www\./, '');
-        if (hostname.includes('unian.')) providerName = 'УНИАН (UNIAN)';
-        else if (hostname.includes('suspilne.')) providerName = 'Суспільне (Suspilne)';
-        else if (hostname.includes('ukrinform.')) providerName = 'Укринформ (Ukrinform)';
-        else if (hostname.includes('24tv.ua')) providerName = '24 Канал';
-        else if (hostname.includes('obozrevatel.')) providerName = 'Обозреватель';
-        else if (hostname.includes('liga.net')) providerName = 'ЛІГА.net';
-        else if (hostname.includes('lb.ua')) providerName = 'Левый Берег (LB.ua)';
-        else if (hostname.includes('dw.com')) providerName = 'Deutsche Welle';
-        else if (hostname.includes('meduza.io')) providerName = 'Meduza';
-        else if (hostname.includes('bbc.com') || hostname.includes('bbc.co.uk')) providerName = 'BBC News';
-        else if (hostname.includes('reuters.com')) providerName = 'Reuters';
-        else if (hostname.includes('apnews.com')) providerName = 'Associated Press (AP)';
-        else if (hostname.includes('svoboda.org')) providerName = 'Радио Свобода';
-        else if (hostname.includes('novayagazeta')) providerName = 'Новая газета';
-        else providerName = hostname;
-      } catch {}
+      if (item.source === 'Pinterest' || imgUrl.includes('pinimg.com') || imgUrl.includes('pinterest.')) {
+        providerName = 'Pinterest';
+      } else {
+        try {
+          const hostname = new URL(imgUrl).hostname.replace(/^www\./, '');
+          if (hostname.includes('unian.')) providerName = 'УНИАН (UNIAN)';
+          else if (hostname.includes('suspilne.')) providerName = 'Суспільне (Suspilne)';
+          else if (hostname.includes('ukrinform.')) providerName = 'Укринформ (Ukrinform)';
+          else if (hostname.includes('24tv.ua')) providerName = '24 Канал';
+          else if (hostname.includes('obozrevatel.')) providerName = 'Обозреватель';
+          else if (hostname.includes('liga.net')) providerName = 'ЛІГА.net';
+          else if (hostname.includes('lb.ua')) providerName = 'Левый Берег (LB.ua)';
+          else if (hostname.includes('dw.com')) providerName = 'Deutsche Welle';
+          else if (hostname.includes('meduza.io')) providerName = 'Meduza';
+          else if (hostname.includes('bbc.com') || hostname.includes('bbc.co.uk')) providerName = 'BBC News';
+          else if (hostname.includes('reuters.com')) providerName = 'Reuters';
+          else if (hostname.includes('apnews.com')) providerName = 'Associated Press (AP)';
+          else if (hostname.includes('svoboda.org')) providerName = 'Радио Свобода';
+          else if (hostname.includes('novayagazeta')) providerName = 'Новая газета';
+          else providerName = hostname;
+        } catch {}
+      }
 
       photos.push({
         url: imgUrl,
