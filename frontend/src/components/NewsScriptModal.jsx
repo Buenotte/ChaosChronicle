@@ -18,8 +18,9 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
   const [regenerating, setRegenerating] = useState(false)
   const [isEditingOriginal, setIsEditingOriginal] = useState(false)
   const [scrapingUrl, setScrapingUrl] = useState(false)
+  const [isMaximized, setIsMaximized] = useState(false)
 
-  // Drag & Drop State für Verschiebbarkeit
+  // Drag & Drop State
   const [pos, setPos] = useState({ x: 0, y: 0 })
   const [isDragging, setIsDragging] = useState(false)
   const dragRef = useRef({ startX: 0, startY: 0, initialX: 0, initialY: 0 })
@@ -29,7 +30,6 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
     setOriginalNews(pkg.original_news || pkg.summary || pkg.originalNews || '')
     setPos({ x: 0, y: 0 })
 
-    // Live-Abruf der Datei direkt von der Festplatte
     const folderName = pkg.folderName || ''
     const bundleDir = pkg.bundleDir || ''
     if (folderName || bundleDir) {
@@ -46,33 +46,18 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
     }
   }, [pkg])
 
-  // Drag Event Handlers
   const handleMouseDown = (e) => {
     if (e.target.closest('.modal-close') || e.target.closest('button') || e.target.closest('textarea') || e.target.closest('.draggable-title-chip')) return
     setIsDragging(true)
-    dragRef.current = {
-      startX: e.clientX,
-      startY: e.clientY,
-      initialX: pos.x,
-      initialY: pos.y,
-    }
+    dragRef.current = { startX: e.clientX, startY: e.clientY, initialX: pos.x, initialY: pos.y }
   }
 
   useEffect(() => {
     const handleMouseMove = (e) => {
       if (!isDragging) return
-      const dx = e.clientX - dragRef.current.startX
-      const dy = e.clientY - dragRef.current.startY
-      setPos({
-        x: dragRef.current.initialX + dx,
-        y: dragRef.current.initialY + dy,
-      })
+      setPos({ x: dragRef.current.initialX + (e.clientX - dragRef.current.startX), y: dragRef.current.initialY + (e.clientY - dragRef.current.startY) })
     }
-
-    const handleMouseUp = () => {
-      if (isDragging) setIsDragging(false)
-    }
-
+    const handleMouseUp = () => { if (isDragging) setIsDragging(false) }
     if (isDragging) {
       window.addEventListener('mousemove', handleMouseMove)
       window.addEventListener('mouseup', handleMouseUp)
@@ -111,7 +96,6 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
-
       const data = await res.json()
       if (!res.ok || !data.success) throw new Error(data.error || 'Ошибка генерации текста')
 
@@ -122,8 +106,7 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
         pkg.scriptTxt = newText
         pkg.hasScriptTxt = true
         pkg.hasScriptMd = true
-        if (chosenFacts) pkg.selectedFacts = chosenFacts
-        else pkg.selectedFacts = null
+        pkg.selectedFacts = chosenFacts || null
         if (fData.title) pkg.title = fData.title
         if (onSaved) onSaved()
         toast.success(chosenFacts?.length ? `🎉 Сценарий создан по ${chosenFacts.length} ключевым фактам!` : '✨ Новый вариант текста готов и сохранен!', { id: toastId })
@@ -140,22 +123,14 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
   const handleSaveText = async () => {
     if (!text.trim() && !originalNews.trim()) return
     setSavingText(true)
-    const toastId = toast.loading('Сохранение script.txt и оригинала...', {
-      description: 'Обновление файлов на диске...',
-    })
+    const toastId = toast.loading('Сохранение script.txt и оригинала...', { description: 'Обновление файлов на диске...' })
 
     try {
       const res = await fetch('/api/save-script-text', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          bundleDir: pkg.bundleDir,
-          folderName: pkg.folderName,
-          text,
-          originalNews,
-        }),
+        body: JSON.stringify({ bundleDir: pkg.bundleDir, folderName: pkg.folderName, text, originalNews }),
       })
-
       const data = await res.json()
       if (!res.ok || !data.success) throw new Error(data.error || 'Ошибка сохранения текста')
 
@@ -170,10 +145,7 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
         duration: 6000,
       })
     } catch (err) {
-      toast.error('Ошибка сохранения текста', {
-        id: toastId,
-        description: err.message,
-      })
+      toast.error('Ошибка сохранения текста', { id: toastId, description: err.message })
     } finally {
       setSavingText(false)
     }
@@ -181,23 +153,14 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
 
   const handleScrapeArticle = async () => {
     const targetUrl = pkg.url || pkg.link || pkg.original_url
-    if (!targetUrl) {
-      toast.error('URL статьи не найден в пакете')
-      return
-    }
+    if (!targetUrl) return toast.error('URL статьи не найден в пакете')
     setScrapingUrl(true)
-    const toastId = toast.loading('🌐 Загрузка полного текста статьи по ссылке...', {
-      description: targetUrl,
-    })
+    const toastId = toast.loading('🌐 Загрузка полного текста статьи по ссылке...', { description: targetUrl })
     try {
       const res = await fetch('/api/scrape-article-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          url: targetUrl,
-          bundleDir: pkg.bundleDir,
-          folderName: pkg.folderName,
-        }),
+        body: JSON.stringify({ url: targetUrl, bundleDir: pkg.bundleDir, folderName: pkg.folderName }),
       })
       const data = await res.json()
       if (!res.ok || !data.success) throw new Error(data.error || 'Не удалось загрузить статью')
@@ -214,8 +177,6 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
       setScrapingUrl(false)
     }
   }
-
-  const [isMaximized, setIsMaximized] = useState(false)
 
   const articleUrl = pkg.url || pkg.link || pkg.original_url
 
@@ -244,8 +205,6 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
         />
 
         <div className="modal-body">
-
-          {/* Панель выбора стиля, модели ИИ и опций перегенерации текста */}
           <ScriptToolbar
             pkg={pkg}
             originalNews={originalNews}
@@ -292,8 +251,8 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
                   <button
                     type="button"
                     onClick={() => {
-                      navigator.clipboard.writeText(originalNews);
-                      toast.success('Оригинальный текст скопирован!');
+                      navigator.clipboard.writeText(originalNews)
+                      toast.success('Оригинальный текст скопирован!')
                     }}
                     style={{ background: '#1e293b', border: '1px solid #334155', color: '#38bdf8', borderRadius: '4px', padding: '0.18rem 0.5rem', fontSize: '0.72rem', cursor: 'pointer', fontWeight: 600 }}
                   >
@@ -332,7 +291,6 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
             )}
           </div>
 
-          {/* ⚡ 3-секундные вирусные хуки для YouTube */}
           <ScriptHookGenerator
             title={pkg.original_title || pkg.title}
             summary={originalNews || pkg.summary || ''}
@@ -342,9 +300,7 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
             onApplyHook={(newText) => setText(newText)}
           />
 
-          {/* Text Editor */}
           <div className="script-editor-wrap">
-            {/* Draggable Title Chip & Fast Insert */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem', flexWrap: 'wrap', gap: '0.4rem' }}>
               <div
                 className="draggable-title-chip"
@@ -354,18 +310,9 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
                   e.dataTransfer.effectAllowed = 'copy'
                 }}
                 style={{
-                  cursor: 'grab',
-                  background: 'linear-gradient(135deg, #1e293b, #0f172a)',
-                  border: '1px dashed #6366f1',
-                  padding: '0.28rem 0.65rem',
-                  borderRadius: '6px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.4rem',
-                  fontSize: '0.78rem',
-                  fontWeight: 600,
-                  color: '#e2e8f0',
-                  userSelect: 'none',
+                  cursor: 'grab', background: 'linear-gradient(135deg, #1e293b, #0f172a)', border: '1px dashed #6366f1',
+                  padding: '0.28rem 0.65rem', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+                  fontSize: '0.78rem', fontWeight: 600, color: '#e2e8f0', userSelect: 'none',
                 }}
                 title="🖐️ Зажмите мышкой и перетащите заголовок в любое место текста"
               >
@@ -404,9 +351,7 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
               className="script-editor-textarea"
               value={text}
               onChange={e => setText(e.target.value)}
-              onDrop={() => {
-                toast.success('🎯 Элемент успешно перетащен в текст!')
-              }}
+              onDrop={() => toast.success('🎯 Элемент успешно перетащен в текст!')}
               placeholder="Введите текст (можно перетаскивать мышкой заголовок и хуки прямо сюда)..."
               rows={12}
             />
@@ -414,11 +359,7 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
         </div>
 
         <div className="modal-footer">
-          <button
-            className="save-bundle-btn"
-            onClick={handleSaveText}
-            disabled={savingText}
-          >
+          <button className="save-bundle-btn" onClick={handleSaveText} disabled={savingText}>
             {savingText ? '⏳ Сохранение...' : '💾 Сохранить изменения в script.txt'}
           </button>
           <button className="close-btn" onClick={onClose}>Закрыть</button>

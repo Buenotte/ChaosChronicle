@@ -11,38 +11,29 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const router = express.Router();
 
+let savedPackagesCache = null, savedPackagesLastFetch = 0;
+export const invalidatePackagesCache = () => { savedPackagesCache = null; savedPackagesLastFetch = 0; };
+
 // POST /api/save-package & /api/save-news-package
 const handleSavePackage = async (req, res) => {
   try {
-    const {
-      title, url, original_url, link, text, summary = '', date,
-      model = 'gemini', style = 'clickbait', source = '',
-      photos = [], images = [], imageUrl, folderName: requestedFolderName,
-    } = req.body;
-
-    const inputPhotos = Array.isArray(photos) && photos.length > 0
-      ? photos
-      : (Array.isArray(images) && images.length > 0 ? images : (imageUrl ? [imageUrl] : []));
-
+    const { title, url, original_url, link, text, summary = '', date, model = 'gemini', style = 'clickbait', source = '', photos = [], images = [], imageUrl, folderName: requestedFolderName } = req.body;
+    const inputPhotos = Array.isArray(photos) && photos.length > 0 ? photos : (Array.isArray(images) && images.length > 0 ? images : (imageUrl ? [imageUrl] : []));
     const newsDir = path.resolve(__dirname, '../../news');
     if (!fs.existsSync(newsDir)) fs.mkdirSync(newsDir, { recursive: true });
 
     const now = new Date();
     const dateStr = now.toISOString().replace(/[:.]/g, '-').slice(0, 16);
     const safeTitle = (title || 'Feuilleton').replace(/[^a-zA-Z0-9а-яА-ЯёЁ]/g, '_').replace(/_+/g, '_').slice(0, 80);
-
-    const bundleDir = requestedFolderName
-      ? path.join(newsDir, requestedFolderName)
-      : path.join(newsDir, `${dateStr}_${safeTitle}`);
-
+    const bundleDir = requestedFolderName ? path.join(newsDir, requestedFolderName) : path.join(newsDir, `${dateStr}_${safeTitle}`);
     const photosDir = path.join(bundleDir, 'photos');
     fs.mkdirSync(photosDir, { recursive: true });
 
     const articleUrl = url || original_url || link || '';
     let rawOriginal = (req.body.summary || req.body.original_news || req.body.originalNews || req.body.sourceText || req.body.originalText || req.body.telegramText || '').trim();
 
-    // Auto-scrape full text from Web URL if text is short or incomplete
-    if (rawOriginal.length < 500 && articleUrl && /^https?:\/\//i.test(articleUrl)) {
+    // Auto-scrape full text from Web URL if text is short (< 1200 chars) or forceScrape requested
+    if ((rawOriginal.length < 1200 || req.body.forceScrape) && articleUrl && /^https?:\/\//i.test(articleUrl)) {
       try {
         const scraped = await scrapeArticleText(articleUrl);
         if (scraped && scraped.length > rawOriginal.length) rawOriginal = scraped;
@@ -56,20 +47,9 @@ const handleSavePackage = async (req, res) => {
 
     const words = text ? text.split(/\s+/).filter(Boolean).length : 0;
     const manifest = {
-      title: title || 'Ohne Titel',
-      original_title: title || 'Ohne Titel',
-      url: articleUrl,
-      date: date || now.toISOString(),
-      model,
-      style: req.body.style || style || 'clickbait',
-      source,
-      summary: rawOriginal,
-      original_news: rawOriginal,
-      word_count: words,
-      created_at: now.toISOString(),
-      photos: [],
-      audio: 'audio.mp3',
-      video: 'video.mp4',
+      title: title || 'Ohne Titel', original_title: title || 'Ohne Titel', url: articleUrl, date: date || now.toISOString(),
+      model, style: req.body.style || style || 'clickbait', source, summary: rawOriginal, original_news: rawOriginal,
+      word_count: words, created_at: now.toISOString(), photos: [], audio: 'audio.mp3', video: 'video.mp4',
     };
 
     if (rawOriginal) {
@@ -82,8 +62,7 @@ const handleSavePackage = async (req, res) => {
     if (text) {
       fs.writeFileSync(path.join(bundleDir, 'script.txt'), text, 'utf-8');
       const origSection = rawOriginal ? `## 📝 Исходное сообщение / Новость (Telegram / Источник)\n${rawOriginal}\n\n---\n\n` : '';
-      const mdContent = `# 🎭 ${title}\n\n**Quelle:** ${source} | **Datum:** ${date || now.toLocaleDateString()}\n**Modell:** ${model} | **Wortanzahl:** ${words}\n\n---\n\n${origSection}## 🎬 Сценарий / Текст для озвучки\n${text}\n`;
-      fs.writeFileSync(path.join(bundleDir, 'script.md'), mdContent, 'utf-8');
+      fs.writeFileSync(path.join(bundleDir, 'script.md'), `# 🎭 ${title}\n\n**Quelle:** ${source} | **Datum:** ${date || now.toLocaleDateString()}\n**Modell:** ${model} | **Wortanzahl:** ${words}\n\n---\n\n${origSection}## 🎬 Сценарий / Текст для озвучки\n${text}\n`, 'utf-8');
     }
 
     const savedPhotos = [];
@@ -104,10 +83,7 @@ const handleSavePackage = async (req, res) => {
               return;
             }
           }
-          const imgRes = await fetch(imgUrl, {
-            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
-            signal: AbortSignal.timeout(3500),
-          });
+          const imgRes = await fetch(imgUrl, { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(3500) });
           if (imgRes.ok) {
             const buffer = Buffer.from(await imgRes.arrayBuffer());
             const ext = imgUrl.match(/\.(jpg|jpeg|png|webp)/i)?.[1] || 'jpg';
@@ -122,19 +98,10 @@ const handleSavePackage = async (req, res) => {
 
     manifest.photos = savedPhotos;
     fs.writeFileSync(path.join(bundleDir, 'project.json'), JSON.stringify(manifest, null, 2), 'utf-8');
-
     if (savedPhotos.length > 0) {
       try {
-        const firstPhotoUrl = `/news-static/${path.basename(bundleDir)}/${savedPhotos[0]}`;
-        await processSetThumbnail({
-          bundleDir,
-          folderName: path.basename(bundleDir),
-          photoUrl: firstPhotoUrl,
-          headlineConfig: { text: title || manifest.title }
-        });
-      } catch (thumbErr) {
-        console.warn('Initial thumbnail creation warning:', thumbErr.message);
-      }
+        await processSetThumbnail({ bundleDir, folderName: path.basename(bundleDir), photoUrl: `/news-static/${path.basename(bundleDir)}/${savedPhotos[0]}`, headlineConfig: { text: title || manifest.title } });
+      } catch (thumbErr) { console.warn('Initial thumbnail warning:', thumbErr.message); }
     }
 
     invalidatePackagesCache();
@@ -147,9 +114,6 @@ const handleSavePackage = async (req, res) => {
 
 router.post('/api/save-package', handleSavePackage);
 router.post('/api/save-news-package', handleSavePackage);
-
-let savedPackagesCache = null, savedPackagesLastFetch = 0;
-export const invalidatePackagesCache = () => { savedPackagesCache = null; savedPackagesLastFetch = 0; };
 
 // GET /api/saved-packages
 router.get('/api/saved-packages', async (req, res) => {
@@ -166,73 +130,48 @@ router.get('/api/saved-packages', async (req, res) => {
 
     for (const entry of entries) {
       if (!entry.isDirectory()) continue;
-      const bundleDir = path.join(newsDir, entry.name);
-      const jsonPath = path.join(bundleDir, 'project.json');
+      const bundleDir = path.join(newsDir, entry.name), jsonPath = path.join(bundleDir, 'project.json');
       const audioPath = path.join(bundleDir, 'audio.mp3'), txtPath = path.join(bundleDir, 'script.txt'), mdPath = path.join(bundleDir, 'script.md'), photosDir = path.join(bundleDir, 'photos');
-
       let manifest = {};
-      if (fs.existsSync(jsonPath)) {
-        try { manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8')); } catch {}
-      }
+      if (fs.existsSync(jsonPath)) { try { manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8')); } catch {} }
 
-      let photoFiles = [];
-      if (fs.existsSync(photosDir)) {
-        photoFiles = fs.readdirSync(photosDir).map(f => `/news-static/${entry.name}/photos/${f}`);
-      }
-
+      let photoFiles = fs.existsSync(photosDir) ? fs.readdirSync(photosDir).map(f => `/news-static/${entry.name}/photos/${f}`) : [];
       const videoDir = path.join(bundleDir, 'video');
       let latestVideoFile = null;
       if (fs.existsSync(videoDir)) {
-        const videoFiles = fs.readdirSync(videoDir).filter(f => f.endsWith('.mp4')).map(f => ({ name: f, time: fs.statSync(path.join(videoDir, f)).mtimeMs })).sort((a, b) => b.time - a.time);
-        if (videoFiles.length > 0) latestVideoFile = videoFiles[0].name;
+        const vFiles = fs.readdirSync(videoDir).filter(f => f.endsWith('.mp4')).map(f => ({ name: f, time: fs.statSync(path.join(videoDir, f)).mtimeMs })).sort((a, b) => b.time - a.time);
+        if (vFiles.length > 0) latestVideoFile = vFiles[0].name;
       }
-      const hasVideo = !!latestVideoFile;
-      const videoUrl = latestVideoFile ? `/news-static/${entry.name}/video/${latestVideoFile}` : null;
-
-      let packageTitle = manifest.title || '';
-      if (!packageTitle && fs.existsSync(mdPath)) {
-        try { packageTitle = fs.readFileSync(mdPath, 'utf-8').split('\n')[0].replace(/^[#\s🎭\s*]+/, '').trim(); } catch {}
-      }
-      if (!packageTitle) packageTitle = entry.name.replace(/^[0-9T-]{16}_/, '').replace(/_/g, ' ');
+      const hasVideo = !!latestVideoFile, videoUrl = latestVideoFile ? `/news-static/${entry.name}/video/${latestVideoFile}` : null;
+      let packageTitle = manifest.title || (fs.existsSync(mdPath) ? fs.readFileSync(mdPath, 'utf-8').split('\n')[0].replace(/^[#\s🎭\s*]+/, '').trim() : '') || entry.name.replace(/^[0-9T-]{16}_/, '').replace(/_/g, ' ');
 
       const thumbSub = path.join(bundleDir, 'thumbnail', 'thumbnail.jpg'), thumbRoot = path.join(bundleDir, 'thumbnail.jpg');
       const hasThumbnail = fs.existsSync(thumbSub) || fs.existsSync(thumbRoot);
-      let thumbnailUpdatedAt = manifest.thumbnail_updated_at || null;
-      if (hasThumbnail && !thumbnailUpdatedAt) {
-        try { thumbnailUpdatedAt = fs.statSync(fs.existsSync(thumbSub) ? thumbSub : thumbRoot).mtime.toISOString(); } catch {}
-      }
+      let thumbnailUpdatedAt = manifest.thumbnail_updated_at || (hasThumbnail ? fs.statSync(fs.existsSync(thumbSub) ? thumbSub : thumbRoot).mtime.toISOString() : null);
       const thumbnailUrl = hasThumbnail ? `/news-static/${entry.name}/thumbnail/thumbnail.jpg?t=${thumbnailUpdatedAt ? new Date(thumbnailUpdatedAt).getTime() : Date.now()}` : null;
 
       const hasScriptTxt = fs.existsSync(txtPath), hasScriptMd = fs.existsSync(mdPath), hasAudio = fs.existsSync(audioPath);
       const shortPath = path.join(bundleDir, 'short.mp4'), hasShort = fs.existsSync(shortPath);
       const shortUrl = hasShort ? `/news-static/${entry.name}/short.mp4?t=${fs.statSync(shortPath).mtimeMs}` : null;
-      const photosCount = photoFiles.length;
 
       const styleJsonPath = path.join(bundleDir, 'thumbnail', 'style.json');
-      let thumbnailStyle = null;
-      if (fs.existsSync(styleJsonPath)) { try { thumbnailStyle = JSON.parse(fs.readFileSync(styleJsonPath, 'utf-8')); } catch {} }
-      if (!thumbnailStyle && manifest.headlineConfig) thumbnailStyle = manifest.headlineConfig;
-
+      let thumbnailStyle = fs.existsSync(styleJsonPath) ? JSON.parse(fs.readFileSync(styleJsonPath, 'utf-8')) : (manifest.headlineConfig || null);
       const ytMetaJsonPath = path.join(bundleDir, 'youtube_metadata.json');
-      let ytMeta = manifest.youtubeMetadata;
-      if (!ytMeta && fs.existsSync(ytMetaJsonPath)) { try { ytMeta = JSON.parse(fs.readFileSync(ytMetaJsonPath, 'utf-8')); } catch {} }
+      let ytMeta = manifest.youtubeMetadata || (fs.existsSync(ytMetaJsonPath) ? JSON.parse(fs.readFileSync(ytMetaJsonPath, 'utf-8')) : null);
       const hasYouTubeMetadata = Boolean(fs.existsSync(ytMetaJsonPath) || (ytMeta && (ytMeta.description || ytMeta.title || Object.values(ytMeta).some(v => v && typeof v === 'object' && (v.description || v.title)))));
       const hasFacebookPost = Boolean((manifest.facebookPosts && Object.keys(manifest.facebookPosts).length > 0) || (ytMeta && (ytMeta.facebookPost || Object.values(ytMeta).some(v => v && typeof v === 'object' && v.facebookPost))));
 
       const sourceTxtPath = path.join(bundleDir, 'source.txt'), origNewsPath = path.join(bundleDir, 'original_news.txt');
-      let origNewsText = '';
-      if (fs.existsSync(sourceTxtPath)) { try { origNewsText = fs.readFileSync(sourceTxtPath, 'utf-8'); } catch {} }
-      if (!origNewsText && fs.existsSync(origNewsPath)) { try { origNewsText = fs.readFileSync(origNewsPath, 'utf-8'); } catch {} }
-      if (!origNewsText) origNewsText = manifest.original_news || manifest.summary || '';
+      let origNewsText = fs.existsSync(sourceTxtPath) ? fs.readFileSync(sourceTxtPath, 'utf-8') : (fs.existsSync(origNewsPath) ? fs.readFileSync(origNewsPath, 'utf-8') : (manifest.original_news || manifest.summary || ''));
 
-      const artifactCount = (hasScriptTxt ? 1 : 0) + (hasScriptMd ? 1 : 0) + (hasAudio ? 1 : 0) + (hasVideo ? 1 : 0) + (hasShort ? 1 : 0) + (photosCount > 0 ? 1 : 0) + (hasThumbnail ? 1 : 0) + (hasYouTubeMetadata ? 1 : 0) + (hasFacebookPost ? 1 : 0);
+      const artifactCount = (hasScriptTxt ? 1 : 0) + (hasScriptMd ? 1 : 0) + (hasAudio ? 1 : 0) + (hasVideo ? 1 : 0) + (hasShort ? 1 : 0) + (photoFiles.length > 0 ? 1 : 0) + (hasThumbnail ? 1 : 0) + (hasYouTubeMetadata ? 1 : 0) + (hasFacebookPost ? 1 : 0);
       packages.push({
         folderName: entry.name, bundleDir, title: packageTitle, original_title: manifest.original_title || packageTitle,
         url: manifest.url || manifest.original_url || manifest.link || null, date: manifest.date || null,
         model: manifest.model || 'gemini', style: manifest.style || manifest.feuilletonStyle || 'clickbait',
         source: manifest.source || '', summary: origNewsText, original_news: origNewsText, originalNews: origNewsText,
         hasAudio, hasVideo, hasShort, shortUrl, hasScriptTxt, hasScriptMd,
-        photosCount, photoUrls: photoFiles, hasThumbnail, thumbnailUrl, thumbnail_updated_at: thumbnailUpdatedAt,
+        photosCount: photoFiles.length, photoUrls: photoFiles, hasThumbnail, thumbnailUrl, thumbnail_updated_at: thumbnailUpdatedAt,
         hasYouTubeMetadata, hasFacebookPost, youtubeMetadata: ytMeta || null, facebookPosts: manifest.facebookPosts || null,
         artifactCount, hasAnyArtifact: artifactCount > 0, headlineConfig: thumbnailStyle,
         title_variants: manifest.title_variants || [], audioUrl: hasAudio ? `/news-static/${entry.name}/audio.mp3` : null, videoUrl,
@@ -267,10 +206,8 @@ router.get('/api/scrape-article', async (req, res) => {
     const { url } = req.query;
     if (!url) return res.status(400).json({ success: false, error: 'URL required' });
     const text = await scrapeArticleText(url);
-    res.json({ success: true, text: text || '' });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
+    res.json({ success: true, text: text || '', wordCount: text ? text.split(/\s+/).filter(Boolean).length : 0 });
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // GET /api/package-script-text
@@ -282,9 +219,7 @@ router.get('/api/package-script-text', (req, res) => {
     const txtPath = path.join(targetDir, 'script.txt'), mdPath = path.join(targetDir, 'script.md');
     const sourceTxtPath = path.join(targetDir, 'source.txt'), origNewsPath = path.join(targetDir, 'original_news.txt'), jsonPath = path.join(targetDir, 'project.json');
     const text = fs.existsSync(txtPath) ? fs.readFileSync(txtPath, 'utf-8') : (fs.existsSync(mdPath) ? fs.readFileSync(mdPath, 'utf-8') : '');
-    let originalNews = '';
-    if (fs.existsSync(sourceTxtPath)) { try { originalNews = fs.readFileSync(sourceTxtPath, 'utf-8'); } catch {} }
-    if (!originalNews && fs.existsSync(origNewsPath)) { try { originalNews = fs.readFileSync(origNewsPath, 'utf-8'); } catch {} }
+    let originalNews = fs.existsSync(sourceTxtPath) ? fs.readFileSync(sourceTxtPath, 'utf-8') : (fs.existsSync(origNewsPath) ? fs.readFileSync(origNewsPath, 'utf-8') : '');
     if (!originalNews && fs.existsSync(jsonPath)) {
       try { const m = JSON.parse(fs.readFileSync(jsonPath, 'utf-8')); originalNews = m.original_news || m.summary || ''; } catch {}
     }
@@ -298,18 +233,13 @@ router.post('/api/save-script-text', async (req, res) => {
     const { bundleDir: inputBundleDir, folderName, text, originalNews } = req.body;
     const newsDir = path.resolve(__dirname, '../../news');
     let targetDir = inputBundleDir || (folderName ? path.join(newsDir, folderName) : null);
-    if (!targetDir || !fs.existsSync(targetDir)) {
-      if (folderName && fs.existsSync(newsDir)) {
-        const candidate = path.join(newsDir, folderName);
-        if (fs.existsSync(candidate)) targetDir = candidate;
-      }
+    if (!targetDir && folderName && fs.existsSync(newsDir)) {
+      const candidate = path.join(newsDir, folderName);
+      if (fs.existsSync(candidate)) targetDir = candidate;
     }
     if (!targetDir || !fs.existsSync(targetDir)) return res.status(404).json({ success: false, error: 'Папка пакета не найдена на диске' });
     
-    if (typeof text === 'string') {
-      fs.writeFileSync(path.join(targetDir, 'script.txt'), text, 'utf-8');
-    }
-
+    if (typeof text === 'string') fs.writeFileSync(path.join(targetDir, 'script.txt'), text, 'utf-8');
     if (typeof originalNews === 'string' && originalNews.trim()) {
       fs.writeFileSync(path.join(targetDir, 'source.txt'), originalNews, 'utf-8');
       fs.writeFileSync(path.join(targetDir, 'original_news.txt'), originalNews, 'utf-8');
@@ -319,27 +249,20 @@ router.post('/api/save-script-text', async (req, res) => {
     if (fs.existsSync(jsonPath)) {
       try {
         const manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
-        if (typeof text === 'string') {
-          manifest.word_count = text.split(/\s+/).filter(Boolean).length;
-          manifest.text_updated_at = new Date().toISOString();
-        }
-        if (typeof originalNews === 'string' && originalNews.trim()) {
-          manifest.original_news = originalNews;
-          manifest.summary = originalNews;
-        }
+        if (typeof text === 'string') { manifest.word_count = text.split(/\s+/).filter(Boolean).length; manifest.text_updated_at = new Date().toISOString(); }
+        if (typeof originalNews === 'string' && originalNews.trim()) { manifest.original_news = originalNews; manifest.summary = originalNews; }
         fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
       } catch {}
     }
 
-    // Update script.md
     try {
       const origToUse = (typeof originalNews === 'string' && originalNews.trim()) ? originalNews : (fs.existsSync(path.join(targetDir, 'source.txt')) ? fs.readFileSync(path.join(targetDir, 'source.txt'), 'utf-8') : '');
       const scriptToUse = (typeof text === 'string') ? text : (fs.existsSync(path.join(targetDir, 'script.txt')) ? fs.readFileSync(path.join(targetDir, 'script.txt'), 'utf-8') : '');
       const origSection = origToUse ? `## 📝 Исходное сообщение / Новость (Telegram / Источник)\n${origToUse}\n\n---\n\n` : '';
-      const mdContent = `# 🎭 ${path.basename(targetDir)}\n\n${origSection}## 🎬 Сценарий / Текст для озвучки\n${scriptToUse}\n`;
-      fs.writeFileSync(path.join(targetDir, 'script.md'), mdContent, 'utf-8');
+      fs.writeFileSync(path.join(targetDir, 'script.md'), `# 🎭 ${path.basename(targetDir)}\n\n${origSection}## 🎬 Сценарий / Текст для озвучки\n${scriptToUse}\n`, 'utf-8');
     } catch {}
 
+    invalidatePackagesCache();
     res.json({ success: true, bundleDir: targetDir, folderName: path.basename(targetDir), text, originalNews });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
@@ -361,14 +284,13 @@ router.post('/api/scrape-article-url', async (req, res) => {
       if (fs.existsSync(jsonPath)) {
         try {
           const m = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
-          m.original_news = fullText;
-          m.summary = fullText;
+          m.original_news = fullText; m.summary = fullText;
           fs.writeFileSync(jsonPath, JSON.stringify(m, null, 2), 'utf-8');
         } catch {}
       }
+      invalidatePackagesCache();
     }
-
-    res.json({ success: true, text: fullText });
+    res.json({ success: true, text: fullText, wordCount: fullText.split(/\s+/).filter(Boolean).length });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
@@ -376,8 +298,7 @@ router.post('/api/scrape-article-url', async (req, res) => {
 router.post('/api/generate-title-variants', async (req, res) => {
   try {
     const { title = '', summary = '', text = '', bundleDir, folderName, forceRegenerate = false, style = 'golubuzki', keywords = '', isYouTube = false } = req.body;
-    const result = await generateTitleVariants(title, summary, bundleDir, folderName, forceRegenerate, style, text, keywords, isYouTube);
-    res.json({ success: true, ...result });
+    res.json({ success: true, ...(await generateTitleVariants(title, summary, bundleDir, folderName, forceRegenerate, style, text, keywords, isYouTube)) });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
@@ -407,14 +328,14 @@ router.post('/api/update-package-title', async (req, res) => {
     }
     if (!targetFolder) {
       const dateStr = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 16);
-      const safeTitle = (newTitle || 'News').replace(/[^a-zA-Z0-9а-яА-ЯёЁ]/g, '_').slice(0, 60);
-      targetFolder = path.join(newsDir, `${dateStr}_${safeTitle}`);
+      targetFolder = path.join(newsDir, `${dateStr}_${(newTitle || 'News').replace(/[^a-zA-Z0-9а-яА-ЯёЁ]/g, '_').slice(0, 60)}`);
       fs.mkdirSync(targetFolder, { recursive: true });
     }
     if (!newTitle || !newTitle.trim()) return res.status(400).json({ success: false, error: 'Заголовок не может быть пустым' });
 
     const titleOptions = { lineSpacing, lineColors, fontSize, fontColor, font };
     Object.keys(titleOptions).forEach(k => titleOptions[k] === undefined && delete titleOptions[k]);
+    invalidatePackagesCache();
     res.json(updatePackageTitle(targetFolder, newTitle, updateThumbnail, titleOptions));
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
@@ -434,4 +355,3 @@ router.post('/api/save-youtube-metadata', (req, res) => {
 });
 
 export default router;
-

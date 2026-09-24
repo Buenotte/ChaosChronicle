@@ -30,7 +30,7 @@ export default function OriginalTextModal({ article, isOpen, onClose, onGenerate
         })
         .catch(() => {})
         .finally(() => setIsLoading(false))
-    } else if (rawUrl && /^https?:\/\//i.test(rawUrl) && (!text || text.length < 150)) {
+    } else if (rawUrl && /^https?:\/\//i.test(rawUrl) && (!text || text.length < 800)) {
       setIsLoading(true)
       fetch(`/api/scrape-article?url=${encodeURIComponent(rawUrl)}`)
         .then(r => r.json())
@@ -43,6 +43,31 @@ export default function OriginalTextModal({ article, isOpen, onClose, onGenerate
         .finally(() => setIsLoading(false))
     }
   }, [article, isOpen])
+
+  const handleManualScrape = async () => {
+    const fetchUrl = rawUrl
+    if (!fetchUrl) return
+    setIsLoading(true)
+    const toastId = toast.loading('🌐 Загрузка полного текста статьи...')
+    try {
+      const folderName = article.folderName || article.matchingPkg?.folderName || ''
+      const bundleDir = article.bundleDir || article.matchingPkg?.bundleDir || ''
+      let data
+      if (folderName || bundleDir) {
+        const res = await fetch('/api/scrape-article-url', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: fetchUrl, folderName, bundleDir }) })
+        data = await res.json()
+      } else {
+        const res = await fetch(`/api/scrape-article?url=${encodeURIComponent(fetchUrl)}`)
+        data = await res.json()
+      }
+      if (data.success && data.text) {
+        setLiveText(data.text)
+        if (article.matchingPkg) { article.matchingPkg.original_news = data.text; article.matchingPkg.summary = data.text; }
+        toast.success(`🎉 Загружено ${data.wordCount || data.text.split(/\s+/).filter(Boolean).length} слов!`, { id: toastId })
+      } else { toast.error('Не удалось извлечь текст статьи', { id: toastId }) }
+    } catch (e) { toast.error('Ошибка загрузки: ' + e.message, { id: toastId }) }
+    finally { setIsLoading(false) }
+  }
 
   if (!isOpen || !article) return null
 
@@ -147,6 +172,18 @@ export default function OriginalTextModal({ article, isOpen, onClose, onGenerate
               {copied ? '✅ Скопировано' : '📋 Скопировать текст'}
             </button>
             {hasWebUrl && (
+              <button
+                type="button"
+                className="copy-btn"
+                onClick={handleManualScrape}
+                disabled={isLoading}
+                style={{ background: '#0284c7', color: '#fff', fontWeight: 600, padding: '0.5rem 0.9rem' }}
+                title="Скачать полный текст статьи с оригинального сайта"
+              >
+                {isLoading ? '⏳ Загрузка...' : '🌐 Загрузить полный текст'}
+              </button>
+            )}
+            {hasWebUrl && (
               <a
                 href={rawUrl}
                 target="_blank"
@@ -154,7 +191,7 @@ export default function OriginalTextModal({ article, isOpen, onClose, onGenerate
                 className="copy-btn"
                 style={{ background: '#1e293b', color: '#38bdf8', border: '1px solid #334155', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.5rem 0.9rem' }}
               >
-                🌐 Перейти на сайт источника ↗
+                Источник ↗
               </a>
             )}
           </div>

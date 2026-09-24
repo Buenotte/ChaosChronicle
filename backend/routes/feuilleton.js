@@ -187,7 +187,7 @@ router.post('/api/generate-feuilleton', async (req, res) => {
   }
 
   const articleUrl = req.body.url || req.body.link || req.body.matchingPkg?.url || '';
-  if (effectiveSummary.length < 300 && articleUrl && /^https?:\/\//i.test(articleUrl)) {
+  if ((effectiveSummary.length < 1200 || req.body.forceScrape) && articleUrl && /^https?:\/\//i.test(articleUrl)) {
     try {
       const scraped = await scrapeArticleText(articleUrl);
       if (scraped && scraped.length > effectiveSummary.length) effectiveSummary = scraped;

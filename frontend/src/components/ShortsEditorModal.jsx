@@ -31,9 +31,9 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
   })
   const [selectedPhoto, setSelectedPhoto] = useState(cfg.selectedPhoto || null), [isDragging, setIsDragging] = useState(false), [viewMode, setViewMode] = useState('editor')
   const [realFrameUrl, setRealFrameUrl] = useState(null), [renderingFrame, setRenderingFrame] = useState(false), [savingConfig, setSavingConfig] = useState(false)
-  const previewRef = useRef(null)
+  const previewRef = useRef(null), [speechScriptText, setSpeechScriptText] = useState('')
+  const [globalWordIdx, setGlobalWordIdx] = useState(0), [isSubtitlesPlaying, setIsSubtitlesPlaying] = useState(true)
 
-  const [speechScriptText, setSpeechScriptText] = useState('')
   useEffect(() => {
     fetch('/api/custom-fonts').then(r => r.json()).then(data => {
       if (data?.success && Array.isArray(data.fonts)) {
@@ -47,12 +47,9 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
     }
   }, [pkg?.folderName])
 
-  const [globalWordIdx, setGlobalWordIdx] = useState(0)
-  const [isSubtitlesPlaying, setIsSubtitlesPlaying] = useState(true)
-
   useEffect(() => {
     if (!isSubtitlesPlaying) return
-    const timer = setInterval(() => { setGlobalWordIdx(prev => prev + 1) }, 550)
+    const timer = setInterval(() => setGlobalWordIdx(prev => prev + 1), 550)
     return () => clearInterval(timer)
   }, [isSubtitlesPlaying])
 
@@ -61,9 +58,7 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
   const rawBg = pkg?.folderName ? `/news-static/${pkg.folderName}/thumbnail/raw_background.jpg` : null
   const thumbCover = (pkg?.hasThumbnail || pkg?.thumbnailUrl) && pkg?.folderName ? `/news-static/${pkg.folderName}/thumbnail/thumbnail.jpg` : null
   const photoList = cleanPhotos.length > 0 ? cleanPhotos : (rawBg ? [rawBg] : (thumbCover ? [thumbCover] : []))
-  const currentBgSrc = selectedPhoto
-    ? (selectedPhoto.startsWith('/news-static/') ? selectedPhoto : `/news-static/${pkg?.folderName}/${selectedPhoto}`)
-    : (photoList[0] || previewPhotoUrl || thumbCover || '')
+  const currentBgSrc = selectedPhoto ? (selectedPhoto.startsWith('/news-static/') ? selectedPhoto : `/news-static/${pkg?.folderName}/${selectedPhoto}`) : (photoList[0] || previewPhotoUrl || thumbCover || '')
 
   const FONT_SCALE_CSS = 0.812
   const activeColorHex = TEXT_COLORS.find(c => c.id === fontColor)?.hex || '#FFE600', activeBoxHex = BOX_COLORS.find(c => c.id === boxColor)?.hex || '#000000'
@@ -97,13 +92,9 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
     const bCfg = lineBadges || {}
     const isBadgesOn = bCfg.enabled || (boxEnabled && bCfg.enabled !== false)
     let lineAngle = 0
-    if (Array.isArray(bCfg.lineTilts) && bCfg.lineTilts[idx] !== undefined && Number(bCfg.lineTilts[idx]) !== 0) {
-      lineAngle = Number(bCfg.lineTilts[idx]) || 0
-    } else if (bCfg.tiltMode === 'zigzag') {
-      lineAngle = [-2.0, 1.8, -1.6, 2.0][idx % 4]
-    } else if (bCfg.tiltMode === 'custom' && Array.isArray(bCfg.lineTilts) && bCfg.lineTilts[idx] !== undefined) {
-      lineAngle = Number(bCfg.lineTilts[idx]) || 0
-    }
+    if (Array.isArray(bCfg.lineTilts) && bCfg.lineTilts[idx] !== undefined && Number(bCfg.lineTilts[idx]) !== 0) lineAngle = Number(bCfg.lineTilts[idx]) || 0
+    else if (bCfg.tiltMode === 'zigzag') lineAngle = [-2.0, 1.8, -1.6, 2.0][idx % 4]
+    else if (bCfg.tiltMode === 'custom' && Array.isArray(bCfg.lineTilts) && bCfg.lineTilts[idx] !== undefined) lineAngle = Number(bCfg.lineTilts[idx]) || 0
     const outerStyle = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 'max-content', margin: '2px 0', transform: lineAngle !== 0 ? `rotate(${lineAngle}deg)` : undefined, transformOrigin: 'center center' }
     if (!isBadgesOn) return { outerStyle, innerStyle: {} }
     const isLineOn = Array.isArray(bCfg.linesEnabled) ? bCfg.linesEnabled[idx] !== false : true
@@ -115,7 +106,7 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
     const hex = rawCol.startsWith('#') ? rawCol : (BOX_COLORS.find(c => c.id === rawCol)?.hex || '#000000')
     const r = parseInt(hex.slice(1, 3) || '0', 16) || 0, g = parseInt(hex.slice(3, 5) || '0', 16) || 0, b = parseInt(hex.slice(5, 7) || '0', 16) || 0
     const bg = `rgba(${r}, ${g}, ${b}, ${op})`
-    const defPadX = sType === 'slanted' ? 56 : (sType === 'torn' ? 56 : (sType === 'tape' ? 48 : 40)), defPadY = sType === 'torn' ? 14 : 10
+    const defPadX = sType === 'slanted' || sType === 'torn' ? 56 : (sType === 'tape' ? 48 : 40), defPadY = sType === 'torn' ? 14 : 10
     const rawPadX = (Array.isArray(bCfg.linePadX) && bCfg.linePadX[idx] !== undefined) ? Number(bCfg.linePadX[idx]) : (bCfg.padX !== undefined ? Number(bCfg.padX) : defPadX)
     const rawPadY = (Array.isArray(bCfg.linePadY) && bCfg.linePadY[idx] !== undefined) ? Number(bCfg.linePadY[idx]) : (bCfg.padY !== undefined ? Number(bCfg.padY) : defPadY)
     const cssPadX = Math.max(2, Math.round((rawPadX / 1080) * 240)), cssPadY = Math.max(1, Math.round((rawPadY / 1080) * 240))
@@ -125,9 +116,9 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
 
     const innerStyle = { background: bg, padding: `${cssPadY}px ${cssPadX}px`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', width: 'max-content' }
     if (sType === 'solid') innerStyle.borderRadius = '4px'
-    else if (sType === 'slanted') { innerStyle.clipPath = 'polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%)'; }
-    else if (sType === 'dashed') { innerStyle.borderRadius = '4px'; innerStyle.border = '1.5px dashed rgba(255,255,255,0.85)'; }
-    else if (sType === 'tape') { innerStyle.borderRadius = '2px'; innerStyle.borderLeft = '3px solid rgba(255,255,255,0.45)'; innerStyle.borderRight = '3px solid rgba(255,255,255,0.45)'; }
+    else if (sType === 'slanted') { innerStyle.clipPath = 'polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%)' }
+    else if (sType === 'dashed') { innerStyle.borderRadius = '4px'; innerStyle.border = '1.5px dashed rgba(255,255,255,0.85)' }
+    else if (sType === 'tape') { innerStyle.borderRadius = '2px'; innerStyle.borderLeft = '3px solid rgba(255,255,255,0.45)'; innerStyle.borderRight = '3px solid rgba(255,255,255,0.45)' }
     else if (sType === 'torn') {
       innerStyle.clipPath = (idx % 2 === 0) ? 'polygon(0% 2px, 6% 0px, 12% 3px, 19% 1px, 25% 4px, 32% 1px, 39% 4px, 46% 0px, 53% 4px, 60% 1px, 67% 4px, 74% 1px, 81% 4px, 88% 1px, 94% 3px, 100% 0px, calc(100% - 6px) 24%, calc(100% - 1px) 48%, calc(100% - 7px) 72%, 100% 100%, 94% calc(100% - 3px), 88% calc(100% - 1px), 81% calc(100% - 4px), 74% calc(100% - 1px), 67% calc(100% - 3px), 60% calc(100% - 0px), 53% calc(100% - 4px), 46% calc(100% - 1px), 39% calc(100% - 3px), 32% calc(100% - 1px), 25% calc(100% - 4px), 19% calc(100% - 1px), 12% calc(100% - 3px), 6% calc(100% - 1px), 0% calc(100% - 2px), 6px 75%, 1px 50%, 7px 25%, 0% 2px)' : 'polygon(0% 3px, 6% 1px, 13% 4px, 20% 0px, 27% 3px, 34% 1px, 41% 4px, 48% 1px, 55% 4px, 62% 0px, 69% 4px, 76% 1px, 83% 3px, 90% 1px, 96% 4px, 100% 1px, calc(100% - 7px) 28%, calc(100% - 1px) 52%, calc(100% - 6px) 76%, 100% 98%, 95% calc(100% - 3px), 88% calc(100% - 1px), 81% calc(100% - 4px), 74% calc(100% - 1px), 67% calc(100% - 4px), 60% calc(100% - 1px), 53% calc(100% - 3px), 46% calc(100% - 0px), 39% calc(100% - 4px), 32% calc(100% - 1px), 25% calc(100% - 3px), 18% calc(100% - 0px), 12% calc(100% - 3px), 6% calc(100% - 1px), 0% calc(100% - 3px), 7px 72%, 1px 48%, 6px 24%, 0% 3px)'
       innerStyle.background = `linear-gradient(135deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.02) 40%, rgba(0,0,0,0.18) 75%, rgba(0,0,0,0.35) 100%), ${bg}`
@@ -172,8 +163,7 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
     if (!previewRef.current) return
     const rect = previewRef.current.getBoundingClientRect()
     const clientY = e.touches ? e.touches[0].clientY : e.clientY
-    const ratio = Math.max(0, Math.min((clientY - rect.top) / rect.height, 1))
-    setPosY(Math.round(ratio * 1920))
+    setPosY(Math.round(Math.max(0, Math.min((clientY - rect.top) / rect.height, 1)) * 1920))
   }
 
   const handlePreviewMouseDown = (e) => {
@@ -195,9 +185,7 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
     <div className="modal-overlay" onClick={onClose} style={{ zIndex: 1200 }}>
       <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '980px', width: '95vw', maxHeight: '92vh', display: 'flex', flexDirection: 'column', background: '#090d16', border: '1px solid #27272a' }}>
         <div className="modal-header" style={{ padding: '0.85rem 1.25rem', borderBottom: '1px solid #1e293b' }}>
-          <h2 style={{ fontSize: '1.15rem', color: '#f43f5e', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            📱 Студия Shorts: Переключение Заголовок / Субтитры (9:16)
-          </h2>
+          <h2 style={{ fontSize: '1.15rem', color: '#f43f5e', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>📱 Студия Shorts: Переключение Заголовок / Субтитры (9:16)</h2>
           <button className="close-btn" onClick={onClose}>✕</button>
         </div>
 
@@ -221,7 +209,6 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
                 <input type="range" min="10" max="60" step="1" value={duration} onChange={e => { setDuration(Number(e.target.value)); setViewMode('editor') }} style={{ width: '100%', accentColor: '#f43f5e', marginTop: '0.15rem', cursor: 'pointer' }} />
               </div>
 
-              {/* 🔀 ПЕРЕКЛЮЧАТЕЛЬ РЕЖИМОВ: СУБТИТРЫ РЕЧИ / ЗАГОЛОВОК */}
               <div style={{ display: 'flex', gap: '0.35rem', background: '#0b1120', padding: '4px', borderRadius: '8px', border: '1px solid #334155' }}>
                 <button type="button" onClick={() => setActiveTab('speech')} style={{ flex: 1, background: activeTab === 'speech' ? '#0284c7' : 'transparent', color: '#fff', border: 'none', borderRadius: '6px', padding: '0.45rem 0.5rem', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}>
                   🎬 Субтитры {speechSubtitlesEnabled ? '🟢' : '⚪'}
@@ -231,36 +218,26 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
                 </button>
               </div>
 
-              {/* Вкладка 1: Субтитры речи */}
               {activeTab === 'speech' && (
                 <ShortsSpeechSubtitlesControls
-                  enabled={speechSubtitlesEnabled} setEnabled={setSpeechSubtitlesEnabled}
-                  font={speechFont} setFont={setSpeechFont}
-                  color={speechColor} setColor={setSpeechColor}
-                  inactiveColor={speechInactiveColor} setInactiveColor={setSpeechInactiveColor}
+                  enabled={speechSubtitlesEnabled} setEnabled={setSpeechSubtitlesEnabled} font={speechFont} setFont={setSpeechFont}
+                  color={speechColor} setColor={setSpeechColor} inactiveColor={speechInactiveColor} setInactiveColor={setSpeechInactiveColor}
                   fontSize={speechFontSize} setFontSize={setSpeechFontSize} posY={speechPosY} setPosY={setSpeechPosY}
-                  boxMode={speechBoxMode} setBoxMode={setSpeechBoxMode}
-                  boxColor={speechBoxColor} setBoxColor={setSpeechBoxColor}
-                  boxOpacity={speechBoxOpacity} setBoxOpacity={setSpeechBoxOpacity}
-                  pacing={speechPacing} setPacing={setSpeechPacing}
+                  boxMode={speechBoxMode} setBoxMode={setSpeechBoxMode} boxColor={speechBoxColor} setBoxColor={setSpeechBoxColor}
+                  boxOpacity={speechBoxOpacity} setBoxOpacity={setSpeechBoxOpacity} pacing={speechPacing} setPacing={setSpeechPacing}
                   onDirty={() => setViewMode('editor')}
                 />
               )}
 
-              {/* Вкладка 2: Заголовок */}
               {activeTab === 'title' && (
                 <ShortsTitleControls
-                  showHookTitle={showHookTitle} setShowHookTitle={setShowHookTitle}
-                  text={text} setText={setText}
-                  font={font} setFont={setFont} fontSize={fontSize} setFontSize={setFontSize}
-                  fontColor={fontColor} setFontColor={setFontColor}
+                  showHookTitle={showHookTitle} setShowHookTitle={setShowHookTitle} text={text} setText={setText}
+                  font={font} setFont={setFont} fontSize={fontSize} setFontSize={setFontSize} fontColor={fontColor} setFontColor={setFontColor}
                   strokeWidth={strokeWidth} setStrokeWidth={setStrokeWidth} strokeColor={strokeColor} setStrokeColor={setStrokeColor}
                   shadowDistance={shadowDistance} setShadowDistance={setShadowDistance} shadowColor={shadowColor} setShadowColor={setShadowColor}
                   wordColors={wordColors} setWordColors={setWordColors} wordFontSizes={wordFontSizes} setWordFontSizes={setWordFontSizes}
-                  posY={posY} setPosY={setPosY} lineBadges={lineBadges} setLineBadges={setLineBadges}
-                  boxEnabled={boxEnabled} setBoxOpacity={setBoxOpacity} setBoxEnabled={setBoxEnabled}
-                  wordsList={wordsList} displayText={displayText}
-                  onDirty={() => setViewMode('editor')}
+                  posY={posY} setPosY={setPosY} lineBadges={lineBadges} setLineBadges={setLineBadges} boxEnabled={boxEnabled} setBoxOpacity={setBoxOpacity} setBoxEnabled={setBoxEnabled}
+                  wordsList={wordsList} displayText={displayText} onDirty={() => setViewMode('editor')}
                 />
               )}
             </div>
@@ -293,9 +270,7 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
                       <div style={{
                         position: 'absolute', top: `${(posY / 1920) * 100}%`, left: '50%', transform: 'translateX(-50%)',
                         width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', textAlign: 'center',
-                        zIndex: 10, pointerEvents: 'none',
-                        opacity: activeTab === 'title' ? 1 : 0.28,
-                        transition: 'opacity 0.25s ease',
+                        zIndex: 10, pointerEvents: 'none', opacity: activeTab === 'title' ? 1 : 0.28, transition: 'opacity 0.25s ease',
                       }}>
                         {(() => {
                           let wordGlobalIdx = 0
@@ -328,16 +303,12 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
                       <div style={{
                         position: 'absolute', top: `${(speechPosY / 1920) * 100}%`, left: '50%', transform: 'translate(-50%, -50%)',
                         width: '94%', textAlign: 'center', zIndex: 11, pointerEvents: 'none',
-                        opacity: activeTab === 'speech' ? 1 : 0.28,
-                        transition: 'opacity 0.25s ease',
+                        opacity: activeTab === 'speech' ? 1 : 0.28, transition: 'opacity 0.25s ease',
                       }}>
                         {(() => {
                           const speechBoxHex = BOX_COLORS.find(c => c.id === speechBoxColor)?.hex || (typeof speechBoxColor === 'string' && speechBoxColor.startsWith('#') ? speechBoxColor : '#000000')
-                          const sbR = parseInt(speechBoxHex.slice(1, 3) || '0', 16) || 0
-                          const sbG = parseInt(speechBoxHex.slice(3, 5) || '0', 16) || 0
-                          const sbB = parseInt(speechBoxHex.slice(5, 7) || '0', 16) || 0
-                          const sbAlpha = ((Number(speechBoxOpacity) ?? 88) / 100).toFixed(2)
-                          const speechBgRgba = `rgba(${sbR}, ${sbG}, ${sbB}, ${sbAlpha})`
+                          const sbR = parseInt(speechBoxHex.slice(1, 3) || '0', 16) || 0, sbG = parseInt(speechBoxHex.slice(3, 5) || '0', 16) || 0, sbB = parseInt(speechBoxHex.slice(5, 7) || '0', 16) || 0
+                          const sbAlpha = ((Number(speechBoxOpacity) ?? 88) / 100).toFixed(2), speechBgRgba = `rgba(${sbR}, ${sbG}, ${sbB}, ${sbAlpha})`
                           const speechRadius = speechBoxMode === 'solid' ? '4px' : (speechBoxMode === 'pill' ? '20px' : '8px')
                           const speechBorder = speechBoxMode === 'glow' ? `1.5px solid ${TEXT_COLORS.find(c => c.id === speechColor)?.hex || '#FFE600'}` : 'none'
                           const speechShadow = speechBoxMode === 'glow' ? `0 0 12px ${TEXT_COLORS.find(c => c.id === speechColor)?.hex || '#FFE600'}` : (speechBoxMode === 'none' ? 'none' : '0 4px 15px rgba(0,0,0,0.7)')
@@ -347,9 +318,7 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
                               fontFamily: activeSpeechFontFamily, fontSize: `${((speechFontSize * FONT_SCALE_CSS) / 1080) * 240}px`, fontWeight: 900,
                               textTransform: 'uppercase', lineHeight: 1.1, color: '#FFFFFF', WebkitTextStroke: '1.8px #000',
                               textShadow: '0 3px 8px rgba(0,0,0,0.95), 2px 2px 0 #000',
-                              background: speechBoxMode === 'none' ? 'transparent' : speechBgRgba,
-                              border: speechBorder,
-                              boxShadow: speechShadow,
+                              background: speechBoxMode === 'none' ? 'transparent' : speechBgRgba, border: speechBorder, boxShadow: speechShadow,
                               padding: speechBoxMode === 'none' ? '0' : '4px 14px', borderRadius: speechRadius, display: 'inline-block',
                             }}>
                               {(() => {
@@ -363,12 +332,9 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
 
                                 return waveWords.map((w, idx) => (
                                   <span key={idx} style={{
-                                    color: (idx === activeInWave)
-                                      ? (TEXT_COLORS.find(c => c.id === speechColor)?.hex || '#FFE600')
-                                      : (TEXT_COLORS.find(c => c.id === speechInactiveColor)?.hex || '#FFFFFF'),
+                                    color: (idx === activeInWave) ? (TEXT_COLORS.find(c => c.id === speechColor)?.hex || '#FFE600') : (TEXT_COLORS.find(c => c.id === speechInactiveColor)?.hex || '#FFFFFF'),
                                     transform: (idx === activeInWave) ? 'scale(1.15)' : 'scale(1)',
-                                    display: 'inline-block', margin: idx > 0 ? '0 0 0 0.52em' : '0',
-                                    transition: 'all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                                    display: 'inline-block', margin: idx > 0 ? '0 0 0 0.52em' : '0', transition: 'all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1)',
                                   }}>
                                     {w}
                                   </span>
@@ -388,40 +354,12 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
               {viewMode === 'editor' && speechSubtitlesEnabled && (
                 <div style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
-                  background: '#0f172a', padding: '0.35rem 0.65rem', borderRadius: '8px', border: '1px solid #1e293b', width: '100%', maxWidth: '240px'
+                  background: '#0f172a', padding: '0.35rem 0.65rem', borderRadius: '8px', border: '1px solid #1e293b', width: '100%', maxWidth: '240px',
                 }}>
-                  <button
-                    type="button"
-                    onClick={() => { setGlobalWordIdx(0); setIsSubtitlesPlaying(true) }}
-                    style={{ background: '#1e293b', color: '#38bdf8', border: '1px solid #334155', borderRadius: '5px', padding: '0.25rem 0.45rem', fontSize: '0.72rem', cursor: 'pointer', fontWeight: 700 }}
-                    title="Начать субтитры с самого начала"
-                  >
-                    ⏮️ Сначала
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsSubtitlesPlaying(prev => !prev)}
-                    style={{ background: isSubtitlesPlaying ? '#f43f5e' : '#10b981', color: '#fff', border: 'none', borderRadius: '5px', padding: '0.25rem 0.5rem', fontSize: '0.72rem', cursor: 'pointer', fontWeight: 700 }}
-                    title={isSubtitlesPlaying ? 'Поставить на паузу' : 'Возобновить'}
-                  >
-                    {isSubtitlesPlaying ? '⏸️' : '▶️'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setIsSubtitlesPlaying(false); setGlobalWordIdx(prev => Math.max(0, prev - 1)) }}
-                    style={{ background: '#1e293b', color: '#fff', border: '1px solid #334155', borderRadius: '5px', padding: '0.25rem 0.35rem', fontSize: '0.72rem', cursor: 'pointer' }}
-                    title="Предыдущее слово"
-                  >
-                    ⏪
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setIsSubtitlesPlaying(false); setGlobalWordIdx(prev => prev + 1) }}
-                    style={{ background: '#1e293b', color: '#fff', border: '1px solid #334155', borderRadius: '5px', padding: '0.25rem 0.35rem', fontSize: '0.72rem', cursor: 'pointer' }}
-                    title="Следующее слово"
-                  >
-                    ⏩
-                  </button>
+                  <button type="button" onClick={() => { setGlobalWordIdx(0); setIsSubtitlesPlaying(true) }} style={{ background: '#1e293b', color: '#38bdf8', border: '1px solid #334155', borderRadius: '5px', padding: '0.25rem 0.45rem', fontSize: '0.72rem', cursor: 'pointer', fontWeight: 700 }} title="Начать субтитры с самого начала">⏮️ Сначала</button>
+                  <button type="button" onClick={() => setIsSubtitlesPlaying(prev => !prev)} style={{ background: isSubtitlesPlaying ? '#f43f5e' : '#10b981', color: '#fff', border: 'none', borderRadius: '5px', padding: '0.25rem 0.5rem', fontSize: '0.72rem', cursor: 'pointer', fontWeight: 700 }} title={isSubtitlesPlaying ? 'Поставить на паузу' : 'Возобновить'}>{isSubtitlesPlaying ? '⏸️' : '▶️'}</button>
+                  <button type="button" onClick={() => { setIsSubtitlesPlaying(false); setGlobalWordIdx(prev => Math.max(0, prev - 1)) }} style={{ background: '#1e293b', color: '#fff', border: '1px solid #334155', borderRadius: '5px', padding: '0.25rem 0.35rem', fontSize: '0.72rem', cursor: 'pointer' }} title="Предыдущее слово">⏪</button>
+                  <button type="button" onClick={() => { setIsSubtitlesPlaying(false); setGlobalWordIdx(prev => prev + 1) }} style={{ background: '#1e293b', color: '#fff', border: '1px solid #334155', borderRadius: '5px', padding: '0.25rem 0.35rem', fontSize: '0.72rem', cursor: 'pointer' }} title="Следующее слово">⏩</button>
                 </div>
               )}
             </div>
