@@ -42,7 +42,7 @@ const handleSavePackage = async (req, res) => {
     let rawOriginal = (req.body.summary || req.body.original_news || req.body.originalNews || req.body.sourceText || req.body.originalText || req.body.telegramText || '').trim();
 
     // Auto-scrape full text from Web URL if text is short or incomplete
-    if (rawOriginal.length < 150 && articleUrl && /^https?:\/\//i.test(articleUrl)) {
+    if (rawOriginal.length < 500 && articleUrl && /^https?:\/\//i.test(articleUrl)) {
       try {
         const scraped = await scrapeArticleText(articleUrl);
         if (scraped && scraped.length > rawOriginal.length) rawOriginal = scraped;
