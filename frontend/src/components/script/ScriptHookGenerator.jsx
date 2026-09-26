@@ -6,16 +6,18 @@ export default function ScriptHookGenerator({ title, summary, currentText, style
   const [loading, setLoading] = useState(false)
   const [hooks, setHooks] = useState([])
   const [hookTone, setHookTone] = useState(tone || (style === 'analytics' ? 'analytics' : 'grotesque'))
+  const [requiredWords, setRequiredWords] = useState('')
 
   useEffect(() => {
     if (tone) setHookTone(tone)
     else if (style === 'analytics') setHookTone('analytics')
   }, [tone, style])
 
-  const fetchHooks = async (overrideTone = hookTone) => {
+  const fetchHooks = async (overrideTone = hookTone, overrideWords = requiredWords) => {
     setLoading(true)
     const isAna = overrideTone === 'analytics' || style === 'analytics'
-    const toastId = toast.loading(`⚡ Создание 5 ${isAna ? 'аналитических' : 'острых'} 3-секундных хуков для YouTube...`)
+    const wordsParam = (overrideWords !== undefined ? overrideWords : requiredWords).trim()
+    const toastId = toast.loading(`⚡ Создание 5 ${isAna ? 'аналитических' : 'острых'} 3-секундных хуков${wordsParam ? ` («${wordsParam}»)` : ''}...`)
     try {
       const res = await fetch('/api/generate-hooks', {
         method: 'POST',
@@ -26,6 +28,7 @@ export default function ScriptHookGenerator({ title, summary, currentText, style
           text: currentText ? currentText.slice(0, 1000) : '',
           style,
           tone: overrideTone,
+          requiredWords: wordsParam,
         }),
       })
       const data = await res.json()
@@ -97,6 +100,37 @@ export default function ScriptHookGenerator({ title, summary, currentText, style
           </span>
         </button>
 
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flex: 1, minWidth: '220px', maxWidth: '420px' }}>
+          <input
+            type="text"
+            value={requiredWords}
+            onChange={e => setRequiredWords(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') fetchHooks(hookTone, requiredWords) }}
+            placeholder="🔤 Ключевые слова в хуке (бункер, дрон)..."
+            style={{
+              flex: 1,
+              background: '#0f172a',
+              border: requiredWords ? '1.5px solid #f59e0b' : '1px solid #334155',
+              color: '#fff',
+              borderRadius: '6px',
+              padding: '0.35rem 0.6rem',
+              fontSize: '0.76rem',
+              outline: 'none',
+            }}
+            title="Введите обязательные слова/фразы, которые должны появиться в хуках"
+          />
+          {requiredWords && (
+            <button
+              type="button"
+              onClick={() => { setRequiredWords(''); fetchHooks(hookTone, ''); }}
+              style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '0.8rem', padding: '0 4px' }}
+              title="Очистить"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
         {hooks.length > 0 && isOpen && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', background: '#0f172a', borderRadius: '6px', padding: '2px', border: '1px solid #334155' }}>
@@ -139,6 +173,7 @@ export default function ScriptHookGenerator({ title, summary, currentText, style
               disabled={loading}
               onClick={() => fetchHooks()}
               style={{ background: '#1e293b', fontSize: '0.75rem', padding: '0.3rem 0.6rem', border: '1px solid #334155' }}
+              title="Перегенерировать хуки с текущими ключевыми словами"
             >
               🔄 Обновить
             </button>
@@ -148,8 +183,15 @@ export default function ScriptHookGenerator({ title, summary, currentText, style
 
       {isOpen && hooks.length > 0 && (
         <div style={{ marginTop: '0.65rem', background: '#0b1120', border: '1px solid #1e293b', borderRadius: '8px', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-          <div style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 600 }}>
-            🎯 Выберите лучший хук для первых 3 секунд видео (нажмите для вставки в текст):
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 600 }}>
+              🎯 Выберите лучший хук для первых 3 секунд видео:
+            </div>
+            {requiredWords && (
+              <span style={{ fontSize: '0.7rem', color: '#f59e0b', fontWeight: 700 }}>
+                🔤 Ключевые слова: «{requiredWords}»
+              </span>
+            )}
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '240px', overflowY: 'auto' }}>

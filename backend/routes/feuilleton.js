@@ -268,9 +268,10 @@ router.post('/api/generate-feuilleton', async (req, res) => {
   }
 });
 
-export async function generateYouTubeHooks(newsTitle, newsSummary = '', scriptText = '', styleKey = 'golubuzki', tone = 'grotesque') {
+export async function generateYouTubeHooks(newsTitle, newsSummary = '', scriptText = '', styleKey = 'golubuzki', tone = 'grotesque', requiredWords = '') {
   const context = scriptText && scriptText.trim() ? scriptText.slice(0, 1200) : (newsSummary || newsTitle);
   const isAnalytics = tone === 'analytics' || styleKey === 'analytics';
+  const reqWordsText = requiredWords && requiredWords.trim() ? `\nОБЯЗАТЕЛЬНЫЕ КЛЮЧЕВЫЕ СЛОВА: "${requiredWords.trim()}". Каждый вариант хука ОБЯЗАТЕЛЬНО должен органично включать эти слова!` : '';
 
   const sysInst = isAnalytics
     ? `Ты — главный редактор аналитического YouTube-канала. Создай ровно 5 СИЛЬНЫХ, ИНТРИГУЮЩИХ 3-секундных хуков (СТРОГО 1 предложение, 8–15 слов).
@@ -294,7 +295,7 @@ export async function generateYouTubeHooks(newsTitle, newsSummary = '', scriptTe
   { "id": "punch", "type": "🎯 Точный панчлайн", "hook": "Остроумный панч в нерв темы..." }
 ]`;
 
-  const userInst = `ТЕМА: ${newsTitle}\nКОНТЕКСТ:\n"""\n${context}\n"""\n\nСоздай 5 хуков в формате JSON:`;
+  const userInst = `ТЕМА: ${newsTitle}\nКОНТЕКСТ:\n"""\n${context}\n"""${reqWordsText}\n\nСоздай 5 хуков в формате JSON:`;
 
   try {
     let raw = await callGeminiDirect(sysInst, userInst, 2500);
@@ -328,28 +329,29 @@ export async function generateYouTubeHooks(newsTitle, newsSummary = '', scriptTe
   } catch (e) {}
 
   const shortTitle = (newsTitle || 'главной темы').replace(/["'«»`]/g, '').slice(0, 45);
+  const extraWord = requiredWords && requiredWords.trim() ? ` (${requiredWords.trim()})` : '';
   return isAnalytics ? [
-    { id: 'intrigue', type: '🎯 Скрытая суть', hook: `За внешним шумом вокруг «${shortTitle}» скрывается ключевой сдвиг, меняющий правила игры.` },
-    { id: 'paradox', type: '💥 Реальный парадокс', hook: `Официальные заявления о «${shortTitle}» полностью противоречат реальной картине на земле.` },
-    { id: 'stakes', type: '🧠 Ставки и цена', hook: `Цена решений вокруг сюжета с «${shortTitle}» оказалась несоизмеримо выше первоначальных расчетов.` },
-    { id: 'turning_point', type: '⚡ Точка невозврата', hook: `События вокруг «${shortTitle}» запустили цепную реакцию, которую уже невозможно остановить.` },
-    { id: 'fact', type: '🔍 Неудобный факт', hook: `Главная деталь в истории с «${shortTitle}», которую тщательно обходят кремлевские спикеры.` },
+    { id: 'intrigue', type: '🎯 Скрытая суть', hook: `За внешним шумом вокруг «${shortTitle}»${extraWord} скрывается ключевой сдвиг, меняющий правила игры.` },
+    { id: 'paradox', type: '💥 Реальный парадокс', hook: `Официальные заявления о «${shortTitle}»${extraWord} полностью противоречат реальной картине на земле.` },
+    { id: 'stakes', type: '🧠 Ставки и цена', hook: `Цена решений вокруг сюжета с «${shortTitle}»${extraWord} оказалась несоизмеримо выше первоначальных расчетов.` },
+    { id: 'turning_point', type: '⚡ Точка невозврата', hook: `События вокруг «${shortTitle}»${extraWord} запустили цепную реакцию, которую уже невозможно остановить.` },
+    { id: 'fact', type: '🔍 Неудобный факт', hook: `Главная деталь в истории с «${shortTitle}»${extraWord}, которую тщательно обходят кремлевские спикеры.` },
   ] : [
-    { id: 'paradox', type: '💥 Парадокс реальности', hook: `Грандиозная спецоперация вокруг «${shortTitle}» разбилась о суровую реальность и законы логики.` },
-    { id: 'satire', type: '🎭 Едкая ирония', hook: `Очередной кремлевский «хитрый план» с «${shortTitle}» вновь обернулся публичным конфузом.` },
-    { id: 'scene', type: '🎬 Меткий образ', hook: `Пока пропаганда празднует величие, ситуация вокруг «${shortTitle}» стремительно выходит из-под контроля.` },
-    { id: 'diagnosis', type: '⚡ Политический диагноз', hook: `История с «${shortTitle}» наглядно обнажает фатальную системную ошибку всей властной вертикали.` },
-    { id: 'punch', type: '🎯 Точный панчлайн', hook: `Попытка спасти лицо в сюжете с «${shortTitle}» лишь быстрее приближает закономерный финал.` },
+    { id: 'paradox', type: '💥 Парадокс реальности', hook: `Грандиозная спецоперация вокруг «${shortTitle}»${extraWord} разбилась о суровую реальность и законы логики.` },
+    { id: 'satire', type: '🎭 Едкая ирония', hook: `Очередной кремлевский «хитрый план» с «${shortTitle}»${extraWord} вновь обернулся публичным конфузом.` },
+    { id: 'scene', type: '🎬 Меткий образ', hook: `Пока пропаганда празднует величие, ситуация вокруг «${shortTitle}»${extraWord} стремительно выходит из-под контроля.` },
+    { id: 'diagnosis', type: '⚡ Политический диагноз', hook: `История с «${shortTitle}»${extraWord} наглядно обнажает фатальную системную ошибку всей властной вертикали.` },
+    { id: 'punch', type: '🎯 Точный панчлайн', hook: `Попытка спасти лицо в сюжете с «${shortTitle}»${extraWord} лишь быстрее приближает закономерный финал.` },
   ];
 }
 
 router.post('/api/generate-hooks', async (req, res) => {
   try {
-    const { title = '', summary = '', text = '', style = 'golubuzki', tone = 'grotesque' } = req.body;
+    const { title = '', summary = '', text = '', style = 'golubuzki', tone = 'grotesque', requiredWords = '' } = req.body;
     if (!title && !text) {
       return res.status(400).json({ success: false, error: 'Title or text required' });
     }
-    const hooks = await generateYouTubeHooks(title, summary, text, style, tone);
+    const hooks = await generateYouTubeHooks(title, summary, text, style, tone, requiredWords);
     res.json({ success: true, hooks });
   } catch (err) {
     console.error('Hooks generation error:', err.message);
