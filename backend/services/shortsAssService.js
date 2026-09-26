@@ -25,17 +25,18 @@ export const toShortsAssStyleColor = (col, alpha = '00') => {
 export function estimateCharWidth(ch, font, sz) {
   const f = (font || '').toLowerCase();
   let fontScale = 1.0;
-  if (f.includes('buran')) fontScale = 0.82;
+  if (f.includes('impact')) fontScale = 0.72;
+  else if (f.includes('buran')) fontScale = 0.82;
   else if (f.includes('russo')) fontScale = 0.95;
   else if (f.includes('unbounded') || f.includes('arial')) fontScale = 1.05;
   else if (f.includes('rubik') || f.includes('delagothic') || f.includes('seymour')) fontScale = 1.15;
 
-  if ('I1!|:;.,\'"il'.includes(ch)) return sz * 0.25 * fontScale;
-  if (ch === ' ') return sz * 0.28 * fontScale;
-  if ('Jtfjr-()[]'.includes(ch)) return sz * 0.36 * fontScale;
-  if ('ГТLEFZ7'.includes(ch)) return sz * 0.48 * fontScale;
-  if ('ЖМФШЩЫЮMW@#%&—'.includes(ch)) return sz * 0.82 * fontScale;
-  return sz * 0.58 * fontScale;
+  if ('I1!|:;.,\'"il'.includes(ch)) return sz * 0.22 * fontScale;
+  if (ch === ' ') return sz * 0.25 * fontScale;
+  if ('Jtfjr-()[]'.includes(ch)) return sz * 0.32 * fontScale;
+  if ('ГТLEFZ7'.includes(ch)) return sz * 0.42 * fontScale;
+  if ('ЖМФШЩЫЮMW@#%&—'.includes(ch)) return sz * 0.72 * fontScale;
+  return sz * 0.50 * fontScale;
 }
 
 export function getBadgeVector(style, w, h, seed = 0) {
@@ -107,7 +108,8 @@ export function generateSpeechDialogueEvents(opts = {}) {
   }
 
   const isSingle = speechPacing === 'single', isTwoWords = speechPacing === 'blitz' || speechPacing === 'two';
-  const maxWordsPerWave = isSingle ? 1 : (isTwoWords ? 2 : 4), maxLenPerWave = isSingle ? 14 : (isTwoWords ? 24 : 38);
+  const maxWordsPerWave = isSingle ? 1 : (isTwoWords ? 2 : 4);
+  const maxLenPerWave = isSingle ? 14 : (isTwoWords ? 24 : 36);
 
   const waveChunks = [];
   let curChunk = [], curLen = 0;
@@ -121,10 +123,19 @@ export function generateSpeechDialogueEvents(opts = {}) {
   if (curChunk.length > 0) waveChunks.push(curChunk);
   if (waveChunks.length === 0) return [];
 
-  const bW = Number(speechStrokeWidth) >= 0 ? Number(speechStrokeWidth) : 12, sD = Number(speechShadowDistance) >= 0 ? Number(speechShadowDistance) : 6;
+  const bW = Number(speechStrokeWidth) >= 0 ? Number(speechStrokeWidth) : 8, sD = Number(speechShadowDistance) >= 0 ? Number(speechShadowDistance) : 4;
   const strokeTag = toShortsAssTagColor(speechStrokeColor || 'black'), shadowTag = toShortsAssTagColor(speechShadowColor || 'black');
   const highlightTag = toShortsAssTagColor(speechColor || 'yellow'), inactiveTag = toShortsAssTagColor(speechInactiveColor || 'white');
   const dialogues = [];
+
+  const calcLineW = (words, sz) => {
+    let w = 0;
+    words.forEach((tw, idx) => {
+      for (const c of tw.word) w += estimateCharWidth(c, speechFont, sz);
+      if (idx > 0) w += sz * 0.26;
+    });
+    return w;
+  };
 
   waveChunks.forEach((chunk, chunkIdx) => {
     const nextChunk = waveChunks[chunkIdx + 1];
@@ -133,25 +144,25 @@ export function generateSpeechDialogueEvents(opts = {}) {
     const chunkEnd = Math.min(maxEnd, Math.max(chunkStart + 0.3, lastWordEnd + 0.2));
     const chunkStartTime = formatAssTime(chunkStart), chunkEndTime = formatAssTime(chunkEnd);
 
-    let baseFontSize = Number(speechFontSize) || 115, chunkTextW = 0;
-    chunk.forEach((tw, idx) => {
-      for (const c of tw.word) chunkTextW += estimateCharWidth(c, speechFont, baseFontSize);
-      if (idx > 0) chunkTextW += baseFontSize * 0.30;
-    });
+    let baseFontSize = Number(speechFontSize) || 115;
+    const isMultiLine = chunk.length > 2;
+    const splitIdx = isMultiLine ? Math.ceil(chunk.length / 2) : chunk.length;
+    const line1Words = chunk.slice(0, splitIdx), line2Words = isMultiLine ? chunk.slice(splitIdx) : [];
 
-    if (chunkTextW > 920) {
-      baseFontSize = Math.max(68, Math.floor(baseFontSize * (920 / chunkTextW)));
-      chunkTextW = 0;
-      chunk.forEach((tw, idx) => {
-        for (const c of tw.word) chunkTextW += estimateCharWidth(c, speechFont, baseFontSize);
-        if (idx > 0) chunkTextW += baseFontSize * 0.30;
-      });
+    let w1 = calcLineW(line1Words, baseFontSize), w2 = isMultiLine ? calcLineW(line2Words, baseFontSize) : 0;
+    let maxLineW = Math.max(w1, w2);
+
+    if (maxLineW > 960) {
+      baseFontSize = Math.max(80, Math.floor(baseFontSize * (960 / maxLineW)));
+      w1 = calcLineW(line1Words, baseFontSize); w2 = isMultiLine ? calcLineW(line2Words, baseFontSize) : 0;
+      maxLineW = Math.max(w1, w2);
     }
 
     if (speechBoxMode !== 'none') {
-      const boxW = Math.min(1020, Math.max(180, Math.round(chunkTextW + 90))), boxH = Math.round(baseFontSize * 0.92) + 32;
+      const boxW = Math.min(1020, Math.max(180, Math.round(maxLineW + 70)));
+      const boxH = isMultiLine ? Math.round(baseFontSize * 1.95 + 40) : Math.round(baseFontSize * 0.95 + 32);
       const badgeX = Math.max(20, Math.round(540 - boxW / 2)), badgeY = Math.round(speechPosY - boxH / 2);
-      const r = speechBoxMode === 'solid' ? 6 : 20;
+      const r = speechBoxMode === 'solid' ? 6 : 24;
       const poly = `m ${r} 0 l ${boxW - r} 0 l ${boxW} ${r} l ${boxW} ${boxH - r} l ${boxW - r} ${boxH} l ${r} ${boxH} l 0 ${boxH - r} l 0 ${r}`;
       const op = Math.max(0, Math.min(100, Number(speechBoxOpacity) || 88)), assAlphaNum = Math.round(255 * (1 - op / 100));
       const boxAlpha = assAlphaNum.toString(16).padStart(2, '0').toUpperCase();
@@ -165,11 +176,16 @@ export function generateSpeechDialogueEvents(opts = {}) {
       const nextTw = chunk[activeIdx + 1];
       const wStartSec = (activeIdx === 0) ? chunkStart : activeTw.start, wEndSec = nextTw ? nextTw.start : chunkEnd;
       const wStart = formatAssTime(wStartSec), wEnd = formatAssTime(Math.max(wStartSec + 0.1, wEndSec));
-      const styledWords = chunk.map((tw, wIdx) => {
-        const isCurrent = (wIdx === activeIdx), colTag = isCurrent ? highlightTag : inactiveTag;
-        return `{\\c${colTag}\\fs${baseFontSize}\\bord${bW}\\3c${strokeTag}\\shad${sD}\\4c${shadowTag}}${tw.word.toUpperCase()}`;
+      
+      const formatWords = (wList, offset) => wList.map((tw, subIdx) => {
+        const globalWIdx = offset + subIdx, isCurrent = (globalWIdx === activeIdx);
+        const colTag = isCurrent ? highlightTag : inactiveTag;
+        const scaleTag = isCurrent ? '\\fscx115\\fscy115' : '\\fscx100\\fscy100';
+        return `{\\c${colTag}\\fs${baseFontSize}${scaleTag}\\bord${bW}\\3c${strokeTag}\\shad${sD}\\4c${shadowTag}}${tw.word.toUpperCase()}`;
       }).join(' ');
-      dialogues.push(`Dialogue: 2,${wStart},${wEnd},Speech,,0,0,0,,{\\an5\\pos(540,${speechPosY})}${styledWords}`);
+
+      const styledText = isMultiLine ? `${formatWords(line1Words, 0)}\\N${formatWords(line2Words, splitIdx)}` : formatWords(line1Words, 0);
+      dialogues.push(`Dialogue: 2,${wStart},${wEnd},Speech,,0,0,0,,{\\an5\\pos(540,${speechPosY})}${styledText}`);
     });
   });
 
@@ -184,17 +200,17 @@ export function buildAssShortsSubtitle(wrappedText, options = {}) {
     speechSubtitlesEnabled = true, speechText = '', duration = 20, totalAudioDuration = 0,
     speechFontSize = 115, speechColor = 'yellow', speechInactiveColor = 'white', speechPosY = 980, speechFont = 'impact',
     speechBoxMode = 'pill', speechBoxColor = 'black', speechBoxOpacity = 88,
-    speechPacing = 'wave', speechStrokeWidth = 12, speechShadowDistance = 6,
+    speechPacing = 'wave', speechStrokeWidth = 8, speechShadowDistance = 4,
   } = options;
 
   const fontNameMap = {
-    impact: 'Russo One', arial_black: 'Russo One', 'Saxonia_Antiqua_Bold.ttf': 'Saxonia Antiqua Bold',
+    impact: 'Impact', arial_black: 'Arial Black', 'Saxonia_Antiqua_Bold.ttf': 'Saxonia Antiqua Bold',
     'Saxonia_Antiqua.ttf': 'Saxonia Antiqua', 'SeymourOne-Regular.ttf': 'Seymour One', 'StalinistOne-Regular.ttf': 'Stalinist One',
     'Unbounded-Black.ttf': 'Unbounded', 'Buran_USSR.ttf': 'Buran USSR', 'RussoOne-Regular.ttf': 'Russo One',
     'DelaGothicOne-Regular.ttf': 'Dela Gothic One', 'RubikMonoOne-Regular.ttf': 'Rubik Mono One', 'PROPAGAN.ttf': 'Propaganda', 'YesevaOne-Regular.ttf': 'Yeseva One',
   };
-  const assFontName = fontNameMap[reqFont] || (reqFont ? String(reqFont).replace(/\.[^.]+$/, '').replace(/_/g, ' ').trim() : 'Russo One');
-  const assSpeechFontName = fontNameMap[speechFont] || fontNameMap[reqFont] || 'Russo One';
+  const assFontName = fontNameMap[reqFont] || (reqFont ? String(reqFont).replace(/\.[^.]+$/, '').replace(/_/g, ' ').trim() : 'Impact');
+  const assSpeechFontName = fontNameMap[speechFont] || fontNameMap[reqFont] || 'Impact';
   const assOutlineCol = toShortsAssStyleColor(strokeColor || 'black', '00'), assShadowCol = toShortsAssStyleColor(shadowColor || 'black', '80');
   const bWidth = Number(strokeWidth) >= 0 ? Number(strokeWidth) : 8, sDist = Number(shadowDistance) >= 0 ? Number(shadowDistance) : 4;
   const effectiveSize = Math.max(30, Math.min(Number(fontSize) || 110, 240));

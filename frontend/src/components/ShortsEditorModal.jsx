@@ -60,15 +60,12 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
   const photoList = cleanPhotos.length > 0 ? cleanPhotos : (rawBg ? [rawBg] : (thumbCover ? [thumbCover] : []))
   const currentBgSrc = selectedPhoto ? (selectedPhoto.startsWith('/news-static/') ? selectedPhoto : `/news-static/${pkg?.folderName}/${selectedPhoto}`) : (photoList[0] || previewPhotoUrl || thumbCover || '')
 
-  const FONT_SCALE_CSS = 0.812
+  const FONT_SCALE_CSS = 1.0
   const activeColorHex = TEXT_COLORS.find(c => c.id === fontColor)?.hex || '#FFE600', activeBoxHex = BOX_COLORS.find(c => c.id === boxColor)?.hex || '#000000'
   const activeStrokeHex = STROKE_COLORS.find(c => c.id === strokeColor)?.hex || '#000000', activeShadowHex = SHADOW_COLORS.find(c => c.id === shadowColor)?.hex || '#000000'
-  const activeFontFamily = SHORTS_FONTS.find(f => f.id === font)?.family || 'Impact, sans-serif'
-  const activeSpeechFontFamily = SHORTS_FONTS.find(f => f.id === speechFont)?.family || activeFontFamily
+  const activeFontFamily = SHORTS_FONTS.find(f => f.id === font)?.family || 'Impact, sans-serif', activeSpeechFontFamily = SHORTS_FONTS.find(f => f.id === speechFont)?.family || activeFontFamily
   const activeShadowCss = shadowDistance > 0 ? `${(((shadowDistance * FONT_SCALE_CSS) / 1080) * 240).toFixed(2)}px ${(((shadowDistance * FONT_SCALE_CSS) / 1080) * 240).toFixed(2)}px 0px ${activeShadowHex}` : 'none'
-  const maxChars = Math.max(4, Math.floor(920 / ((Number(fontSize) || 110) * 0.58)))
-  const displayText = wrapShortsText(text, maxChars) || 'ТЕКСТ ТИЗЕРА'
-  const wordsList = displayText.split(/\s+/).filter(Boolean)
+  const maxChars = Math.max(4, Math.floor(920 / ((Number(fontSize) || 110) * 0.58))), displayText = wrapShortsText(text, maxChars) || 'ТЕКСТ ТИЗЕРА', wordsList = displayText.split(/\s+/).filter(Boolean)
 
   const handleInstantFramePreview = async () => {
     try {
@@ -127,35 +124,29 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
     return { outerStyle, innerStyle }
   }
 
+  const getShortsPayload = () => ({
+    bundleDir: pkg?.bundleDir, folderName: pkg?.folderName, duration: Number(duration) || 25, hookTitle: text, showHookTitle,
+    font, fontSize: Number(fontSize) || 110, fontColor, strokeWidth: Number(strokeWidth) || 0, strokeColor, shadowDistance: Number(shadowDistance) || 0,
+    shadowColor, shadowStyle, wordColors, wordFontSizes, boxEnabled: !!boxEnabled, boxColor, boxOpacity: boxEnabled ? Number(boxOpacity) || 75 : 0,
+    posY: Number(posY) || 200, lineBadges, selectedPhoto, speechSubtitlesEnabled, speechFont, speechColor, speechInactiveColor,
+    speechFontSize: Number(speechFontSize) || 115, speechPosY: Number(speechPosY) || 980, speechBoxMode, speechBoxColor,
+    speechBoxOpacity: Number(speechBoxOpacity) || 88, speechPacing,
+  })
+
   const handleSaveConfig = async () => {
     try {
       setSavingConfig(true)
-      const res = await fetch('/api/save-shorts-config', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          bundleDir: pkg?.bundleDir, folderName: pkg?.folderName, duration: Number(duration) || 25, hookTitle: text, showHookTitle, font, fontSize: Number(fontSize) || 110,
-          fontColor, strokeWidth: Number(strokeWidth) || 0, strokeColor, shadowDistance: Number(shadowDistance) || 0, shadowColor, shadowStyle,
-          wordColors, wordFontSizes, boxEnabled: !!boxEnabled, boxColor, boxOpacity: boxEnabled ? Number(boxOpacity) || 75 : 0, posY: Number(posY) || 200, lineBadges, selectedPhoto,
-          speechSubtitlesEnabled, speechFont, speechColor, speechInactiveColor, speechFontSize: Number(speechFontSize) || 115, speechPosY: Number(speechPosY) || 980, speechBoxMode, speechBoxColor, speechBoxOpacity: Number(speechBoxOpacity) || 88, speechPacing,
-        }),
-      })
+      const res = await fetch('/api/save-shorts-config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(getShortsPayload()) })
       const data = await res.json()
-      if (data.success) {
-        toast.success('💾 Настройки Shorts сохранены в пакет!')
-        if (pkg) pkg.shortsConfig = data.shortsConfig
-      } else { toast.error('Ошибка сохранения: ' + (data.error || 'Не удалось сохранить')) }
+      if (data.success) { toast.success('💾 Настройки Shorts сохранены в пакет!'); if (pkg) pkg.shortsConfig = data.shortsConfig }
+      else toast.error('Ошибка: ' + (data.error || 'Не удалось сохранить'))
     } catch (err) { toast.error('Ошибка: ' + err.message) }
     finally { setSavingConfig(false) }
   }
 
   const handleApply = async () => {
     if (!onGenerateShort) return
-    const res = await onGenerateShort({
-      duration: Number(duration) || 25, hookTitle: text, showHookTitle, font, fontSize: Number(fontSize) || 110, fontColor, strokeWidth: Number(strokeWidth) || 0, strokeColor,
-      shadowDistance: Number(shadowDistance) || 0, shadowColor, shadowStyle, wordColors, wordFontSizes, boxEnabled: !!boxEnabled,
-      boxColor, boxOpacity: boxEnabled ? Number(boxOpacity) || 75 : 0, posY: Number(posY) || 200, lineBadges, selectedPhoto,
-      speechSubtitlesEnabled, speechFont, speechColor, speechInactiveColor, speechFontSize: Number(speechFontSize) || 115, speechPosY: Number(speechPosY) || 980, speechBoxMode, speechBoxColor, speechBoxOpacity: Number(speechBoxOpacity) || 88, speechPacing,
-    })
+    const res = await onGenerateShort(getShortsPayload())
     if (res?.success) setViewMode('video')
   }
 
@@ -163,7 +154,8 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
     if (!previewRef.current) return
     const rect = previewRef.current.getBoundingClientRect()
     const clientY = e.touches ? e.touches[0].clientY : e.clientY
-    setPosY(Math.round(Math.max(0, Math.min((clientY - rect.top) / rect.height, 1)) * 1920))
+    const calculatedY = Math.round(Math.max(0, Math.min((clientY - rect.top) / rect.height, 1)) * 1920)
+    if (activeTab === 'speech') setSpeechPosY(calculatedY); else setPosY(calculatedY)
   }
 
   const handlePreviewMouseDown = (e) => {
@@ -172,10 +164,8 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
     const handleMove = (ev) => { ev.preventDefault(); updatePosFromEvent(ev) }
     const handleUp = () => {
       setIsDragging(false)
-      window.removeEventListener('mousemove', handleMove)
-      window.removeEventListener('mouseup', handleUp)
-      window.removeEventListener('touchmove', handleMove)
-      window.removeEventListener('touchend', handleUp)
+      window.removeEventListener('mousemove', handleMove); window.removeEventListener('mouseup', handleUp)
+      window.removeEventListener('touchmove', handleMove); window.removeEventListener('touchend', handleUp)
     }
     window.addEventListener('mousemove', handleMove); window.addEventListener('mouseup', handleUp)
     window.addEventListener('touchmove', handleMove, { passive: false }); window.addEventListener('touchend', handleUp)
@@ -217,7 +207,6 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
                   🔝 Заголовок {showHookTitle ? '🟢' : '⚪'}
                 </button>
               </div>
-
               {activeTab === 'speech' && (
                 <ShortsSpeechSubtitlesControls
                   enabled={speechSubtitlesEnabled} setEnabled={setSpeechSubtitlesEnabled} font={speechFont} setFont={setSpeechFont}
@@ -228,7 +217,6 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
                   onDirty={() => setViewMode('editor')}
                 />
               )}
-
               {activeTab === 'title' && (
                 <ShortsTitleControls
                   showHookTitle={showHookTitle} setShowHookTitle={setShowHookTitle} text={text} setText={setText}
@@ -325,20 +313,29 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
                                 const rawSpeech = extractCleanSpeechText(speechScriptText || pkg?.scriptTxt || pkg?.scriptMd || text || '')
                                 const rawWords = rawSpeech.split(/\s+/).filter(Boolean)
                                 const isSingle = speechPacing === 'single', isTwo = speechPacing === 'blitz' || speechPacing === 'two'
-                                const waveSize = isSingle ? 1 : (isTwo ? 2 : 4), totalWords = rawWords.length > 0 ? rawWords.length : 4
+                                const waveSize = isSingle ? 1 : (isTwo ? 2 : 4), totalWords = rawWords.length > 0 ? rawWords.length : waveSize
                                 const activeGlobal = globalWordIdx % totalWords, waveStart = Math.floor(activeGlobal / waveSize) * waveSize
-                                const waveWords = rawWords.length > 0 ? rawWords.slice(waveStart, waveStart + waveSize) : (isSingle ? ['СУБТИТРЫ'] : ['СУБТИТРЫ', 'РЕЧИ', 'В', 'КАДРЕ'])
-                                const activeInWave = activeGlobal % waveSize
+                                const waveWords = rawWords.length > 0 ? rawWords.slice(waveStart, waveStart + waveSize) : (isSingle ? ['СУБТИТРЫ'] : (isTwo ? ['СУБТИТРЫ', 'РЕЧИ'] : ['СУБТИТРЫ', 'РЕЧИ', 'В', 'КАДРЕ']))
+                                const activeInWave = activeGlobal % waveSize, splitIdx = (waveWords.length > 2) ? Math.ceil(waveWords.length / 2) : waveWords.length
+                                const line1 = waveWords.slice(0, splitIdx), line2 = (waveWords.length > 2) ? waveWords.slice(splitIdx) : []
 
-                                return waveWords.map((w, idx) => (
-                                  <span key={idx} style={{
-                                    color: (idx === activeInWave) ? (TEXT_COLORS.find(c => c.id === speechColor)?.hex || '#FFE600') : (TEXT_COLORS.find(c => c.id === speechInactiveColor)?.hex || '#FFFFFF'),
-                                    transform: (idx === activeInWave) ? 'scale(1.15)' : 'scale(1)',
-                                    display: 'inline-block', margin: idx > 0 ? '0 0 0 0.52em' : '0', transition: 'all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                                  }}>
-                                    {w}
-                                  </span>
-                                ))
+                                const renderLine = (wList, offset) => (
+                                  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.32em', lineHeight: 1.15 }}>
+                                    {wList.map((w, subIdx) => {
+                                      const curIdx = offset + subIdx
+                                      return (
+                                        <span key={subIdx} style={{
+                                          color: (curIdx === activeInWave) ? (TEXT_COLORS.find(c => c.id === speechColor)?.hex || '#FFE600') : (TEXT_COLORS.find(c => c.id === speechInactiveColor)?.hex || '#FFFFFF'),
+                                          transform: (curIdx === activeInWave) ? 'scale(1.15)' : 'scale(1)',
+                                          display: 'inline-block', transition: 'all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                                        }}>
+                                          {w}
+                                        </span>
+                                      )
+                                    })}
+                                  </div>
+                                )
+                                return (<div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'center' }}>{renderLine(line1, 0)}{line2.length > 0 && renderLine(line2, splitIdx)}</div>)
                               })()}
                             </span>
                           )
