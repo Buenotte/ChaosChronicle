@@ -12,9 +12,9 @@ import {
 } from '../services/youtubeService.js';
 import { generateTitleVariants } from '../services/packageTitleService.js';
 import { YOUTUBE_STYLES } from '../services/youtubeStyles.js';
-import { extractTwentyFactsFromTranscript } from '../services/youtubeFactsService.js';
+import { extractTwentyFactsFromTranscript, CONCEPT_MAP, getConceptInfo } from '../services/youtubeFactsService.js';
 
-export { YOUTUBE_STYLES };
+export { YOUTUBE_STYLES, CONCEPT_MAP, getConceptInfo };
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -76,7 +76,22 @@ async function generateScriptWithAI(systemInstruction, userInstruction, maxToken
 }
 
 export async function buildYouTubeScript(rawText, selectedStyle, metadata = {}) {
-  const factsCount = Array.isArray(metadata.selectedFacts) ? metadata.selectedFacts.length : 0;
+  const conceptType = metadata.conceptType || metadata.concept || 'facts';
+  const concept = getConceptInfo(conceptType);
+
+  let effectiveFacts = Array.isArray(metadata.selectedFacts) && metadata.selectedFacts.length > 0
+    ? metadata.selectedFacts
+    : (Array.isArray(metadata.facts) && metadata.facts.length > 0 ? metadata.facts : null);
+
+  if (!effectiveFacts && rawText && rawText.length >= 40) {
+    try {
+      effectiveFacts = await extractTwentyFactsFromTranscript(rawText, metadata.title || 'YouTube', 10, conceptType);
+    } catch (err) {
+      console.warn('Auto facts extraction in buildYouTubeScript warning:', err.message);
+    }
+  }
+
+  const factsCount = Array.isArray(effectiveFacts) ? effectiveFacts.length : 10;
   let wordCountTarget = '400–550 слов (~3 мин.)';
   let maxAiTokens = 8000;
 
@@ -84,29 +99,31 @@ export async function buildYouTubeScript(rawText, selectedStyle, metadata = {}) 
     wordCountTarget = '950–1450 слов (~6–8 минут детального разбора)';
     maxAiTokens = 12000;
   } else if (factsCount >= 8) {
-    wordCountTarget = '700–1000 слов (~4–5 минут разбора)';
-    maxAiTokens = 9000;
+    wordCountTarget = '400–550 слов (~3 минуты озвучки, четко по каждому пункту)';
+    maxAiTokens = 7000;
   } else if (factsCount >= 1) {
-    wordCountTarget = '500–750 слов (~3–4 минуты разбора)';
-    maxAiTokens = 8000;
+    wordCountTarget = '380–500 слов (~3 минуты озвучки)';
+    maxAiTokens = 6000;
   }
 
   let systemInstruction = selectedStyle.systemInstruction || YOUTUBE_STYLES.scipop.systemInstruction;
   if (factsCount > 0) {
-    systemInstruction = systemInstruction.replace(/\(СТРОГО 400–550 слов\)/g, `(ОБЪЕМ: ${wordCountTarget}, ОБЯЗАТЕЛЬНО ПОДРОБНО РАСКРЫТЬ ВСЕ ${factsCount} ФАКТОВ)`);
+    systemInstruction = systemInstruction.replace(/\(СТРОГО 400–550 слов\)/g, `(ОБЪЕМ: ${wordCountTarget}, ОБЯЗАТЕЛЬНО ХУК С ОБЪЯВЛЕНИЕМ ${factsCount} ${concept.labelPlural.toUpperCase()}, СЧЕТ ВСЛУХ И РАЗБОР ВСЕХ ${factsCount} ПУНКТОВ)`);
   }
 
   let factsPrompt = '';
-  if (factsCount > 0) {
+  if (effectiveFacts && effectiveFacts.length > 0) {
     factsPrompt = `\n═══════════════════════════════════════════════════════════════════\n` +
-      `📌 СПИСОК ИЗ ${factsCount} КЛЮЧЕВЫХ ФАКТОВ, КОТОРЫЕ ОБЯЗАТЕЛЬНО ДОЛЖНЫ БЫТЬ ПОЛНОСТЬЮ РАСКРЫТЫ В СЦЕНАРИИ:\n` +
-      metadata.selectedFacts.map((f, i) => `${i + 1}. [${f.title}]: ${f.text}`).join('\n') +
+      `📌 СПИСОК ИЗ ${factsCount} КЛЮЧЕВЫХ ${concept.headerWord}, КОТОРЫЕ ОБЯЗАТЕЛЬНО ДОЛЖНЫ БЫТЬ ПРОНУМЕРОВАНЫ ВСЛУХ И ПОДРОБНО ОБЪЯСНЕНЫ В СЦЕНАРИИ:\n` +
+      effectiveFacts.map((f, i) => `${concept.labelSingle.toUpperCase()} ${i + 1}: [${f.title}] ➜ ${f.text}`).join('\n\n') +
       `\n═══════════════════════════════════════════════════════════════════\n` +
-      `🚨 СТРОЖАЙШИЕ ТРЕБОВАНИЯ ПО ФАКТАМ:\n` +
-      `1. Текст ОБЯЗАН последовательно, подробно и аргументированно раскрыть ВСЕ ${factsCount} ФАКТОВ из списка выше без исключения!\n` +
-      `2. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО пропускать, сокращать или игнорировать любой из ${factsCount} пунктов.\n` +
-      `3. Для каждого факта посвяти отдельный логический абзац, раскрывая его суть, конкретные детали, примеры, цифры или выводы.\n` +
-      `4. Текст должен звучать как единый захватывающий, плавный монолог диктора, в котором последовательно освещаются все ${factsCount} тем.\n`;
+      `🚨 СТРОЖАЙШИЕ ТРЕБОВАНИЯ ПО СЦЕНАРИЮ (ХУК, СЧЕТ ВСЛУХ И ВСЕ ${factsCount} ${concept.labelPlural.toUpperCase()}):\n` +
+      `1. 🎯 ОБЯЗАТЕЛЬНЫЙ ХУК В САМОМ НАЧАЛЕ (ПЕРВОЕ ПРЕДЛОЖЕНИЕ): Диктор ОБЯЗАН в первых же словах заявить мощный хук и ПРЯМО ОБЪЯВИТЬ ТЕМУ И КОЛИЧЕСТВО ${concept.headerWord}: например, «Вот ${factsCount} ${concept.hookWord} на тему [Тема]...», «Сегодня разберем ${factsCount} ${concept.labelPlural} о [Тема]...» или «${factsCount} важнейших ${concept.labelPlural}, которые объясняют [Тема]...»!\n` +
+      `2. 🔢 ОБЯЗАТЕЛЬНАЯ НУМЕРАЦИЯ ВСЛУХ (СЧЕТ КАЖДОГО ПУНКТА): Диктор ОБЯЗАН четко проговаривать номер каждого пункта перед его разбором (например: «${concept.labelSingle} первый: ...», «${concept.labelSingle} номер два: ...», ..., «Десятый ${concept.labelSingle.toLowerCase()}: ...»)! Зритель должен слышать точный счет от 1 до ${factsCount}.\n` +
+      `3. Текст ОБЯЗАН последовательно назвать по теме и понятно объяснить КАЖДЫЙ ИЗ ВСЕХ ${factsCount} ${concept.labelPlural} из списка выше без исключения!\n` +
+      `4. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО пропускать, объединять в один ком или сбиваться со счета ${factsCount} пунктов.\n` +
+      `5. Для каждого пункта посвяти отдельный абзац дикторского текста: назови номер, тему и дай емкое, захватывающее объяснение с деталями.\n` +
+      `6. Текст должен звучать как единый, цельный и увлекательный 3-минутный монолог диктора, начинающийся с объявления ${factsCount} ${concept.labelPlural} и четко отсчитывающий каждый из них.\n`;
   }
 
   const userPrompt = `ИСТОЧНИК: YouTube "${metadata.title || 'YouTube'}" (${metadata.channel || ''})
@@ -121,12 +138,14 @@ ${rawText.slice(0, 60000)}
 ПРАВИЛА:
 1. КАТЕГОРИЧЕСКИ БЕЗ ФОРМАТА ИНТЕРВЬЮ: Никаких гостей, интервьюеров и ведущих («Сегодня у нас...», «доктор», «Бузунов»).
 2. БЕЗ ДИАЛОГОВ И ПРИВЕТСТВИЙ: Никаких «Добрый день», реплик и символов «>>».
-3. ${factsCount > 0 ? `ОБЯЗАТЕЛЬНО раскрой КАЖДЫЙ из ${factsCount} выбранных фактов по порядку с деталями и глубиной.` : 'РАССКАЗЫВАЙ ТОЛЬКО О САМОЙ ТЕМЕ: Захватывающе объясняй факты и явления зрителю напрямую.'}
-4. Мощный хук с первых секунд, чистый монолог диктора для озвучки (${wordCountTarget}):`;
+3. 🎯 ХУК В САМОМ НАЧАЛЕ ОБЯЗАН прямо объявить тему и ${factsCount} ${concept.labelPlural} (например: «Вот ${factsCount} ${concept.hookWord} на тему...»).
+4. 🔢 Диктор ОБЯЗАН вести точный счет («${concept.labelSingle} 1: ...», «${concept.labelSingle} 2: ...») и последовательно раскрыть КАЖДЫЙ из ${factsCount} пунктов по порядку с деталями и глубиной.
+5. Чистый монолог диктора для озвучки (${wordCountTarget}):`;
 
   const rawGenerated = await generateScriptWithAI(systemInstruction, userPrompt, maxAiTokens);
   return rawGenerated.replace(/&gt;&gt;/g, '').replace(/>>/g, '').replace(/^[\-\u2013\u2014]\s+/gm, '').replace(/^(Добрый (день|вечер|утро)|Здравствуйте)[^.!?\n]*[.!?\n]+/gmi, '').trim();
 }
+
 
 // POST /api/youtube/info - Preview metadata only
 router.post('/api/youtube/info', async (req, res) => {
@@ -140,11 +159,12 @@ router.post('/api/youtube/info', async (req, res) => {
   }
 });
 
-// POST /api/youtube/extract-facts - Extract 5, 10, or 20 key facts (from URL, package folder, or raw text)
+// POST /api/youtube/extract-facts - Extract 5, 10, or 20 key facts/theses/details (from URL, package folder, or raw text)
 router.post('/api/youtube/extract-facts', async (req, res) => {
   try {
-    const { url, folderName, bundleDir: inputBundleDir, text: inputText, title: inputTitle, force = false, count = 20 } = req.body;
+    const { url, folderName, bundleDir: inputBundleDir, text: inputText, title: inputTitle, force = false, count = 20, conceptType = 'facts' } = req.body;
     const targetCount = [5, 10, 20].includes(Number(count)) ? Number(count) : (parseInt(count, 10) || 20);
+    const concept = getConceptInfo(conceptType);
     let rawText = (inputText || '').trim(), title = (inputTitle || '').trim();
     const targetFolder = inputBundleDir || (folderName ? path.join(newsDir, folderName) : null);
 
@@ -156,8 +176,8 @@ router.post('/api/youtube/extract-facts', async (req, res) => {
         try { manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8')); } catch {}
       }
       if (!title) title = manifest.title || manifest.original_title || path.basename(targetFolder);
-      if (!force && Array.isArray(manifest.facts) && manifest.facts.length >= targetCount) {
-        return res.json({ success: true, facts: manifest.facts.slice(0, targetCount), factsCount: Math.min(manifest.facts.length, targetCount), title, cached: true });
+      if (!force && Array.isArray(manifest.facts) && manifest.facts.length >= targetCount && manifest.conceptType === conceptType) {
+        return res.json({ success: true, facts: manifest.facts.slice(0, targetCount), factsCount: Math.min(manifest.facts.length, targetCount), title, conceptType, cached: true });
       }
       if (!rawText) {
         const origPath = path.join(targetFolder, 'original_news.txt'), srcPath = path.join(targetFolder, 'source.txt'), mdPath = path.join(targetFolder, 'script.md');
@@ -167,17 +187,31 @@ router.post('/api/youtube/extract-facts', async (req, res) => {
         else if (manifest.original_news || manifest.summary) rawText = manifest.original_news || manifest.summary;
       }
       if (rawText && rawText.length >= 40) {
-        const facts = await extractTwentyFactsFromTranscript(rawText, title, targetCount);
+        const facts = await extractTwentyFactsFromTranscript(rawText, title, targetCount, conceptType);
         manifest.facts = facts;
+        manifest.selectedFacts = facts;
+        manifest.conceptType = conceptType;
+
+        const cleanRaw = rawText.includes('ПОЛНЫЙ ТРАНСКРИПТ ВИДЕО:') ? rawText.split('ПОЛНЫЙ ТРАНСКРИПТ ВИДЕО:')[1].trim() : rawText;
+        const factsFormatted = `📌 ИЗВЛЕЧЕННЫЕ КЛЮЧЕВЫЕ ${concept.headerWord} И ТЕМЫ (${facts.length}):\n\n` +
+          facts.map((f, i) => `${i + 1}. 🌟 ${f.title}\n${f.text}`).join('\n\n') +
+          `\n\n═══════════════════════════════════════════════════════════════════\n📝 ПОЛНЫЙ ТРАНСКРИПТ ВИДЕО:\n\n${cleanRaw}`;
+
+        manifest.original_news = factsFormatted;
+        manifest.summary = `📌 Ключевые ${concept.labelPlural} (${facts.length}):\n` + facts.map((f, i) => `${i + 1}. ${f.title}`).join('\n');
+
+        const origPath = path.join(targetFolder, 'original_news.txt');
+        fs.writeFileSync(origPath, factsFormatted, 'utf-8');
+        fs.writeFileSync(path.join(targetFolder, 'source.txt'), factsFormatted, 'utf-8');
         fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
-        return res.json({ success: true, facts, factsCount: facts.length, title });
+        return res.json({ success: true, facts, factsCount: facts.length, title, conceptType, originalNews: factsFormatted });
       }
     }
 
     // 2. Из переданного текста
     if (rawText && rawText.length >= 40) {
-      const facts = await extractTwentyFactsFromTranscript(rawText, title || 'Материал', targetCount);
-      return res.json({ success: true, facts, factsCount: facts.length, title: title || 'Материал' });
+      const facts = await extractTwentyFactsFromTranscript(rawText, title || 'Материал', targetCount, conceptType);
+      return res.json({ success: true, facts, factsCount: facts.length, title: title || 'Материал', conceptType });
     }
 
     // 3. Скачивание по YouTube URL
@@ -203,17 +237,18 @@ router.post('/api/youtube/extract-facts', async (req, res) => {
     try { fs.rmSync(tempDir, { recursive: true, force: true }); } catch {}
     if (!rawText || rawText.length < 40) rawText = `${metadata.title}\n\n${metadata.description || ''}`;
 
-    const facts = await extractTwentyFactsFromTranscript(rawText, metadata.title, targetCount);
-    res.json({ success: true, metadata, facts, factsCount: facts.length });
+    const facts = await extractTwentyFactsFromTranscript(rawText, metadata.title, targetCount, conceptType);
+    res.json({ success: true, metadata, facts, factsCount: facts.length, conceptType });
   } catch (err) {
     console.error('Extract facts error:', err);
-    res.status(500).json({ success: false, error: err.message || 'Ошибка извлечения фактов' });
+    res.status(500).json({ success: false, error: err.message || 'Ошибка извлечения' });
   }
 });
 
 // POST /api/youtube/import-to-package - Complete pipeline
 router.post('/api/youtube/import-to-package', async (req, res) => {
-  const { url, style = 'scipop', model = 'gemini', selectedFacts = null } = req.body;
+  const { url, style = 'scipop', model = 'gemini', selectedFacts = null, conceptType = 'facts' } = req.body;
+  const concept = getConceptInfo(conceptType);
   if (!isValidYouTubeUrl(url)) return res.status(400).json({ success: false, error: 'Укажите корректную ссылку на YouTube' });
 
   try {
@@ -248,8 +283,19 @@ router.post('/api/youtube/import-to-package', async (req, res) => {
       rawText = `${metadata.title}\n\n${metadata.description || 'Видеоматериал YouTube'}`;
     }
 
+    let effectiveFacts = selectedFacts;
+    if (!effectiveFacts || !Array.isArray(effectiveFacts) || effectiveFacts.length === 0) {
+      try {
+        if (rawText && rawText.length >= 40) {
+          effectiveFacts = await extractTwentyFactsFromTranscript(rawText, metadata.title, 10, conceptType);
+        }
+      } catch (err) {
+        console.warn('Auto facts extraction warning during import:', err.message);
+      }
+    }
+
     const selectedStyle = YOUTUBE_STYLES[style] || YOUTUBE_STYLES.scipop;
-    const generatedScript = await buildYouTubeScript(rawText, selectedStyle, { ...metadata, selectedFacts });
+    const generatedScript = await buildYouTubeScript(rawText, selectedStyle, { ...metadata, selectedFacts: effectiveFacts, conceptType });
     const wordCount = generatedScript.split(/\s+/).filter(Boolean).length;
 
     const thumbDir = path.join(bundleDir, 'thumbnail');
@@ -262,15 +308,15 @@ router.post('/api/youtube/import-to-package', async (req, res) => {
       await downloadThumbnail(metadata.thumbnail, path.join(photosDir, 'yt_original_cover.jpg'));
     }
 
-    const factsFormatted = selectedFacts?.length
-      ? `📌 ВЫБРАННЫЕ КЛЮЧЕВЫЕ ФАКТЫ И ТЕМЫ ДЛЯ СЦЕНАРИЯ (${selectedFacts.length}):\n\n` +
-        selectedFacts.map((f, i) => `${i + 1}. 🌟 ${f.title}\n${f.text}`).join('\n\n') +
+    const factsFormatted = effectiveFacts?.length
+      ? `📌 ВЫБРАННЫЕ КЛЮЧЕВЫЕ ${concept.headerWord} И ТЕМЫ ДЛЯ СЦЕНАРИЯ (${effectiveFacts.length}):\n\n` +
+        effectiveFacts.map((f, i) => `${i + 1}. 🌟 ${f.title}\n${f.text}`).join('\n\n') +
         `\n\n═══════════════════════════════════════════════════════════════════\n📝 ПОЛНЫЙ ТРАНСКРИПТ ВИДЕО:\n\n${rawText}`
       : rawText;
 
-    const summaryFormatted = selectedFacts?.length
-      ? `📌 Выбранные ключевые факты (${selectedFacts.length}):\n` +
-        selectedFacts.map((f, i) => `${i + 1}. ${f.title}`).join('\n')
+    const summaryFormatted = effectiveFacts?.length
+      ? `📌 Выбранные ключевые ${concept.labelPlural} (${effectiveFacts.length}):\n` +
+        effectiveFacts.map((f, i) => `${i + 1}. ${f.title}`).join('\n')
       : rawText.slice(0, 600);
 
     fs.writeFileSync(path.join(bundleDir, 'script.txt'), generatedScript, 'utf-8');
@@ -280,12 +326,12 @@ router.post('/api/youtube/import-to-package', async (req, res) => {
     const mdContent = `# 🎬 ${metadata.title}
 **Источник:** YouTube · ${metadata.channel} | **Длина:** ${metadata.duration || 0} сек.
 **Стиль:** ${selectedStyle.name} | **Слов:** ${wordCount} (~3 мин.)
-${selectedFacts?.length ? `\n### 📌 Выбранные факты:\n${selectedFacts.map(f => `- **${f.title}**: ${f.text}`).join('\n')}\n` : ''}
+${selectedFacts?.length ? `\n### 📌 Выбранные ${concept.labelPlural}:\n${selectedFacts.map(f => `- **${f.title}**: ${f.text}`).join('\n')}\n` : ''}
 ---
 ## 🎙️ Сценарий YouTube видео (3 минуты)
 ${generatedScript}
 ---
-## 📝 Исходный транскрипт и факты
+## 📝 Исходный транскрипт и ${concept.labelPlural}
 ${factsFormatted}
 `;
     fs.writeFileSync(path.join(bundleDir, 'script.md'), mdContent, 'utf-8');
@@ -312,8 +358,9 @@ ${factsFormatted}
       model,
       style: selectedStyle.id,
       style_name: selectedStyle.name,
-      selectedFacts: selectedFacts || null,
-      facts: selectedFacts || null,
+      conceptType,
+      selectedFacts: effectiveFacts || null,
+      facts: effectiveFacts || null,
       source: `YouTube: ${metadata.channel}`,
       summary: summaryFormatted,
       original_news: factsFormatted,
@@ -342,6 +389,7 @@ ${factsFormatted}
       text: generatedScript,
       wordCount,
       metadata,
+      conceptType,
       hasAudio: fs.existsSync(audioPath),
       transcript: transcriptResult,
     });
@@ -354,7 +402,7 @@ ${factsFormatted}
 // POST /api/youtube/regenerate-script
 router.post('/api/youtube/regenerate-script', async (req, res) => {
   try {
-    const { bundleDir, folderName, style = 'scipop', selectedFacts } = req.body;
+    const { bundleDir, folderName, style = 'scipop', selectedFacts, conceptType: reqConceptType } = req.body;
     const targetFolder = bundleDir || (folderName ? path.join(newsDir, folderName) : null);
     if (!targetFolder || !fs.existsSync(targetFolder)) return res.status(404).json({ success: false, error: 'Папка пакета не найдена' });
 
@@ -364,18 +412,22 @@ router.post('/api/youtube/regenerate-script', async (req, res) => {
     else if (fs.existsSync(txtPath)) sourceText = fs.readFileSync(txtPath, 'utf-8');
     if (!sourceText.trim()) return res.status(400).json({ success: false, error: 'Исходный текст отсутствует' });
 
-    const selectedStyle = YOUTUBE_STYLES[style] || YOUTUBE_STYLES.scipop;
     let meta = {};
     const jsonPath = path.join(targetFolder, 'project.json');
     if (fs.existsSync(jsonPath)) {
       try { meta = JSON.parse(fs.readFileSync(jsonPath, 'utf-8')); } catch {}
     }
 
+    const conceptType = reqConceptType || meta.conceptType || 'facts';
+    const concept = getConceptInfo(conceptType);
+    const selectedStyle = YOUTUBE_STYLES[style] || YOUTUBE_STYLES.scipop;
+
     const effectiveFacts = selectedFacts !== undefined ? selectedFacts : meta.selectedFacts;
     const generatedScript = await buildYouTubeScript(sourceText, selectedStyle, {
       title: meta.title || meta.original_title,
       channel: meta.youtubeMetadata?.channel,
       selectedFacts: effectiveFacts,
+      conceptType,
     });
     const wordCount = generatedScript.split(/\s+/).filter(Boolean).length;
     fs.writeFileSync(txtPath, generatedScript, 'utf-8');
@@ -392,7 +444,7 @@ router.post('/api/youtube/regenerate-script', async (req, res) => {
         : sourceText;
       const cleanRaw = origRaw.includes('ПОЛНЫЙ ТРАНСКРИПТ ВИДЕО:') ? origRaw.split('ПОЛНЫЙ ТРАНСКРИПТ ВИДЕО:')[1].trim() : origRaw;
 
-      const factsFormatted = `📌 ВЫБРАННЫЕ КЛЮЧЕВЫЕ ФАКТЫ И ТЕМЫ ДЛЯ СЦЕНАРИЯ (${selectedFacts.length}):\n\n` +
+      const factsFormatted = `📌 ВЫБРАННЫЕ КЛЮЧЕВЫЕ ${concept.headerWord} И ТЕМЫ ДЛЯ СЦЕНАРИЯ (${selectedFacts.length}):\n\n` +
         selectedFacts.map((f, i) => `${i + 1}. 🌟 ${f.title}\n${f.text}`).join('\n\n') +
         `\n\n═══════════════════════════════════════════════════════════════════\n📝 ПОЛНЫЙ ТРАНСКРИПТ ВИДЕО:\n\n${cleanRaw}`;
 
@@ -407,11 +459,12 @@ router.post('/api/youtube/regenerate-script', async (req, res) => {
         m.style_name = selectedStyle.name;
         m.word_count = wordCount;
         m.isYouTube = true;
+        m.conceptType = conceptType;
         if (selectedFacts !== undefined) {
           m.selectedFacts = selectedFacts;
           m.facts = selectedFacts;
           if (selectedFacts?.length) {
-            m.summary = `📌 Выбранные ключевые факты (${selectedFacts.length}):\n` + selectedFacts.map((f, i) => `${i + 1}. ${f.title}`).join('\n');
+            m.summary = `📌 Выбранные ключевые ${concept.labelPlural} (${selectedFacts.length}):\n` + selectedFacts.map((f, i) => `${i + 1}. ${f.title}`).join('\n');
           }
         }
         if (titleVariants.length > 0) {
@@ -422,10 +475,12 @@ router.post('/api/youtube/regenerate-script', async (req, res) => {
       } catch {}
     }
 
-    res.json({ success: true, text: generatedScript, titleVariants, wordCount, style: selectedStyle.id });
+    const finalOriginalNews = fs.existsSync(origPath) ? fs.readFileSync(origPath, 'utf-8') : sourceText;
+    res.json({ success: true, text: generatedScript, titleVariants, wordCount, style: selectedStyle.id, conceptType, originalNews: finalOriginalNews, facts: effectiveFacts });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
 export default router;
+

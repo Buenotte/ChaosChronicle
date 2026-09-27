@@ -1,21 +1,24 @@
 import { useState, useMemo, useEffect } from 'react'
 import ModalHeader from './common/ModalHeader'
-import { YOUTUBE_TOPIC_STYLES } from '../lib/utils'
+import { YOUTUBE_TOPIC_STYLES, getConceptConfig } from '../lib/utils'
 
 export default function YouTubeFactsModal({
-  isOpen, onClose, facts = [], videoTitle = '', onConfirm, loading = false, currentStyle = 'scipop',
+  isOpen, onClose, facts = [], videoTitle = '', onConfirm, loading = false, currentStyle = 'scipop', conceptType = 'facts',
 }) {
   const [selectedIds, setSelectedIds] = useState(new Set([1, 2, 3]))
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedStyle, setSelectedStyle] = useState(currentStyle)
 
+  const concept = getConceptConfig(conceptType)
+
   useEffect(() => {
     if (isOpen) {
-      setSelectedIds(new Set([1, 2, 3]))
+      const defaultIds = facts.length > 0 ? facts.slice(0, Math.min(10, facts.length)).map(f => f.id) : [1, 2, 3]
+      setSelectedIds(new Set(defaultIds))
       setSearchQuery('')
       setSelectedStyle(currentStyle || 'scipop')
     }
-  }, [isOpen, currentStyle])
+  }, [isOpen, facts, currentStyle])
 
   const filteredFacts = useMemo(() => {
     if (!searchQuery.trim()) return facts
@@ -66,8 +69,8 @@ export default function YouTubeFactsModal({
         {/* Header */}
         <ModalHeader
           icon="🔍"
-          title={`${facts.length || 20} ключевых фактов & тем из видео`}
-          subtitle={videoTitle ? `«${videoTitle.slice(0, 80)}»` : 'Выберите факты для сценария'}
+          title={`${facts.length || 20} ключевых ${concept.labelPlural} & тем из видео`}
+          subtitle={videoTitle ? `«${videoTitle.slice(0, 80)}»` : `Выберите ${concept.labelPlural} для сценария`}
           onClose={onClose}
           style={{ flexShrink: 0, padding: '1.1rem 1.5rem', borderBottom: '1px solid #2d2248', background: '#18142b' }}
         />
@@ -100,7 +103,7 @@ export default function YouTubeFactsModal({
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <input
-              type="text" placeholder="Поиск по фактам..." value={searchQuery}
+              type="text" placeholder={`Поиск по ${concept.labelPlural}...`} value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               style={{ background: '#1f1b36', border: '1px solid #4c1d95', borderRadius: '6px', padding: '0.35rem 0.75rem', color: '#ffffff', fontSize: '0.8rem', outline: 'none', width: '180px' }}
             />
@@ -109,6 +112,7 @@ export default function YouTubeFactsModal({
             </span>
           </div>
         </div>
+
 
         {/* Fact list body */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>

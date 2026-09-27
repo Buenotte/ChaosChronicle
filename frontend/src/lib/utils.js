@@ -107,3 +107,17 @@ export function isSportsArticle(art) {
   const text = `${art.title || ''} ${art.summary || ''} ${art.url || ''}`
   return SPORTS_REGEX.test(text)
 }
+
+export const FACT_CONCEPT_TYPES = [
+  { id: 'facts',       name: '💡 Факты',    labelSingle: 'Факт',   labelPlural: 'фактов',   hookWord: 'фактов',            headerWord: 'ФАКТЫ' },
+  { id: 'theses',      name: '📝 Тезисы',   labelSingle: 'Тезис',  labelPlural: 'тезисов',  hookWord: 'ключевых тезисов',  headerWord: 'ТЕЗИСЫ' },
+  { id: 'details',     name: '🔍 Детали',   labelSingle: 'Деталь', labelPlural: 'деталей',  hookWord: 'важнейших деталей', headerWord: 'ДЕТАЛИ' },
+  { id: 'signals',     name: '⚡ Сигналы',  labelSingle: 'Сигнал', labelPlural: 'сигналов', hookWord: 'тревожных сигналов', headerWord: 'СИГНАЛЫ' },
+  { id: 'conclusions', name: '🎯 Выводы',   labelSingle: 'Вывод',  labelPlural: 'выводов',  hookWord: 'главных выводов',   headerWord: 'ВЫВОДЫ' },
+  { id: 'points',      name: '📌 Пункты',   labelSingle: 'Пункт',  labelPlural: 'пунктов',  hookWord: 'ключевых пунктов',  headerWord: 'ПУНКТЫ' },
+]
+
+export function getConceptConfig(conceptId = 'facts') {
+  return FACT_CONCEPT_TYPES.find(c => c.id === conceptId) || FACT_CONCEPT_TYPES[0]
+}
+

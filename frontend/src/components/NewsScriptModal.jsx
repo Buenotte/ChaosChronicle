@@ -68,26 +68,26 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
     }
   }, [isDragging])
 
-  const handleRegenerateScript = async (styleToUse = selectedStyle, modelToUse = selectedModel, toneToUse = selectedTone, chosenFacts = null) => {
+  const handleRegenerateScript = async (styleToUse = selectedStyle, modelToUse = selectedModel, toneToUse = selectedTone, chosenFacts = null, conceptToUse = 'facts') => {
     setRegenerating(true)
     const isYt = ['scipop', 'mystery', 'tech_future', 'psychology', 'storytelling'].includes(styleToUse) || pkg.isYouTube
     const allStyles = [...FEUILLETON_STYLES, ...YOUTUBE_TOPIC_STYLES]
     const styleName = allStyles.find(s => s.id === styleToUse)?.name || styleToUse
     const modelName = AI_MODELS.find(m => m.id === modelToUse)?.name || modelToUse
     const toneLabel = toneToUse === 'analytics' ? '🧠 Аналитика' : '💥 Сатира'
-    const toastId = toast.loading(chosenFacts?.length ? `✨ Сценарий по ${chosenFacts.length} фактам...` : `🔄 Перегенерация текста (${toneLabel})...`, {
+    const toastId = toast.loading(chosenFacts?.length ? `✨ Сценарий по ${chosenFacts.length} пунктам...` : `🔄 Перегенерация текста (${toneLabel})...`, {
       description: `${modelName} | ${styleName}`,
     })
 
     try {
       const endpoint = isYt ? '/api/youtube/regenerate-script' : '/api/generate-feuilleton'
       const payload = isYt
-        ? { folderName: pkg.folderName, bundleDir: pkg.bundleDir, style: styleToUse, selectedFacts: chosenFacts }
+        ? { folderName: pkg.folderName, bundleDir: pkg.bundleDir, style: styleToUse, selectedFacts: chosenFacts, conceptType: conceptToUse }
         : {
             folderName: pkg.folderName, bundleDir: pkg.bundleDir, url: pkg.url || pkg.link || '',
             title: pkg.original_title || pkg.title,
             summary: chosenFacts?.length ? chosenFacts.map(f => `${f.title}: ${f.text}`).join('\n\n') : (originalNews || pkg.original_news || pkg.summary || (text ? text.slice(0, 350) : '') || ''),
-            style: styleToUse, tone: toneToUse, source: pkg.source || '', model: modelToUse,
+            style: styleToUse, tone: toneToUse, source: pkg.source || '', model: modelToUse, conceptType: conceptToUse,
             saveToPackage: Boolean(pkg.folderName || pkg.bundleDir),
           }
 
@@ -106,7 +106,12 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
         pkg.scriptTxt = newText
         pkg.hasScriptTxt = true
         pkg.hasScriptMd = true
-        pkg.selectedFacts = chosenFacts || null
+        pkg.selectedFacts = chosenFacts || data.facts || null
+        if (data.originalNews) {
+          setOriginalNews(data.originalNews)
+          pkg.original_news = data.originalNews
+          pkg.summary = data.originalNews
+        }
         if (fData.title) pkg.title = fData.title
         if (onSaved) onSaved()
         toast.success(chosenFacts?.length ? `🎉 Сценарий создан по ${chosenFacts.length} ключевым фактам!` : '✨ Новый вариант текста готов и сохранен!', { id: toastId })

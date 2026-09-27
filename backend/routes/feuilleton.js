@@ -4,6 +4,7 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { scrapeArticleText } from '../services/articleScraperService.js';
 import { YOUTUBE_STYLES } from '../services/youtubeStyles.js';
+import { getConceptInfo } from '../services/youtubeFactsService.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const router = express.Router();
@@ -17,7 +18,7 @@ const STYLES = {
   gibrid: { file: 'gibrid_style.txt', label: '⚡ Гибридный стиль (3 в 1)', focus: 'Синтез сатиры Голобуцкого, военного реализма и геополитики.' },
 };
 
-export function buildStyledFeuilletonPrompt(newsTitle, newsSummary = '', styleKey = 'golubuzki', tone = 'grotesque') {
+export function buildStyledFeuilletonPrompt(newsTitle, newsSummary = '', styleKey = 'golubuzki', tone = 'grotesque', conceptType = 'facts') {
   if (YOUTUBE_STYLES[styleKey]) {
     const ytCfg = YOUTUBE_STYLES[styleKey];
     return {
@@ -26,6 +27,7 @@ export function buildStyledFeuilletonPrompt(newsTitle, newsSummary = '', styleKe
     };
   }
 
+  const concept = getConceptInfo(conceptType);
   const scriptsDir = path.resolve(__dirname, '../../scripts');
   const effectiveKey = styleKey === 'analytics' ? 'gibrid' : styleKey;
   const styleConfig = STYLES[effectiveKey] || STYLES.golubuzki;
@@ -40,10 +42,17 @@ export function buildStyledFeuilletonPrompt(newsTitle, newsSummary = '', styleKe
   const isAnalytics = tone === 'analytics';
   const roleName = isAnalytics ? 'глубокий военный и политический аналитик' : 'ведущий сатирический колумнист и аналитик';
   const textGenre = isAnalytics ? 'увлекательный 3-минутный аналитический обзор' : 'яркий 3-минутный фельетон';
-  const hookRule = isAnalytics
+  const hasExtractedFacts = /(?:ФАКТ|ТЕЗИС|ДЕТАЛ|СИГНАЛ|ВЫВОД|ПУНКТ)/i.test(newsSummary) && /(?:1\.|ФАКТ 1|ТЕЗИС 1|🌟)/i.test(newsSummary);
+
+  const hookRule = hasExtractedFacts
+    ? `2. 🎯 ОБЯЗАТЕЛЬНЫЙ ХУК В САМОМ НАЧАЛЕ (ПЕРВОЕ ПРЕДЛОЖЕНИЕ): Диктор ОБЯЗАН в первых же словах заявить мощный хук и ПРЯМО ОБЪЯВИТЬ ТЕМУ И 10 ${concept.headerWord}: например, «Вот 10 ${concept.hookWord} на тему [Тема]...», «Сегодня разберем 10 ${concept.labelPlural} о [Тема]...» или «10 поразительных ${concept.labelPlural}, которые объясняют [Тема]...»!`
+    : isAnalytics
     ? '2. 🎯 ПЕРВЫЕ 3 СЕКУНДЫ (СИЛЬНЫЙ АНАЛИТИЧЕСКИЙ ХУК): Первое предложение (7–12 слов) ОБЯЗАНО вскрывать скрытую суть события!'
     : '2. 💥 ПЕРВЫЕ 3 СЕКУНДЫ (ВЗРЫВНОЙ ХУК): Первое предложение (7–12 слов) ОБЯЗАНО быть парадоксальным столкновением противоположностей!';
-  const coreRule = isAnalytics
+
+  const coreRule = hasExtractedFacts
+    ? `3. 🔢 ОБЯЗАТЕЛЬНАЯ НУМЕРАЦИЯ ВСЛУХ (СЧЕТ КАЖДОГО ПУНКТА): Диктор ОБЯЗАН четко проговаривать номер каждого пункта перед его разбором (например: «${concept.labelSingle} первый: ...», «${concept.labelSingle} номер два: ...», ..., «Десятый ${concept.labelSingle.toLowerCase()}: ...»)! Зритель должен слышать точный счет всех 10 пунктов.`
+    : isAnalytics
     ? '3. 🧠 УВЛЕКАТЕЛЬНЫЙ АНАЛИЗ: Раскрывай причинно-следственные связи, ставки и мотивы. БЕЗ цирка и кричащего гротеска!'
     : '3. 🎬 ВИЗУАЛЬНЫЙ ГРОТЕСК И МЕТАФОРЫ-МЕМЫ: Создавай 2–3 кинематографичные сцены с физическими деталями!';
 
@@ -61,19 +70,22 @@ export function buildStyledFeuilletonPrompt(newsTitle, newsSummary = '', styleKe
 ГЛАВНЫЙ ФОКУС: ${focusDesc}
 ${styleGuide && !isAnalytics ? `\nПОДРОБНОЕ РУКОВОДСТВО ПО СТИЛЮ:\n${styleGuide}\n` : ''}
 СТРОЖАЙШИЕ ПРАВИЛА ДЛЯ АУДИО-ОЗВУЧКИ (TTS):
-1. ПИШИ ТОЛЬКО ЧИСТЫЙ ПРОИЗНОСИМЫЙ ТЕКСТ ДИКТОРА.
+1. ПИШИ ТОЛЬКО ЧИСТЫЙ ПРОИЗНОСИМЫЙ ТЕКСТ ДИКТОРА (400-550 слов, ~3 мин.).
 ${hookRule}
 ${coreRule}
 4. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО начинать с приветствий («Привет, друзья!», «С вами ChaosChronicle»).
 5. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО писать заголовки блоков («**Блок 1**»), тайминги, плейсхолдеры [B-Roll:...], концовки «Работаем дальше. Без иллюзий.».
-6. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО писать от первого лица («мы», «я», «мы разбираем», «наш анализ», «разбор полетов»). Веди повествование строго в третьем лице!`;
+${hasExtractedFacts ? `6. ОБЯЗАТЕЛЬНО раскрой и объясни КАЖДЫЙ из 10 ${concept.labelPlural} по порядку от 1-го до 10-го с четким голосовым счетом!` : '6. Веди повествование динамично и уверенно!'}`;
 
-  const userInstruction = isAnalytics
+  const userInstruction = hasExtractedFacts
+    ? `ТЕМА: ${newsTitle}\n10 КЛЮЧЕВЫХ ${concept.headerWord}:\n"""\n${newsSummary || ''}\n"""\n\nСоздай 3-минутный сценарий в стиле ${styleConfig.label}. ОБЯЗАТЕЛЬНО начни с хука с объявлением 10 ${concept.labelPlural} на тему, а затем четко отсчитай и объясни каждый («${concept.labelSingle} первый: ...», «${concept.labelSingle} номер два: ...»):`
+    : isAnalytics
     ? `ТЕМА: ${newsTitle}\nФАКТЫ: ${newsSummary || ''}\n\nНапиши увлекательный аналитический текст в стиле ${styleConfig.label} простым языком (БЕЗ приветствий, сразу с сути):`
     : `ТЕМА НОВОСТИ: ${newsTitle}\nКОНТЕКСТ/ФАКТЫ: ${newsSummary || ''}\n\nНапиши монолог фельетона в стиле ${styleConfig.label} с яркими метафорами и парадоксальным хуком (БЕЗ приветствий):`;
 
   return { systemInstruction, userInstruction };
 }
+
 
 async function callGeminiDirect(systemInstruction, userInstruction, maxTokens = 4000) {
   const geminiKey = process.env.GEMINI_API_KEY;
@@ -152,15 +164,11 @@ function cleanSpeechTextForAudio(rawText) {
     .replace(/__([^_]+)__/g, '$1')
     .replace(/_([^_]+)_/g, '$1')
     .replace(/`([^`]+)`/g, '$1')
-    .replace(/^\s*[-*+]\s+/gm, '')
-    .replace(/^\s*\d+\.\s+/gm, '')
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
     .replace(/\[b-roll:[^\]]*\]/gi, '')
     .replace(/\([0-9]+:[0-9]+[^)]*\)/g, '')
-    .replace(/^[А-Яа-яЁё\s0-9]+:\s*/gm, '')
+    .replace(/^(?:Диктор|Ведущий|Спикер|Текст|Сценарий):\s*/gmi, '')
     .replace(/^(Привет,?\s*друзья!?|Доброго\s+времени\s+суток!?[^.!?\n]*[.!?]|Здравствуйте,?\s*[^.!?\n]*[.!?]|Приветствую,?\s*[^.!?\n]*[.!?]|С\s+вами\s+ChaosChronicle[^.!?\n]*[.!?])\s*/gi, '')
-    .replace(/(?:сегодня|в этом (?:видео|выпуске))\s+мы\s+(?:разбираем|анализируем|посмотрим)[^.!?\n]*[.!?]?/gi, '')
-    .replace(/\bмы\s+(?:разбираем|анализируем|посмотрим|раскроем|видим|обсудим)\b/gi, '')
     .replace(/\b(?:глубокая аналитика\s*(?:без гротеска)?|без гротеска)\b/gi, '')
     .replace(/\b(?:Разбор полетов|Глубокий разбор|Наш разбор)\b/gi, '')
     .replace(/(?:Работаем\s+дальше[.,!\s]*)+/gi, '')
@@ -170,7 +178,7 @@ function cleanSpeechTextForAudio(rawText) {
 }
 
 router.post('/api/generate-feuilleton', async (req, res) => {
-  const { title, summary, model = 'gemini', source, style = 'golubuzki', tone = 'grotesque' } = req.body;
+  const { title, summary, model = 'gemini', source, style = 'golubuzki', tone = 'grotesque', conceptType = 'facts' } = req.body;
   if (!title) return res.status(400).json({ error: 'Title is required' });
 
   let effectiveSummary = (summary || req.body.original_news || req.body.originalNews || req.body.sourceText || '').trim();
@@ -195,7 +203,8 @@ router.post('/api/generate-feuilleton', async (req, res) => {
   }
 
   const modelId = MODELS[model] || MODELS.gemini;
-  const { systemInstruction, userInstruction } = buildStyledFeuilletonPrompt(title, effectiveSummary, style, tone);
+  const { systemInstruction, userInstruction } = buildStyledFeuilletonPrompt(title, effectiveSummary, style, tone, conceptType);
+
 
   try {
     let rawText = '';

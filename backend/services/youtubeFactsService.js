@@ -66,19 +66,33 @@ async function callOpenRouterFallback(systemInstruction, userInstruction) {
   }
 }
 
-export async function extractTwentyFactsFromTranscript(transcriptText = '', title = '', requestedCount = 20) {
+export const CONCEPT_MAP = {
+  facts:       { id: 'facts',       labelSingle: 'Факт',   labelPlural: 'фактов',   adjPlural: 'интересных и парадоксальных фактов',   hookWord: 'фактов',            headerWord: 'ФАКТЫ' },
+  theses:      { id: 'theses',      labelSingle: 'Тезис',  labelPlural: 'тезисов',  adjPlural: 'ключевых тезисов и аргументов',        hookWord: 'ключевых тезисов',  headerWord: 'ТЕЗИСЫ' },
+  details:     { id: 'details',     labelSingle: 'Деталь', labelPlural: 'деталей',  adjPlural: 'важнейших скрытых деталей и нюансов',  hookWord: 'важнейших деталей', headerWord: 'ДЕТАЛИ' },
+  signals:     { id: 'signals',     labelSingle: 'Сигнал', labelPlural: 'сигналов', adjPlural: 'тревожных и решающих сигналов',        hookWord: 'тревожных сигналов', headerWord: 'СИГНАЛЫ' },
+  conclusions: { id: 'conclusions', labelSingle: 'Вывод',  labelPlural: 'выводов',  adjPlural: 'главных выводов и итогов',             hookWord: 'главных выводов',   headerWord: 'ВЫВОДЫ' },
+  points:      { id: 'points',      labelSingle: 'Пункт',  labelPlural: 'пунктов',  adjPlural: 'ключевых пунктов и положений',         hookWord: 'ключевых пунктов',  headerWord: 'ПУНКТЫ' },
+};
+
+export function getConceptInfo(conceptKey = 'facts') {
+  return CONCEPT_MAP[conceptKey] || CONCEPT_MAP.facts;
+}
+
+export async function extractTwentyFactsFromTranscript(transcriptText = '', title = '', requestedCount = 20, conceptType = 'facts') {
   if (!transcriptText || transcriptText.trim().length < 50) {
     throw new Error('Текст транскрипта слишком короткий для анализа фактов');
   }
 
+  const concept = getConceptInfo(conceptType);
   const count = [5, 10, 20].includes(Number(requestedCount)) ? Number(requestedCount) : (parseInt(requestedCount, 10) || 20);
   const cleanText = transcriptText.slice(0, 65000);
   const sysPrompt = `Ты — ведущий шеф-редактор и продюсер YouTube-канала Chaos Chronicle.
-Твоя задача — внимательно изучить транскрипт длинного разговора/интервью и извлечь РОВНО ${count} САМЫХ ИНТЕРЕСНЫХ, ШОКИРУЮЩИХ, НАУЧНЫХ ИЛИ ПАРАДОКСАЛЬНЫХ ФАКТОВ/ТЕМ.
-Каждый факт должен быть самостоятельным и понятным зрителю.
+Твоя задача — внимательно изучить транскрипт длинного разговора/интервью и извлечь РОВНО ${count} САМЫХ ${concept.adjPlural.toUpperCase()} / ТЕМ.
+Каждый пункт (${concept.labelSingle.toLowerCase()}) должен быть самостоятельным и понятным зрителю.
 СТРОЖАЙШЕ ЗАПРЕЩЕНО:
 - Упоминать имена ведущих, интервьюеров и гостей (никаких "доктор", "гость сказал", "ведущий спросил").
-- Писать пустые общие фразы. Пиши суть факта, парадокса, механизма или исторического события!
+- Писать пустые общие фразы. Пиши суть пункта (${concept.labelSingle.toLowerCase()}), механизма, парадокса или события!
 
 ОТВЕТЬ СТРОГО В ФОРМАТЕ JSON:
 {
@@ -86,7 +100,7 @@ export async function extractTwentyFactsFromTranscript(transcriptText = '', titl
     {
       "id": 1,
       "title": "Короткий хлесткий заголовок (3-6 слов)",
-      "text": "Суть факта в 1-2 емких предложениях с конкретными деталями и парадоксом."
+      "text": "Суть в 1-2 емких предложениях с конкретными деталями и парадоксом."
     }
   ]
 }`;
@@ -98,7 +112,7 @@ export async function extractTwentyFactsFromTranscript(transcriptText = '', titl
 ${cleanText}
 """
 
-Найди и сформулируй РОВНО ${count} самых сильных фактов/тем в формате JSON:`;
+Найди и сформулируй РОВНО ${count} самых сильных ${concept.labelPlural} в формате JSON:`;
 
   let rawJson = await callGeminiDirect(sysPrompt, userPrompt, count > 10 ? 7000 : 4000);
   if (!rawJson) {
@@ -116,7 +130,7 @@ ${cleanText}
 
     facts = facts.map((f, idx) => ({
       id: f.id || idx + 1,
-      title: String(f.title || `Факт #${idx + 1}`).trim(),
+      title: String(f.title || `${concept.labelSingle} #${idx + 1}`).trim(),
       text: String(f.text || '').trim(),
     })).filter(f => f.title && f.text);
 
@@ -125,3 +139,4 @@ ${cleanText}
     throw new Error(`Ошибка разбора JSON фактов: ${err.message}`);
   }
 }
+
