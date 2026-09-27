@@ -138,6 +138,9 @@ export function fetchYouTubePsychologyVideos() {
 
 export function fetchYouTubeRussiaVideos() {
   return fetchYouTubeCategoryVideos([
+    'юрий швец',
+    'ян матвеев военный разбор',
+    'майкл наки сводка',
     'новости россия аналитика наки потапенко шульман',
     'что происходит в россии разбор дождь свобода',
     'кризис в россии 2026 ходорковский live',
@@ -148,16 +151,24 @@ export function fetchYouTubeRussiaVideos() {
 
 export function fetchYouTubeUkraineVideos() {
   return fetchYouTubeCategoryVideos([
+    'иван яковина',
+    'юрий швец',
+    'ян матвеев сводка',
+    'майкл наки фронт',
+    'роман цымбалюк',
     'украина новости фронт война сегодня аналитика',
-    'события в украине всу фронт сводка наки',
+    'события в украине всу фронт сводка',
     'всу фронт сегодня сводка новости',
-    'война в украине 2026 аналитика freedom',
+    'война в украине аналитика freedom',
     'удары по военным объектам рф фронт'
   ], 'ukraina', 'Украина');
 }
 
 export function fetchYouTubePoliticsVideos() {
   return fetchYouTubeCategoryVideos([
+    'юрий швец анализ',
+    'иван яковина главное',
+    'ян матвеев',
     'мировая политика геополитика аналитика кремль',
     'политика новости сегодня главные события разбор',
     'санкции против рф изоляция аналитика',
