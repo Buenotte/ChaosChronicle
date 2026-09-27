@@ -140,10 +140,11 @@ router.post('/api/youtube/info', async (req, res) => {
   }
 });
 
-// POST /api/youtube/extract-facts - Extract 20 key facts (from URL, package folder, or raw text)
+// POST /api/youtube/extract-facts - Extract 5, 10, or 20 key facts (from URL, package folder, or raw text)
 router.post('/api/youtube/extract-facts', async (req, res) => {
   try {
-    const { url, folderName, bundleDir: inputBundleDir, text: inputText, title: inputTitle, force = false } = req.body;
+    const { url, folderName, bundleDir: inputBundleDir, text: inputText, title: inputTitle, force = false, count = 20 } = req.body;
+    const targetCount = [5, 10, 20].includes(Number(count)) ? Number(count) : (parseInt(count, 10) || 20);
     let rawText = (inputText || '').trim(), title = (inputTitle || '').trim();
     const targetFolder = inputBundleDir || (folderName ? path.join(newsDir, folderName) : null);
 
@@ -155,8 +156,8 @@ router.post('/api/youtube/extract-facts', async (req, res) => {
         try { manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8')); } catch {}
       }
       if (!title) title = manifest.title || manifest.original_title || path.basename(targetFolder);
-      if (!force && Array.isArray(manifest.facts) && manifest.facts.length > 0) {
-        return res.json({ success: true, facts: manifest.facts, factsCount: manifest.facts.length, title, cached: true });
+      if (!force && Array.isArray(manifest.facts) && manifest.facts.length >= targetCount) {
+        return res.json({ success: true, facts: manifest.facts.slice(0, targetCount), factsCount: Math.min(manifest.facts.length, targetCount), title, cached: true });
       }
       if (!rawText) {
         const origPath = path.join(targetFolder, 'original_news.txt'), srcPath = path.join(targetFolder, 'source.txt'), mdPath = path.join(targetFolder, 'script.md');
@@ -166,7 +167,7 @@ router.post('/api/youtube/extract-facts', async (req, res) => {
         else if (manifest.original_news || manifest.summary) rawText = manifest.original_news || manifest.summary;
       }
       if (rawText && rawText.length >= 40) {
-        const facts = await extractTwentyFactsFromTranscript(rawText, title);
+        const facts = await extractTwentyFactsFromTranscript(rawText, title, targetCount);
         manifest.facts = facts;
         fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
         return res.json({ success: true, facts, factsCount: facts.length, title });
@@ -175,7 +176,7 @@ router.post('/api/youtube/extract-facts', async (req, res) => {
 
     // 2. Из переданного текста
     if (rawText && rawText.length >= 40) {
-      const facts = await extractTwentyFactsFromTranscript(rawText, title || 'Материал');
+      const facts = await extractTwentyFactsFromTranscript(rawText, title || 'Материал', targetCount);
       return res.json({ success: true, facts, factsCount: facts.length, title: title || 'Материал' });
     }
 
@@ -202,7 +203,7 @@ router.post('/api/youtube/extract-facts', async (req, res) => {
     try { fs.rmSync(tempDir, { recursive: true, force: true }); } catch {}
     if (!rawText || rawText.length < 40) rawText = `${metadata.title}\n\n${metadata.description || ''}`;
 
-    const facts = await extractTwentyFactsFromTranscript(rawText, metadata.title);
+    const facts = await extractTwentyFactsFromTranscript(rawText, metadata.title, targetCount);
     res.json({ success: true, metadata, facts, factsCount: facts.length });
   } catch (err) {
     console.error('Extract facts error:', err);

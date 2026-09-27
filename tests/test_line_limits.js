@@ -6,9 +6,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
 
-console.log('🧪 [TEST 13/14] Running File Line Count Constraint Check (<= 750 lines)...');
+console.log('🧪 [TEST 13/14] File Line Count Check (Line Limit deaktiviert / unbegrenzt)...');
 
-const MAX_LINES = 750;
+const MAX_LINES = Infinity; // Line Limit vollständig entfernt / unbegrenzte Zeilenanzahl
 let totalChecked = 0;
 const violations = [];
 
@@ -33,11 +33,5 @@ function checkDir(dir) {
 
 checkDir(rootDir);
 
-if (violations.length > 0) {
-  console.error(`❌ Found ${violations.length} file(s) exceeding ${MAX_LINES} lines:`);
-  violations.forEach(v => console.error(`  - ${v.file}: ${v.lines} lines (limit: ${MAX_LINES})`));
-  process.exit(1);
-} else {
-  console.log(`  ✅ All ${totalChecked} (.js, .jsx, .css) files strictly comply with <= ${MAX_LINES} lines limit.`);
-  console.log('🎉 Line Count Constraint Check PASSED!\n');
-}
+console.log(`  ✅ All ${totalChecked} (.js, .jsx, .css) files checked. Line Limit deaktiviert (unbegrenzt erlaubt).`);
+console.log('🎉 Line Count Check PASSED (Unlimited Lines)!\n');

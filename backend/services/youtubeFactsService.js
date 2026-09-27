@@ -66,14 +66,15 @@ async function callOpenRouterFallback(systemInstruction, userInstruction) {
   }
 }
 
-export async function extractTwentyFactsFromTranscript(transcriptText = '', title = '') {
+export async function extractTwentyFactsFromTranscript(transcriptText = '', title = '', requestedCount = 20) {
   if (!transcriptText || transcriptText.trim().length < 50) {
     throw new Error('Текст транскрипта слишком короткий для анализа фактов');
   }
 
+  const count = [5, 10, 20].includes(Number(requestedCount)) ? Number(requestedCount) : (parseInt(requestedCount, 10) || 20);
   const cleanText = transcriptText.slice(0, 65000);
   const sysPrompt = `Ты — ведущий шеф-редактор и продюсер YouTube-канала Chaos Chronicle.
-Твоя задача — внимательно изучить транскрипт длинного разговора/интервью и извлечь РОВНО 20 САМЫХ ИНТЕРЕСНЫХ, ШОКИРУЮЩИХ, НАУЧНЫХ ИЛИ ПАРАДОКСАЛЬНЫХ ФАКТОВ/ТЕМ.
+Твоя задача — внимательно изучить транскрипт длинного разговора/интервью и извлечь РОВНО ${count} САМЫХ ИНТЕРЕСНЫХ, ШОКИРУЮЩИХ, НАУЧНЫХ ИЛИ ПАРАДОКСАЛЬНЫХ ФАКТОВ/ТЕМ.
 Каждый факт должен быть самостоятельным и понятным зрителю.
 СТРОЖАЙШЕ ЗАПРЕЩЕНО:
 - Упоминать имена ведущих, интервьюеров и гостей (никаких "доктор", "гость сказал", "ведущий спросил").
@@ -97,9 +98,9 @@ export async function extractTwentyFactsFromTranscript(transcriptText = '', titl
 ${cleanText}
 """
 
-Найди и сформулируй РОВНО 20 самых сильных фактов/тем в формате JSON:`;
+Найди и сформулируй РОВНО ${count} самых сильных фактов/тем в формате JSON:`;
 
-  let rawJson = await callGeminiDirect(sysPrompt, userPrompt, 7000);
+  let rawJson = await callGeminiDirect(sysPrompt, userPrompt, count > 10 ? 7000 : 4000);
   if (!rawJson) {
     rawJson = await callOpenRouterFallback(sysPrompt, userPrompt);
   }
@@ -119,7 +120,7 @@ ${cleanText}
       text: String(f.text || '').trim(),
     })).filter(f => f.title && f.text);
 
-    return facts.slice(0, 20);
+    return facts.slice(0, count);
   } catch (err) {
     throw new Error(`Ошибка разбора JSON фактов: ${err.message}`);
   }

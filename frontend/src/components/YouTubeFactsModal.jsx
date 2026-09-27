@@ -66,7 +66,7 @@ export default function YouTubeFactsModal({
         {/* Header */}
         <ModalHeader
           icon="🔍"
-          title="20 ключевых фактов & тем из видео"
+          title={`${facts.length || 20} ключевых фактов & тем из видео`}
           subtitle={videoTitle ? `«${videoTitle.slice(0, 80)}»` : 'Выберите факты для сценария'}
           onClose={onClose}
           style={{ flexShrink: 0, padding: '1.1rem 1.5rem', borderBottom: '1px solid #2d2248', background: '#18142b' }}
@@ -74,19 +74,21 @@ export default function YouTubeFactsModal({
 
         {/* Toolbar */}
         <div style={{ flexShrink: 0, padding: '0.75rem 1.5rem', background: '#161226', borderBottom: '1px solid #281e3d', display: 'flex', flexWrap: 'wrap', gap: '0.65rem', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', gap: '0.45rem', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '0.45rem', alignItems: 'center', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '0.76rem', color: '#9ca3af', marginRight: '0.2rem' }}>Пресеты:</span>
-            {[{ label: '⚡ Топ-3', count: 3 }, { label: '🌟 Топ-5', count: 5 }].map(p => (
-              <button
-                key={p.count} type="button" onClick={() => selectTopN(p.count)}
-                style={{
-                  background: selectedCount === p.count ? '#6d28d9' : '#241a45', color: '#e0e7ff',
-                  border: '1px solid #6d28d9', borderRadius: '6px', padding: '0.35rem 0.65rem',
-                  fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer',
-                }}
-              >
-                {p.label}
-              </button>
+            {[{ label: '⚡ Топ-3', count: 3 }, { label: '🌟 Топ-5', count: 5 }, { label: '💎 Топ-10', count: 10 }, { label: '🔥 Все 20', count: 20 }]
+              .filter(p => p.count <= Math.max(facts.length, 3))
+              .map(p => (
+                <button
+                  key={p.count} type="button" onClick={() => selectTopN(p.count)}
+                  style={{
+                    background: selectedCount === p.count ? '#6d28d9' : '#241a45', color: '#e0e7ff',
+                    border: '1px solid #6d28d9', borderRadius: '6px', padding: '0.35rem 0.65rem',
+                    fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer',
+                  }}
+                >
+                  {p.label}
+                </button>
             ))}
             <button type="button" onClick={selectAll} style={{ background: '#241a45', color: '#c4b5fd', border: '1px solid #4c1d95', borderRadius: '6px', padding: '0.35rem 0.65rem', fontSize: '0.78rem', cursor: 'pointer' }}>
               Все ({facts.length})

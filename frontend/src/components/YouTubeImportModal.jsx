@@ -20,6 +20,7 @@ export default function YouTubeImportModal({ isOpen, onClose, onPackageCreated, 
   const [facts, setFacts] = useState([])
   const [factsModalOpen, setFactsModalOpen] = useState(false)
   const [factsLoading, setFactsLoading] = useState(false)
+  const [requestedFactsCount, setRequestedFactsCount] = useState(20) // 5 | 10 | 20
 
   useEffect(() => {
     if (!isOpen) {
@@ -52,12 +53,16 @@ export default function YouTubeImportModal({ isOpen, onClose, onPackageCreated, 
     } catch { toast.error('Не удалось прочитать буфер обмена') }
   }
 
-  const handleExtractFacts = async () => {
+  const handleExtractFacts = async (targetCount = requestedFactsCount) => {
     if (!url.trim()) return toast.error('Укажите ссылку на YouTube видео')
     setFactsLoading(true)
-    const toastId = toast.loading('🔍 Извлечение 20 фактов...', { description: 'Получение транскрипта и анализ через Gemini...' })
+    const toastId = toast.loading(`🔍 Извлечение ${targetCount} фактов...`, { description: 'Получение транскрипта и анализ через Gemini...' })
     try {
-      const res = await fetch('/api/youtube/extract-facts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: url.trim() }) })
+      const res = await fetch('/api/youtube/extract-facts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: url.trim(), count: targetCount })
+      })
       const data = await res.json()
       if (data.success && data.facts?.length > 0) {
         setFacts(data.facts)
@@ -112,7 +117,7 @@ export default function YouTubeImportModal({ isOpen, onClose, onPackageCreated, 
               <span style={{ fontSize: '1.6rem' }}>🎬</span>
               <div>
                 <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>YouTube видео ➜ 3-Мин. Сценарий</h2>
-                <p style={{ margin: 0, fontSize: '0.78rem', color: '#9ca3af' }}>Аудио, Whisper, 20 ключевых фактов и автопакет</p>
+                <p style={{ margin: 0, fontSize: '0.78rem', color: '#9ca3af' }}>Аудио, Whisper, 5 / 10 / 20 ключевых фактов и автопакет</p>
               </div>
             </div>
             <button type="button" onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#9ca3af', fontSize: '1.4rem', cursor: 'pointer' }}>✕</button>
@@ -140,6 +145,37 @@ export default function YouTubeImportModal({ isOpen, onClose, onPackageCreated, 
                   </div>
                 )}
 
+                {/* Выбор количества фактов */}
+                <div style={{ marginBottom: '1.1rem', background: '#1c192e', padding: '0.75rem 0.9rem', borderRadius: '10px', border: '1px solid #3b2d54' }}>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, marginBottom: '0.45rem', color: '#d1d5db' }}>
+                    💎 Сколько фактов извлечь из видео:
+                  </label>
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    {[5, 10, 20].map(cnt => (
+                      <button
+                        key={cnt}
+                        type="button"
+                        onClick={() => setRequestedFactsCount(cnt)}
+                        style={{
+                          flex: 1,
+                          background: requestedFactsCount === cnt ? 'linear-gradient(135deg, #7c3aed, #6d28d9)' : '#241a45',
+                          color: requestedFactsCount === cnt ? '#ffffff' : '#c4b5fd',
+                          border: requestedFactsCount === cnt ? '1.5px solid #a78bfa' : '1px solid #4c1d95',
+                          borderRadius: '8px',
+                          padding: '0.45rem 0.6rem',
+                          fontSize: '0.84rem',
+                          fontWeight: requestedFactsCount === cnt ? 700 : 500,
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                          boxShadow: requestedFactsCount === cnt ? '0 2px 8px rgba(124, 58, 237, 0.35)' : 'none',
+                        }}
+                      >
+                        {cnt === 5 ? '⚡ 5 фактов' : cnt === 10 ? '🌟 10 фактов' : '💎 20 фактов'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <div style={{ marginBottom: '1.25rem' }}>
                   <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, marginBottom: '0.4rem', color: '#d1d5db' }}>🎬 Стиль 3-минутного видео:</label>
                   <select value={style} onChange={e => setStyle(e.target.value)} disabled={loading || factsLoading} style={{ width: '100%', background: '#1c192e', border: '1px solid #4c1d95', borderRadius: '8px', padding: '0.65rem 0.85rem', color: '#fff', fontSize: '0.88rem', outline: 'none' }}>
@@ -160,8 +196,8 @@ export default function YouTubeImportModal({ isOpen, onClose, onPackageCreated, 
                 )}
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', marginTop: '1rem', flexWrap: 'wrap' }}>
-                  <button type="button" onClick={handleExtractFacts} disabled={loading || factsLoading || !url.trim()} style={{ ...btnStyle('#241a48', '#c4b5fd', '1.5px solid #8b5cf6'), display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    {factsLoading ? '⏳ Поиск фактов...' : '🔍 Выбрать из 20 фактов'}
+                  <button type="button" onClick={() => handleExtractFacts(requestedFactsCount)} disabled={loading || factsLoading || !url.trim()} style={{ ...btnStyle('#241a48', '#c4b5fd', '1.5px solid #8b5cf6'), display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    {factsLoading ? `⏳ Поиск ${requestedFactsCount} фактов...` : `🔍 Извлечь ${requestedFactsCount} фактов`}
                   </button>
                   <div style={{ display: 'flex', gap: '0.6rem' }}>
                     <button type="button" onClick={onClose} disabled={loading || factsLoading} style={btnStyle('#27272a', '#d4d4d8')}>Отмена</button>

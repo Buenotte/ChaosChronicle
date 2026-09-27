@@ -17,7 +17,8 @@ export default function App() {
   const [backendStatus, setBackendStatus] = useState('checking')
   const [lastRefresh, setLastRefresh] = useState('')
   const [search, setSearch] = useState(''), [visibleCount, setVisibleCount] = useState(30)
-  useEffect(() => { setVisibleCount(30) }, [category, search])
+  const [mediaFilter, setMediaFilter] = useState('all') // 'all' | 'youtube' | 'feed'
+  useEffect(() => { setVisibleCount(30); setMediaFilter('all') }, [category, search])
 
   // Feuilleton Generation State
   const [generatingId, setGeneratingId] = useState(null)
@@ -259,8 +260,23 @@ export default function App() {
         return a
       })
 
-    return q ? regularWithPkg.filter(a => matchesSearch(a, q)) : regularWithPkg
-  }, [articles, savedPackages, search, category])
+    let list = regularWithPkg
+    if (mediaFilter === 'youtube') {
+      list = list.filter(a => a.isYouTube || (a.url || '').includes('youtube.com') || (a.url || '').includes('youtu.be'))
+    } else if (mediaFilter === 'feed') {
+      list = list.filter(a => !a.isYouTube && !(a.url || '').includes('youtube.com') && !(a.url || '').includes('youtu.be'))
+    }
+
+    return q ? list.filter(a => matchesSearch(a, q)) : list
+  }, [articles, savedPackages, search, category, mediaFilter])
+
+  const ytCount = useMemo(() => {
+    return articles.filter(a => a.isYouTube || (a.url || '').includes('youtube.com') || (a.url || '').includes('youtu.be')).length
+  }, [articles])
+
+  const feedCount = useMemo(() => {
+    return articles.filter(a => !a.isYouTube && !(a.url || '').includes('youtube.com') && !(a.url || '').includes('youtu.be')).length
+  }, [articles])
 
   return (
     <div className="app-layout">
@@ -299,6 +315,101 @@ export default function App() {
           <div className="error-banner">
             <span>⚠️ {error}</span>
             <button onClick={() => fetchNews(category)}>Попробовать снова</button>
+          </div>
+        )}
+
+        {/* Панель выбора: Все / YouTube Видео / RSS Новости */}
+        {category !== 'saved' && (ytCount > 0 || feedCount > 0) && (
+          <div
+            className="media-filter-bar"
+            style={{
+              display: 'flex',
+              gap: '0.6rem',
+              alignItems: 'center',
+              marginBottom: '1.25rem',
+              background: 'rgba(24, 24, 27, 0.75)',
+              padding: '0.55rem 0.9rem',
+              borderRadius: '12px',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              backdropFilter: 'blur(8px)',
+              flexWrap: 'wrap',
+            }}
+          >
+            <span style={{ fontSize: '0.84rem', fontWeight: 600, color: '#a1a1aa', marginRight: '0.25rem' }}>
+              🎯 Источник:
+            </span>
+            <button
+              type="button"
+              onClick={() => setMediaFilter('all')}
+              style={{
+                background: mediaFilter === 'all' ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : '#27272a',
+                color: '#ffffff',
+                border: mediaFilter === 'all' ? '1px solid #60a5fa' : '1px solid #3f3f46',
+                borderRadius: '8px',
+                padding: '0.38rem 0.85rem',
+                fontSize: '0.82rem',
+                fontWeight: mediaFilter === 'all' ? 700 : 500,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                boxShadow: mediaFilter === 'all' ? '0 2px 8px rgba(59, 130, 246, 0.4)' : 'none',
+              }}
+            >
+              <span>🌟 Все материалы</span>
+              <span style={{ opacity: 0.85, fontSize: '0.74rem', background: 'rgba(0,0,0,0.3)', padding: '0.1rem 0.4rem', borderRadius: '6px' }}>
+                {articles.length}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setMediaFilter('youtube')}
+              style={{
+                background: mediaFilter === 'youtube' ? 'linear-gradient(135deg, #dc2626, #b91c1c)' : '#27272a',
+                color: '#ffffff',
+                border: mediaFilter === 'youtube' ? '1px solid #f87171' : '1px solid #3f3f46',
+                borderRadius: '8px',
+                padding: '0.38rem 0.85rem',
+                fontSize: '0.82rem',
+                fontWeight: mediaFilter === 'youtube' ? 700 : 500,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                boxShadow: mediaFilter === 'youtube' ? '0 2px 8px rgba(220, 38, 38, 0.4)' : 'none',
+              }}
+            >
+              <span>🎬 YouTube Видео</span>
+              <span style={{ opacity: 0.85, fontSize: '0.74rem', background: 'rgba(0,0,0,0.3)', padding: '0.1rem 0.4rem', borderRadius: '6px' }}>
+                {ytCount}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setMediaFilter('feed')}
+              style={{
+                background: mediaFilter === 'feed' ? 'linear-gradient(135deg, #10b981, #059669)' : '#27272a',
+                color: '#ffffff',
+                border: mediaFilter === 'feed' ? '1px solid #34d399' : '1px solid #3f3f46',
+                borderRadius: '8px',
+                padding: '0.38rem 0.85rem',
+                fontSize: '0.82rem',
+                fontWeight: mediaFilter === 'feed' ? 700 : 500,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                boxShadow: mediaFilter === 'feed' ? '0 2px 8px rgba(16, 185, 129, 0.4)' : 'none',
+              }}
+            >
+              <span>📰 RSS Новости</span>
+              <span style={{ opacity: 0.85, fontSize: '0.74rem', background: 'rgba(0,0,0,0.3)', padding: '0.1rem 0.4rem', borderRadius: '6px' }}>
+                {feedCount}
+              </span>
+            </button>
           </div>
         )}
 
