@@ -1,18 +1,21 @@
 import { useState, useMemo, useEffect } from 'react'
 import ModalHeader from './common/ModalHeader'
+import { YOUTUBE_TOPIC_STYLES } from '../lib/utils'
 
 export default function YouTubeFactsModal({
-  isOpen, onClose, facts = [], videoTitle = '', onConfirm, loading = false,
+  isOpen, onClose, facts = [], videoTitle = '', onConfirm, loading = false, currentStyle = 'scipop',
 }) {
   const [selectedIds, setSelectedIds] = useState(new Set([1, 2, 3]))
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedStyle, setSelectedStyle] = useState(currentStyle)
 
   useEffect(() => {
     if (isOpen) {
       setSelectedIds(new Set([1, 2, 3]))
       setSearchQuery('')
+      setSelectedStyle(currentStyle || 'scipop')
     }
-  }, [isOpen])
+  }, [isOpen, currentStyle])
 
   const filteredFacts = useMemo(() => {
     if (!searchQuery.trim()) return facts
@@ -35,7 +38,7 @@ export default function YouTubeFactsModal({
 
   const handleGenerate = () => {
     const chosen = facts.filter(f => selectedIds.has(f.id))
-    if (chosen.length > 0) onConfirm(chosen)
+    if (chosen.length > 0) onConfirm(chosen, selectedStyle)
   }
 
   const selectedCount = selectedIds.size
@@ -150,24 +153,55 @@ export default function YouTubeFactsModal({
         </div>
 
         {/* Footer */}
-        <div style={{ flexShrink: 0, padding: '1rem 1.5rem', borderTop: '1px solid #2d2248', background: '#18142b', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <button
-            type="button" onClick={onClose} disabled={loading}
-            style={{ background: '#27272a', color: '#d4d4d8', border: 'none', borderRadius: '8px', padding: '0.65rem 1.25rem', fontSize: '0.86rem', cursor: 'pointer' }}
-          >
-            Отмена
-          </button>
-          <button
-            type="button" onClick={handleGenerate} disabled={selectedCount === 0 || loading}
-            style={{
-              background: selectedCount > 0 && !loading ? 'linear-gradient(135deg, #8b5cf6, #ec4899)' : '#4b5563',
-              color: '#ffffff', border: 'none', borderRadius: '8px', padding: '0.65rem 1.4rem',
-              fontSize: '0.88rem', fontWeight: 700, cursor: selectedCount > 0 && !loading ? 'pointer' : 'not-allowed',
-              boxShadow: selectedCount > 0 ? '0 4px 14px rgba(139, 92, 246, 0.4)' : 'none',
-            }}
-          >
-            {loading ? '⏳ Генерация сценария...' : `✨ Создать сценарий по выбранным (${selectedCount})`}
-          </button>
+        <div style={{ flexShrink: 0, padding: '0.9rem 1.5rem', borderTop: '1px solid #2d2248', background: '#18142b', display: 'flex', flexWrap: 'wrap', gap: '0.8rem', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#c4b5fd', whiteSpace: 'nowrap' }}>
+              🎬 Стиль сценария:
+            </label>
+            <select
+              value={selectedStyle}
+              onChange={e => setSelectedStyle(e.target.value)}
+              disabled={loading}
+              style={{
+                background: '#231b3e',
+                border: '1px solid #6d28d9',
+                borderRadius: '8px',
+                padding: '0.45rem 0.75rem',
+                color: '#ffffff',
+                fontSize: '0.82rem',
+                fontWeight: 600,
+                outline: 'none',
+                cursor: 'pointer',
+                maxWidth: '310px',
+              }}
+            >
+              {YOUTUBE_TOPIC_STYLES.map(s => (
+                <option key={s.id} value={s.id}>
+                  {s.icon} {s.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+            <button
+              type="button" onClick={onClose} disabled={loading}
+              style={{ background: '#27272a', color: '#d4d4d8', border: 'none', borderRadius: '8px', padding: '0.65rem 1.25rem', fontSize: '0.86rem', cursor: 'pointer' }}
+            >
+              Отмена
+            </button>
+            <button
+              type="button" onClick={handleGenerate} disabled={selectedCount === 0 || loading}
+              style={{
+                background: selectedCount > 0 && !loading ? 'linear-gradient(135deg, #8b5cf6, #ec4899)' : '#4b5563',
+                color: '#ffffff', border: 'none', borderRadius: '8px', padding: '0.65rem 1.4rem',
+                fontSize: '0.88rem', fontWeight: 700, cursor: selectedCount > 0 && !loading ? 'pointer' : 'not-allowed',
+                boxShadow: selectedCount > 0 ? '0 4px 14px rgba(139, 92, 246, 0.4)' : 'none',
+              }}
+            >
+              {loading ? '⏳ Генерация сценария...' : `✨ Создать сценарий по выбранным (${selectedCount})`}
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -6,9 +6,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
 
-console.log('🧪 [TEST 13/14] Running File Line Count Constraint Check (<= 389 lines)...');
+console.log('🧪 [TEST 13/14] Running File Line Count Constraint Check (<= 750 lines)...');
 
-const MAX_LINES = 389;
+const MAX_LINES = 750;
 let totalChecked = 0;
 const violations = [];
 

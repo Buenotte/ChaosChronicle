@@ -69,9 +69,11 @@ export default function YouTubeImportModal({ isOpen, onClose, onPackageCreated, 
     finally { setFactsLoading(false) }
   }
 
-  const handleStartImport = async (e, selectedFacts = null) => {
+  const handleStartImport = async (e, selectedFacts = null, overrideStyle = null) => {
     if (e) e.preventDefault()
     if (!url.trim()) return toast.error('Укажите ссылку на YouTube видео')
+    const finalStyle = overrideStyle || style
+    if (overrideStyle) setStyle(overrideStyle)
     setLoading(true); setProgressStep(1)
     const toastId = toast.loading('🎬 Скачивание YouTube аудио...', { description: 'Извлечение дорожки и обложки...' })
     const t2 = setTimeout(() => { setProgressStep(2); toast.loading('🧠 Whisper распознает речь...', { id: toastId }) }, 4500)
@@ -80,7 +82,7 @@ export default function YouTubeImportModal({ isOpen, onClose, onPackageCreated, 
     try {
       const res = await fetch('/api/youtube/import-to-package', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: url.trim(), style, selectedFacts }),
+        body: JSON.stringify({ url: url.trim(), style: finalStyle, selectedFacts }),
       })
       const result = await res.json()
       clearTimeout(t2); clearTimeout(t3)
@@ -217,7 +219,8 @@ export default function YouTubeImportModal({ isOpen, onClose, onPackageCreated, 
         onClose={() => setFactsModalOpen(false)}
         facts={facts}
         videoTitle={videoPreview?.title}
-        onConfirm={(selectedFacts) => handleStartImport(null, selectedFacts)}
+        currentStyle={style}
+        onConfirm={(selectedFacts, chosenStyle) => handleStartImport(null, selectedFacts, chosenStyle)}
         loading={loading}
       />
     </>

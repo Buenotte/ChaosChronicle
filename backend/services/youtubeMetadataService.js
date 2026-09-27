@@ -44,6 +44,19 @@ export function stripBloggerNames(text = '') {
     .trim();
 }
 
+export function ensureDescriptionHashtags(desc = '', hashtags = '') {
+  let d = (desc || '').trim();
+  const h = (hashtags || '').trim();
+  if (!h) return d;
+  const hashWords = h.split(/\s+/).filter(w => w.startsWith('#'));
+  if (hashWords.length === 0) return d;
+  if (/#[\wа-яёА-ЯЁ]+/i.test(d)) {
+    const missing = hashWords.filter(hw => !d.toLowerCase().includes(hw.toLowerCase()));
+    return missing.length > 0 ? `${d}\n\n${missing.join(' ')}`.trim() : d;
+  }
+  return `${d}\n\n${hashWords.join(' ')}`.trim();
+}
+
 export function cleanExtractedTitle(raw = '', fallback = '') {
   let t = (raw || '').trim().replace(/```(?:json)?/gi, '').replace(/```/g, '').trim();
   t = t.replace(/^\{?\s*"?(?:title|youtube_title|заголовок)"?\s*:\s*"?/i, '');
@@ -221,9 +234,9 @@ ${strictNegativeRule}`;
       return { success: true, title: generatedTitle, section: 'title', model };
     }
     if (section === 'description') {
-      const generatedDesc = stripBloggerNames(parsed.description || fallbackDesc);
-      const generatedTags = stripBloggerNames(parsed.tags || fallbackTags);
       const generatedHashtags = stripBloggerNames(parsed.hashtags || fallbackHashtags);
+      const generatedDesc = ensureDescriptionHashtags(stripBloggerNames(parsed.description || fallbackDesc), generatedHashtags);
+      const generatedTags = stripBloggerNames(parsed.tags || fallbackTags);
       return { success: true, description: generatedDesc, tags: generatedTags, hashtags: generatedHashtags, section: 'description', model };
     }
     if (section === 'facebookPost') {
@@ -233,11 +246,13 @@ ${strictNegativeRule}`;
 
     if (!parsed || !parsed.title) throw new Error('Некорректный ответ модели');
 
+    const finalHashtags = stripBloggerNames(parsed.hashtags || fallbackHashtags);
+    const finalDesc = ensureDescriptionHashtags(stripBloggerNames(parsed.description || fallbackDesc), finalHashtags);
     const metadata = {
       title: cleanExtractedTitle(parsed.title || fallbackTitle, fallbackTitle),
-      description: stripBloggerNames(parsed.description || ''),
-      tags: stripBloggerNames(parsed.tags || ''),
-      hashtags: stripBloggerNames(parsed.hashtags || ''),
+      description: finalDesc,
+      tags: stripBloggerNames(parsed.tags || fallbackTags),
+      hashtags: finalHashtags,
       facebookPost: stripBloggerNames(ensureFacebookPostCta(parsed.facebookPost || fallbackFb)),
       generatedAt: new Date().toISOString(),
       style,
@@ -258,12 +273,12 @@ ${strictNegativeRule}`;
     return { success: true, ...metadata };
   } catch (err) {
     if (section === 'title') return { success: true, title: fallbackTitle, section: 'title' };
-    if (section === 'description') return { success: true, description: fallbackDesc, tags: fallbackTags, hashtags: fallbackHashtags, section: 'description' };
+    if (section === 'description') return { success: true, description: ensureDescriptionHashtags(fallbackDesc, fallbackHashtags), tags: fallbackTags, hashtags: fallbackHashtags, section: 'description' };
     if (section === 'facebookPost') return { success: true, facebookPost: fallbackFb, section: 'facebookPost' };
 
     const fallbackMetadata = {
       title: fallbackTitle,
-      description: fallbackDesc,
+      description: ensureDescriptionHashtags(fallbackDesc, fallbackHashtags),
       tags: fallbackTags,
       hashtags: fallbackHashtags,
       facebookPost: fallbackFb,

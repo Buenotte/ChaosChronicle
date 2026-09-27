@@ -7,23 +7,19 @@ import ShortsSpeechSubtitlesControls from './shorts/ShortsSpeechSubtitlesControl
 import ShortsTitleControls from './shorts/ShortsTitleControls'
 import { SHORTS_FONTS, TEXT_COLORS, BOX_COLORS, wrapShortsText, extractCleanSpeechText } from './shorts/shortsConfig'
 
-export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortState, generatingShort, onGenerateShort, onClose }) {
+export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortState, generatingShort, onGenerateShort, onCancelShort, onClose }) {
   const cfg = pkg?.shortsConfig || {}
-  const [activeTab, setActiveTab] = useState('speech')
-  const [duration, setDuration] = useState(cfg.duration || pkg?.short_duration || 25)
-  const [showHookTitle, setShowHookTitle] = useState(cfg.showHookTitle ?? true)
-  const [text, setText] = useState(cfg.hookTitle || pkg?.title || '')
+  const [activeTab, setActiveTab] = useState('speech'), [duration, setDuration] = useState(cfg.duration || pkg?.short_duration || 25)
+  const [showHookTitle, setShowHookTitle] = useState(cfg.showHookTitle ?? true), [text, setText] = useState(cfg.hookTitle || pkg?.title || '')
   const [font, setFont] = useState(cfg.font || 'impact'), [fontSize, setFontSize] = useState(cfg.fontSize || 110), [fontColor, setFontColor] = useState(cfg.fontColor || 'yellow')
   const [strokeWidth, setStrokeWidth] = useState(cfg.strokeWidth ?? 8), [strokeColor, setStrokeColor] = useState(cfg.strokeColor || 'black')
   const [shadowDistance, setShadowDistance] = useState(cfg.shadowDistance ?? 4), [shadowColor, setShadowColor] = useState(cfg.shadowColor || 'black'), [shadowStyle, setShadowStyle] = useState(cfg.shadowStyle || 'hard')
   const [wordColors, setWordColors] = useState(cfg.wordColors || null), [wordFontSizes, setWordFontSizes] = useState(cfg.wordFontSizes || null)
   const [boxEnabled, setBoxEnabled] = useState(cfg.boxEnabled ?? true), [boxColor, setBoxColor] = useState(cfg.boxColor || 'black'), [boxOpacity, setBoxOpacity] = useState(cfg.boxOpacity ?? 75), [posY, setPosY] = useState(cfg.posY || 200)
-
   const [speechSubtitlesEnabled, setSpeechSubtitlesEnabled] = useState(cfg.speechSubtitlesEnabled ?? true), [speechFont, setSpeechFont] = useState(cfg.speechFont || 'impact')
   const [speechColor, setSpeechColor] = useState(cfg.speechColor || 'yellow'), [speechInactiveColor, setSpeechInactiveColor] = useState(cfg.speechInactiveColor || 'white'), [speechFontSize, setSpeechFontSize] = useState(cfg.speechFontSize || 115)
   const [speechPosY, setSpeechPosY] = useState(cfg.speechPosY || 980), [speechBoxMode, setSpeechBoxMode] = useState(cfg.speechBoxMode || 'pill'), [speechPacing, setSpeechPacing] = useState(cfg.speechPacing || 'wave')
   const [speechBoxColor, setSpeechBoxColor] = useState(cfg.speechBoxColor || 'black'), [speechBoxOpacity, setSpeechBoxOpacity] = useState(cfg.speechBoxOpacity ?? 88)
-
   const [lineBadges, setLineBadges] = useState(cfg.lineBadges || {
     enabled: cfg.boxEnabled ?? true, style: 'solid', shadow: 'soft', tiltMode: 'none', lineTilts: null,
     color: cfg.boxColor && BOX_COLORS.find(c => c.id === cfg.boxColor)?.hex ? BOX_COLORS.find(c => c.id === cfg.boxColor).hex : (cfg.boxColor || '#000000'),
@@ -31,8 +27,7 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
   })
   const [selectedPhoto, setSelectedPhoto] = useState(cfg.selectedPhoto || null), [isDragging, setIsDragging] = useState(false), [viewMode, setViewMode] = useState('editor')
   const [realFrameUrl, setRealFrameUrl] = useState(null), [renderingFrame, setRenderingFrame] = useState(false), [savingConfig, setSavingConfig] = useState(false)
-  const previewRef = useRef(null), [speechScriptText, setSpeechScriptText] = useState('')
-  const [globalWordIdx, setGlobalWordIdx] = useState(0), [isSubtitlesPlaying, setIsSubtitlesPlaying] = useState(true)
+  const previewRef = useRef(null), [speechScriptText, setSpeechScriptText] = useState(''), [globalWordIdx, setGlobalWordIdx] = useState(0), [isSubtitlesPlaying, setIsSubtitlesPlaying] = useState(true)
 
   useEffect(() => {
     fetch('/api/custom-fonts').then(r => r.json()).then(data => {
@@ -374,9 +369,15 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
             <button type="button" className="copy-btn" disabled={savingConfig || generatingShort} onClick={handleSaveConfig} style={{ background: '#059669', color: '#fff', fontWeight: 700, padding: '0.5rem 1rem', fontSize: '0.84rem' }} title="Сохранить настройки">
               {savingConfig ? '⏳ Сохранение...' : '💾 Сохранить настройки'}
             </button>
-            <button type="button" className="copy-btn" disabled={generatingShort} onClick={handleApply} style={{ background: 'linear-gradient(135deg, #f43f5e, #ec4899)', color: '#fff', fontWeight: 700, padding: '0.55rem 1.15rem', fontSize: '0.86rem' }}>
-              {generatingShort ? `⏳ Монтаж Shorts (${duration} сек)...` : `⚡ Смонтировать Short (${duration} сек)`}
-            </button>
+            {generatingShort ? (
+              <button type="button" className="copy-btn" onClick={onCancelShort} style={{ background: '#dc2626', color: '#fff', fontWeight: 700, padding: '0.55rem 1.15rem', fontSize: '0.86rem' }} title="Прервать текущий монтаж Shorts">
+                🛑 Отменить монтаж
+              </button>
+            ) : (
+              <button type="button" className="copy-btn" onClick={handleApply} style={{ background: 'linear-gradient(135deg, #f43f5e, #ec4899)', color: '#fff', fontWeight: 700, padding: '0.55rem 1.15rem', fontSize: '0.86rem' }}>
+                ⚡ Смонтировать Short ({duration} сек)
+              </button>
+            )}
           </div>
         </div>
       </div>

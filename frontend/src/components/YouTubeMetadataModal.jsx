@@ -24,6 +24,13 @@ export default function YouTubeMetadataModal({ pkg, onSaved, onClose }) {
   const [hashtags, setHashtags] = useState(metaInit.hashtags || '')
   const [facebookPost, setFacebookPost] = useState(metaInit.facebookPost || '')
 
+  const ensureHashtags = (desc, hash) => {
+    if (!hash || !hash.trim()) return desc || ''
+    const d = (desc || '').trim()
+    if (/#[\wа-яёА-ЯЁ]+/i.test(d)) return d
+    return `${d}\n\n${hash.trim()}`.trim()
+  }
+
   const fetchMetadata = async (force = false, styleOverride = selectedStyle, toneOverride = selectedTone) => {
     setLoading(true)
     const styleLabel = ALL_STYLES.find(s => s.id === styleOverride)?.name?.split(' (')[0] || 'Стиль'
@@ -37,21 +44,19 @@ export default function YouTubeMetadataModal({ pkg, onSaved, onClose }) {
       const data = await res.json()
       if (data.success) {
         if (!data.notGenerated) {
+          const rawHash = data.hashtags || ''
+          const rawDesc = ensureHashtags(data.description || '', rawHash)
           if (data.title !== undefined) setTitle(data.title || '')
-          if (data.description !== undefined) setDescription(data.description || '')
+          if (data.description !== undefined) setDescription(rawDesc)
           if (data.tags !== undefined) setTags(data.tags || '')
-          if (data.hashtags !== undefined) setHashtags(data.hashtags || '')
+          if (data.hashtags !== undefined) setHashtags(rawHash)
           if (data.facebookPost !== undefined) setFacebookPost(data.facebookPost || '')
           if (force && toastId) toast.success(`✨ Метаданные (${styleLabel}) готовы!`, { id: toastId })
         }
-      } else {
-        if (toastId) toast.error('Ошибка генерации инфо', { id: toastId, description: data.error })
-      }
+      } else if (toastId) toast.error('Ошибка генерации инфо', { id: toastId, description: data.error })
     } catch (err) {
       if (toastId) toast.error('Ошибка загрузки: ' + err.message, { id: toastId })
-    } finally {
-      setLoading(false)
-    }
+    } finally { setLoading(false) }
   }
 
   const fetchSection = async (section, model) => {
@@ -68,20 +73,18 @@ export default function YouTubeMetadataModal({ pkg, onSaved, onClose }) {
       if (data.success) {
         if (section === 'title' && data.title) setTitle(data.title)
         if (section === 'description') {
-          if (data.description) setDescription(data.description)
+          const rawHash = data.hashtags || hashtags || ''
+          const rawDesc = ensureHashtags(data.description || '', rawHash)
+          if (data.description) setDescription(rawDesc)
           if (data.tags) setTags(data.tags)
-          if (data.hashtags) setHashtags(data.hashtags)
+          if (data.hashtags) setHashtags(rawHash)
         }
         if (section === 'facebookPost' && data.facebookPost) setFacebookPost(data.facebookPost)
         toast.success(`✨ Обновлено через ${mObj?.name?.split(' ')[1] || 'ИИ'}!`, { id: toastId })
-      } else {
-        toast.error('Ошибка генерации: ' + (data.error || 'Неизвестная ошибка'), { id: toastId })
-      }
+      } else toast.error('Ошибка генерации: ' + (data.error || 'Неизвестная ошибка'), { id: toastId })
     } catch (err) {
       toast.error('Ошибка: ' + err.message, { id: toastId })
-    } finally {
-      setSectionLoading(null)
-    }
+    } finally { setSectionLoading(null) }
   }
 
   useEffect(() => {

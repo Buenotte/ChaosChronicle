@@ -7,6 +7,7 @@ export default function PackageShortsSection({
   actualPhotoCount,
   onOpenShortsEditor,
   onGenerateQuickShort,
+  onCancelShort,
 }) {
   return (
     <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid #27272a' }}>
@@ -31,22 +32,41 @@ export default function PackageShortsSection({
           >
             🎨 Открыть Студию Shorts (Drag & Drop)
           </button>
-          <button
-            type="button"
-            className="copy-btn"
-            disabled={generatingShort || !audioState?.hasAudio || actualPhotoCount === 0}
-            onClick={onGenerateQuickShort}
-            style={{
-              background: 'linear-gradient(135deg, #f43f5e, #ec4899)',
-              color: '#fff',
-              fontWeight: 700,
-              fontSize: '0.82rem',
-              padding: '0.4rem 0.85rem',
-              boxShadow: '0 2px 10px rgba(244, 63, 94, 0.25)',
-            }}
-          >
-            {generatingShort ? '⏳ Монтаж Shorts (10 сек)...' : (shortState?.hasShort ? '🔄 Быстро пересоздать' : '⚡ Создать Short (9:16)')}
-          </button>
+          {generatingShort ? (
+            <button
+              type="button"
+              className="copy-btn"
+              onClick={onCancelShort}
+              style={{
+                background: '#dc2626',
+                color: '#fff',
+                fontWeight: 700,
+                fontSize: '0.82rem',
+                padding: '0.4rem 0.85rem',
+                boxShadow: '0 2px 10px rgba(220, 38, 38, 0.25)',
+              }}
+              title="Прервать процесс создания Shorts"
+            >
+              🛑 Отменить монтаж
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="copy-btn"
+              disabled={!audioState?.hasAudio || actualPhotoCount === 0}
+              onClick={onGenerateQuickShort}
+              style={{
+                background: 'linear-gradient(135deg, #f43f5e, #ec4899)',
+                color: '#fff',
+                fontWeight: 700,
+                fontSize: '0.82rem',
+                padding: '0.4rem 0.85rem',
+                boxShadow: '0 2px 10px rgba(244, 63, 94, 0.25)',
+              }}
+            >
+              {shortState?.hasShort ? '🔄 Быстро пересоздать' : '⚡ Создать Short (9:16)'}
+            </button>
+          )}
         </div>
       </div>
 

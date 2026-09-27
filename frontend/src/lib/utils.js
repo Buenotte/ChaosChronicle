@@ -3,6 +3,8 @@
 export const CATEGORIES = [
   { key: 'vse',       label: '🌐 Все новости',        color: '#6b7280' },
   { key: 'saved',     label: '💾 Сохранённые',       color: '#10b981' },
+  { key: 'emigr',     label: '✈️ Эмиграция & Релокация', color: '#0ea5e9' },
+  { key: 'psikh',     label: '🧠 Психология & Отношения', color: '#14b8a6' },
   { key: 'absurd',    label: '🤡 Абсурд & Скрепы',    color: '#ec4899' },
   { key: 'ukraina',   label: '🇺🇦 Украина',           color: '#facc15' },
   { key: 'rossija',   label: '🇷🇺 Россия',            color: '#f43f5e' },
@@ -95,4 +97,13 @@ export function matchesSearch(item, searchStr) {
     .map(t => t.toLowerCase())
 
   return queryVariants.some(qVar => targets.some(target => target.includes(qVar)))
+}
+
+export const SPORTS_REGEX = /(спорт\w*|футбол\w*|хокке\w*|баскетбол\w*|волейбол\w*|теннис\w*|биатлон\w*|\bбоксер\w*|\bмма\b|\bufc\b|\buefa\b|\bfifa\b|фифа|уефа|олимпиад\w*|олимпийск\w*|чемпионат\w*|\bматч\w*|лиг[аеыу]\s+чемпион|куб[окае]\s+(мира|европы|уефа|фифа|гагарина|стэнли)|турнир\w*|формул[аы]-1|\bрпл\b|\bапл\b|\bнба\b|\bнхл\b|еврокуб\w*|трансферн\w*\s+окн|пенальти|стадион\w*|болельщик\w*|главн\w*\s+тренер|реал\s+мадрид|манчестер\s+(юнайтед|сити)|левандовски|месси\b|рональд\w*|мбаппе|джокович|хабиб\s+нурмагомедов|фигурн\w*\s+катан\w*|конькобеж\w*|лыжн\w*\s+гонк\w*|плавани\w*|легк\w*\s+атлетик\w*|тяжел\w*\s+атлетик\w*|дзюдо|карате|шахмат\w*)/i
+
+export function isSportsArticle(art) {
+  if (!art) return false
+  if (art.category === 'sport' || art.category === 'sports') return true
+  const text = `${art.title || ''} ${art.summary || ''} ${art.url || ''}`
+  return SPORTS_REGEX.test(text)
 }

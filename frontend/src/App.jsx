@@ -5,7 +5,7 @@ import NewsCard from './components/NewsCard'
 import NewsModalsContainer from './components/layout/NewsModalsContainer'
 import AppHeader from './components/layout/AppHeader'
 import AppStatusBar from './components/layout/AppStatusBar'
-import { cleanMatchTitle, matchesSearch } from './lib/utils'
+import { cleanMatchTitle, matchesSearch, isSportsArticle } from './lib/utils'
 
 export default function App() {
   const [articles, setArticles] = useState([])
@@ -243,18 +243,21 @@ export default function App() {
       o: cleanMatchTitle(p?.original_title).slice(0, 14),
       f: cleanMatchTitle(p?.folderName?.replace(/^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}_/, '')).slice(0, 14),
     }))
-    const regularWithPkg = articles.map(a => {
-      const artClean = cleanMatchTitle(a?.title)
-      if (!artClean) return a
-      const m = prePkgs.find(cp => (cp.o && (artClean.includes(cp.o) || cp.o.includes(artClean.slice(0, 14)))) ||
-        (cp.t && (artClean.includes(cp.t) || cp.t.includes(artClean.slice(0, 14)))) ||
-        (cp.f && (artClean.includes(cp.f) || cp.f.includes(artClean.slice(0, 14)))))
-      if (m) {
-        const effectiveUrl = a.url || a.link || m.pkg.url || m.pkg.original_url || null
-        return { ...a, url: effectiveUrl, matchingPkg: { ...m.pkg, url: effectiveUrl } }
-      }
-      return a
-    })
+    const regularWithPkg = articles
+      .filter(a => !isSportsArticle(a))
+      .filter(a => category === 'vse' ? (a.category !== 'tekh' && a.category !== 'tech') : true)
+      .map(a => {
+        const artClean = cleanMatchTitle(a?.title)
+        if (!artClean) return a
+        const m = prePkgs.find(cp => (cp.o && (artClean.includes(cp.o) || cp.o.includes(artClean.slice(0, 14)))) ||
+          (cp.t && (artClean.includes(cp.t) || cp.t.includes(artClean.slice(0, 14)))) ||
+          (cp.f && (artClean.includes(cp.f) || cp.f.includes(artClean.slice(0, 14)))))
+        if (m) {
+          const effectiveUrl = a.url || a.link || m.pkg.url || m.pkg.original_url || null
+          return { ...a, url: effectiveUrl, matchingPkg: { ...m.pkg, url: effectiveUrl } }
+        }
+        return a
+      })
 
     return q ? regularWithPkg.filter(a => matchesSearch(a, q)) : regularWithPkg
   }, [articles, savedPackages, search, category])

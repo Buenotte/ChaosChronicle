@@ -20,6 +20,7 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
   const isYouTube = Boolean(pkg.isYouTube || pkg.youtubeMetadata || pkg.source?.toLowerCase().includes('youtube') || pkg.folderName?.includes('_YT_') || ['scipop', 'mystery', 'tech_future', 'psychology', 'storytelling'].includes(pkg.style))
   const scriptStyles = isYouTube ? YOUTUBE_TOPIC_STYLES : FEUILLETON_STYLES
   const videoRef = useRef(null)
+  const shortAbortControllerRef = useRef(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0), [duration, setDuration] = useState(0)
   const [generatingAudio, setGeneratingAudio] = useState(false), [generatingVideo, setGeneratingVideo] = useState(false)
@@ -114,17 +115,38 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
 
   const [shortsConfig, setShortsConfig] = useState(pkg.shortsConfig || null)
 
+  const handleCancelShort = async () => {
+    if (shortAbortControllerRef.current) {
+      try { shortAbortControllerRef.current.abort() } catch {}
+    }
+    try {
+      await fetch('/api/cancel-short', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bundleDir: pkg.bundleDir, folderName: pkg.folderName }),
+      })
+      toast.info('🛑 Монтаж Shorts отменен')
+    } catch {}
+    finally {
+      setGeneratingShort(false)
+    }
+  }
+
   const handleGenerateShort = async (shortOpts = {}) => {
     if (!audioState.hasAudio) return toast.error('❌ Аудио-озвучка не найдена!', { description: 'Сначала сгенерируйте аудио в разделе 3 перед созданием Shorts.' })
     const targetDur = shortOpts.duration || shortsConfig?.duration || pkg?.short_duration || 25
     const toastId = toast.loading(`📱 Монтаж YouTube Shorts 9:16 (${targetDur} сек)...`)
     try {
       setGeneratingShort(true)
+      shortAbortControllerRef.current = new AbortController()
       const mergedOpts = { ...(shortsConfig || {}), ...shortOpts }
       const res = await fetch('/api/render-short', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ bundleDir: pkg.bundleDir, folderName: pkg.folderName, duration: targetDur, hookTitle: pkg.title || '', ...mergedOpts }),
-      }), data = await res.json()
+        signal: shortAbortControllerRef.current.signal,
+      })
+      const data = await res.json()
       toast.dismiss(toastId)
       if (data.success) {
         const freshUrl = `${data.shortUrl.split('?')[0]}?t=${Date.now()}`
@@ -133,8 +155,18 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
         pkg.hasShort = true; pkg.shortUrl = freshUrl; toast.success('✨ Вертикальный YouTube Short 9:16 готов!')
         if (onRefresh) onRefresh(); return data
       } else { toast.error('❌ Ошибка: ' + (data.error || 'Ошибка')) }
-    } catch (e) { toast.dismiss(toastId); toast.error('Ошибка: ' + e.message) }
-    finally { setGeneratingShort(false) }
+    } catch (e) {
+      toast.dismiss(toastId)
+      if (e.name === 'AbortError') {
+        toast.info('🛑 Монтаж Shorts был прерван пользователем')
+      } else {
+        toast.error('Ошибка: ' + e.message)
+      }
+    }
+    finally {
+      setGeneratingShort(false)
+      shortAbortControllerRef.current = null
+    }
   }
 
   const handleGenerateAiThumbnail = async () => {
@@ -325,8 +357,13 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
 
           {/* 4.5 YouTube Shorts 9:16 (16 сек) */}
           <PackageShortsSection
-            shortState={shortState} generatingShort={generatingShort} audioState={audioState} actualPhotoCount={actualPhotoCount}
-            onOpenShortsEditor={() => setShowShortsEditorModal(true)} onGenerateQuickShort={() => handleGenerateShort()}
+            shortState={shortState}
+            generatingShort={generatingShort}
+            audioState={audioState}
+            actualPhotoCount={actualPhotoCount}
+            onOpenShortsEditor={() => setShowShortsEditorModal(true)}
+            onGenerateQuickShort={() => handleGenerateShort()}
+            onCancelShort={handleCancelShort}
           />
 
           {/* 5. YouTube Метаданные */}
@@ -335,7 +372,15 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
       </div>
 
       {showShortsEditorModal && (
-        <ShortsEditorModal pkg={pkg} previewPhotoUrl={pkg.photoUrls?.[0] || currentThumbnail} shortState={shortState} generatingShort={generatingShort} onGenerateShort={(opts) => handleGenerateShort(opts)} onClose={() => setShowShortsEditorModal(false)} />
+        <ShortsEditorModal
+          pkg={pkg}
+          previewPhotoUrl={pkg.photoUrls?.[0] || currentThumbnail}
+          shortState={shortState}
+          generatingShort={generatingShort}
+          onGenerateShort={(opts) => handleGenerateShort(opts)}
+          onCancelShort={handleCancelShort}
+          onClose={() => setShowShortsEditorModal(false)}
+        />
       )}
       {showYouTubeModal && (
         <YouTubeMetadataModal pkg={pkg} onClose={() => { setShowYouTubeModal(false); if (onRefresh) onRefresh(); }} onSaved={(data) => {

@@ -3,7 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { exec, execSync, execFile, spawn } from 'child_process';
-import { processRenderShort, processPreviewShortFrame } from '../services/shortsVideoService.js';
+import { processRenderShort, processPreviewShortFrame, cancelShortRender } from '../services/shortsVideoService.js';
 import { invalidatePackagesCache } from './packages.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -323,6 +323,13 @@ router.post('/api/render-short', async (req, res) => {
   }
 });
 
+// POST /api/cancel-short
+router.post('/api/cancel-short', (req, res) => {
+  const { bundleDir, folderName } = req.body || {};
+  const canceled = cancelShortRender(bundleDir || folderName);
+  res.json({ success: true, canceled });
+});
+
 // POST /api/preview-short-frame
 router.post('/api/preview-short-frame', async (req, res) => {
   try {
@@ -338,11 +345,9 @@ router.post('/api/preview-short-frame', async (req, res) => {
 router.post('/api/save-shorts-config', (req, res) => {
   try {
     const {
-      bundleDir: inputBundleDir, folderName, duration, hookTitle, font, fontSize, fontColor,
-      strokeWidth, strokeColor, shadowDistance, shadowColor, shadowStyle,
-      wordColors, wordFontSizes, boxEnabled, boxColor, boxOpacity, posY, lineBadges, selectedPhoto,
-      speechSubtitlesEnabled, speechFont, speechColor, speechInactiveColor, speechFontSize, speechPosY,
-      speechBoxMode, speechBoxColor, speechBoxOpacity, speechPacing, speechStrokeWidth, speechShadowDistance,
+      bundleDir: inputBundleDir, folderName, duration, hookTitle, font, fontSize, fontColor, strokeWidth, strokeColor, shadowDistance, shadowColor, shadowStyle,
+      wordColors, wordFontSizes, boxEnabled, boxColor, boxOpacity, posY, lineBadges, selectedPhoto, speechSubtitlesEnabled, speechFont, speechColor, speechInactiveColor,
+      speechFontSize, speechPosY, speechBoxMode, speechBoxColor, speechBoxOpacity, speechPacing, speechStrokeWidth, speechShadowDistance,
     } = req.body;
 
     const newsDir = path.resolve(__dirname, '../../news');

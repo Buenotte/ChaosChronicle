@@ -102,7 +102,23 @@ export default function NewsCard({
               ✍️ Своя
             </span>
           )}
-          <span className="card-time">{timeAgo(article.pubDate)}</span>
+          {(article.isYouTube || article.source?.includes('YouTube')) ? (
+            <>
+              <span style={{ background: '#ef4444', color: '#fff', fontSize: '0.68rem', fontWeight: 700, padding: '0.12rem 0.45rem', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
+                ▶ YouTube
+              </span>
+              {(article.viewsText || article.viewCount) && (
+                <span style={{ background: 'rgba(239, 68, 68, 0.18)', color: '#fca5a5', border: '1px solid rgba(239, 68, 68, 0.35)', fontSize: '0.72rem', fontWeight: 700, padding: '0.12rem 0.5rem', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                  👁️ {article.viewsText || (article.viewCount ? Number(article.viewCount).toLocaleString('ru-RU') + ' просмотров' : '')}
+                </span>
+              )}
+              <span className="card-time" style={{ color: '#cbd5e1', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
+                🕒 {article.publishedDateText || timeAgo(article.pubDate)}
+              </span>
+            </>
+          ) : (
+            <span className="card-time">{timeAgo(article.pubDate)}</span>
+          )}
           {isSaved && (
             <span className="saved-status-badge">
               🟢 📦 В news/

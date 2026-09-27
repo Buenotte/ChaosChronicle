@@ -10,6 +10,35 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const newsDir = path.resolve(__dirname, '../../news');
 
+const activeShortsJobs = new Map();
+
+export function cancelShortRender(key) {
+  if (!key) return false;
+  let canceled = false;
+  const search = String(key).toLowerCase().replace(/\\/g, '/');
+  for (const [k, job] of activeShortsJobs.entries()) {
+    const normK = String(k).toLowerCase().replace(/\\/g, '/');
+    if (normK === search || normK.includes(search) || search.includes(normK)) {
+      job.canceled = true;
+      if (job.proc && !job.proc.killed) {
+        try { job.proc.kill('SIGTERM'); } catch {}
+        try { job.proc.kill('SIGKILL'); } catch {}
+      }
+      if (Array.isArray(job.tempFiles)) {
+        for (const f of job.tempFiles) {
+          try {
+            if (fs.existsSync(f) && fs.statSync(f).isDirectory()) fs.rmSync(f, { recursive: true, force: true });
+            else if (fs.existsSync(f)) fs.unlinkSync(f);
+          } catch {}
+        }
+      }
+      activeShortsJobs.delete(k);
+      canceled = true;
+    }
+  }
+  return canceled;
+}
+
 export function getAudioDurationSeconds(audioPath) {
   try {
     const out = execSync(`ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${audioPath}"`, { timeout: 8000 }).toString().trim();
@@ -185,13 +214,25 @@ export async function processRenderShort({
     const safeAssPath = assFile.replace(/\\/g, '/').replace(/:/g, '\\:'), safeFontsDir = customFontsDir.replace(/\\/g, '/').replace(/:/g, '\\:');
     const vf = `fps=30,setsar=1,subtitles=filename='${safeAssPath}':fontsdir='${safeFontsDir}'`;
 
-    await execFileAsync('ffmpeg', [
-      '-y', '-f', 'concat', '-safe', '0', '-i', concatListFile, '-i', audioPath,
-      '-vf', vf, '-af', af, '-c:v', 'libx264', '-preset', 'ultrafast', '-tune', 'fastdecode',
-      '-threads', '0', '-crf', '22', '-c:a', 'aac', '-b:a', '192k', '-ac', '2',
-      '-pix_fmt', 'yuv420p', '-r', '30', '-shortest', outShortPath,
-    ], { timeout: 120000 });
+    const jobKey = path.resolve(targetFolder);
+    const currentJob = { proc: null, canceled: false, tempFiles };
+    activeShortsJobs.set(jobKey, currentJob);
+
+    await new Promise((resolve, reject) => {
+      const proc = execFile('ffmpeg', [
+        '-y', '-f', 'concat', '-safe', '0', '-i', concatListFile, '-i', audioPath,
+        '-vf', vf, '-af', af, '-c:v', 'libx264', '-preset', 'ultrafast', '-tune', 'fastdecode',
+        '-threads', '0', '-crf', '22', '-c:a', 'aac', '-b:a', '192k', '-ac', '2',
+        '-pix_fmt', 'yuv420p', '-r', '30', '-shortest', outShortPath,
+      ], { timeout: 120000 }, (err) => {
+        if (currentJob.canceled) return reject(new Error('Монтаж отменен'));
+        if (err) return reject(err);
+        resolve();
+      });
+      currentJob.proc = proc;
+    });
   } finally {
+    activeShortsJobs.delete(path.resolve(targetFolder));
     for (const f of tempFiles) {
       try {
         if (!f) continue;

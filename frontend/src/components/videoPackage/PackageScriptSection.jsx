@@ -198,7 +198,11 @@ export default function PackageScriptSection({
           onClose={() => setShowFactsModal(false)}
           facts={facts}
           videoTitle={pkg.title || pkg.original_title || 'Оригинальный текст'}
-          onConfirm={handleGenerateByFacts}
+          currentStyle={selectedScriptStyle}
+          onConfirm={(chosenFacts, chosenStyle) => {
+            if (chosenStyle && setSelectedScriptStyle) setSelectedScriptStyle(chosenStyle)
+            handleGenerateByFacts(chosenFacts)
+          }}
           loading={factsGenerating}
         />
       )}

@@ -76,30 +76,55 @@ async function generateScriptWithAI(systemInstruction, userInstruction, maxToken
 }
 
 export async function buildYouTubeScript(rawText, selectedStyle, metadata = {}) {
-  const systemInstruction = selectedStyle.systemInstruction || YOUTUBE_STYLES.scipop.systemInstruction;
+  const factsCount = Array.isArray(metadata.selectedFacts) ? metadata.selectedFacts.length : 0;
+  let wordCountTarget = '400–550 слов (~3 мин.)';
+  let maxAiTokens = 8000;
+
+  if (factsCount >= 15) {
+    wordCountTarget = '950–1450 слов (~6–8 минут детального разбора)';
+    maxAiTokens = 12000;
+  } else if (factsCount >= 8) {
+    wordCountTarget = '700–1000 слов (~4–5 минут разбора)';
+    maxAiTokens = 9000;
+  } else if (factsCount >= 1) {
+    wordCountTarget = '500–750 слов (~3–4 минуты разбора)';
+    maxAiTokens = 8000;
+  }
+
+  let systemInstruction = selectedStyle.systemInstruction || YOUTUBE_STYLES.scipop.systemInstruction;
+  if (factsCount > 0) {
+    systemInstruction = systemInstruction.replace(/\(СТРОГО 400–550 слов\)/g, `(ОБЪЕМ: ${wordCountTarget}, ОБЯЗАТЕЛЬНО ПОДРОБНО РАСКРЫТЬ ВСЕ ${factsCount} ФАКТОВ)`);
+  }
+
   let factsPrompt = '';
-  if (metadata.selectedFacts && Array.isArray(metadata.selectedFacts) && metadata.selectedFacts.length > 0) {
-    factsPrompt = `\nВЫБРАННЫЕ ПОЛЬЗОВАТЕЛЕМ КЛЮЧЕВЫЕ ФАКТЫ ДЛЯ СЦЕНАРИЯ:\n` +
+  if (factsCount > 0) {
+    factsPrompt = `\n═══════════════════════════════════════════════════════════════════\n` +
+      `📌 СПИСОК ИЗ ${factsCount} КЛЮЧЕВЫХ ФАКТОВ, КОТОРЫЕ ОБЯЗАТЕЛЬНО ДОЛЖНЫ БЫТЬ ПОЛНОСТЬЮ РАСКРЫТЫ В СЦЕНАРИИ:\n` +
       metadata.selectedFacts.map((f, i) => `${i + 1}. [${f.title}]: ${f.text}`).join('\n') +
-      `\nСТРОГОЕ ТРЕБОВАНИЕ: Построй 3-минутный монолог ИМЕННО вокруг этих фактов! Раскрой их детали и парадоксы. Не отвлекайся на посторонние темы.\n`;
+      `\n═══════════════════════════════════════════════════════════════════\n` +
+      `🚨 СТРОЖАЙШИЕ ТРЕБОВАНИЯ ПО ФАКТАМ:\n` +
+      `1. Текст ОБЯЗАН последовательно, подробно и аргументированно раскрыть ВСЕ ${factsCount} ФАКТОВ из списка выше без исключения!\n` +
+      `2. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО пропускать, сокращать или игнорировать любой из ${factsCount} пунктов.\n` +
+      `3. Для каждого факта посвяти отдельный логический абзац, раскрывая его суть, конкретные детали, примеры, цифры или выводы.\n` +
+      `4. Текст должен звучать как единый захватывающий, плавный монолог диктора, в котором последовательно освещаются все ${factsCount} тем.\n`;
   }
 
   const userPrompt = `ИСТОЧНИК: YouTube "${metadata.title || 'YouTube'}" (${metadata.channel || ''})
-${metadata.duration ? `ПРОДОЛЖИТЕЛЬНОСТЬ: ${Math.round(metadata.duration / 60)} мин.` : ''}
+${metadata.duration ? `ПРОДОЛЖИТЕЛЬНОСТЬ ИСХОДНИКА: ${Math.round(metadata.duration / 60)} мин.` : ''}
 ${factsPrompt}
-ТЕКСТ ИЗ АУДИО / СУТЬ ВИДЕО:
+ТЕКСТ ИЗ АУДИО / СУТЬ ВИДЕО (ДЛЯ ДОПОЛНИТЕЛЬНОГО КОНТЕКСТА И ДЕТАЛЕЙ):
 """
 ${rawText.slice(0, 60000)}
 """
 ЗАДАЧА:
-Создай ЗАХВАТЫВАЮЩИЙ, ЦЕЛЬНЫЙ 3-МИНУТНЫЙ ТЕКСТ (СТРОГО 400–550 СЛОВ) в стиле «${selectedStyle.name}».
+Создай ЗАХВАТЫВАЮЩИЙ, ЦЕЛЬНЫЙ И ПОДРОБНЫЙ СЦЕНАРИЙ ДЛЯ ОЗВУЧКИ (${wordCountTarget}) в стиле «${selectedStyle.name}».
 ПРАВИЛА:
 1. КАТЕГОРИЧЕСКИ БЕЗ ФОРМАТА ИНТЕРВЬЮ: Никаких гостей, интервьюеров и ведущих («Сегодня у нас...», «доктор», «Бузунов»).
 2. БЕЗ ДИАЛОГОВ И ПРИВЕТСТВИЙ: Никаких «Добрый день», реплик и символов «>>».
-3. РАССКАЗЫВАЙ ТОЛЬКО О САМОЙ ТЕМЕ: Захватывающе объясняй факты и явления зрителю напрямую.
-4. Мощный хук с первых секунд, чистый монолог диктора (400–550 слов):`;
+3. ${factsCount > 0 ? `ОБЯЗАТЕЛЬНО раскрой КАЖДЫЙ из ${factsCount} выбранных фактов по порядку с деталями и глубиной.` : 'РАССКАЗЫВАЙ ТОЛЬКО О САМОЙ ТЕМЕ: Захватывающе объясняй факты и явления зрителю напрямую.'}
+4. Мощный хук с первых секунд, чистый монолог диктора для озвучки (${wordCountTarget}):`;
 
-  const rawGenerated = await generateScriptWithAI(systemInstruction, userPrompt, 8000);
+  const rawGenerated = await generateScriptWithAI(systemInstruction, userPrompt, maxAiTokens);
   return rawGenerated.replace(/&gt;&gt;/g, '').replace(/>>/g, '').replace(/^[\-\u2013\u2014]\s+/gm, '').replace(/^(Добрый (день|вечер|утро)|Здравствуйте)[^.!?\n]*[.!?\n]+/gmi, '').trim();
 }
 
@@ -236,9 +261,20 @@ router.post('/api/youtube/import-to-package', async (req, res) => {
       await downloadThumbnail(metadata.thumbnail, path.join(photosDir, 'yt_original_cover.jpg'));
     }
 
+    const factsFormatted = selectedFacts?.length
+      ? `📌 ВЫБРАННЫЕ КЛЮЧЕВЫЕ ФАКТЫ И ТЕМЫ ДЛЯ СЦЕНАРИЯ (${selectedFacts.length}):\n\n` +
+        selectedFacts.map((f, i) => `${i + 1}. 🌟 ${f.title}\n${f.text}`).join('\n\n') +
+        `\n\n═══════════════════════════════════════════════════════════════════\n📝 ПОЛНЫЙ ТРАНСКРИПТ ВИДЕО:\n\n${rawText}`
+      : rawText;
+
+    const summaryFormatted = selectedFacts?.length
+      ? `📌 Выбранные ключевые факты (${selectedFacts.length}):\n` +
+        selectedFacts.map((f, i) => `${i + 1}. ${f.title}`).join('\n')
+      : rawText.slice(0, 600);
+
     fs.writeFileSync(path.join(bundleDir, 'script.txt'), generatedScript, 'utf-8');
-    fs.writeFileSync(path.join(bundleDir, 'source.txt'), rawText, 'utf-8');
-    fs.writeFileSync(path.join(bundleDir, 'original_news.txt'), rawText, 'utf-8');
+    fs.writeFileSync(path.join(bundleDir, 'source.txt'), factsFormatted, 'utf-8');
+    fs.writeFileSync(path.join(bundleDir, 'original_news.txt'), factsFormatted, 'utf-8');
 
     const mdContent = `# 🎬 ${metadata.title}
 **Источник:** YouTube · ${metadata.channel} | **Длина:** ${metadata.duration || 0} сек.
@@ -248,8 +284,8 @@ ${selectedFacts?.length ? `\n### 📌 Выбранные факты:\n${selected
 ## 🎙️ Сценарий YouTube видео (3 минуты)
 ${generatedScript}
 ---
-## 📝 Исходный транскрипт
-${rawText}
+## 📝 Исходный транскрипт и факты
+${factsFormatted}
 `;
     fs.writeFileSync(path.join(bundleDir, 'script.md'), mdContent, 'utf-8');
 
@@ -276,9 +312,10 @@ ${rawText}
       style: selectedStyle.id,
       style_name: selectedStyle.name,
       selectedFacts: selectedFacts || null,
+      facts: selectedFacts || null,
       source: `YouTube: ${metadata.channel}`,
-      summary: rawText.slice(0, 600),
-      original_news: rawText,
+      summary: summaryFormatted,
+      original_news: factsFormatted,
       word_count: wordCount,
       created_at: new Date().toISOString(),
       photos: metadata.thumbnail ? ['/news-static/' + folderName + '/photos/yt_original_cover.jpg'] : [],
@@ -348,6 +385,20 @@ router.post('/api/youtube/regenerate-script', async (req, res) => {
       titleVariants = tvRes?.variants || [];
     } catch {}
 
+    if (selectedFacts && Array.isArray(selectedFacts) && selectedFacts.length > 0) {
+      const origRaw = fs.existsSync(path.join(targetFolder, 'source.txt'))
+        ? fs.readFileSync(path.join(targetFolder, 'source.txt'), 'utf-8')
+        : sourceText;
+      const cleanRaw = origRaw.includes('ПОЛНЫЙ ТРАНСКРИПТ ВИДЕО:') ? origRaw.split('ПОЛНЫЙ ТРАНСКРИПТ ВИДЕО:')[1].trim() : origRaw;
+
+      const factsFormatted = `📌 ВЫБРАННЫЕ КЛЮЧЕВЫЕ ФАКТЫ И ТЕМЫ ДЛЯ СЦЕНАРИЯ (${selectedFacts.length}):\n\n` +
+        selectedFacts.map((f, i) => `${i + 1}. 🌟 ${f.title}\n${f.text}`).join('\n\n') +
+        `\n\n═══════════════════════════════════════════════════════════════════\n📝 ПОЛНЫЙ ТРАНСКРИПТ ВИДЕО:\n\n${cleanRaw}`;
+
+      fs.writeFileSync(origPath, factsFormatted, 'utf-8');
+      fs.writeFileSync(path.join(targetFolder, 'source.txt'), factsFormatted, 'utf-8');
+    }
+
     if (fs.existsSync(jsonPath)) {
       try {
         const m = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
@@ -355,7 +406,13 @@ router.post('/api/youtube/regenerate-script', async (req, res) => {
         m.style_name = selectedStyle.name;
         m.word_count = wordCount;
         m.isYouTube = true;
-        if (selectedFacts !== undefined) m.selectedFacts = selectedFacts;
+        if (selectedFacts !== undefined) {
+          m.selectedFacts = selectedFacts;
+          m.facts = selectedFacts;
+          if (selectedFacts?.length) {
+            m.summary = `📌 Выбранные ключевые факты (${selectedFacts.length}):\n` + selectedFacts.map((f, i) => `${i + 1}. ${f.title}`).join('\n');
+          }
+        }
         if (titleVariants.length > 0) {
           m.title_variants = titleVariants;
           m.title_variants_style = selectedStyle.id;
