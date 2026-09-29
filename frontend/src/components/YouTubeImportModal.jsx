@@ -145,35 +145,39 @@ export default function YouTubeImportModal({ isOpen, onClose, onPackageCreated, 
                   </div>
                 )}
 
-                {/* Выбор количества фактов */}
+                {/* Выбор количества фактов (Selectbox от 5 до 15) */}
                 <div style={{ marginBottom: '1.1rem', background: '#1c192e', padding: '0.75rem 0.9rem', borderRadius: '10px', border: '1px solid #3b2d54' }}>
-                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, marginBottom: '0.45rem', color: '#d1d5db' }}>
-                    💎 Сколько фактов извлечь из видео:
-                  </label>
-                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                    {[5, 10, 20].map(cnt => (
-                      <button
-                        key={cnt}
-                        type="button"
-                        onClick={() => setRequestedFactsCount(cnt)}
-                        style={{
-                          flex: 1,
-                          background: requestedFactsCount === cnt ? 'linear-gradient(135deg, #7c3aed, #6d28d9)' : '#241a45',
-                          color: requestedFactsCount === cnt ? '#ffffff' : '#c4b5fd',
-                          border: requestedFactsCount === cnt ? '1.5px solid #a78bfa' : '1px solid #4c1d95',
-                          borderRadius: '8px',
-                          padding: '0.45rem 0.6rem',
-                          fontSize: '0.84rem',
-                          fontWeight: requestedFactsCount === cnt ? 700 : 500,
-                          cursor: 'pointer',
-                          transition: 'all 0.15s ease',
-                          boxShadow: requestedFactsCount === cnt ? '0 2px 8px rgba(124, 58, 237, 0.35)' : 'none',
-                        }}
-                      >
-                        {cnt === 5 ? '⚡ 5 фактов' : cnt === 10 ? '🌟 10 фактов' : '💎 20 фактов'}
-                      </button>
-                    ))}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem' }}>
+                    <label style={{ fontSize: '0.82rem', fontWeight: 600, color: '#d1d5db' }}>
+                      💎 Сколько фактов извлечь из видео (от 5 до 15):
+                    </label>
+                    <span style={{ fontSize: '0.75rem', color: '#a78bfa', fontWeight: 700 }}>
+                      Выбрано: {requestedFactsCount} фактов
+                    </span>
                   </div>
+                  <select
+                    value={requestedFactsCount}
+                    onChange={e => setRequestedFactsCount(Number(e.target.value))}
+                    disabled={loading || factsLoading}
+                    style={{
+                      width: '100%',
+                      background: '#13111f',
+                      border: '1.5px solid #7c3aed',
+                      borderRadius: '8px',
+                      padding: '0.55rem 0.75rem',
+                      color: '#facc15',
+                      fontSize: '0.88rem',
+                      fontWeight: 700,
+                      outline: 'none',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {[5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 20].map(cnt => (
+                      <option key={cnt} value={cnt}>
+                        {cnt === 10 ? `🌟 ${cnt} фактов (стандарт)` : `✨ ${cnt} фактов`}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div style={{ marginBottom: '1.25rem' }}>

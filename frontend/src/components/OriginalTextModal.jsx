@@ -30,7 +30,7 @@ export default function OriginalTextModal({ article, isOpen, onClose, onGenerate
         })
         .catch(() => {})
         .finally(() => setIsLoading(false))
-    } else if (rawUrl && /^https?:\/\//i.test(rawUrl) && (!text || text.length < 800)) {
+    } else if (rawUrl && /^https?:\/\//i.test(rawUrl) && !rawUrl.includes('youtube.com') && !rawUrl.includes('youtu.be') && (!text || text.length < 800)) {
       setIsLoading(true)
       fetch(`/api/scrape-article?url=${encodeURIComponent(rawUrl)}`)
         .then(r => r.json())

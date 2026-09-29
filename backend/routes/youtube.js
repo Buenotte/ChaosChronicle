@@ -136,11 +136,12 @@ ${rawText.slice(0, 60000)}
 ЗАДАЧА:
 Создай ЗАХВАТЫВАЮЩИЙ, ЦЕЛЬНЫЙ И ПОДРОБНЫЙ СЦЕНАРИЙ ДЛЯ ОЗВУЧКИ (${wordCountTarget}) в стиле «${selectedStyle.name}».
 ПРАВИЛА:
-1. КАТЕГОРИЧЕСКИ БЕЗ ФОРМАТА ИНТЕРВЬЮ: Никаких гостей, интервьюеров и ведущих («Сегодня у нас...», «доктор», «Бузунов»).
-2. БЕЗ ДИАЛОГОВ И ПРИВЕТСТВИЙ: Никаких «Добрый день», реплик и символов «>>».
-3. 🎯 ХУК В САМОМ НАЧАЛЕ ОБЯЗАН прямо объявить тему и ${factsCount} ${concept.labelPlural} (например: «Вот ${factsCount} ${concept.hookWord} на тему...»).
-4. 🔢 Диктор ОБЯЗАН вести точный счет («${concept.labelSingle} 1: ...», «${concept.labelSingle} 2: ...») и последовательно раскрыть КАЖДЫЙ из ${factsCount} пунктов по порядку с деталями и глубиной.
-5. Чистый монолог диктора для озвучки (${wordCountTarget}):`;
+1. 🔒 НЕЗЫБЛЕМОЕ ПРАВИЛО: Сценарий ОБЯЗАН СТРОГО основываться на предоставленной оригинальной новости / списке фактов из исходника. Все тезисы, факты и объяснения берутся ИСКЛЮЧИТЕЛЬНО из переданного материала!
+2. КАТЕГОРИЧЕСКИ БЕЗ ФОРМАТА ИНТЕРВЬЮ: Никаких гостей, интервьюеров и ведущих («Сегодня у нас...», «доктор», «Бузунов»).
+3. БЕЗ ДИАЛОГОВ И ПРИВЕТСТВИЙ: Никаких «Добрый день», реплик и символов «>>».
+4. 🎯 ХУК В САМОМ НАЧАЛЕ ОБЯЗАН прямо объявить тему и ${factsCount} ${concept.labelPlural} (например: «Вот ${factsCount} ${concept.hookWord} на тему...»).
+5. 🔢 Диктор ОБЯЗАН вести точный счет («${concept.labelSingle} 1: ...», «${concept.labelSingle} 2: ...») и последовательно раскрыть КАЖДЫЙ из ${factsCount} пунктов по порядку с деталями и глубиной.
+6. Чистый монолог диктора для озвучки (${wordCountTarget}):`;
 
   const rawGenerated = await generateScriptWithAI(systemInstruction, userPrompt, maxAiTokens);
   return rawGenerated.replace(/&gt;&gt;/g, '').replace(/>>/g, '').replace(/^[\-\u2013\u2014]\s+/gm, '').replace(/^(Добрый (день|вечер|утро)|Здравствуйте)[^.!?\n]*[.!?\n]+/gmi, '').trim();
@@ -159,11 +160,12 @@ router.post('/api/youtube/info', async (req, res) => {
   }
 });
 
-// POST /api/youtube/extract-facts - Extract 5, 10, or 20 key facts/theses/details (from URL, package folder, or raw text)
+// POST /api/youtube/extract-facts - Extract 5 to 15 key facts/theses/details (from URL, package folder, or raw text)
 router.post('/api/youtube/extract-facts', async (req, res) => {
   try {
-    const { url, folderName, bundleDir: inputBundleDir, text: inputText, title: inputTitle, force = false, count = 20, conceptType = 'facts' } = req.body;
-    const targetCount = [5, 10, 20].includes(Number(count)) ? Number(count) : (parseInt(count, 10) || 20);
+    const { url, folderName, bundleDir: inputBundleDir, text: inputText, title: inputTitle, force = false, count = 10, conceptType = 'facts' } = req.body;
+    const parsedCount = parseInt(count, 10);
+    const targetCount = (!isNaN(parsedCount) && parsedCount >= 3 && parsedCount <= 30) ? parsedCount : 10;
     const concept = getConceptInfo(conceptType);
     let rawText = (inputText || '').trim(), title = (inputTitle || '').trim();
     const targetFolder = inputBundleDir || (folderName ? path.join(newsDir, folderName) : null);
@@ -211,7 +213,10 @@ router.post('/api/youtube/extract-facts', async (req, res) => {
     // 2. Из переданного текста
     if (rawText && rawText.length >= 40) {
       const facts = await extractTwentyFactsFromTranscript(rawText, title || 'Материал', targetCount, conceptType);
-      return res.json({ success: true, facts, factsCount: facts.length, title: title || 'Материал', conceptType });
+      const factsFormatted = `📌 ВЫБРАННЫЕ КЛЮЧЕВЫЕ ${concept.headerWord} И ТЕМЫ (${facts.length}):\n\n` +
+        facts.map((f, i) => `${i + 1}. 🌟 ${f.title}\n${f.text}`).join('\n\n') +
+        `\n\n═══════════════════════════════════════════════════════════════════\n📝 ПОЛНЫЙ ТРАНСКРИПТ ВИДЕО:\n\n${rawText}`;
+      return res.json({ success: true, facts, factsCount: facts.length, title: title || 'Материал', conceptType, originalNews: factsFormatted, summary: factsFormatted });
     }
 
     // 3. Скачивание по YouTube URL
@@ -238,7 +243,10 @@ router.post('/api/youtube/extract-facts', async (req, res) => {
     if (!rawText || rawText.length < 40) rawText = `${metadata.title}\n\n${metadata.description || ''}`;
 
     const facts = await extractTwentyFactsFromTranscript(rawText, metadata.title, targetCount, conceptType);
-    res.json({ success: true, metadata, facts, factsCount: facts.length, conceptType });
+    const factsFormatted = `📌 ВЫБРАННЫЕ КЛЮЧЕВЫЕ ${concept.headerWord} И ТЕМЫ (${facts.length}):\n\n` +
+      facts.map((f, i) => `${i + 1}. 🌟 ${f.title}\n${f.text}`).join('\n\n') +
+      `\n\n═══════════════════════════════════════════════════════════════════\n📝 ПОЛНЫЙ ТРАНСКРИПТ ВИДЕО:\n\n${rawText}`;
+    res.json({ success: true, metadata, facts, factsCount: facts.length, conceptType, originalNews: factsFormatted, summary: factsFormatted });
   } catch (err) {
     console.error('Extract facts error:', err);
     res.status(500).json({ success: false, error: err.message || 'Ошибка извлечения' });
@@ -465,6 +473,9 @@ router.post('/api/youtube/regenerate-script', async (req, res) => {
           m.facts = selectedFacts;
           if (selectedFacts?.length) {
             m.summary = `📌 Выбранные ключевые ${concept.labelPlural} (${selectedFacts.length}):\n` + selectedFacts.map((f, i) => `${i + 1}. ${f.title}`).join('\n');
+            const factsFormatted = `📌 ВЫБРАННЫЕ КЛЮЧЕВЫЕ ${concept.headerWord} И ТЕМЫ ДЛЯ СЦЕНАРИЯ (${selectedFacts.length}):\n\n` +
+              selectedFacts.map((f, i) => `${i + 1}. 🌟 ${f.title}\n${f.text}`).join('\n\n');
+            m.original_news = factsFormatted;
           }
         }
         if (titleVariants.length > 0) {

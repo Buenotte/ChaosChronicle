@@ -25,7 +25,7 @@ export default function ScriptToolbar({
 
   const handleOpenFacts = async (targetCount = factsCount, conceptToUse = selectedConcept) => {
     const conceptCfg = getConceptConfig(conceptToUse)
-    if (facts.length > 0 && facts.length >= targetCount && pkg?.conceptType === conceptToUse) {
+    if (facts.length > 0 && facts.length === targetCount && pkg?.conceptType === conceptToUse) {
       setShowFactsModal(true)
       return
     }
@@ -136,29 +136,54 @@ export default function ScriptToolbar({
           {regenerating ? '⏳ Генерация текста...' : '✨ Сгенерировать текст'}
         </button>
 
-        {/* Дополнительная опция: Выбор и извлечение 5 / 10 / 20 пунктов */}
-        <div style={{ display: 'inline-flex', alignItems: 'center', background: '#1c192e', borderRadius: '6px', border: '1px solid #d97706', padding: '2px', gap: '2px' }}>
-          {[5, 10, 20].map(cnt => (
-            <button
-              key={cnt}
-              type="button"
-              onClick={() => { setFactsCount(cnt); handleOpenFacts(cnt, selectedConcept) }}
-              disabled={regenerating || factsLoading}
-              style={{
-                fontSize: '0.76rem',
-                padding: '0.28rem 0.5rem',
-                background: factsCount === cnt ? '#d97706' : 'transparent',
-                color: factsCount === cnt ? '#ffffff' : '#fcd34d',
-                border: 'none',
-                borderRadius: '4px',
-                fontWeight: factsCount === cnt ? 700 : 500,
-                cursor: (regenerating || factsLoading) ? 'not-allowed' : 'pointer',
-              }}
-              title={`Извлечь ${cnt} ${currentConcept.labelPlural} из текста`}
-            >
-              {cnt === 10 ? `🌟 10 ${currentConcept.labelPlural}` : cnt === 5 ? `⚡ 5` : `💎 20`}
-            </button>
-          ))}
+        {/* Дополнительная опция: Выбор и извлечение пунктов (Selectbox от 5 до 15) */}
+        <div style={{ display: 'inline-flex', alignItems: 'center', background: '#1c192e', borderRadius: '6px', border: '1px solid #d97706', padding: '2px 4px', gap: '4px' }}>
+          <span style={{ fontSize: '0.74rem', color: '#fcd34d', fontWeight: 700, paddingLeft: '2px' }}>🔢</span>
+          <select
+            value={factsCount}
+            onChange={e => {
+              const nextCnt = Number(e.target.value)
+              setFactsCount(nextCnt)
+              handleOpenFacts(nextCnt, selectedConcept)
+            }}
+            disabled={regenerating || factsLoading}
+            style={{
+              background: '#090d16',
+              color: '#fcd34d',
+              border: '1px solid #d97706',
+              borderRadius: '4px',
+              fontSize: '0.78rem',
+              padding: '0.24rem 0.4rem',
+              cursor: (regenerating || factsLoading) ? 'not-allowed' : 'pointer',
+              fontWeight: 700,
+            }}
+            title={`Выберите количество ${currentConcept.labelPlural} (от 5 до 15)`}
+          >
+            {[5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 20].map(cnt => (
+              <option key={cnt} value={cnt}>
+                {cnt === 10 ? `🌟 ${cnt} ${currentConcept.labelPlural}` : `${cnt} ${currentConcept.labelPlural}`}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={() => handleOpenFacts(factsCount, selectedConcept)}
+            disabled={regenerating || factsLoading}
+            style={{
+              fontSize: '0.76rem',
+              padding: '0.26rem 0.55rem',
+              background: '#d97706',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '4px',
+              fontWeight: 700,
+              cursor: (regenerating || factsLoading) ? 'not-allowed' : 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+            title={`Извлечь ${factsCount} ${currentConcept.labelPlural} из текста`}
+          >
+            {factsLoading ? '⏳...' : `🔍 Извлечь`}
+          </button>
         </div>
       </div>
 

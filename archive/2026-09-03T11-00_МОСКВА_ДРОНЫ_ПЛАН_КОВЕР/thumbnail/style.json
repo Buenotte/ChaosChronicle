@@ -1,0 +1,31 @@
+{
+  "text": "ДРОНЫ ЗАГНАЛИ РУБЛЕВКУ В ПЛАЦКАРТ",
+  "font": "Saxonia_Antiqua_Bold.ttf",
+  "fontFamilyName": "\"Saxonia_Antiqua_Bold\", sans-serif",
+  "fontSize": "110",
+  "customSizeNum": 110,
+  "lineFontSizes": null,
+  "fontColor": "yellow",
+  "lineColors": [
+    "red",
+    "white",
+    "red"
+  ],
+  "wordColors": null,
+  "wordFontSizes": null,
+  "borderColor": "black",
+  "borderWidth": 5,
+  "shadowDistance": 12,
+  "lineSpacing": 1.4,
+  "isItalic": false,
+  "tiltAngle": 0,
+  "position": "center",
+  "offsetY": 50,
+  "offsetX": 50,
+  "textAlign": "center",
+  "hasBox": true,
+  "boxStyle": "per_line",
+  "boxOpacity": 30,
+  "photoUrl": "/news-static/2026-09-03T11-00_МОСКВА_ДРОНЫ_ПЛАН_КОВЕР/photos/photo_07.jpg",
+  "updatedAt": "2026-09-03T14:54:04.984Z"
+}

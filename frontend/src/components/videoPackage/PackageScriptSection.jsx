@@ -66,10 +66,10 @@ export default function PackageScriptSection({
     }
   }
 
-  // 2. Открытие модального окна пунктов (5, 10 или 20)
+  // 2. Открытие модального окна пунктов (от 5 до 15, или 20)
   const handleOpenFactsModal = async (targetCount = factsCount, conceptToUse = selectedConcept) => {
     const conceptCfg = getConceptConfig(conceptToUse)
-    if (facts.length > 0 && facts.length >= targetCount && pkg?.conceptType === conceptToUse) {
+    if (facts.length > 0 && facts.length === targetCount && pkg?.conceptType === conceptToUse) {
       setShowFactsModal(true)
       return
     }
@@ -192,29 +192,54 @@ export default function PackageScriptSection({
             {FACT_CONCEPT_TYPES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
 
-          {/* Вариант 1: Извлечь 5 / 10 / 20 пунктов и выбрать */}
-          <div style={{ display: 'inline-flex', alignItems: 'center', background: '#1c192e', borderRadius: '6px', border: '1px solid #d97706', padding: '2px', gap: '2px' }}>
-            {[5, 10, 20].map(cnt => (
-              <button
-                key={cnt}
-                type="button"
-                onClick={() => { setFactsCount(cnt); handleOpenFactsModal(cnt, selectedConcept) }}
-                disabled={factsLoading || factsGenerating}
-                style={{
-                  fontSize: '0.76rem',
-                  padding: '0.28rem 0.5rem',
-                  background: factsCount === cnt ? '#d97706' : 'transparent',
-                  color: factsCount === cnt ? '#ffffff' : '#fcd34d',
-                  border: 'none',
-                  borderRadius: '4px',
-                  fontWeight: factsCount === cnt ? 700 : 500,
-                  cursor: (factsLoading || factsGenerating) ? 'not-allowed' : 'pointer',
-                }}
-                title={`Извлечь ${cnt} ${currentConcept.labelPlural} из текста`}
-              >
-                {cnt === 10 ? `🌟 10 ${currentConcept.labelPlural}` : cnt === 5 ? `⚡ 5` : `💎 20`}
-              </button>
-            ))}
+          {/* Вариант 1: Извлечь от 5 до 15 пунктов (Selectbox) */}
+          <div style={{ display: 'inline-flex', alignItems: 'center', background: '#1c192e', borderRadius: '6px', border: '1px solid #d97706', padding: '2px 4px', gap: '4px' }}>
+            <span style={{ fontSize: '0.74rem', color: '#fcd34d', fontWeight: 700, paddingLeft: '2px' }}>🔢</span>
+            <select
+              value={factsCount}
+              onChange={e => {
+                const nextCnt = Number(e.target.value)
+                setFactsCount(nextCnt)
+                handleOpenFactsModal(nextCnt, selectedConcept)
+              }}
+              disabled={factsLoading || factsGenerating}
+              style={{
+                background: '#090d16',
+                color: '#fcd34d',
+                border: '1px solid #d97706',
+                borderRadius: '4px',
+                fontSize: '0.78rem',
+                padding: '0.24rem 0.4rem',
+                cursor: (factsLoading || factsGenerating) ? 'not-allowed' : 'pointer',
+                fontWeight: 700,
+              }}
+              title={`Выберите количество ${currentConcept.labelPlural} (от 5 до 15)`}
+            >
+              {[5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 20].map(cnt => (
+                <option key={cnt} value={cnt}>
+                  {cnt === 10 ? `🌟 ${cnt} ${currentConcept.labelPlural}` : `${cnt} ${currentConcept.labelPlural}`}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => handleOpenFactsModal(factsCount, selectedConcept)}
+              disabled={factsLoading || factsGenerating}
+              style={{
+                fontSize: '0.76rem',
+                padding: '0.26rem 0.55rem',
+                background: '#d97706',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '4px',
+                fontWeight: 700,
+                cursor: (factsLoading || factsGenerating) ? 'not-allowed' : 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+              title={`Извлечь ${factsCount} ${currentConcept.labelPlural} из текста`}
+            >
+              {factsLoading ? '⏳...' : `🔍 Извлечь`}
+            </button>
           </div>
 
           {/* Вариант 2: Сгенерировать дикторский текст */}

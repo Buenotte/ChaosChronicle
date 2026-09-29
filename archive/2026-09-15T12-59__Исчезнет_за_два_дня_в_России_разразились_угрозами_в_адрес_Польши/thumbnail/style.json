@@ -1,0 +1,61 @@
+{
+  "text": "РФ :\nКИЕВ  НЕ ВЗЯЛИ,\nБЕРЕМ ВАРШАВУ",
+  "customLines": [
+    "РФ :",
+    "КИЕВ  НЕ ВЗЯЛИ,",
+    "БЕРЕМ ВАРШАВУ"
+  ],
+  "font": "Saxonia_Antiqua_Bold.ttf",
+  "fontFamilyName": "\"Saxonia_Antiqua_Bold\", sans-serif",
+  "fontSize": 110,
+  "customSizeNum": 110,
+  "lineFontSizes": null,
+  "fontColor": "yellow",
+  "lineColors": [
+    "red",
+    "white",
+    "red"
+  ],
+  "wordColors": [
+    "red",
+    "yellow",
+    "white",
+    "white",
+    "white",
+    "yellow",
+    "cyan"
+  ],
+  "wordFontSizes": [
+    133,
+    134,
+    135,
+    136,
+    141,
+    138,
+    141
+  ],
+  "borderColor": "black",
+  "borderWidth": 5,
+  "shadowDistance": 12,
+  "lineSpacing": 1.4,
+  "wordSpacing": 0,
+  "isItalic": false,
+  "tiltAngle": 0,
+  "position": "custom",
+  "offsetY": 43,
+  "offsetX": 49,
+  "textAlign": "center",
+  "hasBox": true,
+  "boxStyle": "per_line",
+  "boxOpacity": 30,
+  "lineBadges": {
+    "enabled": true,
+    "style": "solid",
+    "shadow": "soft",
+    "tiltMode": "none",
+    "color": "#000000",
+    "opacity": 30
+  },
+  "photoUrl": "/news-static/2026-09-15T12-59__Исчезнет_за_два_дня_в_России_разразились_угрозами_в_адрес_Польши/photos/photo_01.jpg",
+  "updatedAt": "2026-09-15T17:24:43.657Z"
+}

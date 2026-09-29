@@ -150,17 +150,39 @@ export default function TitleVariantsModal({ pkg, onClose, onTitleSaved }) {
 
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-                <span style={{ fontSize: '0.75rem', color: '#38bdf8', fontWeight: 700 }}>🔤 ОБЯЗАТЕЛЬНЫЕ СЛОВА / АКЦЕНТЫ (ОПЦИОНАЛЬНО):</span>
-                <span style={{ fontSize: '0.7rem', color: '#9ca3af' }}>Слова, которые ИИ обязан включить в заголовок</span>
+                <span style={{ fontSize: '0.78rem', color: '#38bdf8', fontWeight: 800 }}>🔤 ОБЯЗАТЕЛЬНЫЕ СВОИ СЛОВА ДЛЯ ЗАГОЛОВКОВ:</span>
+                <span style={{ fontSize: '0.7rem', color: '#9ca3af' }}>ИИ гарантированно включит эти слова в каждый вариант</span>
               </div>
-              <input
-                type="text"
-                value={titleKeywords}
-                onChange={e => setTitleKeywords(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') fetchVariants(true) }}
-                placeholder={isYouTube ? "Например: мозг, сон, память, циркадные ритмы..." : "Например: дефолт, бункер, капуста, санкции, F-16..."}
-                style={{ width: '100%', background: '#09090b', border: '1px solid #0284c7', borderRadius: '6px', padding: '0.45rem 0.65rem', color: '#facc15', fontSize: '0.86rem', fontWeight: 600, outline: 'none', boxSizing: 'border-box' }}
-              />
+              <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                <input
+                  type="text"
+                  value={titleKeywords}
+                  onChange={e => setTitleKeywords(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') fetchVariants(true) }}
+                  placeholder={isYouTube ? "Например: мозг, сон, память, циркадные ритмы..." : "Например: дефолт, бункер, капуста, санкции, F-16..."}
+                  style={{ flex: 1, background: '#09090b', border: '1.5px solid #0284c7', borderRadius: '6px', padding: '0.5rem 0.7rem', color: '#facc15', fontSize: '0.9rem', fontWeight: 700, outline: 'none', boxSizing: 'border-box' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => fetchVariants(true)}
+                  disabled={loading}
+                  style={{
+                    background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '0.5rem 0.9rem',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    whiteSpace: 'nowrap',
+                    boxShadow: '0 2px 6px rgba(2, 132, 199, 0.4)',
+                  }}
+                  title="Сгенерировать 10 вариантов с введенными словами"
+                >
+                  {loading ? '⏳...' : '✨ Сгенерировать с моими словами'}
+                </button>
+              </div>
             </div>
           </div>
 

@@ -1,0 +1,26 @@
+{
+  "text": "ЗЕРНО УХОДИТ В АРКТИКУ",
+  "font": "Saxonia_Antiqua_Bold.ttf",
+  "fontFamilyName": "\"Saxonia_Antiqua_Bold\", sans-serif",
+  "fontSize": "auto",
+  "customSizeNum": 82,
+  "lineFontSizes": [
+    105,
+    108
+  ],
+  "fontColor": "yellow",
+  "lineColors": null,
+  "borderColor": "black",
+  "borderWidth": 4,
+  "shadowDistance": 4,
+  "lineSpacing": 1.15,
+  "isItalic": false,
+  "tiltAngle": 0,
+  "position": "center",
+  "offsetY": 50,
+  "hasBox": true,
+  "boxStyle": "per_line",
+  "boxOpacity": 40,
+  "photoUrl": "/news-static/2026-08-26T17-35_ЗЕРНО_В_АРКТИКЕ_ТРИУМФ/photos/photo_02.jpg",
+  "updatedAt": "2026-08-26T18:11:38.406Z"
+}

@@ -1,0 +1,40 @@
+{
+  "text": "ГЛАВНЫЙ  ГЕРОЙ\n КРЕМЛЯ   \nОКАЗАЛСЯ \nПРЕДАТЕЛЕМ",
+  "font": "Saxonia_Antiqua_Bold.ttf",
+  "fontFamilyName": "\"Saxonia_Antiqua_Bold\", sans-serif",
+  "fontSize": 110,
+  "customSizeNum": 110,
+  "lineFontSizes": null,
+  "fontColor": "yellow",
+  "lineColors": null,
+  "wordColors": [
+    "yellow",
+    "yellow",
+    "red",
+    "white",
+    "cyan"
+  ],
+  "wordFontSizes": [
+    130,
+    132,
+    133,
+    133,
+    139
+  ],
+  "borderColor": "black",
+  "borderWidth": 4,
+  "shadowDistance": 8,
+  "lineSpacing": 1.15,
+  "wordSpacing": 10,
+  "isItalic": false,
+  "tiltAngle": 0,
+  "position": "center",
+  "offsetY": 50,
+  "offsetX": 50,
+  "textAlign": "center",
+  "hasBox": true,
+  "boxStyle": "per_line",
+  "boxOpacity": 30,
+  "photoUrl": "/news-static/2026-09-05T09-42_ДОНСКОЙ_КРЕМЛЕВСКИЙ_ФЕЙК_ИЗМЕНА/photos/photo_02.jpg",
+  "updatedAt": "2026-09-05T16:49:55.137Z"
+}

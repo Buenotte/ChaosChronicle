@@ -1,0 +1,22 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1080
+PlayResY: 1920
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Title,Saxonia Antiqua,167,&H0000E6FF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,8,4,8,10,10,10,1
+Style: Badge,Arial,20,&H00000000,&H00000000,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,0:01:00.00,Badge,,0,0,0,,{\an7\pos(40,536)\org(540,617)\c&H000000&\1a&H40&\bord0\shad5\blur3\4c&H000000&\4a&H40&\p1}m 16 0 l 984 0 l 1000 16 l 1000 146 l 984 162 l 16 162 l 0 146 l 0 16{\p0}
+Dialogue: 1,0:00:00.00,0:01:00.00,Title,,0,0,0,,{\an5\pos(540,617)\org(540,617)}{\c&HFFF000&\fs144\bord8\3c&H000000&\shad4\4c&H000000&}АМЕРИКАНСКАЯ
+Dialogue: 0,0:00:00.00,0:01:00.00,Badge,,0,0,0,,{\an7\pos(117,718)\org(540,799)\c&H000000&\1a&H40&\bord0\shad5\blur3\4c&H000000&\4a&H40&\p1}m 16 0 l 831 0 l 847 16 l 847 146 l 831 162 l 16 162 l 0 146 l 0 16{\p0}
+Dialogue: 1,0:00:00.00,0:01:00.00,Title,,0,0,0,,{\an5\pos(540,799)\org(540,799)}{\c&H2A2AFF&\fs159\bord8\3c&H000000&\shad4\4c&H000000&}ГИЛЬОТИНА
+Dialogue: 0,0:00:00.00,0:01:00.00,Badge,,0,0,0,,{\an7\pos(352,900)\org(540,981)\c&H000000&\1a&H40&\bord0\shad5\blur3\4c&H000000&\4a&H40&\p1}m 16 0 l 360 0 l 376 16 l 376 146 l 360 162 l 16 162 l 0 146 l 0 16{\p0}
+Dialogue: 1,0:00:00.00,0:01:00.00,Title,,0,0,0,,{\an5\pos(540,981)\org(540,981)}{\c&H00E6FF&\fs159\bord8\3c&H000000&\shad4\4c&H000000&}ДЛЯ
+Dialogue: 0,0:00:00.00,0:01:00.00,Badge,,0,0,0,,{\an7\pos(40,1082)\org(540,1163)\c&H000000&\1a&H40&\bord0\shad5\blur3\4c&H000000&\4a&H40&\p1}m 16 0 l 984 0 l 1000 16 l 1000 146 l 984 162 l 16 162 l 0 146 l 0 16{\p0}
+Dialogue: 1,0:00:00.00,0:01:00.00,Title,,0,0,0,,{\an5\pos(540,1163)\org(540,1163)}{\c&H2A2AFF&\fs161\bord8\3c&H000000&\shad4\4c&H000000&}КРЕМЛЕВСКИХ
+Dialogue: 0,0:00:00.00,0:01:00.00,Badge,,0,0,0,,{\an7\pos(54,1264)\org(540,1345)\c&H000000&\1a&H40&\bord0\shad5\blur3\4c&H000000&\4a&H40&\p1}m 16 0 l 956 0 l 972 16 l 972 146 l 956 162 l 16 162 l 0 146 l 0 16{\p0}
+Dialogue: 1,0:00:00.00,0:01:00.00,Title,,0,0,0,,{\an5\pos(540,1345)\org(540,1345)}{\c&H66FF00&\fs161\bord8\3c&H000000&\shad4\4c&H000000&}МЕЧТАТЕЛЕЙ

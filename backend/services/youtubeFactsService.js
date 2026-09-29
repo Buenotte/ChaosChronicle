@@ -85,10 +85,11 @@ export async function extractTwentyFactsFromTranscript(transcriptText = '', titl
   }
 
   const concept = getConceptInfo(conceptType);
-  const count = [5, 10, 20].includes(Number(requestedCount)) ? Number(requestedCount) : (parseInt(requestedCount, 10) || 20);
+  const parsedCount = parseInt(requestedCount, 10);
+  const count = (!isNaN(parsedCount) && parsedCount >= 3 && parsedCount <= 30) ? parsedCount : 10;
   const cleanText = transcriptText.slice(0, 65000);
   const sysPrompt = `Ты — ведущий шеф-редактор и продюсер YouTube-канала Chaos Chronicle.
-Твоя задача — внимательно изучить транскрипт длинного разговора/интервью и извлечь РОВНО ${count} САМЫХ ${concept.adjPlural.toUpperCase()} / ТЕМ.
+Твой задача — внимательно изучить транскрипт длинного разговора/интервью и извлечь РОВНО ${count} САМЫХ ${concept.adjPlural.toUpperCase()} / ТЕМ.
 Каждый пункт (${concept.labelSingle.toLowerCase()}) должен быть самостоятельным и понятным зрителю.
 СТРОЖАЙШЕ ЗАПРЕЩЕНО:
 - Упоминать имена ведущих, интервьюеров и гостей (никаких "доктор", "гость сказал", "ведущий спросил").
@@ -103,7 +104,8 @@ export async function extractTwentyFactsFromTranscript(transcriptText = '', titl
       "text": "Суть в 1-2 емких предложениях с конкретными деталями и парадоксом."
     }
   ]
-}`;
+}
+`;
 
   const userPrompt = `ВИДЕО: "${title || 'Запись разговора'}"
 
@@ -114,7 +116,7 @@ ${cleanText}
 
 Найди и сформулируй РОВНО ${count} самых сильных ${concept.labelPlural} в формате JSON:`;
 
-  let rawJson = await callGeminiDirect(sysPrompt, userPrompt, count > 10 ? 7000 : 4000);
+  let rawJson = await callGeminiDirect(sysPrompt, userPrompt, count > 10 ? 8000 : 5000);
   if (!rawJson) {
     rawJson = await callOpenRouterFallback(sysPrompt, userPrompt);
   }

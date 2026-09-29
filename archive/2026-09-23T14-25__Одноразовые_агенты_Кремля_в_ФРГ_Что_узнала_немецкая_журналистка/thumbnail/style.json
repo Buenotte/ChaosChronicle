@@ -1,0 +1,50 @@
+{
+  "text": "ПОЧЕМУ ШПИОНЫ РФ\nСТОЯТ КОПЕЙКИ",
+  "customLines": [
+    "ПОЧЕМУ ШПИОНЫ РФ",
+    "СТОЯТ КОПЕЙКИ"
+  ],
+  "font": "Saxonia_Antiqua_Bold.ttf",
+  "fontFamilyName": "\"Saxonia_Antiqua_Bold\", sans-serif",
+  "fontSize": 110,
+  "customSizeNum": 110,
+  "lineFontSizes": null,
+  "fontColor": "yellow",
+  "lineColors": [
+    "red",
+    "white",
+    "red"
+  ],
+  "wordColors": null,
+  "wordFontSizes": [
+    110,
+    110,
+    110,
+    133,
+    138
+  ],
+  "borderColor": "black",
+  "borderWidth": 5,
+  "shadowDistance": 12,
+  "lineSpacing": 1.4,
+  "wordSpacing": 0,
+  "isItalic": false,
+  "tiltAngle": 0,
+  "position": "center",
+  "offsetY": 50,
+  "offsetX": 50,
+  "textAlign": "center",
+  "hasBox": true,
+  "boxStyle": "per_line",
+  "boxOpacity": 30,
+  "lineBadges": {
+    "enabled": true,
+    "style": "solid",
+    "shadow": "soft",
+    "tiltMode": "none",
+    "color": "#000000",
+    "opacity": 30
+  },
+  "photoUrl": "/news-static/2026-09-23T14-25__Одноразовые_агенты_Кремля_в_ФРГ_Что_узнала_немецкая_журналистка/photos/photo_05.png",
+  "updatedAt": "2026-09-24T13:02:26.966Z"
+}

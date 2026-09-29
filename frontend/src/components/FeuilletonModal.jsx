@@ -10,6 +10,10 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onOpenPackag
 
   const [currentText, setCurrentText] = useState(feuilleton.text || feuilleton.scriptTxt || '')
   const [currentTitle, setCurrentTitle] = useState(feuilleton.title || '')
+  const [originalNews, setOriginalNews] = useState(feuilleton.original_news || feuilleton.summary || feuilleton.originalNews || feuilleton.sourceText || '')
+  const [isEditingOriginal, setIsEditingOriginal] = useState(false)
+  const [showOriginal, setShowOriginal] = useState(true)
+  const [scrapingUrl, setScrapingUrl] = useState(false)
   const [selectedStyle, setSelectedStyle] = useState(feuilleton.style || feuilleton.scriptStyle || 'kasjanov')
   const [selectedModel, setSelectedModel] = useState(feuilleton.modelName || feuilleton.model || 'gemini')
   const [selectedTone, setSelectedTone] = useState(feuilleton.tone || 'grotesque')
@@ -21,10 +25,27 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onOpenPackag
     if (feuilleton) {
       setCurrentText(feuilleton.text || feuilleton.scriptTxt || '')
       setCurrentTitle(feuilleton.title || '')
+      const initOrig = feuilleton.original_news || feuilleton.summary || feuilleton.originalNews || feuilleton.sourceText || ''
+      setOriginalNews(initOrig)
       setSelectedStyle(feuilleton.style || feuilleton.scriptStyle || 'kasjanov')
       setSelectedModel(feuilleton.modelName || feuilleton.model || 'gemini')
       setSelectedTone(feuilleton.tone || 'grotesque')
       setSavedInfo(feuilleton.bundleDir || feuilleton.matchingPkg ? (feuilleton.matchingPkg || feuilleton) : null)
+
+      const fName = feuilleton.folderName || feuilleton.matchingPkg?.folderName || ''
+      const bDir = feuilleton.bundleDir || feuilleton.matchingPkg?.bundleDir || ''
+      if (fName || bDir) {
+        const params = new URLSearchParams({ folderName: fName, bundleDir: bDir })
+        fetch(`/api/package-script-text?${params}`)
+          .then(r => r.json())
+          .then(data => {
+            if (data.success) {
+              if (typeof data.text === 'string' && !feuilleton.text) setCurrentText(data.text)
+              if (data.originalNews || data.summary) setOriginalNews(data.originalNews || data.summary)
+            }
+          })
+          .catch(() => {})
+      }
     }
   }, [feuilleton])
 
@@ -39,7 +60,40 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onOpenPackag
         folderName: info?.folderName || feuilleton.folderName || feuilleton.matchingPkg?.folderName,
         bundleDir: info?.bundleDir || feuilleton.bundleDir || feuilleton.matchingPkg?.bundleDir,
         scriptTxt: currentText,
+        original_news: originalNews,
+        summary: originalNews,
       })
+    }
+  }
+
+  const handleScrapeArticle = async () => {
+    const targetUrl = feuilleton.url || feuilleton.link || feuilleton.matchingPkg?.url || ''
+    if (!targetUrl) return toast.error('URL статьи не найден в новости')
+    setScrapingUrl(true)
+    const toastId = toast.loading('🌐 Загрузка полного текста статьи по ссылке...', { description: targetUrl })
+    try {
+      const res = await fetch('/api/scrape-article-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: targetUrl,
+          bundleDir: feuilleton.bundleDir || savedInfo?.bundleDir || feuilleton.matchingPkg?.bundleDir,
+          folderName: feuilleton.folderName || savedInfo?.folderName || feuilleton.matchingPkg?.folderName,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) throw new Error(data.error || 'Не удалось загрузить статью')
+
+      setOriginalNews(data.text)
+      feuilleton.original_news = data.text
+      feuilleton.summary = data.text
+      setShowOriginal(true)
+      if (onRefreshPackages) onRefreshPackages()
+      toast.success(`🎉 Полная статья загружена (${data.wordCount || data.text.split(/\s+/).filter(Boolean).length} слов)!`, { id: toastId })
+    } catch (err) {
+      toast.error('Ошибка загрузки статьи', { id: toastId, description: err.message })
+    } finally {
+      setScrapingUrl(false)
     }
   }
 
@@ -55,11 +109,13 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onOpenPackag
     const toastId = toast.loading(toastLabel + '...', { description: `${modelName} | ${styleName}` })
 
     try {
+      const effectiveOrig = originalNews || feuilleton.original_news || feuilleton.summary || feuilleton.sourceText || ''
       const res = await fetch('/api/generate-feuilleton', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: feuilleton.originalTitle || feuilleton.title,
-          summary: feuilleton.summary || feuilleton.originalNews || feuilleton.sourceText || '',
+          summary: effectiveOrig,
+          original_news: effectiveOrig,
           model: newModel,
           style: newStyle,
           tone: newTone,
@@ -76,9 +132,15 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onOpenPackag
       if (!res.ok || !data.success) throw new Error(data.error || 'Ошибка генерации')
       const fData = data.feuilleton || data
       setCurrentText(fData.text || ''); setCurrentTitle(fData.title || currentTitle); setSelectedStyle(newStyle); setSelectedModel(newModel)
+      if (fData.original_news || fData.summary) {
+        setOriginalNews(fData.original_news || fData.summary)
+        feuilleton.original_news = fData.original_news || fData.summary
+        feuilleton.summary = fData.original_news || fData.summary
+      }
       if (feuilleton.matchingPkg) {
         feuilleton.matchingPkg.scriptTxt = fData.text || ''
         if (fData.title) feuilleton.matchingPkg.title = fData.title
+        if (fData.original_news) feuilleton.matchingPkg.original_news = fData.original_news
       }
       if (onRefreshPackages) onRefreshPackages()
       toast.success('✨ Новый вариант сценария готов!', { id: toastId })
@@ -90,6 +152,7 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onOpenPackag
     setSaving(true)
     const toastId = toast.loading('💾 Сохранение видео-пакета в news/...', { description: 'Создание папки, сохранение фото, script.txt и project.json...' })
     try {
+      const effectiveOrig = originalNews || feuilleton.original_news || feuilleton.summary || feuilleton.sourceText || ''
       const res = await fetch('/api/save-news-package', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -97,13 +160,26 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onOpenPackag
           url: feuilleton.url || feuilleton.link || feuilleton.matchingPkg?.url || '', text: currentText, model: selectedModel,
           style: selectedStyle, source: feuilleton.source, imageUrl: feuilleton.imageUrl,
           images: feuilleton.images || [], folderName: savedInfo?.folderName || feuilleton.folderName || feuilleton.matchingPkg?.folderName,
-          summary: feuilleton.summary || feuilleton.originalNews || feuilleton.sourceText || '',
-          original_news: feuilleton.summary || feuilleton.originalNews || feuilleton.sourceText || '',
+          summary: effectiveOrig,
+          original_news: effectiveOrig,
         }),
       })
       const data = await res.json()
       if (!res.ok || !data.success) throw new Error(data.error || 'Ошибка сохранения')
-      const newSaved = { ...feuilleton, ...(feuilleton.matchingPkg || {}), ...data, title: currentTitle, scriptTxt: currentText, style: selectedStyle, model: selectedModel, tone: selectedTone }
+      const newSaved = {
+        ...feuilleton,
+        ...(feuilleton.matchingPkg || {}),
+        ...data,
+        title: currentTitle,
+        scriptTxt: currentText,
+        style: selectedStyle,
+        model: selectedModel,
+        tone: selectedTone,
+        original_news: effectiveOrig,
+        summary: effectiveOrig,
+      }
+      feuilleton.original_news = effectiveOrig
+      feuilleton.summary = effectiveOrig
       setSavedInfo(newSaved)
       if (onRefreshPackages) onRefreshPackages()
       toast.success('📦 Видео-пакет успешно сохранен!', {
@@ -115,6 +191,7 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onOpenPackag
   }
 
   const isCurrentStyleYt = ['scipop', 'mystery', 'tech_future', 'psychology', 'storytelling'].includes(selectedStyle)
+  const articleUrl = feuilleton.url || feuilleton.link || feuilleton.matchingPkg?.url || feuilleton.original_url || ''
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -167,16 +244,82 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onOpenPackag
         {!currentText ? (
           /* Экран выбора Модели и Стиля перед написанием */
           <div className="modal-body" style={{ overflowY: 'auto', flex: 1, padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
-            {feuilleton.summary && (
-              <div style={{ background: '#111827', padding: '0.85rem 1.1rem', borderRadius: '8px', borderLeft: '4px solid #7c3aed' }}>
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Суть новости:
+            {/* Исходный текст Telegram / Новости / Статьи (Экран настройки) */}
+            <div style={{ background: '#0b1120', border: '1px solid #38bdf8', borderRadius: '8px', padding: '0.75rem 0.95rem', boxShadow: '0 2px 8px rgba(0,0,0,0.35)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem' }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <span>📰</span> ИСХОДНАЯ НОВОСТЬ ({feuilleton.source || 'Telegram / Источник'}):
+                  <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 500 }}>
+                    ({originalNews ? originalNews.split(/\s+/).filter(Boolean).length : 0} слов)
+                  </span>
                 </span>
-                <p style={{ fontSize: '0.9rem', color: '#e5e7eb', marginTop: '0.25rem', lineHeight: '1.5' }}>
-                  {feuilleton.summary}
-                </p>
+                <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                  {articleUrl && (
+                    <button
+                      type="button"
+                      onClick={handleScrapeArticle}
+                      disabled={scrapingUrl}
+                      style={{ background: '#0369a1', border: '1px solid #0284c7', color: '#fff', borderRadius: '4px', padding: '0.18rem 0.5rem', fontSize: '0.72rem', cursor: scrapingUrl ? 'not-allowed' : 'pointer', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                      title="Загрузить полный текст статьи с оригинального сайта по ссылке"
+                    >
+                      {scrapingUrl ? '⏳ Загрузка...' : '🌐 Загрузить по ссылке'}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingOriginal(!isEditingOriginal)}
+                    style={{ background: isEditingOriginal ? '#16a34a' : '#1e293b', border: '1px solid #334155', color: isEditingOriginal ? '#fff' : '#38bdf8', borderRadius: '4px', padding: '0.18rem 0.5rem', fontSize: '0.72rem', cursor: 'pointer', fontWeight: 600 }}
+                    title="Редактировать или вставить полный оригинальный текст новости"
+                  >
+                    {isEditingOriginal ? '💾 Готово' : '✏️ Редактировать'}
+                  </button>
+                  {originalNews && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(originalNews)
+                        toast.success('Оригинальный текст скопирован!')
+                      }}
+                      style={{ background: '#1e293b', border: '1px solid #334155', color: '#38bdf8', borderRadius: '4px', padding: '0.18rem 0.5rem', fontSize: '0.72rem', cursor: 'pointer', fontWeight: 600 }}
+                    >
+                      📋 Копировать
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setShowOriginal(!showOriginal)}
+                    style={{ background: 'transparent', border: '1px solid #334155', color: '#94a3b8', borderRadius: '4px', padding: '0.18rem 0.45rem', fontSize: '0.72rem', cursor: 'pointer' }}
+                  >
+                    {showOriginal ? 'Свернуть ▲' : 'Развернуть ▼'}
+                  </button>
+                </div>
               </div>
-            )}
+
+              {showOriginal && (
+                <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid #1e293b' }}>
+                  {isEditingOriginal ? (
+                    <textarea
+                      value={originalNews}
+                      onChange={e => {
+                        setOriginalNews(e.target.value)
+                        feuilleton.summary = e.target.value
+                        feuilleton.original_news = e.target.value
+                      }}
+                      placeholder="Вставьте или отредактируйте полный оригинальный текст новости здесь..."
+                      style={{
+                        width: '100%', minHeight: '130px', background: '#030712', color: '#f8fafc',
+                        border: '1px solid #38bdf8', borderRadius: '6px', padding: '0.5rem 0.65rem',
+                        fontSize: '0.86rem', lineHeight: '1.5', fontFamily: 'inherit', resize: 'vertical',
+                      }}
+                    />
+                  ) : (
+                    <div style={{ fontSize: '0.86rem', color: '#f1f5f9', lineHeight: '1.55', maxHeight: '180px', overflowY: 'auto', whiteSpace: 'pre-wrap', background: '#030712', padding: '0.5rem 0.65rem', borderRadius: '6px' }}>
+                      {originalNews || <span style={{ color: '#64748b', fontStyle: 'italic' }}>Оригинальный текст пуст. Нажмите «✏️ Редактировать» чтобы вставить текст{articleUrl ? ' или «🌐 Загрузить по ссылке»' : ''}.</span>}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
             {/* 1. Выбор ИИ Модели */}
             <div style={{ background: '#181c27', padding: '1rem', borderRadius: '10px', border: '1px solid #232936' }}>
@@ -276,16 +419,82 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onOpenPackag
               </button>
             </div>
 
-            {feuilleton.summary && (
-              <details open style={{ background: '#0b0f19', padding: '0.65rem 0.85rem', borderRadius: '6px', border: '1px solid #7c3aed', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
-                <summary style={{ fontSize: '0.82rem', color: '#c084fc', fontWeight: 700, cursor: 'pointer' }}>
-                  📰 ИСХОДНАЯ НОВОСТЬ ({feuilleton.source || 'Telegram / Источник'}): <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 500 }}>({feuilleton.summary.split(/\s+/).filter(Boolean).length} слов)</span>
-                </summary>
-                <div style={{ fontSize: '0.86rem', color: '#f1f5f9', marginTop: '0.45rem', whiteSpace: 'pre-wrap', lineHeight: '1.55', maxHeight: '160px', overflowY: 'auto', background: '#030712', padding: '0.5rem 0.65rem', borderRadius: '6px' }}>
-                  {feuilleton.summary}
+            {/* Исходный текст Telegram / Новости / Статьи (Экран редактирования сценария) */}
+            <div style={{ background: '#0b1120', border: '1px solid #38bdf8', borderRadius: '8px', padding: '0.65rem 0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.35)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem' }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <span>📰</span> ИСХОДНАЯ НОВОСТЬ ({feuilleton.source || 'Telegram / Источник'}):
+                  <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 500 }}>
+                    ({originalNews ? originalNews.split(/\s+/).filter(Boolean).length : 0} слов)
+                  </span>
+                </span>
+                <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                  {articleUrl && (
+                    <button
+                      type="button"
+                      onClick={handleScrapeArticle}
+                      disabled={scrapingUrl}
+                      style={{ background: '#0369a1', border: '1px solid #0284c7', color: '#fff', borderRadius: '4px', padding: '0.18rem 0.5rem', fontSize: '0.72rem', cursor: scrapingUrl ? 'not-allowed' : 'pointer', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                      title="Загрузить полный текст статьи с оригинального сайта по ссылке"
+                    >
+                      {scrapingUrl ? '⏳ Загрузка...' : '🌐 Загрузить по ссылке'}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingOriginal(!isEditingOriginal)}
+                    style={{ background: isEditingOriginal ? '#16a34a' : '#1e293b', border: '1px solid #334155', color: isEditingOriginal ? '#fff' : '#38bdf8', borderRadius: '4px', padding: '0.18rem 0.5rem', fontSize: '0.72rem', cursor: 'pointer', fontWeight: 600 }}
+                    title="Редактировать или вставить полный оригинальный текст новости"
+                  >
+                    {isEditingOriginal ? '💾 Готово' : '✏️ Редактировать'}
+                  </button>
+                  {originalNews && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(originalNews)
+                        toast.success('Оригинальный текст скопирован!')
+                      }}
+                      style={{ background: '#1e293b', border: '1px solid #334155', color: '#38bdf8', borderRadius: '4px', padding: '0.18rem 0.5rem', fontSize: '0.72rem', cursor: 'pointer', fontWeight: 600 }}
+                    >
+                      📋 Копировать
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setShowOriginal(!showOriginal)}
+                    style={{ background: 'transparent', border: '1px solid #334155', color: '#94a3b8', borderRadius: '4px', padding: '0.18rem 0.45rem', fontSize: '0.72rem', cursor: 'pointer' }}
+                  >
+                    {showOriginal ? 'Свернуть ▲' : 'Развернуть ▼'}
+                  </button>
                 </div>
-              </details>
-            )}
+              </div>
+
+              {showOriginal && (
+                <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid #1e293b' }}>
+                  {isEditingOriginal ? (
+                    <textarea
+                      value={originalNews}
+                      onChange={e => {
+                        setOriginalNews(e.target.value)
+                        feuilleton.summary = e.target.value
+                        feuilleton.original_news = e.target.value
+                      }}
+                      placeholder="Вставьте или отредактируйте полный оригинальный текст новости здесь..."
+                      style={{
+                        width: '100%', minHeight: '130px', background: '#030712', color: '#f8fafc',
+                        border: '1px solid #38bdf8', borderRadius: '6px', padding: '0.5rem 0.65rem',
+                        fontSize: '0.86rem', lineHeight: '1.5', fontFamily: 'inherit', resize: 'vertical',
+                      }}
+                    />
+                  ) : (
+                    <div style={{ fontSize: '0.86rem', color: '#f1f5f9', lineHeight: '1.55', maxHeight: '180px', overflowY: 'auto', whiteSpace: 'pre-wrap', background: '#030712', padding: '0.5rem 0.65rem', borderRadius: '6px' }}>
+                      {originalNews || <span style={{ color: '#64748b', fontStyle: 'italic' }}>Оригинальный текст пуст. Нажмите «✏️ Редактировать» чтобы вставить текст{articleUrl ? ' или «🌐 Загрузить по ссылке»' : ''}.</span>}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
             {/* ⚡ 3-секундные вирусные хуки для YouTube */}
             <ScriptHookGenerator

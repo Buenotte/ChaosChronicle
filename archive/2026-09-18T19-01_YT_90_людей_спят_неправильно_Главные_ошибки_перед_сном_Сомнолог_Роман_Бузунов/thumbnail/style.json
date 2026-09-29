@@ -1,0 +1,58 @@
+{
+  "text": "СМЕРТЕЛЬНЫЙ СОН:\nКАК 90% ЛЮДЕЙ\nСПЯТ\nНЕПРАВИЛЬНО?",
+  "customLines": [
+    "СМЕРТЕЛЬНЫЙ СОН:",
+    "КАК 90% ЛЮДЕЙ",
+    "СПЯТ",
+    "НЕПРАВИЛЬНО?"
+  ],
+  "font": "Saxonia_Antiqua_Bold.ttf",
+  "fontFamilyName": "\"Saxonia_Antiqua_Bold\", sans-serif",
+  "fontSize": 110,
+  "customSizeNum": 110,
+  "lineFontSizes": null,
+  "fontColor": "yellow",
+  "lineColors": null,
+  "wordColors": [
+    "yellow",
+    "yellow",
+    "white",
+    "white",
+    "white",
+    null,
+    "red"
+  ],
+  "wordFontSizes": [
+    138,
+    140,
+    110,
+    135,
+    140,
+    null,
+    132
+  ],
+  "borderColor": "black",
+  "borderWidth": 5,
+  "shadowDistance": 12,
+  "lineSpacing": 1.35,
+  "wordSpacing": 10,
+  "isItalic": false,
+  "tiltAngle": 0,
+  "position": "center",
+  "offsetY": 50,
+  "offsetX": 50,
+  "textAlign": "center",
+  "hasBox": false,
+  "boxStyle": "none",
+  "boxOpacity": 30,
+  "lineBadges": {
+    "enabled": false,
+    "style": "solid",
+    "shadow": "soft",
+    "tiltMode": "none",
+    "color": "#000000",
+    "opacity": 30
+  },
+  "photoUrl": "/news-static/2026-09-18T19-01_YT_90_людей_спят_неправильно_Главные_ошибки_перед_сном_Сомнолог_Роман_Бузунов/photos/photo_05.jpg",
+  "updatedAt": "2026-09-19T09:58:58.452Z"
+}

@@ -1,0 +1,59 @@
+{
+  "text": "ТОРЖЕСТВО\nБАБЛА,\nМЕРЗОСТИ\nИ\nЛИЦЕМЕРИЯ",
+  "customLines": [
+    "ТОРЖЕСТВО",
+    "БАБЛА,",
+    "МЕРЗОСТИ",
+    "И",
+    "ЛИЦЕМЕРИЯ"
+  ],
+  "font": "Saxonia_Antiqua_Bold.ttf",
+  "fontFamilyName": "\"Saxonia_Antiqua_Bold\", sans-serif",
+  "fontSize": 110,
+  "customSizeNum": 110,
+  "lineFontSizes": null,
+  "fontColor": "yellow",
+  "lineColors": [
+    "red",
+    "white",
+    "red"
+  ],
+  "wordColors": [
+    "red",
+    "yellow",
+    "green",
+    "yellow",
+    "red"
+  ],
+  "wordFontSizes": [
+    127,
+    127,
+    127,
+    128,
+    130
+  ],
+  "borderColor": "black",
+  "borderWidth": 5,
+  "shadowDistance": 12,
+  "lineSpacing": 1.2,
+  "wordSpacing": 0,
+  "isItalic": false,
+  "tiltAngle": 0,
+  "position": "center",
+  "offsetY": 50,
+  "offsetX": 50,
+  "textAlign": "center",
+  "hasBox": false,
+  "boxStyle": "none",
+  "boxOpacity": 30,
+  "lineBadges": {
+    "enabled": false,
+    "style": "solid",
+    "shadow": "soft",
+    "tiltMode": "none",
+    "color": "#000000",
+    "opacity": 30
+  },
+  "photoUrl": "/news-static/2026-09-23T14-23__Торжество_бабла_мерзости_и_лицемерия_С_Усманова_и_Фридмана_сняли_санкции_ЕС_Как/photos/photo_05.jpg",
+  "updatedAt": "2026-09-26T13:44:52.255Z"
+}

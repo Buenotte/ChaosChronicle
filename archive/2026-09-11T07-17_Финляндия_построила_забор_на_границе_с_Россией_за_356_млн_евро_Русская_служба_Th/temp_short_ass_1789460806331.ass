@@ -1,0 +1,24 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1080
+PlayResY: 1920
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Title,Saxonia Antiqua,180,&H0000E6FF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,8,4,8,10,10,10,1
+Style: Badge,Arial,20,&H00000000,&H00000000,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,0:01:00.00,Badge,,0,0,0,,{\an7\pos(80,501)\org(540,578)\c&H000000&\1a&H94&\bord0\shad5\blur3\4c&H000000&\4a&H94&\p1}m 16 0 l 905 0 l 921 16 l 921 137 l 905 153 l 16 153 l 0 137 l 0 16{\p0}
+Dialogue: 1,0:00:00.00,0:01:00.00,Title,,0,0,0,,{\an5\pos(540,578)\org(540,578)}{\c&HFFF000&\fs165\bord8\3c&H000000&\shad4\4c&H000000&}ФИНЛЯНДИЯ:
+Dialogue: 0,0:00:00.00,0:01:00.00,Badge,,0,0,0,,{\an7\pos(252,674)\org(540,751)\c&H000000&\1a&H94&\bord0\shad5\blur3\4c&H000000&\4a&H94&\p1}m 16 0 l 560 0 l 576 16 l 576 137 l 560 153 l 16 153 l 0 137 l 0 16{\p0}
+Dialogue: 1,0:00:00.00,0:01:00.00,Title,,0,0,0,,{\an5\pos(540,751)\org(540,751)}{\c&H00E6FF&\fs159\bord8\3c&H000000&\shad4\4c&H000000&}ВОЛЬЕР
+Dialogue: 0,0:00:00.00,0:01:00.00,Badge,,0,0,0,,{\an7\pos(376,847)\org(540,924)\c&H000000&\1a&H94&\bord0\shad5\blur3\4c&H000000&\4a&H94&\p1}m 16 0 l 312 0 l 328 16 l 328 137 l 312 153 l 16 153 l 0 137 l 0 16{\p0}
+Dialogue: 1,0:00:00.00,0:01:00.00,Title,,0,0,0,,{\an5\pos(540,924)\org(540,924)}{\c&H00E6FF&\fs159\bord8\3c&H000000&\shad4\4c&H000000&}ДЛЯ
+Dialogue: 0,0:00:00.00,0:01:00.00,Badge,,0,0,0,,{\an7\pos(221,1020)\org(540,1097)\c&H000000&\1a&H94&\bord0\shad5\blur3\4c&H000000&\4a&H94&\p1}m 16 0 l 622 0 l 638 16 l 638 137 l 622 153 l 16 153 l 0 137 l 0 16{\p0}
+Dialogue: 1,0:00:00.00,0:01:00.00,Title,,0,0,0,,{\an5\pos(540,1097)\org(540,1097)}{\c&H66FF00&\fs168\bord8\3c&H000000&\shad4\4c&H000000&}БУЙНЫХ
+Dialogue: 0,0:00:00.00,0:01:00.00,Badge,,0,0,0,,{\an7\pos(44,1193)\org(540,1270)\c&H000000&\1a&H94&\bord0\shad5\blur3\4c&H000000&\4a&H94&\p1}m 16 0 l 977 0 l 993 16 l 993 137 l 977 153 l 16 153 l 0 137 l 0 16{\p0}
+Dialogue: 1,0:00:00.00,0:01:00.00,Title,,0,0,0,,{\an5\pos(540,1270)\org(540,1270)}{\c&H2A2AFF&\fs169\bord8\3c&H000000&\shad4\4c&H000000&}ОФИЦИАЛЬНО
+Dialogue: 0,0:00:00.00,0:01:00.00,Badge,,0,0,0,,{\an7\pos(153,1366)\org(540,1443)\c&H000000&\1a&H94&\bord0\shad5\blur3\4c&H000000&\4a&H94&\p1}m 16 0 l 758 0 l 774 16 l 774 137 l 758 153 l 16 153 l 0 137 l 0 16{\p0}
+Dialogue: 1,0:00:00.00,0:01:00.00,Title,,0,0,0,,{\an5\pos(540,1443)\org(540,1443)}{\c&H00E6FF&\fs170\bord8\3c&H000000&\shad4\4c&H000000&}ПОСТРОЕН

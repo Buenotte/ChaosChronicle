@@ -24,6 +24,7 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
   const [selectedBgPhoto, setSelectedBgPhoto] = useState(null), [saving, setSaving] = useState(false), [generatingTitle, setGeneratingTitle] = useState(false)
   const [realThumbnailUrl, setRealThumbnailUrl] = useState(currentThumbnail || (pkg?.folderName ? `/news-static/${pkg.folderName}/thumbnail/thumbnail.jpg` : null)), [previewMode, setPreviewMode] = useState('css'), [renderingPreview, setRenderingPreview] = useState(false)
   const [titleTone, setTitleTone] = useState(pkg?.style === 'analytics' || pkg?.tone === 'analytics' ? 'analytics' : 'satire'), [titleVariants, setTitleVariants] = useState(Array.isArray(pkg.title_variants) ? pkg.title_variants : []), [loadingVariants, setLoadingVariants] = useState(false)
+  const [titleKeywords, setTitleKeywords] = useState('')
 
   const getHeadlineConfig = () => {
     const isBadgesOn = Boolean(lineBadges?.enabled || boxStyle === 'per_line'), finalBoxStyle = isBadgesOn ? 'per_line' : boxStyle
@@ -178,7 +179,14 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
       setGeneratingTitle(true)
       const res = await fetch('/api/generate-punchy-title', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: pkg.original_title || pkg.title || text, summary: pkg.summary || '', text: pkg.scriptTxt || pkg.text || '', tone: titleTone }),
+        body: JSON.stringify({
+          title: pkg.original_title || pkg.title || text,
+          summary: pkg.summary || '',
+          text: pkg.scriptTxt || pkg.text || '',
+          tone: titleTone,
+          style: titleTone === 'analytics' ? 'kasjanov' : 'golubuzki',
+          keywords: titleKeywords.trim(),
+        }),
       })
       const data = await res.json(); if (data.success && data.title) { setText(data.title); toast.success(`⚡ Заголовок создан: "${data.title}"`); }
     } catch (e) { toast.error('Ошибка генерации: ' + e.message) }
@@ -191,8 +199,14 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
       const res = await fetch('/api/generate-title-variants', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: pkg.original_title || pkg.title || text, summary: pkg.summary || '', text: pkg.scriptTxt || pkg.text || '',
-          bundleDir: pkg.bundleDir, folderName: pkg.folderName, style: titleTone === 'analytics' ? 'analytics' : 'golubuzki', forceRegenerate: true,
+          title: pkg.original_title || pkg.title || text,
+          summary: pkg.summary || '',
+          text: pkg.scriptTxt || pkg.text || '',
+          bundleDir: pkg.bundleDir,
+          folderName: pkg.folderName,
+          style: titleTone === 'analytics' ? 'analytics' : 'golubuzki',
+          keywords: titleKeywords.trim(),
+          forceRegenerate: true,
         }),
       })
       const data = await res.json()
@@ -310,6 +324,23 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
                     </button>
                   </div>
                 </div>
+
+                {/* Поле для ввода обязательных собственных слов */}
+                <div style={{ marginBottom: '0.45rem', background: '#090d16', padding: '0.4rem 0.55rem', borderRadius: '6px', border: '1px solid #0284c7' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
+                    <span style={{ fontSize: '0.72rem', color: '#38bdf8', fontWeight: 700 }}>🔤 СВОИ СЛОВА ДЛЯ ЗАГОЛОВКОВ (ОБЯЗАТЕЛЬНО):</span>
+                    <span style={{ fontSize: '0.67rem', color: '#9ca3af' }}>💡 Enter для 10 вариантов</span>
+                  </div>
+                  <input
+                    type="text"
+                    value={titleKeywords}
+                    onChange={e => setTitleKeywords(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') handleFetchVariants() }}
+                    placeholder="Например: бункер, дефолт, F-16, мозг..."
+                    style={{ width: '100%', background: '#18181b', border: '1px solid #0369a1', borderRadius: '4px', padding: '0.3rem 0.5rem', color: '#facc15', fontSize: '0.8rem', fontWeight: 600, outline: 'none', boxSizing: 'border-box' }}
+                  />
+                </div>
+
                 <textarea
                   value={text} onChange={e => setText(e.target.value)} rows={2}
                   style={{ width: '100%', background: '#09090b', color: '#fff', border: '1px solid #3f3f46', borderRadius: '6px', padding: '0.55rem', fontSize: '0.95rem', fontWeight: 700, resize: 'vertical', lineHeight: 1.3 }}

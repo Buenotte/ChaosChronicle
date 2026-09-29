@@ -1,0 +1,53 @@
+{
+  "text": "БРАК\nПРОПАГАНДИСТОВ\nСГОРЕЛ ОТ ИЗМЕНЫ",
+  "customLines": [
+    "БРАК",
+    "ПРОПАГАНДИСТОВ",
+    "СГОРЕЛ ОТ ИЗМЕНЫ"
+  ],
+  "font": "Saxonia_Antiqua_Bold.ttf",
+  "fontFamilyName": "\"Saxonia_Antiqua_Bold\", sans-serif",
+  "fontSize": 110,
+  "customSizeNum": 110,
+  "lineFontSizes": null,
+  "fontColor": "yellow",
+  "lineColors": null,
+  "wordColors": [
+    "yellow",
+    "red",
+    "cyan",
+    "yellow",
+    "green"
+  ],
+  "wordFontSizes": [
+    152,
+    132,
+    133,
+    110,
+    123
+  ],
+  "borderColor": "black",
+  "borderWidth": 5,
+  "shadowDistance": 12,
+  "lineSpacing": 1.5,
+  "wordSpacing": 0,
+  "isItalic": false,
+  "tiltAngle": 0,
+  "position": "center",
+  "offsetY": 50,
+  "offsetX": 50,
+  "textAlign": "center",
+  "hasBox": true,
+  "boxStyle": "per_line",
+  "boxOpacity": 30,
+  "lineBadges": {
+    "enabled": true,
+    "style": "solid",
+    "shadow": "hard",
+    "tiltMode": "none",
+    "color": "#000000",
+    "opacity": 30
+  },
+  "photoUrl": "/news-static/2026-09-11T20-12_ПРОПАГАНДИСТЫ_НЕ_ВЫДЕРЖАЛИ_СОБСТВЕННОГО_ЯДА/photos/photo_03.jpg",
+  "updatedAt": "2026-09-11T20:35:22.740Z"
+}

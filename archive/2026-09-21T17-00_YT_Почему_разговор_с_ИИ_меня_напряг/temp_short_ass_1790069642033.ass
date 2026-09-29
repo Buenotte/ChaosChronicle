@@ -1,0 +1,22 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1080
+PlayResY: 1920
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Title,Saxonia Antiqua,213,&H0000E6FF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,8,4,8,10,10,10,1
+Style: Badge,Arial,20,&H00000000,&H00000000,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,0:01:00.00,Badge,,0,0,0,,{\an7\pos(289,558)\org(540,647)\c&H000000&\1a&H40&\bord0\shad5\blur3\4c&H000000&\4a&H40&\p1}m 16 0 l 487 0 l 503 16 l 503 162 l 487 178 l 16 178 l 0 162 l 0 16{\p0}
+Dialogue: 1,0:00:00.00,0:01:00.00,Title,,0,0,0,,{\an5\pos(540,647)\org(540,647)}{\c&H00E6FF&\fs168\bord8\3c&H000000&\shad4\4c&H000000&}ТИХОЕ
+Dialogue: 0,0:00:00.00,0:01:00.00,Badge,,0,0,0,,{\an7\pos(114,756)\org(540,845)\c&H000000&\1a&H40&\bord0\shad5\blur3\4c&H000000&\4a&H40&\p1}m 16 0 l 837 0 l 853 16 l 853 162 l 837 178 l 16 178 l 0 162 l 0 16{\p0}
+Dialogue: 1,0:00:00.00,0:01:00.00,Title,,0,0,0,,{\an5\pos(540,845)\org(540,845)}{\c&H2A2AFF&\fs168\bord8\3c&H000000&\shad4\4c&H000000&}ВОССТАНИЕ
+Dialogue: 0,0:00:00.00,0:01:00.00,Badge,,0,0,0,,{\an7\pos(245,954)\org(540,1043)\c&H000000&\1a&H40&\bord0\shad5\blur3\4c&H000000&\4a&H40&\p1}m 16 0 l 574 0 l 590 16 l 590 162 l 574 178 l 16 178 l 0 162 l 0 16{\p0}
+Dialogue: 1,0:00:00.00,0:01:00.00,Title,,0,0,0,,{\an5\pos(540,1043)\org(540,1043)}{\c&H66FF00&\fs170\bord8\3c&H000000&\shad4\4c&H000000&}МАШИН
+Dialogue: 0,0:00:00.00,0:01:00.00,Badge,,0,0,0,,{\an7\pos(349,1152)\org(540,1241)\c&H000000&\1a&H40&\bord0\shad5\blur3\4c&H000000&\4a&H40&\p1}m 16 0 l 367 0 l 383 16 l 383 162 l 367 178 l 16 178 l 0 162 l 0 16{\p0}
+Dialogue: 1,0:00:00.00,0:01:00.00,Title,,0,0,0,,{\an5\pos(540,1241)\org(540,1241)}{\c&H00E6FF&\fs172\bord8\3c&H000000&\shad4\4c&H000000&}УЖЕ
+Dialogue: 0,0:00:00.00,0:01:00.00,Badge,,0,0,0,,{\an7\pos(138,1350)\org(540,1439)\c&H000000&\1a&H40&\bord0\shad5\blur3\4c&H000000&\4a&H40&\p1}m 16 0 l 788 0 l 804 16 l 804 162 l 788 178 l 16 178 l 0 162 l 0 16{\p0}
+Dialogue: 1,0:00:00.00,0:01:00.00,Title,,0,0,0,,{\an5\pos(540,1439)\org(540,1439)}{\c&H2A2AFF&\fs174\bord8\3c&H000000&\shad4\4c&H000000&}НАЧАЛОСЬ

@@ -1,0 +1,60 @@
+{
+  "text": "КРЫМ:\nНЕПОТОПЛЯЕМЫЙ\nАВИАНОСЕЦ\nПЕРЕШЕЛ НА ДРОВА",
+  "customLines": [
+    "КРЫМ:",
+    "НЕПОТОПЛЯЕМЫЙ",
+    "АВИАНОСЕЦ",
+    "ПЕРЕШЕЛ НА ДРОВА"
+  ],
+  "font": "Saxonia_Antiqua_Bold.ttf",
+  "fontFamilyName": "\"Saxonia_Antiqua_Bold\", sans-serif",
+  "fontSize": 115,
+  "customSizeNum": 115,
+  "lineFontSizes": null,
+  "fontColor": "yellow",
+  "lineColors": [
+    "red",
+    "white",
+    "red"
+  ],
+  "wordColors": [
+    "red",
+    "yellow",
+    "red",
+    "yellow",
+    "yellow",
+    "cyan"
+  ],
+  "wordFontSizes": [
+    127,
+    128,
+    131,
+    120,
+    121,
+    123
+  ],
+  "borderColor": "black",
+  "borderWidth": 5,
+  "shadowDistance": 12,
+  "lineSpacing": 1.4,
+  "wordSpacing": 0,
+  "isItalic": false,
+  "tiltAngle": 0,
+  "position": "center",
+  "offsetY": 50,
+  "offsetX": 50,
+  "textAlign": "center",
+  "hasBox": false,
+  "boxStyle": "none",
+  "boxOpacity": 30,
+  "lineBadges": {
+    "enabled": false,
+    "style": "slanted",
+    "shadow": "hard",
+    "tiltMode": "custom",
+    "color": "#000000",
+    "opacity": 30
+  },
+  "photoUrl": "/news-static/2026-09-10T07-55_Крым_во_тьме_СБС_за_два_месяца_вывели_из_строя_374_энергоузла_врага_видео_/photos/photo_15.jpg",
+  "updatedAt": "2026-09-13T07:43:13.194Z"
+}

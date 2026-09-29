@@ -1,0 +1,24 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1080
+PlayResY: 1920
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Title,Saxonia Antiqua,172,&H0000E6FF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,8,4,8,10,10,10,1
+Style: Badge,Arial,20,&H00000000,&H00000000,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,0:01:00.00,Badge,,0,0,0,,{\an7\pos(83,200)\org(540,274)\c&H000000&\1a&HB0&\bord0\shad7\blur0\4c&H000000&\4a&HB0&\p1}m 16 0 l 898 0 l 914 16 l 914 131 l 898 147 l 16 147 l 0 131 l 0 16{\p0}
+Dialogue: 1,0:00:00.00,0:01:00.00,Title,,0,0,0,,{\an5\pos(540,274)\org(540,274)}{\c&H2A2AFF&\fs138\bord8\3c&H000000&\shad4\4c&H000000&}СМЕРТЕЛЬНЫЙ
+Dialogue: 0,0:00:00.00,0:01:00.00,Badge,,0,0,0,,{\an7\pos(358,367)\org(540,441)\c&H000000&\1a&HB0&\bord0\shad7\blur0\4c&H000000&\4a&HB0&\p1}m 16 0 l 349 0 l 365 16 l 365 131 l 349 147 l 16 147 l 0 131 l 0 16{\p0}
+Dialogue: 1,0:00:00.00,0:01:00.00,Title,,0,0,0,,{\an5\pos(540,441)\org(540,441)}{\c&H00E6FF&\fs160\bord8\3c&H000000&\shad4\4c&H000000&}СОН:
+Dialogue: 0,0:00:00.00,0:01:00.00,Badge,,0,0,0,,{\an7\pos(384,534)\org(540,608)\c&H000000&\1a&HB0&\bord0\shad7\blur0\4c&H000000&\4a&HB0&\p1}m 16 0 l 296 0 l 312 16 l 312 131 l 296 147 l 16 147 l 0 131 l 0 16{\p0}
+Dialogue: 1,0:00:00.00,0:01:00.00,Title,,0,0,0,,{\an5\pos(540,608)\org(540,608)}{\c&HFFF000&\fs149\bord8\3c&H000000&\shad4\4c&H000000&}КАК
+Dialogue: 0,0:00:00.00,0:01:00.00,Badge,,0,0,0,,{\an7\pos(137,701)\org(540,775)\c&H000000&\1a&HB0&\bord0\shad7\blur0\4c&H000000&\4a&HB0&\p1}m 16 0 l 791 0 l 807 16 l 807 131 l 791 147 l 16 147 l 0 131 l 0 16{\p0}
+Dialogue: 1,0:00:00.00,0:01:00.00,Title,,0,0,0,,{\an5\pos(540,775)\org(540,775)}{\c&HFFF000&\fs149\bord8\3c&H000000&\shad4\4c&H000000&}90% {\c&HFFF000&\fs151\bord8\3c&H000000&\shad4\4c&H000000&}ЛЮДЕЙ
+Dialogue: 0,0:00:00.00,0:01:00.00,Badge,,0,0,0,,{\an7\pos(350,868)\org(540,942)\c&H000000&\1a&HB0&\bord0\shad7\blur0\4c&H000000&\4a&HB0&\p1}m 16 0 l 364 0 l 380 16 l 380 131 l 364 147 l 16 147 l 0 131 l 0 16{\p0}
+Dialogue: 1,0:00:00.00,0:01:00.00,Title,,0,0,0,,{\an5\pos(540,942)\org(540,942)}{\c&H00E6FF&\fs150\bord8\3c&H000000&\shad4\4c&H000000&}СПЯТ
+Dialogue: 0,0:00:00.00,0:01:00.00,Badge,,0,0,0,,{\an7\pos(60,1035)\org(540,1109)\c&H000000&\1a&HB0&\bord0\shad7\blur0\4c&H000000&\4a&HB0&\p1}m 16 0 l 944 0 l 960 16 l 960 131 l 944 147 l 16 147 l 0 131 l 0 16{\p0}
+Dialogue: 1,0:00:00.00,0:01:00.00,Title,,0,0,0,,{\an5\pos(540,1109)\org(540,1109)}{\c&H2A2AFF&\fs141\bord8\3c&H000000&\shad4\4c&H000000&}НЕПРАВИЛЬНО?

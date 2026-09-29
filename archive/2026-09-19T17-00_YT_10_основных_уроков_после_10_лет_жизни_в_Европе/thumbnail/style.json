@@ -1,0 +1,51 @@
+{
+  "text": "ЖЕСТКИЕ ПРАВИЛА\nВЫЖИВАНИЯ\nЭМИГРАНТА В\nЕВРОПЕ",
+  "customLines": [
+    "ЖЕСТКИЕ ПРАВИЛА",
+    "ВЫЖИВАНИЯ",
+    "ЭМИГРАНТА В",
+    "ЕВРОПЕ"
+  ],
+  "font": "Saxonia_Antiqua_Bold.ttf",
+  "fontFamilyName": "\"Saxonia_Antiqua_Bold\", sans-serif",
+  "fontSize": 119,
+  "customSizeNum": 119,
+  "lineFontSizes": null,
+  "fontColor": "yellow",
+  "lineColors": null,
+  "wordColors": [
+    "red",
+    "red",
+    "white",
+    "green",
+    "yellow",
+    "cyan"
+  ],
+  "wordFontSizes": null,
+  "borderColor": "black",
+  "borderWidth": 8,
+  "shadowDistance": 12,
+  "lineSpacing": 1.15,
+  "wordSpacing": 0,
+  "isItalic": false,
+  "tiltAngle": 0,
+  "position": "center",
+  "offsetY": 50,
+  "offsetX": 50,
+  "textAlign": "center",
+  "hasBox": true,
+  "boxStyle": "per_line",
+  "boxOpacity": 41,
+  "lineBadges": {
+    "enabled": true,
+    "style": "solid",
+    "shadow": "soft",
+    "tiltMode": "none",
+    "color": "#000000",
+    "opacity": 41,
+    "padY": 15,
+    "padX": 55
+  },
+  "photoUrl": "/news-static/2026-09-19T17-00_YT_10_основных_уроков_после_10_лет_жизни_в_Европе/photos/photo_08.jpg",
+  "updatedAt": "2026-09-19T21:12:33.163Z"
+}

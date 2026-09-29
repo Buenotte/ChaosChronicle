@@ -1,0 +1,12 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1080
+PlayResY: 1920
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Title,Saxonia Antiqua,229,&H0000E6FF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,8,9,8,10,10,10,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,0:01:00.00,Title,,0,0,0,,{\an8\pos(540,134)}{\c&H002A2AFF&\fs146\bord8\3c&H00000000&\shad9\4c&H00000000&}КРЫМ:\N{\c&H0000E6FF&\fs125\bord8\3c&H00000000&\shad9\4c&H00000000&}НЕПОТОПЛЯЕМЫЙ\N{\c&H002A2AFF&\fs146\bord8\3c&H00000000&\shad9\4c&H00000000&}АВИАНОСЕЦ\N{\c&H0000E6FF&\fs146\bord8\3c&H00000000&\shad9\4c&H00000000&}ПЕРЕШЕЛ\N{\c&H0000E6FF&\fs146\bord8\3c&H00000000&\shad9\4c&H00000000&}НА {\c&H0066FF00&\fs146\bord8\3c&H00000000&\shad9\4c&H00000000&}ДРОВА

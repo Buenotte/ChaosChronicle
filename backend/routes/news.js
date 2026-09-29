@@ -32,23 +32,23 @@ export function parsePublishedAgeMinutes(text) {
   if (!text) return 999999;
   const t = text.toLowerCase().trim();
 
-  // 1. Zuerst exakte Zeitabstände mit Zahlen parsen (verhindert Fehler bei "Трансляция закончилась 2 нед. назад")
-  const minMatch = t.match(/(\d+)\s*(мин|minute|min)/i);
+  // 1. Zuerst exakte Zeitabstände mit Zahlen parsen (Unicode-sicher für kyrillische Kurzformen wie "12 ч назад", "2 дн. назад")
+  const minMatch = t.match(/(\d+)\s*(?:минут|\p{L}*мин|minute|min)/iu);
   if (minMatch) return parseInt(minMatch[1], 10);
 
-  const hrMatch = t.match(/(\d+)\s*(час|hour|hr|std|ч\b)/i);
+  const hrMatch = t.match(/(\d+)\s*(?:час|hour|hr|std|ч(?!\p{L}))/iu);
   if (hrMatch) return parseInt(hrMatch[1], 10) * 60;
 
-  const dayMatch = t.match(/(\d+)\s*(день|дня|дней|day|дн|tage?)/i);
+  const dayMatch = t.match(/(\d+)\s*(?:день|дня|дней|дн|day|tage?)/iu);
   if (dayMatch) return parseInt(dayMatch[1], 10) * 24 * 60;
 
-  const weekMatch = t.match(/(\d+)\s*(недел|week|нед)/i);
+  const weekMatch = t.match(/(\d+)\s*(?:недел|нед|week)/iu);
   if (weekMatch) return parseInt(weekMatch[1], 10) * 7 * 24 * 60;
 
-  const monthMatch = t.match(/(\d+)\s*(месяц|month|мес)/i);
+  const monthMatch = t.match(/(\d+)\s*(?:месяц|мес|month)/iu);
   if (monthMatch) return parseInt(monthMatch[1], 10) * 30 * 24 * 60;
 
-  const yearMatch = t.match(/(\d+)\s*(год|года|лет|year)/i);
+  const yearMatch = t.match(/(\d+)\s*(?:год|лет|year|г(?!\p{L}))/iu);
   if (yearMatch) return parseInt(yearMatch[1], 10) * 365 * 24 * 60;
 
   if (t.includes('сегодня') || t.includes('today')) return 6 * 60;
@@ -80,37 +80,77 @@ export function sortYouTubeVideosFreshnessFirst(ytArray) {
 
 const KREMLIN_PROPAGANDA_REGEX = /(соловьев|соловьёв|скабеева|симоньян|попов\s+60|первый\s+канал|россия\s*1\b|россия\s*24|рт\b|rt\s+на\s+русском|царьград|вести\s+недели|риа\s+новости|тасс\b|минобороны\s+рф|конашенков|володин|медведев\s+заявил|военкор|подоляка|подоляк\s+юрий|варгонзо|wargonzo|рыбарь|военная\s+хроника|сводки\s+от\s+ополчения|шарий|олешко|россия\s+побеждает|удар\s+возмездия|нацист|денацификац|освобождение\s+донбасса|вс\s+рф\s+уничтожили)/i;
 
-export async function fetchYouTubeCategoryVideos(searchQueries, category, defaultChannel) {
+export function extractVideoRenderers(itemSection) {
+  const list = [];
+  for (const item of (itemSection || [])) {
+    if (item.videoRenderer) {
+      list.push(item.videoRenderer);
+    }
+    if (item.shelfRenderer) {
+      const shelfItems = item.shelfRenderer.content?.verticalListRenderer?.items ||
+                         item.shelfRenderer.content?.horizontalListRenderer?.items || [];
+      for (const si of shelfItems) {
+        if (si.videoRenderer) list.push(si.videoRenderer);
+        else if (si.compactVideoRenderer) list.push(si.compactVideoRenderer);
+      }
+    }
+  }
+  return list;
+}
+
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+export async function fetchYouTubeCategoryVideos(searchQueries, category, defaultChannel, sortType = 'fresh') {
   const allVideos = [];
   const seenIds = new Set();
   const irrelevantPattern = /(художественный\s+фильм|комедия|полный\s+фильм|мелодрама|боевик|кинопраздник|кино\b|фильм\b|сериал\b|трейлер|reaction|реакци|смотрит:|нарезк|9\/11|катастроф)/i;
-  const filterParams = ['sp=CAISAhAB'];
+  // Für Psychologie nach Zuschauerzahl (sp=CAM%253D) und Relevanz suchen
+  const isViewSort = category === 'psikh' || sortType === 'views';
+  const filterParams = isViewSort ? ['sp=CAM%253D', ''] : ['sp=CAI%253D'];
+  const maxLimit = isViewSort ? 25 : 12;
 
   for (const query of searchQueries) {
+    if (allVideos.length >= maxLimit) break;
     for (const sp of filterParams) {
-      try {
-        const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}&${sp}`;
-        const resp = await fetch(searchUrl, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-            'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7'
+      if (allVideos.length >= maxLimit) break;
+      let html = null;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          await sleep(100);
+          const searchUrl = sp ? `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}&${sp}` : `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+          const resp = await fetch(searchUrl, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+              'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
+              'Connection': 'close'
+            },
+            signal: AbortSignal.timeout(3500)
+          });
+          if (resp.ok) {
+            html = await resp.text();
+            break;
           }
-        });
-        if (!resp.ok) continue;
-        const html = await resp.text();
+        } catch (err) {
+          if (attempt === 0) await sleep(150);
+          else console.error('YouTube search error for query:', query, err.message);
+        }
+      }
+      if (!html) continue;
+
+      try {
         const match = html.match(/var ytInitialData = ({.*?});<\/script>/s) || html.match(/ytInitialData\s*=\s*({.+?});/);
         if (!match) continue;
 
         const data = JSON.parse(match[1]);
         const contents = data.contents?.twoColumnSearchResultsRenderer?.primaryContents?.sectionListRenderer?.contents;
         const itemSection = contents?.find(c => c.itemSectionRenderer)?.itemSectionRenderer?.contents;
+        const videoRenderers = extractVideoRenderers(itemSection);
 
-        for (const item of (itemSection || [])) {
-          const v = item.videoRenderer;
+        for (const v of videoRenderers) {
           if (!v || !v.videoId || seenIds.has(v.videoId)) continue;
 
           const title = v.title?.runs?.map(r => r.text).join('') || v.title?.simpleText || '';
-          const channel = v.ownerText?.runs?.[0]?.text || defaultChannel;
+          const channel = v.ownerText?.runs?.[0]?.text || defaultChannel || 'YouTube';
           const snippetText = v.detailedMetadataSnippets?.[0]?.snippetText?.runs?.map(r => r.text).join('') || '';
           const fullInfo = `${title} ${channel} ${snippetText}`;
 
@@ -120,13 +160,13 @@ export async function fetchYouTubeCategoryVideos(searchQueries, category, defaul
 
           seenIds.add(v.videoId);
 
-          const publishedText = v.publishedTimeText?.simpleText || 'Свежее видео';
+          const publishedText = v.publishedTimeText?.simpleText || 'Популярное видео';
           const ageMins = parsePublishedAgeMinutes(publishedText);
           if (['rossija', 'ukraina', 'politika'].includes(category)) {
             // Strikte 3-Tage-Grenze (maximal 3 Tage = 4320 Minuten) für tagesaktuelle Politik- & Frontnachrichten
             if (ageMins > 3 * 24 * 60) continue;
-          } else if (category === 'emigr' || category === 'psikh') {
-            // Maximal 45 Tage für Emigration & Psychologie (schließt veraltete Jahre alte Videos vollständig aus)
+          } else if (category === 'emigr') {
+            // Maximal 45 Tage für Emigration
             if (ageMins > 45 * 24 * 60) continue;
           }
 
@@ -144,7 +184,10 @@ export async function fetchYouTubeCategoryVideos(searchQueries, category, defaul
             url: `https://www.youtube.com/watch?v=${v.videoId}`,
             imageUrl: thumb,
             images: [thumb],
-            source: `YouTube (${channel})`,
+            source: channel || defaultChannel || 'YouTube',
+            channel: channel || defaultChannel || 'YouTube',
+            blogger: channel || defaultChannel || '',
+            author: channel || defaultChannel || '',
             category: category,
             viewCount: viewCount,
             viewsText: viewsText || (viewCount ? `${viewCount.toLocaleString('ru-RU')} просмотров` : ''),
@@ -161,8 +204,12 @@ export async function fetchYouTubeCategoryVideos(searchQueries, category, defaul
     }
   }
 
-  // Strengste Aktualität zuerst
-  sortYouTubeVideosFreshnessFirst(allVideos);
+  if (isViewSort) {
+    allVideos.sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0));
+  } else {
+    // Strengste Aktualität zuerst
+    sortYouTubeVideosFreshnessFirst(allVideos);
+  }
   return allVideos;
 }
 
@@ -202,12 +249,23 @@ export async function fetchYouTubeEmigrationVideos() {
   return [...taggedRefugee, ...taggedWorld];
 }
 
-export function fetchYouTubePsychologyVideos() {
+export async function fetchYouTubePsychologyVideos() {
   return fetchYouTubeCategoryVideos([
-    'психология отношения',
-    'психология тревога стресс',
-    'психотерапия самооценка'
-  ], 'psikh', 'Психология');
+    'психология манипуляции поведение человека',
+    'психология отношений как понять людей',
+    'психология тревога стресс как успокоиться',
+    'психология самооценка уверенность в себе',
+    'психология личные границы токсичные люди',
+    'психология мозг мышление когнитивные искажения',
+    'психотерапия депрессия выгорание усталость',
+    'психология эмоции язык тела ложь жесты',
+    'нарциссизм абьюз как защитить себя психология',
+    'психология сна и памяти мозг человека',
+    'психология влияния секреты общения',
+    'психология кризис среднего возраста поиск себя',
+    'психология привычки сила воли мотивация',
+    'психология комплексы и травмы'
+  ], 'psikh', 'Психология', 'views');
 }
 
 export function fetchYouTubeRussiaVideos() {
@@ -256,12 +314,15 @@ export async function fetchTopThreeAnalystVideos(analystName, searchQueries, cat
 
   for (const query of searchQueries) {
     try {
-      const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}&sp=CAISAhAB`;
+      await sleep(100);
+      const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}&sp=CAI%253D`;
       const resp = await fetch(searchUrl, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-          'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7'
-        }
+          'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
+          'Connection': 'close'
+        },
+        signal: AbortSignal.timeout(3500)
       });
       if (!resp.ok) continue;
       const html = await resp.text();
@@ -271,9 +332,9 @@ export async function fetchTopThreeAnalystVideos(analystName, searchQueries, cat
       const data = JSON.parse(match[1]);
       const contents = data.contents?.twoColumnSearchResultsRenderer?.primaryContents?.sectionListRenderer?.contents;
       const itemSection = contents?.find(c => c.itemSectionRenderer)?.itemSectionRenderer?.contents;
+      const videoRenderers = extractVideoRenderers(itemSection);
 
-      for (const item of (itemSection || [])) {
-        const v = item.videoRenderer;
+      for (const v of videoRenderers) {
         if (!v || !v.videoId || seenIds.has(v.videoId)) continue;
 
         const title = v.title?.runs?.map(r => r.text).join('') || v.title?.simpleText || '';
@@ -306,7 +367,10 @@ export async function fetchTopThreeAnalystVideos(analystName, searchQueries, cat
           url: `https://www.youtube.com/watch?v=${v.videoId}`,
           imageUrl: thumb,
           images: [thumb],
-          source: `YouTube (${channel})`,
+          source: channel || analystName,
+          channel: channel || analystName,
+          blogger: analystName || channel,
+          author: analystName || channel,
           category: category,
           viewCount: viewCount,
           viewsText: viewsText || (viewCount ? `${viewCount.toLocaleString('ru-RU')} просмотров` : ''),
@@ -330,9 +394,9 @@ export async function fetchTopThreeAnalystVideos(analystName, searchQueries, cat
 
 export async function fetchAllKeyAnalystsVideos() {
   const [shvets, yakovina, matveev] = await Promise.all([
-    fetchTopThreeAnalystVideos('Юрий Швец', ['Юрий Швец официальный канал', 'Юрий Швец'], 'ukraina'),
-    fetchTopThreeAnalystVideos('Иван Яковина', ['Иван Яковина Ivan Yakovina', 'Иван Яковина'], 'ukraina'),
-    fetchTopThreeAnalystVideos('Ян Матвеев', ['Ян Матвеев военный разбор', 'Ян Матвеев'], 'ukraina')
+    fetchTopThreeAnalystVideos('Юрий Швец', ['Юрий Швец', 'Юрий Швец официальный канал'], 'ukraina'),
+    fetchTopThreeAnalystVideos('Иван Яковина', ['Иван Яковина', 'Иван Яковина Ivan Yakovina'], 'ukraina'),
+    fetchTopThreeAnalystVideos('Ян Матвеев', ['Ян Матвеев', 'Ян Матвеев военный разбор'], 'ukraina')
   ]);
 
   const allKey = [...shvets, ...yakovina, ...matveev];
@@ -553,10 +617,15 @@ if (fs.existsSync(cacheFilePath)) {
     const maxAgeMs = 7 * 24 * 60 * 60 * 1000; // Maximal 7 Tage alte Beiträge
     newsCache = (cachedData.articles || []).filter(a => {
       if (isSportsArticle(a)) return false;
-      if (a.isYouTube && parsePublishedAgeMinutes(a.publishedDateText) > 3 * 24 * 60) return false;
+      if (a.isYouTube) {
+        if (a.category === 'psikh') return true; // Psychologie Evergreen-Videos mit höchsten Aufrufen behalten
+        if (a.category === 'emigr' && parsePublishedAgeMinutes(a.publishedDateText) <= 45 * 24 * 60) return true;
+        if (parsePublishedAgeMinutes(a.publishedDateText) > 3 * 24 * 60) return false;
+      }
+      if (a.category === 'psikh' && a.isYouTube) return true;
       if (!a.pubDate) return true;
       return (Date.now() - new Date(a.pubDate).getTime()) <= maxAgeMs;
-    }).slice(0, 350);
+    }).slice(0, 1000);
     lastFetch = cachedData.lastFetch || 0;
     console.log(`📦 ${newsCache.length} frische Nachrichten aus Festplatten-Cache geladen.`);
     // Hintergrund-Ergänzung für fehlende Bilder
@@ -577,65 +646,87 @@ setTimeout(() => {
   fetchAllFeeds(true).catch(() => {});
 }, 500);
 
+let fetchInProgress = null;
+
 export async function fetchAllFeeds(forceRefresh = false) {
   if (!forceRefresh && newsCache.length > 0) {
     return newsCache;
   }
+  if (fetchInProgress) return fetchInProgress;
 
-  console.log(forceRefresh ? '↻ Nachrichten werden neu im Internet gesucht...' : '📰 Erste Nachrichten-Suche...');
-  const now = Date.now();
+  fetchInProgress = (async () => {
+    try {
+      console.log(forceRefresh ? '↻ Nachrichten werden neu im Internet gesucht...' : '📰 Erste Nachrichten-Suche...');
+      const now = Date.now();
 
-  const [results, ytEmigrVideos, ytPsychVideos, ytRussiaVideos, ytUkraineVideos, ytPolitikaVideos, ytKeyAnalysts] = await Promise.all([
-    Promise.allSettled(
-      FEEDS.map(async (feed) => {
-        const parsed = await parser.parseURL(feed.url);
-        const maxAgeMs = 7 * 24 * 60 * 60 * 1000; // Maximal 7 Tage
-        const limitItems = feed.category === 'psikh' ? 30 : 15;
+      const rssPromise = Promise.allSettled(
+    FEEDS.map(async (feed) => {
+      const parsed = await parser.parseURL(feed.url);
+      const maxAgeMs = 7 * 24 * 60 * 60 * 1000; // Maximal 7 Tage
+      const limitItems = feed.category === 'psikh' ? 30 : 15;
 
-        return (parsed.items || []).slice(0, limitItems).filter(item => {
-          const d = item.pubDate || item.isoDate;
-          if (!d) return true;
-          const time = new Date(d).getTime();
-          return !isNaN(time) && (now - time) <= maxAgeMs;
-        }).map((item, idx) => {
-          const imgData = extractImages(item);
-          const fullContent = item['content:encoded'] || item.content || item.summary || item.description || item.contentSnippet || '';
-          const fullCleaned = cleanText(fullContent, true);
-          return {
-            id: `${feed.source}-${idx}-${Date.now()}`,
-            title: cleanText(item.title || ''),
-            summary: fullCleaned || cleanText(item.title || ''),
-            original_news: fullCleaned || cleanText(item.title || ''),
-            url: item.link || item.guid || '',
-            imageUrl: imgData.imageUrl,
-            images: imgData.images,
-            source: feed.source,
-            category: feed.category,
-            pubDate: item.pubDate || item.isoDate || new Date().toISOString(),
-            relativeTime: getRelativeTime(item.pubDate || item.isoDate),
-          };
-        });
-      })
-    ),
+      return (parsed.items || []).slice(0, limitItems).filter(item => {
+        const d = item.pubDate || item.isoDate;
+        if (!d) return true;
+        const time = new Date(d).getTime();
+        return !isNaN(time) && (now - time) <= maxAgeMs;
+      }).map((item, idx) => {
+        const imgData = extractImages(item);
+        const fullContent = item['content:encoded'] || item.content || item.summary || item.description || item.contentSnippet || '';
+        const fullCleaned = cleanText(fullContent, true);
+        return {
+          id: `${feed.source}-${idx}-${Date.now()}`,
+          title: cleanText(item.title || ''),
+          summary: fullCleaned || cleanText(item.title || ''),
+          original_news: fullCleaned || cleanText(item.title || ''),
+          url: item.link || item.guid || '',
+          imageUrl: imgData.imageUrl,
+          images: imgData.images,
+          source: feed.source,
+          category: feed.category,
+          pubDate: item.pubDate || item.isoDate || new Date().toISOString(),
+          relativeTime: getRelativeTime(item.pubDate || item.isoDate),
+        };
+      });
+    })
+  );
+
+  const [
+    ytKeyAnalystsRes,
+    ytUkraineRes,
+    ytRussiaRes,
+    ytPolitikaRes,
+    ytEmigrRes,
+    ytPsychRes,
+    results
+  ] = await Promise.allSettled([
+    fetchAllKeyAnalystsVideos().catch(() => []),
+    fetchYouTubeUkraineVideos().catch(() => []),
+    fetchYouTubeRussiaVideos().catch(() => []),
+    fetchYouTubePoliticsVideos().catch(() => []),
     fetchYouTubeEmigrationVideos().catch(() => []),
     fetchYouTubePsychologyVideos().catch(() => []),
-    fetchYouTubeRussiaVideos().catch(() => []),
-    fetchYouTubeUkraineVideos().catch(() => []),
-    fetchYouTubePoliticsVideos().catch(() => []),
-    fetchAllKeyAnalystsVideos().catch(() => [])
+    rssPromise
   ]);
 
-  const feedArticles = results
-    .filter(r => r.status === 'fulfilled')
-    .flatMap(r => r.value);
+  const ytKeyAnalysts = ytKeyAnalystsRes.status === 'fulfilled' ? ytKeyAnalystsRes.value : [];
+  const ytUkraineVideos = ytUkraineRes.status === 'fulfilled' ? ytUkraineRes.value : [];
+  const ytRussiaVideos = ytRussiaRes.status === 'fulfilled' ? ytRussiaRes.value : [];
+  const ytPolitikaVideos = ytPolitikaRes.status === 'fulfilled' ? ytPolitikaRes.value : [];
+  const ytEmigrVideos = ytEmigrRes.status === 'fulfilled' ? ytEmigrRes.value : [];
+  const ytPsychVideos = ytPsychRes.status === 'fulfilled' ? ytPsychRes.value : [];
+
+  const feedArticles = (results.status === 'fulfilled' && Array.isArray(results.value))
+    ? results.value.filter(r => r.status === 'fulfilled').flatMap(r => r.value)
+    : [];
 
   const rawArticles = [
     ...(ytKeyAnalysts || []),
+    ...(ytUkraineVideos || []),
+    ...(ytRussiaVideos || []),
+    ...(ytPolitikaVideos || []),
     ...(ytEmigrVideos || []),
     ...(ytPsychVideos || []),
-    ...(ytRussiaVideos || []),
-    ...(ytUkraineVideos || []),
-    ...(ytPolitikaVideos || []),
     ...feedArticles
   ].sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
 
@@ -654,7 +745,7 @@ export async function fetchAllFeeds(forceRefresh = false) {
     if (normUrl) seenUrls.add(normUrl);
     if (normTitle) seenTitles.add(normTitle);
     articles.push(art);
-    if (articles.length >= 600) break;
+    if (articles.length >= 1000) break;
   }
 
   newsCache = articles;
@@ -671,7 +762,23 @@ export async function fetchAllFeeds(forceRefresh = false) {
     newsCache = enriched;
   });
 
-  return articles;
+      return articles;
+    } finally {
+      fetchInProgress = null;
+    }
+  })();
+
+  return fetchInProgress;
+}
+
+export function assembleTopYouTubeList(ytList, limit = 15) {
+  const keyAnalysts = ytList.filter(a => a.isKeyAnalyst);
+  sortYouTubeVideosFreshnessFirst(keyAnalysts);
+
+  const otherYt = ytList.filter(a => !a.isKeyAnalyst);
+  sortYouTubeVideosFreshnessFirst(otherYt);
+
+  return [...keyAnalysts, ...otherYt].slice(0, limit);
 }
 
 // GET /api/news
@@ -684,28 +791,25 @@ router.get('/api/news', async (req, res) => {
     const nonSportsAll = all.filter(a => !isSportsArticle(a));
     let filtered = nonSportsAll;
     if (category === 'alle' || category === 'vse') {
-      // Технологии показываются ТОЛЬКО во вкладке "Технологии" (tekh)
-      const nonTech = nonSportsAll.filter(a => a.category !== 'tekh');
-      const ytList = nonTech.filter(a => a.isYouTube && (['emigr', 'psikh'].includes(a.category) || parsePublishedAgeMinutes(a.publishedDateText) <= 3 * 24 * 60));
-      sortYouTubeVideosFreshnessFirst(ytList);
-      const topYt = ytList.slice(0, 10);
-      const rssList = nonTech.filter(a => !a.isYouTube).sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate)).slice(0, 15);
-      filtered = [...topYt, ...rssList];
-    } else if (category === 'rossija') {
-      const russiaKeywords = /(росси|рф\b|москв|петербург|питер|кремл|путин|минобороны|госдум|росстат|минфин|центробанк|цб рф|фсб|мвд|росгварди|белгород|курск|брянск|воронеж|ростов|шебекино|сибирь|урал|татарстан|башкортостан|кавказ|дагестан|чечн|краснодар|сочи|владивосток|приморь|новосибирск|екатеринбург|россиян|российск|отечествен)/i;
-      const problemKeywords = /(кризис|дефицит|авари|пожар|взрыв|дрон|бпла|атак|прилет|разрушен|удар|хлопок|мобилизац|потер|погиб|ранен|инфляц|рост цен|рубл|девальвац|паден|санкци|убытк|ущерб|коллапс|банкротств|закрыт|дефолт|задержк|долг|нехватк|отключен|блэкаут|сбой|затоплен|наводнен|прорыв|чп|чрезвычайн|трагеди|арест|задержан|обыск|уголовн|приговор|срок|суд|штраф|иноагент|нежелательн|запрет|блокировк|цензур|протест|бунт|забастовк|митинг|коррупци|взятк|хищен|провал|ухудшен|катастроф|жалоб|скандал)/i;
-      const rusAll = nonSportsAll.filter(a => {
-        if (a.category === 'tekh') return false;
-        if (a.isKeyAnalyst) return true;
-        if (a.category === 'rossija' && a.isYouTube) return true;
-        const full = `${a.title || ''} ${a.summary || ''}`;
-        return (a.category === 'rossija' || russiaKeywords.test(full)) && (a.isYouTube || problemKeywords.test(full));
+      // Ausdrücklich KEINE YouTube-Videos im Tab "Все новости" (alle / vse), nur 50 neueste echte Nachrichten (RSS & Web)
+      const newsOnly = nonSportsAll.filter(a => {
+        if (a.isYouTube || (typeof a.url === 'string' && (a.url.includes('youtube.com') || a.url.includes('youtu.be')))) return false;
+        if (a.category === 'tekh' || a.category === 'tech') return false; // Technologien nur im tekh-Tab
+        return true;
       });
-      const ytList = rusAll.filter(a => a.isYouTube && parsePublishedAgeMinutes(a.publishedDateText) <= 3 * 24 * 60);
-      sortYouTubeVideosFreshnessFirst(ytList);
-      const topYt = ytList.slice(0, 10);
-      const rssList = rusAll.filter(a => !a.isYouTube).sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate)).slice(0, 15);
-      filtered = [...topYt, ...rssList];
+      filtered = newsOnly.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate)).slice(0, 50);
+    } else if (category === 'rossija') {
+      const russiaKeywords = /(росси|рф\b|москв|петербург|питер|кремл|путин|госдум|росстат|минфин|центробанк|цб рф|минобороны рф|фсб|мвд|росгварди|белгород|курск|брянск|воронеж|ростов|шебекино|сибирь|урал|татарстан|башкортостан|кавказ|дагестан|чечн|краснодар|сочи|владивосток|приморь|новосибирск|екатеринбург|россиян|российск|отечествен)/i;
+      const rusAll = nonSportsAll.filter(a => {
+        // Ausdrücklich KEINE YouTube-Videos im Tab "rossija", nur echte Nachrichten (RSS & Web)
+        if (a.isYouTube || (typeof a.url === 'string' && (a.url.includes('youtube.com') || a.url.includes('youtu.be')))) return false;
+        if (a.category === 'tekh' || a.category === 'psikh' || a.category === 'kultura') return false;
+        const full = `${a.title || ''} ${a.summary || ''}`;
+        if (a.category === 'rossija') return true;
+        return russiaKeywords.test(full);
+      });
+      // Exakt die 30 aktuellsten Nachrichten über Russland
+      filtered = rusAll.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate)).slice(0, 30);
     } else if (category === 'ukraina' || category === 'ukraine') {
       const ukraineSources = /(украинская правда|new voice|nv|рбк-украина|dw украина)/i;
       const ukraineKeywords = /(украин|киев|всу\b|зеленск|донбасс|донецк|луганск|харьков|днепр|одесс|запорожь|херсон|покровск|купянск|часов яр|краматорск|бахмут|авдеевк|сумск|курск|генштаб|оккупац|пво\b|шахед|обстрел|азов\b|войн)/i;
@@ -718,8 +822,7 @@ router.get('/api/news', async (req, res) => {
         return a.category === 'ukraina' || a.category === 'ukraine' || ukraineKeywords.test(full);
       });
       const ytList = ukrAll.filter(a => a.isYouTube && parsePublishedAgeMinutes(a.publishedDateText) <= 3 * 24 * 60);
-      sortYouTubeVideosFreshnessFirst(ytList);
-      const topYt = ytList.slice(0, 10);
+      const topYt = assembleTopYouTubeList(ytList, 15);
       const rssList = ukrAll.filter(a => !a.isYouTube).sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate)).slice(0, 15);
       filtered = [...topYt, ...rssList];
     } else if (category === 'politika') {
@@ -730,8 +833,7 @@ router.get('/api/news', async (req, res) => {
         return a.isYouTube && /(политик|геополитик|переговор|трамп|путин|сша|европ|кремл|санкци)/i.test(full);
       });
       const ytList = polAll.filter(a => a.isYouTube && parsePublishedAgeMinutes(a.publishedDateText) <= 3 * 24 * 60);
-      sortYouTubeVideosFreshnessFirst(ytList);
-      const topYt = ytList.slice(0, 10);
+      const topYt = assembleTopYouTubeList(ytList, 15);
       const rssList = polAll.filter(a => !a.isYouTube).sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate)).slice(0, 15);
       filtered = [...topYt, ...rssList];
     } else if (category === 'emigr' || category === 'emigration' || category === 'relocation') {
@@ -790,9 +892,29 @@ router.get('/api/news', async (req, res) => {
         return humanPsychKeywords.test(full);
       });
 
-      const ytList = psikhAll.filter(a => a.isYouTube);
-      sortYouTubeVideosFreshnessFirst(ytList);
-      const topYt = ytList.slice(0, 10);
+      let ytList = psikhAll
+        .filter(a => a.isYouTube)
+        .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0));
+
+      if (ytList.length < 15) {
+        try {
+          const freshYt = await fetchYouTubePsychologyVideos();
+          if (freshYt && freshYt.length > 0) {
+            for (const v of freshYt) {
+              if (!newsCache.some(c => c.url === v.url || c.id === v.id)) {
+                newsCache.push(v);
+              }
+            }
+            ytList = [...ytList, ...freshYt]
+              .filter((v, i, self) => i === self.findIndex(t => t.url === v.url || t.id === v.id))
+              .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0));
+          }
+        } catch (e) {
+          console.error('On-demand psychology YouTube fetch error:', e.message);
+        }
+      }
+
+      const topYt = ytList.slice(0, 15);
       const rssList = psikhAll.filter(a => !a.isYouTube).sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate)).slice(0, 15);
       filtered = [...topYt, ...rssList];
     } else if (category !== 'alle' && category !== 'vse') {

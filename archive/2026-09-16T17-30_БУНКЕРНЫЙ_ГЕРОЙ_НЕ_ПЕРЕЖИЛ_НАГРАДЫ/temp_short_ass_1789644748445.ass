@@ -1,0 +1,24 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1080
+PlayResY: 1920
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Title,Saxonia Antiqua,200,&H0000E6FF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,8,4,8,10,10,10,1
+Style: Badge,Arial,20,&H00000000,&H00000000,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,0:01:00.00,Badge,,0,0,0,,{\an7\pos(347,409)\org(540,493)\c&H000000&\1a&H40&\bord0\shad5\blur3\4c&H000000&\4a&H40&\p1}m 16 0 l 370 0 l 386 16 l 386 152 l 370 168 l 16 168 l 0 152 l 0 16{\p0}
+Dialogue: 1,0:00:00.00,0:01:00.00,Title,,0,0,0,,{\an5\pos(540,493)\org(540,493)}{\c&H2A2AFF&\fs176\bord8\3c&H000000&\shad4\4c&H000000&}РФ {\c&H00E6FF&\fs176\bord8\3c&H000000&\shad4\4c&H000000&}:
+Dialogue: 0,0:00:00.00,0:01:00.00,Badge,,0,0,0,,{\an7\pos(178,597)\org(540,681)\c&H000000&\1a&H40&\bord0\shad5\blur3\4c&H000000&\4a&H40&\p1}m 16 0 l 708 0 l 724 16 l 724 152 l 708 168 l 16 168 l 0 152 l 0 16{\p0}
+Dialogue: 1,0:00:00.00,0:01:00.00,Title,,0,0,0,,{\an5\pos(540,681)\org(540,681)}{\c&H00E6FF&\fs177\bord8\3c&H000000&\shad4\4c&H000000&}КАРЬЕРА
+Dialogue: 0,0:00:00.00,0:01:00.00,Badge,,0,0,0,,{\an7\pos(143,785)\org(540,869)\c&H000000&\1a&H40&\bord0\shad5\blur3\4c&H000000&\4a&H40&\p1}m 16 0 l 779 0 l 795 16 l 795 152 l 779 168 l 16 168 l 0 152 l 0 16{\p0}
+Dialogue: 1,0:00:00.00,0:01:00.00,Title,,0,0,0,,{\an5\pos(540,869)\org(540,869)}{\c&H2A2AFF&\fs177\bord8\3c&H000000&\shad4\4c&H000000&}МАРШАЛА
+Dialogue: 0,0:00:00.00,0:01:00.00,Badge,,0,0,0,,{\an7\pos(203,973)\org(540,1057)\c&H000000&\1a&H40&\bord0\shad5\blur3\4c&H000000&\4a&H40&\p1}m 16 0 l 658 0 l 674 16 l 674 152 l 658 168 l 16 168 l 0 152 l 0 16{\p0}
+Dialogue: 1,0:00:00.00,0:01:00.00,Title,,0,0,0,,{\an5\pos(540,1057)\org(540,1057)}{\c&H2A2AFF&\fs179\bord8\3c&H000000&\shad4\4c&H000000&}ПОБЕДЫ
+Dialogue: 0,0:00:00.00,0:01:00.00,Badge,,0,0,0,,{\an7\pos(176,1161)\org(540,1245)\c&H000000&\1a&H40&\bord0\shad5\blur3\4c&H000000&\4a&H40&\p1}m 16 0 l 712 0 l 728 16 l 728 152 l 712 168 l 16 168 l 0 152 l 0 16{\p0}
+Dialogue: 1,0:00:00.00,0:01:00.00,Title,,0,0,0,,{\an5\pos(540,1245)\org(540,1245)}{\c&H00E6FF&\fs178\bord8\3c&H000000&\shad4\4c&H000000&}ДЛИЛАСЬ
+Dialogue: 0,0:00:00.00,0:01:00.00,Badge,,0,0,0,,{\an7\pos(103,1349)\org(540,1433)\c&H000000&\1a&H40&\bord0\shad5\blur3\4c&H000000&\4a&H40&\p1}m 16 0 l 859 0 l 875 16 l 875 152 l 859 168 l 16 168 l 0 152 l 0 16{\p0}
+Dialogue: 1,0:00:00.00,0:01:00.00,Title,,0,0,0,,{\an5\pos(540,1433)\org(540,1433)}{\c&H66FF00&\fs159\bord8\3c&H000000&\shad4\4c&H000000&}ДВЕ {\c&H66FF00&\fs161\bord8\3c&H000000&\shad4\4c&H000000&}НЕДЕЛИ

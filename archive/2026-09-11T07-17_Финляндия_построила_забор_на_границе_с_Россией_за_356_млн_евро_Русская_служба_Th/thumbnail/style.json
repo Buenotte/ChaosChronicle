@@ -1,0 +1,52 @@
+{
+  "text": "ФИНЛЯНДИЯ:\nВОЛЬЕР\nДЛЯ   БУЙНЫХ\nОФИЦИАЛЬНО\nПОСТРОЕН",
+  "customLines": [
+    "ФИНЛЯНДИЯ:",
+    "ВОЛЬЕР",
+    "ДЛЯ   БУЙНЫХ",
+    "ОФИЦИАЛЬНО",
+    "ПОСТРОЕН"
+  ],
+  "font": "Saxonia_Antiqua_Bold.ttf",
+  "fontFamilyName": "\"Saxonia_Antiqua_Bold\", sans-serif",
+  "fontSize": 130,
+  "customSizeNum": 130,
+  "lineFontSizes": null,
+  "fontColor": "yellow",
+  "lineColors": null,
+  "wordColors": [
+    "red",
+    "yellow",
+    "yellow",
+    "green",
+    "red",
+    "yellow"
+  ],
+  "wordFontSizes": null,
+  "borderColor": "black",
+  "borderWidth": 9,
+  "shadowDistance": 12,
+  "lineSpacing": 1.1,
+  "wordSpacing": 16,
+  "isItalic": false,
+  "tiltAngle": 0,
+  "position": "custom",
+  "offsetY": 50,
+  "offsetX": 50,
+  "textAlign": "center",
+  "hasBox": false,
+  "boxStyle": "none",
+  "boxOpacity": 30,
+  "lineBadges": {
+    "enabled": false,
+    "style": "solid",
+    "shadow": "soft",
+    "tiltMode": "none",
+    "lineTilts": null,
+    "color": "#000000",
+    "lineColors": null,
+    "opacity": 30
+  },
+  "photoUrl": "/news-static/2026-09-11T07-17_Финляндия_построила_забор_на_границе_с_Россией_за_356_млн_евро_Русская_служба_Th/photos/28.jpeg",
+  "updatedAt": "2026-09-15T08:21:54.320Z"
+}

@@ -1,0 +1,22 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1080
+PlayResY: 1920
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Title,Saxonia Antiqua,220,&H0000E6FF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,8,4,8,10,10,10,1
+Style: Badge,Arial,20,&H00000000,&H00000000,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,0:01:00.00,Badge,,0,0,0,,{\an7\pos(158,392)\org(540,484)\c&H000000&\1a&HA6&\bord0\shad7\blur0\4c&H000000&\4a&HA6&\p1}m 16 0 l 748 0 l 764 16 l 764 167 l 748 183 l 16 183 l 0 167 l 0 16{\p0}
+Dialogue: 1,0:00:00.00,0:01:00.00,Title,,0,0,0,,{\an5\pos(540,484)\org(540,484)}{\c&H00E6FF&\fs211\bord8\3c&H000000&\shad4\4c&H000000&}ВМЕСТО
+Dialogue: 0,0:00:00.00,0:01:00.00,Badge,,0,0,0,,{\an7\pos(116,595)\org(540,687)\c&H000000&\1a&HA6&\bord0\shad7\blur0\4c&H000000&\4a&HA6&\p1}m 16 0 l 832 0 l 848 16 l 848 167 l 832 183 l 16 183 l 0 167 l 0 16{\p0}
+Dialogue: 1,0:00:00.00,0:01:00.00,Title,,0,0,0,,{\an5\pos(540,687)\org(540,687)}{\c&H2A2AFF&\fs211\bord8\3c&H000000&\shad4\4c&H000000&}ТЮРЬМЫ
+Dialogue: 0,0:00:00.00,0:01:00.00,Badge,,0,0,0,,{\an7\pos(312,798)\org(540,890)\c&H000000&\1a&HA6&\bord0\shad7\blur0\4c&H000000&\4a&HA6&\p1}m 16 0 l 441 0 l 457 16 l 457 167 l 441 183 l 16 183 l 0 167 l 0 16{\p0}
+Dialogue: 1,0:00:00.00,0:01:00.00,Title,,0,0,0,,{\an5\pos(540,890)\org(540,890)}{\c&HFFF000&\fs214\bord8\3c&H000000&\shad4\4c&H000000&}МЭР
+Dialogue: 0,0:00:00.00,0:01:00.00,Badge,,0,0,0,,{\an7\pos(152,1001)\org(540,1093)\c&H000000&\1a&HA6&\bord0\shad7\blur0\4c&H000000&\4a&HA6&\p1}m 16 0 l 761 0 l 777 16 l 777 167 l 761 183 l 16 183 l 0 167 l 0 16{\p0}
+Dialogue: 1,0:00:00.00,0:01:00.00,Title,,0,0,0,,{\an5\pos(540,1093)\org(540,1093)}{\c&H00E6FF&\fs210\bord8\3c&H000000&\shad4\4c&H000000&}ВЫБРАЛ
+Dialogue: 0,0:00:00.00,0:01:00.00,Badge,,0,0,0,,{\an7\pos(155,1204)\org(540,1296)\c&H000000&\1a&HA6&\bord0\shad7\blur0\4c&H000000&\4a&HA6&\p1}m 16 0 l 754 0 l 770 16 l 770 167 l 754 183 l 16 183 l 0 167 l 0 16{\p0}
+Dialogue: 1,0:00:00.00,0:01:00.00,Title,,0,0,0,,{\an5\pos(540,1296)\org(540,1296)}{\c&H2A2AFF&\fs213\bord8\3c&H000000&\shad4\4c&H000000&}СМЕРТЬ

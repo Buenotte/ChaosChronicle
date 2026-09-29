@@ -1,0 +1,90 @@
+{
+  "text": "ТИХОЕ ВОССТАНИЕ\nМАШИН УЖЕ\nНАЧАЛОСЬ",
+  "customLines": [
+    "ТИХОЕ ВОССТАНИЕ",
+    "МАШИН УЖЕ",
+    "НАЧАЛОСЬ"
+  ],
+  "font": "Saxonia_Antiqua_Bold.ttf",
+  "fontFamilyName": "\"Saxonia_Antiqua_Bold\", sans-serif",
+  "fontSize": 110,
+  "customSizeNum": 110,
+  "lineFontSizes": null,
+  "fontColor": "yellow",
+  "lineColors": [
+    "red",
+    "white",
+    "red"
+  ],
+  "wordColors": [
+    "red",
+    "yellow",
+    "green",
+    "white",
+    "red"
+  ],
+  "wordFontSizes": [
+    133,
+    131,
+    143,
+    131,
+    140
+  ],
+  "borderColor": "black",
+  "borderWidth": 5,
+  "shadowDistance": 12,
+  "lineSpacing": 1.45,
+  "wordSpacing": 12,
+  "isItalic": false,
+  "tiltAngle": 0,
+  "position": "center",
+  "offsetY": 50,
+  "offsetX": 50,
+  "textAlign": "center",
+  "hasBox": false,
+  "boxStyle": "none",
+  "boxOpacity": 30,
+  "lineBadges": {
+    "enabled": false,
+    "style": "solid",
+    "shadow": "soft",
+    "tiltMode": "none",
+    "lineTilts": null,
+    "color": "#000000",
+    "lineColors": [
+      "#000000",
+      "#000000",
+      "#000000"
+    ],
+    "opacity": 30,
+    "padY": 15,
+    "padX": 51,
+    "lineStyles": [
+      "solid",
+      "solid",
+      "solid"
+    ],
+    "lineOpacities": [
+      30,
+      30,
+      30
+    ],
+    "linePadX": [
+      51,
+      51,
+      51
+    ],
+    "linePadY": [
+      15,
+      15,
+      15
+    ],
+    "linesEnabled": [
+      true,
+      true,
+      true
+    ]
+  },
+  "photoUrl": "/news-static/2026-09-21T17-00_YT_Почему_разговор_с_ИИ_меня_напряг/photos/photo_02.jpg",
+  "updatedAt": "2026-09-21T18:29:18.589Z"
+}

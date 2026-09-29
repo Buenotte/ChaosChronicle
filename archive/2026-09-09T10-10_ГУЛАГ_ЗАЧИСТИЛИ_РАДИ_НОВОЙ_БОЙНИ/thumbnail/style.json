@@ -1,0 +1,75 @@
+{
+  "text": "СВО:\nБРОНЗОВЫЕ ИСТУКАНЫ\nСМЕРТИ",
+  "customLines": [
+    "СВО:",
+    "БРОНЗОВЫЕ ИСТУКАНЫ",
+    "СМЕРТИ"
+  ],
+  "font": "Saxonia_Antiqua_Bold.ttf",
+  "fontFamilyName": "\"Saxonia_Antiqua_Bold\", sans-serif",
+  "fontSize": 110,
+  "customSizeNum": 110,
+  "lineFontSizes": null,
+  "fontColor": "yellow",
+  "lineColors": [
+    "red",
+    "yellow",
+    "yellow"
+  ],
+  "wordColors": [
+    "red",
+    "orange",
+    "white",
+    "red"
+  ],
+  "wordFontSizes": [
+    141,
+    113,
+    113,
+    154
+  ],
+  "borderColor": "black",
+  "borderWidth": 5,
+  "shadowDistance": 12,
+  "lineSpacing": 1.2,
+  "wordSpacing": 18,
+  "isItalic": false,
+  "tiltAngle": 0,
+  "position": "custom",
+  "offsetY": 68,
+  "offsetX": 49,
+  "textAlign": "center",
+  "hasBox": true,
+  "boxStyle": "per_line",
+  "boxOpacity": 30,
+  "lineBadges": {
+    "enabled": true,
+    "style": "torn",
+    "shadow": "hard",
+    "tiltMode": "custom",
+    "lineTilts": [
+      0,
+      -4,
+      0
+    ],
+    "color": "#18181b",
+    "lineColors": [
+      null,
+      null,
+      "#b91c1c"
+    ],
+    "opacity": 30,
+    "lineStyles": [
+      null,
+      null,
+      "tape"
+    ],
+    "linesEnabled": [
+      false,
+      null,
+      false
+    ]
+  },
+  "photoUrl": null,
+  "updatedAt": "2026-09-09T14:33:31.753Z"
+}

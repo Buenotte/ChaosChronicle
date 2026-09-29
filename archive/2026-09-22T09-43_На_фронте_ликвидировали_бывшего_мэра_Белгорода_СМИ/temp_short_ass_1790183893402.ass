@@ -1,0 +1,61 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1080
+PlayResY: 1920
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Title,Impact,90,&H0000E6FF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,8,4,8,10,10,10,1
+Style: Speech,Impact,159,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,12,6,5,20,20,20,1
+Style: Badge,Arial,20,&H00000000,&H00000000,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,0:01:00.00,Badge,,0,0,0,,{\an7\pos(282,200)\org(540,244)\c&H000000&\1a&H40&\bord0\shad5\blur3\4c&H000000&\4a&H40&\p1}m 16 0 l 501 0 l 517 16 l 517 71 l 501 87 l 16 87 l 0 71 l 0 16{\p0}
+Dialogue: 1,0:00:00.00,0:01:00.00,Title,,0,0,0,,{\an5\pos(540,244)\org(540,244)}{\c&H00E6FF&\fs90\bord8\3c&H000000&\shad4\4c&H000000&}МЭР {\c&H00E6FF&\fs90\bord8\3c&H000000&\shad4\4c&H000000&}БЕЛГОРОДА
+Dialogue: 0,0:00:00.00,0:01:00.00,Badge,,0,0,0,,{\an7\pos(298,307)\org(540,351)\c&H000000&\1a&H40&\bord0\shad5\blur3\4c&H000000&\4a&H40&\p1}m 16 0 l 468 0 l 484 16 l 484 71 l 468 87 l 16 87 l 0 71 l 0 16{\p0}
+Dialogue: 1,0:00:00.00,0:01:00.00,Title,,0,0,0,,{\an5\pos(540,351)\org(540,351)}{\c&H00E6FF&\fs90\bord8\3c&H000000&\shad4\4c&H000000&}ЛИКВИДИРОВАН
+Dialogue: 1,0:00:00.00,0:00:00.56,Badge,,0,0,0,,{\an7\pos(292,903)\fad(30,30)\c&H000000&\1a&H1A&\bord0\shad6\blur3\4c&H000000&\4a&H1A&\p1}m 16 0 l 481 0 l 497 16 l 497 138 l 481 154 l 16 154 l 0 138 l 0 16{\p0}
+Dialogue: 2,0:00:00.00,0:00:00.56,Speech,,0,0,0,,{\an5\pos(540,980)}{\c&H00E6FF&\fs159\bord12\3c&H000000&\shad6\4c&H000000&}ЭЛИТНЫЙ
+Dialogue: 1,0:00:00.56,0:00:00.91,Badge,,0,0,0,,{\an7\pos(411,903)\fad(30,30)\c&H000000&\1a&H1A&\bord0\shad6\blur3\4c&H000000&\4a&H1A&\p1}m 16 0 l 243 0 l 259 16 l 259 138 l 243 154 l 16 154 l 0 138 l 0 16{\p0}
+Dialogue: 2,0:00:00.56,0:00:00.91,Speech,,0,0,0,,{\an5\pos(540,980)}{\c&H00E6FF&\fs159\bord12\3c&H000000&\shad6\4c&H000000&}МЭР
+Dialogue: 1,0:00:00.91,0:00:01.53,Badge,,0,0,0,,{\an7\pos(262,903)\fad(30,30)\c&H000000&\1a&H1A&\bord0\shad6\blur3\4c&H000000&\4a&H1A&\p1}m 16 0 l 540 0 l 556 16 l 556 138 l 540 154 l 16 154 l 0 138 l 0 16{\p0}
+Dialogue: 2,0:00:00.91,0:00:01.53,Speech,,0,0,0,,{\an5\pos(540,980)}{\c&H00E6FF&\fs159\bord12\3c&H000000&\shad6\4c&H000000&}ПРОМЕНЯЛ
+Dialogue: 1,0:00:01.53,0:00:02.04,Badge,,0,0,0,,{\an7\pos(322,903)\fad(30,30)\c&H000000&\1a&H1A&\bord0\shad6\blur3\4c&H000000&\4a&H1A&\p1}m 16 0 l 421 0 l 437 16 l 437 138 l 421 154 l 16 154 l 0 138 l 0 16{\p0}
+Dialogue: 2,0:00:01.53,0:00:02.04,Speech,,0,0,0,,{\an5\pos(540,980)}{\c&H00E6FF&\fs159\bord12\3c&H000000&\shad6\4c&H000000&}МЯГКОЕ
+Dialogue: 1,0:00:02.04,0:00:02.60,Badge,,0,0,0,,{\an7\pos(292,903)\fad(30,30)\c&H000000&\1a&H1A&\bord0\shad6\blur3\4c&H000000&\4a&H1A&\p1}m 16 0 l 481 0 l 497 16 l 497 138 l 481 154 l 16 154 l 0 138 l 0 16{\p0}
+Dialogue: 2,0:00:02.04,0:00:02.60,Speech,,0,0,0,,{\an5\pos(540,980)}{\c&H00E6FF&\fs159\bord12\3c&H000000&\shad6\4c&H000000&}КОЖАНОЕ
+Dialogue: 1,0:00:02.60,0:00:03.11,Badge,,0,0,0,,{\an7\pos(322,903)\fad(30,30)\c&H000000&\1a&H1A&\bord0\shad6\blur3\4c&H000000&\4a&H1A&\p1}m 16 0 l 421 0 l 437 16 l 437 138 l 421 154 l 16 154 l 0 138 l 0 16{\p0}
+Dialogue: 2,0:00:02.60,0:00:03.11,Speech,,0,0,0,,{\an5\pos(540,980)}{\c&H00E6FF&\fs159\bord12\3c&H000000&\shad6\4c&H000000&}КРЕСЛО
+Dialogue: 1,0:00:03.11,0:00:03.41,Badge,,0,0,0,,{\an7\pos(441,903)\fad(30,30)\c&H000000&\1a&H1A&\bord0\shad6\blur3\4c&H000000&\4a&H1A&\p1}m 16 0 l 183 0 l 199 16 l 199 138 l 183 154 l 16 154 l 0 138 l 0 16{\p0}
+Dialogue: 2,0:00:03.11,0:00:03.41,Speech,,0,0,0,,{\an5\pos(540,980)}{\c&H00E6FF&\fs159\bord12\3c&H000000&\shad6\4c&H000000&}НА
+Dialogue: 1,0:00:03.41,0:00:03.87,Badge,,0,0,0,,{\an7\pos(351,903)\fad(30,30)\c&H000000&\1a&H1A&\bord0\shad6\blur3\4c&H000000&\4a&H1A&\p1}m 16 0 l 362 0 l 378 16 l 378 138 l 362 154 l 16 154 l 0 138 l 0 16{\p0}
+Dialogue: 2,0:00:03.41,0:00:03.87,Speech,,0,0,0,,{\an5\pos(540,980)}{\c&H00E6FF&\fs159\bord12\3c&H000000&\shad6\4c&H000000&}СЫРОЙ
+Dialogue: 1,0:00:03.87,0:00:04.59,Badge,,0,0,0,,{\an7\pos(203,903)\fad(30,30)\c&H000000&\1a&H1A&\bord0\shad6\blur3\4c&H000000&\4a&H1A&\p1}m 16 0 l 659 0 l 675 16 l 675 138 l 659 154 l 16 154 l 0 138 l 0 16{\p0}
+Dialogue: 2,0:00:03.87,0:00:04.59,Speech,,0,0,0,,{\an5\pos(540,980)}{\c&H00E6FF&\fs159\bord12\3c&H000000&\shad6\4c&H000000&}УКРАИНСКИЙ
+Dialogue: 1,0:00:04.59,0:00:04.99,Badge,,0,0,0,,{\an7\pos(381,903)\fad(30,30)\c&H000000&\1a&H1A&\bord0\shad6\blur3\4c&H000000&\4a&H1A&\p1}m 16 0 l 302 0 l 318 16 l 318 138 l 302 154 l 16 154 l 0 138 l 0 16{\p0}
+Dialogue: 2,0:00:04.59,0:00:04.99,Speech,,0,0,0,,{\an5\pos(540,980)}{\c&H00E6FF&\fs159\bord12\3c&H000000&\shad6\4c&H000000&}ОКОП
+Dialogue: 1,0:00:04.99,0:00:05.40,Badge,,0,0,0,,{\an7\pos(381,903)\fad(30,30)\c&H000000&\1a&H1A&\bord0\shad6\blur3\4c&H000000&\4a&H1A&\p1}m 16 0 l 302 0 l 318 16 l 318 138 l 302 154 l 16 154 l 0 138 l 0 16{\p0}
+Dialogue: 2,0:00:04.99,0:00:05.40,Speech,,0,0,0,,{\an5\pos(540,980)}{\c&H00E6FF&\fs159\bord12\3c&H000000&\shad6\4c&H000000&}РАДИ
+Dialogue: 1,0:00:05.40,0:00:06.01,Badge,,0,0,0,,{\an7\pos(262,903)\fad(30,30)\c&H000000&\1a&H1A&\bord0\shad6\blur3\4c&H000000&\4a&H1A&\p1}m 16 0 l 540 0 l 556 16 l 556 138 l 540 154 l 16 154 l 0 138 l 0 16{\p0}
+Dialogue: 2,0:00:05.40,0:00:06.01,Speech,,0,0,0,,{\an5\pos(540,980)}{\c&H00E6FF&\fs159\bord12\3c&H000000&\shad6\4c&H000000&}СПАСЕНИЯ
+Dialogue: 1,0:00:06.01,0:00:06.32,Badge,,0,0,0,,{\an7\pos(441,903)\fad(30,30)\c&H000000&\1a&H1A&\bord0\shad6\blur3\4c&H000000&\4a&H1A&\p1}m 16 0 l 183 0 l 199 16 l 199 138 l 183 154 l 16 154 l 0 138 l 0 16{\p0}
+Dialogue: 2,0:00:06.01,0:00:06.32,Speech,,0,0,0,,{\an5\pos(540,980)}{\c&H00E6FF&\fs159\bord12\3c&H000000&\shad6\4c&H000000&}ОТ
+Dialogue: 1,0:00:06.32,0:00:07.05,Badge,,0,0,0,,{\an7\pos(309,903)\fad(30,30)\c&H000000&\1a&H1A&\bord0\shad6\blur3\4c&H000000&\4a&H1A&\p1}m 16 0 l 446 0 l 462 16 l 462 138 l 446 154 l 16 154 l 0 138 l 0 16{\p0}
+Dialogue: 2,0:00:06.32,0:00:07.05,Speech,,0,0,0,,{\an5\pos(540,980)}{\c&H00E6FF&\fs159\bord12\3c&H000000&\shad6\4c&H000000&}ТЮРЬМЫ,
+Dialogue: 1,0:00:07.05,0:00:07.36,Badge,,0,0,0,,{\an7\pos(441,903)\fad(30,30)\c&H000000&\1a&H1A&\bord0\shad6\blur3\4c&H000000&\4a&H1A&\p1}m 16 0 l 183 0 l 199 16 l 199 138 l 183 154 l 16 154 l 0 138 l 0 16{\p0}
+Dialogue: 2,0:00:07.05,0:00:07.36,Speech,,0,0,0,,{\an5\pos(540,980)}{\c&H00E6FF&\fs159\bord12\3c&H000000&\shad6\4c&H000000&}НО
+Dialogue: 1,0:00:07.36,0:00:07.81,Badge,,0,0,0,,{\an7\pos(351,903)\fad(30,30)\c&H000000&\1a&H1A&\bord0\shad6\blur3\4c&H000000&\4a&H1A&\p1}m 16 0 l 362 0 l 378 16 l 378 138 l 362 154 l 16 154 l 0 138 l 0 16{\p0}
+Dialogue: 2,0:00:07.36,0:00:07.81,Speech,,0,0,0,,{\an5\pos(540,980)}{\c&H00E6FF&\fs159\bord12\3c&H000000&\shad6\4c&H000000&}ФИНАЛ
+Dialogue: 1,0:00:07.81,0:00:08.43,Badge,,0,0,0,,{\an7\pos(262,903)\fad(30,30)\c&H000000&\1a&H1A&\bord0\shad6\blur3\4c&H000000&\4a&H1A&\p1}m 16 0 l 540 0 l 556 16 l 556 138 l 540 154 l 16 154 l 0 138 l 0 16{\p0}
+Dialogue: 2,0:00:07.81,0:00:08.43,Speech,,0,0,0,,{\an5\pos(540,980)}{\c&H00E6FF&\fs159\bord12\3c&H000000&\shad6\4c&H000000&}ОКАЗАЛСЯ
+Dialogue: 1,0:00:08.43,0:00:09.61,Badge,,0,0,0,,{\an7\pos(160,903)\fad(30,30)\c&H000000&\1a&H1A&\bord0\shad6\blur3\4c&H000000&\4a&H1A&\p1}m 16 0 l 744 0 l 760 16 l 760 138 l 744 154 l 16 154 l 0 138 l 0 16{\p0}
+Dialogue: 2,0:00:08.43,0:00:09.61,Speech,,0,0,0,,{\an5\pos(540,980)}{\c&H00E6FF&\fs159\bord12\3c&H000000&\shad6\4c&H000000&}СМЕРТЕЛЬНЫМ.
+Dialogue: 1,0:00:09.61,0:00:10.27,Badge,,0,0,0,,{\an7\pos(232,903)\fad(30,30)\c&H000000&\1a&H1A&\bord0\shad6\blur3\4c&H000000&\4a&H1A&\p1}m 16 0 l 600 0 l 616 16 l 616 138 l 600 154 l 16 154 l 0 138 l 0 16{\p0}
+Dialogue: 2,0:00:09.61,0:00:10.27,Speech,,0,0,0,,{\an5\pos(540,980)}{\c&H00E6FF&\fs159\bord12\3c&H000000&\shad6\4c&H000000&}КАРЬЕРНЫЙ
+Dialogue: 1,0:00:10.27,0:00:10.68,Badge,,0,0,0,,{\an7\pos(381,903)\fad(30,30)\c&H000000&\1a&H1A&\bord0\shad6\blur3\4c&H000000&\4a&H1A&\p1}m 16 0 l 302 0 l 318 16 l 318 138 l 302 154 l 16 154 l 0 138 l 0 16{\p0}
+Dialogue: 2,0:00:10.27,0:00:10.68,Speech,,0,0,0,,{\an5\pos(540,980)}{\c&H00E6FF&\fs159\bord12\3c&H000000&\shad6\4c&H000000&}ЛИФТ
+Dialogue: 1,0:00:10.68,0:00:10.93,Badge,,0,0,0,,{\an7\pos(460,903)\fad(30,30)\c&H000000&\1a&H1A&\bord0\shad6\blur3\4c&H000000&\4a&H1A&\p1}m 16 0 l 144 0 l 160 16 l 160 138 l 144 154 l 16 154 l 0 138 l 0 16{\p0}
+Dialogue: 2,0:00:10.68,0:00:10.93,Speech,,0,0,0,,{\an5\pos(540,980)}{\c&H00E6FF&\fs159\bord12\3c&H000000&\shad6\4c&H000000&}В
+Dialogue: 1,0:00:10.93,0:00:11.00,Badge,,0,0,0,,{\an7\pos(232,903)\fad(30,30)\c&H000000&\1a&H1A&\bord0\shad6\blur3\4c&H000000&\4a&H1A&\p1}m 16 0 l 600 0 l 616 16 l 616 138 l 600 154 l 16 154 l 0 138 l 0 16{\p0}
+Dialogue: 2,0:00:10.93,0:00:11.00,Speech,,0,0,0,,{\an5\pos(540,980)}{\c&H00E6FF&\fs159\bord12\3c&H000000&\shad6\4c&H000000&}ПУТИНСКОЙ

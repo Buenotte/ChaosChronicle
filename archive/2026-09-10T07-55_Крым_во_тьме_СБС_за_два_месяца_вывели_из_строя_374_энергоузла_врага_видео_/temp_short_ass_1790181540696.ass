@@ -1,0 +1,28 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1080
+PlayResY: 1920
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Title,Impact,90,&H0000E6FF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,8,4,8,10,10,10,1
+Style: Speech,Impact,88,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,8,4,5,20,20,20,1
+Style: Badge,Arial,20,&H00000000,&H00000000,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,0:01:00.00,Badge,,0,0,0,,{\an7\pos(263,200)\org(540,244)\c&H000000&\1a&H40&\bord0\shad5\blur3\4c&H000000&\4a&H40&\p1}m 16 0 l 539 0 l 555 16 l 555 71 l 539 87 l 16 87 l 0 71 l 0 16{\p0}
+Dialogue: 1,0:00:00.00,0:01:00.00,Title,,0,0,0,,{\an5\pos(540,244)\org(540,244)}{\c&H00E6FF&\fs90\bord8\3c&H000000&\shad4\4c&H000000&}КРЫМ {\c&H00E6FF&\fs90\bord8\3c&H000000&\shad4\4c&H000000&}БЕЗ {\c&H00E6FF&\fs90\bord8\3c&H000000&\shad4\4c&H000000&}СВЕТА
+Dialogue: 2,0:00:00.00,0:00:01.35,Speech,,0,0,0,,{\an5\pos(540,960)}{\c&H00E6FF&\fscx106\fscy106\fs88\bord8\3c&H000000&\shad4\4c&H000000&}НЕПОТОПЛЯЕМЫЙ {\c&H00FFFFFF&\fscx100\fscy100\fs88\bord8\3c&H000000&\shad4\4c&H000000&}АВИАНОСЕЦ
+Dialogue: 2,0:00:01.35,0:00:02.41,Speech,,0,0,0,,{\an5\pos(540,960)}{\c&H00FFFFFF&\fscx100\fscy100\fs88\bord8\3c&H000000&\shad4\4c&H000000&}КРЕМЛЯ {\c&H00E6FF&\fscx106\fscy106\fs88\bord8\3c&H000000&\shad4\4c&H000000&}ОФИЦИАЛЬНО
+Dialogue: 2,0:00:02.41,0:00:03.76,Speech,,0,0,0,,{\an5\pos(540,960)}{\c&H00E6FF&\fscx106\fscy106\fs88\bord8\3c&H000000&\shad4\4c&H000000&}ПЕРЕВЕДЕН {\c&H00FFFFFF&\fscx100\fscy100\fs88\bord8\3c&H000000&\shad4\4c&H000000&}НА {\c&H00FFFFFF&\fscx100\fscy100\fs88\bord8\3c&H000000&\shad4\4c&H000000&}ДРОВЯНОЕ
+Dialogue: 2,0:00:03.76,0:00:05.30,Speech,,0,0,0,,{\an5\pos(540,960)}{\c&H00FFFFFF&\fscx100\fscy100\fs88\bord8\3c&H000000&\shad4\4c&H000000&}ОТОПЛЕНИЕ {\c&H00FFFFFF&\fscx100\fscy100\fs88\bord8\3c&H000000&\shad4\4c&H000000&}И {\c&H00E6FF&\fscx106\fscy106\fs88\bord8\3c&H000000&\shad4\4c&H000000&}СРЕДНЕВЕКОВЫЕ
+Dialogue: 2,0:00:05.30,0:00:06.27,Speech,,0,0,0,,{\an5\pos(540,960)}{\c&H00FFFFFF&\fscx100\fscy100\fs88\bord8\3c&H000000&\shad4\4c&H000000&}ЛУЧИНЫ. {\c&H00E6FF&\fscx106\fscy106\fs88\bord8\3c&H000000&\shad4\4c&H000000&}ГЛАВНЫЙ
+Dialogue: 2,0:00:06.27,0:00:07.33,Speech,,0,0,0,,{\an5\pos(540,960)}{\c&H00E6FF&\fscx106\fscy106\fs88\bord8\3c&H000000&\shad4\4c&H000000&}САКРАЛЬНЫЙ {\c&H00FFFFFF&\fscx100\fscy100\fs88\bord8\3c&H000000&\shad4\4c&H000000&}КУРОРТ
+Dialogue: 2,0:00:07.33,0:00:08.44,Speech,,0,0,0,,{\an5\pos(540,960)}{\c&H00E6FF&\fscx106\fscy106\fs88\bord8\3c&H000000&\shad4\4c&H000000&}РОССИЙСКОЙ {\c&H00FFFFFF&\fscx100\fscy100\fs88\bord8\3c&H000000&\shad4\4c&H000000&}ВОЕННОЙ
+Dialogue: 2,0:00:08.44,0:00:09.59,Speech,,0,0,0,,{\an5\pos(540,960)}{\c&H00E6FF&\fscx106\fscy106\fs88\bord8\3c&H000000&\shad4\4c&H000000&}ПРОПАГАНДЫ {\c&H00FFFFFF&\fscx100\fscy100\fs88\bord8\3c&H000000&\shad4\4c&H000000&}ВНЕЗАПНО
+Dialogue: 2,0:00:09.59,0:00:11.09,Speech,,0,0,0,,{\an5\pos(540,960)}{\c&H00FFFFFF&\fscx100\fscy100\fs88\bord8\3c&H000000&\shad4\4c&H000000&}ПОГРУЗИЛСЯ {\c&H00FFFFFF&\fscx100\fscy100\fs88\bord8\3c&H000000&\shad4\4c&H000000&}В {\c&H00E6FF&\fscx106\fscy106\fs88\bord8\3c&H000000&\shad4\4c&H000000&}ГЛУБОЧАЙШИЙ
+Dialogue: 2,0:00:11.09,0:00:12.10,Speech,,0,0,0,,{\an5\pos(540,960)}{\c&H00E6FF&\fscx106\fscy106\fs88\bord8\3c&H000000&\shad4\4c&H000000&}ПЕРВОБЫТНЫЙ {\c&H00FFFFFF&\fscx100\fscy100\fs88\bord8\3c&H000000&\shad4\4c&H000000&}МРАК
+Dialogue: 2,0:00:12.10,0:00:13.36,Speech,,0,0,0,,{\an5\pos(540,960)}{\c&H00FFFFFF&\fscx100\fscy100\fs88\bord8\3c&H000000&\shad4\4c&H000000&}БЛАГОДАРЯ {\c&H00E6FF&\fscx106\fscy106\fs88\bord8\3c&H000000&\shad4\4c&H000000&}ФИЛИГРАННОЙ
+Dialogue: 2,0:00:13.36,0:00:14.51,Speech,,0,0,0,,{\an5\pos(540,960)}{\c&H00FFFFFF&\fscx100\fscy100\fs88\bord8\3c&H000000&\shad4\4c&H000000&}ХИРУРГИИ {\c&H00E6FF&\fscx106\fscy106\fs88\bord8\3c&H000000&\shad4\4c&H000000&}УКРАИНСКИХ
+Dialogue: 2,0:00:14.51,0:00:15.00,Speech,,0,0,0,,{\an5\pos(540,960)}{\c&H00E6FF&\fscx106\fscy106\fs88\bord8\3c&H000000&\shad4\4c&H000000&}ДРОНОВ.

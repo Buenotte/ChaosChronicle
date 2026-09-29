@@ -1,0 +1,44 @@
+{
+  "text": "ЛЮБИТЬ РОДИНУ ПРИДЕТСЯ БЕЗ ЕВРОПЫ",
+  "font": "Saxonia_Antiqua_Bold.ttf",
+  "fontFamilyName": "\"Saxonia_Antiqua_Bold\", sans-serif",
+  "fontSize": 110,
+  "customSizeNum": 110,
+  "lineFontSizes": null,
+  "fontColor": "yellow",
+  "lineColors": [
+    "red",
+    "white",
+    "red"
+  ],
+  "wordColors": [
+    "yellow",
+    "yellow",
+    "white",
+    "white",
+    "cyan"
+  ],
+  "wordFontSizes": [
+    141,
+    144,
+    138,
+    140,
+    152
+  ],
+  "borderColor": "black",
+  "borderWidth": 5,
+  "shadowDistance": 12,
+  "lineSpacing": 1.4,
+  "wordSpacing": 6,
+  "isItalic": false,
+  "tiltAngle": 0,
+  "position": "custom",
+  "offsetY": 50,
+  "offsetX": 50,
+  "textAlign": "center",
+  "hasBox": false,
+  "boxStyle": "none",
+  "boxOpacity": 30,
+  "photoUrl": "/news-static/2026-09-05T15-27_БЕРЛИН_ЗАПРЕТИЛ_ИМПЕРИИ_ПИТЬ_ЭСПРЕССО/photos/photo_01.jpg",
+  "updatedAt": "2026-09-05T16:19:21.033Z"
+}

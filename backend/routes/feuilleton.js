@@ -18,16 +18,96 @@ const STYLES = {
   gibrid: { file: 'gibrid_style.txt', label: '⚡ Гибридный стиль (3 в 1)', focus: 'Синтез сатиры Голобуцкого, военного реализма и геополитики.' },
 };
 
-export function buildStyledFeuilletonPrompt(newsTitle, newsSummary = '', styleKey = 'golubuzki', tone = 'grotesque', conceptType = 'facts') {
+export function extractFactsListFromText(text) {
+  if (!text || typeof text !== 'string') return [];
+  const trimmed = text.trim();
+  if (trimmed.length < 30) return [];
+
+  // 1. Поиск структурированных пунктов ("1. 🌟 Заголовок\nТекст" или "ФАКТ 1: Заголовок\nТекст" или "1. Заголовок: Текст")
+  const numberedBlocks = trimmed.split(/(?=(?:^|\n)(?:\d+[\.\)]\s*(?:🌟\s*)?|ФАКТ\s*\d+|ТЕЗИС\s*\d+|ПУНКТ\s*\d+|ДЕТАЛЬ\s*\d+|ВЫВОД\s*\d+|СИГНАЛ\s*\d+))/i)
+    .map(b => b.trim())
+    .filter(b => b.length > 15 && /^(?:\d+[\.\)]|ФАКТ|ТЕЗИС|ПУНКТ|ДЕТАЛЬ|ВЫВОД|СИГНАЛ)/i.test(b));
+
+  if (numberedBlocks.length >= 3) {
+    return numberedBlocks.map((block, idx) => {
+      const cleanBlock = block.replace(/^(?:\d+[\.\)]\s*(?:🌟\s*)?|(?:ФАКТ|ТЕЗИС|ПУНКТ|ДЕТАЛЬ|ВЫВОД|СИГНАЛ)\s*\d+[:.\s-]*)/i, '').trim();
+      const lines = cleanBlock.split('\n').map(l => l.trim()).filter(Boolean);
+      const firstLine = lines[0] || '';
+      let title = firstLine.replace(/^\[|\]$/g, '');
+      let desc = lines.slice(1).join(' ');
+      if (firstLine.includes(':') && !desc) {
+        const parts = firstLine.split(':');
+        title = parts[0].trim();
+        desc = parts.slice(1).join(':').trim();
+      }
+      return { id: idx + 1, title: title || `Пункт ${idx + 1}`, text: desc || title };
+    });
+  }
+
+  // 2. Поиск пунктов в формате "Заголовок: Описание" через двойные переносы строк
+  const paragraphBlocks = trimmed.split(/\n\s*\n/)
+    .map(p => p.trim())
+    .filter(p => p.length > 20 && p.includes(':'));
+
+  if (paragraphBlocks.length >= 3) {
+    return paragraphBlocks.map((p, idx) => {
+      const colonIdx = p.indexOf(':');
+      const title = p.slice(0, colonIdx).trim().replace(/^[-*•\d.\s]+/, '');
+      const desc = p.slice(colonIdx + 1).trim();
+      return { id: idx + 1, title: title || `Пункт ${idx + 1}`, text: desc || title };
+    });
+  }
+
+  return [];
+}
+
+export function buildStyledFeuilletonPrompt(newsTitle, newsSummary = '', styleKey = 'golubuzki', tone = 'grotesque', conceptType = 'facts', explicitFacts = null) {
+  const concept = getConceptInfo(conceptType);
+  const extractedFacts = (Array.isArray(explicitFacts) && explicitFacts.length > 0)
+    ? explicitFacts
+    : extractFactsListFromText(newsSummary);
+
+  const hasExtractedFacts = extractedFacts.length >= 3;
+  const factsCount = hasExtractedFacts ? extractedFacts.length : 10;
+
+  let wordCountTarget = '400–550 слов (~3 мин.)';
+  if (factsCount >= 15) {
+    wordCountTarget = '800–1100 слов (~5–7 минут детального разбора)';
+  } else if (factsCount >= 11) {
+    wordCountTarget = '550–750 слов (~4–5 минут детального разбора)';
+  } else if (factsCount >= 7) {
+    wordCountTarget = '420–580 слов (~3–4 минуты озвучки)';
+  } else if (factsCount >= 3) {
+    wordCountTarget = '350–480 слов (~2.5–3.5 минуты озвучки)';
+  }
+
+  const isNonPolitical = ['psychology', 'scipop', 'mystery', 'tech_future', 'storytelling', 'life', 'psikh'].includes(styleKey) ||
+    (/(?:психолог|манипуляц|мозг\b|отношен|тест\s+глаз|сон\b|памят|самооценк|уловк)/i.test(newsTitle) && !/(?:всу\b|минобороны|путин|трамп|кремл|зеленск|дрон|обстрел|снаряд|оккупац)/i.test(newsTitle));
+
   if (YOUTUBE_STYLES[styleKey]) {
     const ytCfg = YOUTUBE_STYLES[styleKey];
+    let ytSys = ytCfg.systemInstruction;
+    if (hasExtractedFacts) {
+      ytSys = ytSys.replace(/\(СТРОГО 400–550 слов\)/g, `(ОБЪЕМ: ${wordCountTarget}, ОБЯЗАТЕЛЬНО ХУК С ОБЪЯВЛЕНИЕМ ${factsCount} ${concept.labelPlural.toUpperCase()}, СЧЕТ ВСЛУХ И РАЗБОР ВСЕХ ${factsCount} ПУНКТОВ)`);
+    }
+
+    const factsPrompt = hasExtractedFacts
+      ? `\n═══════════════════════════════════════════════════════════════════\n` +
+        `📌 СПИСОК ИЗ ${factsCount} КЛЮЧЕВЫХ ${concept.headerWord}, КОТОРЫЕ ОБЯЗАТЕЛЬНО ДОЛЖНЫ БЫТЬ ПРОНУМЕРОВАНЫ ВСЛУХ И ПОДРОБНО ОБЪЯСНЕНЫ В СЦЕНАРИИ:\n` +
+        extractedFacts.map((f, i) => `${concept.labelSingle.toUpperCase()} ${i + 1}: [${f.title}] ➜ ${f.text}`).join('\n\n') +
+        `\n═══════════════════════════════════════════════════════════════════\n` +
+        `🚨 СТРОЖАЙШИЕ ТРЕБОВАНИЯ ПО СЦЕНАРИЮ:\n` +
+        `1. 🎯 ОБЯЗАТЕЛЬНЫЙ ХУК В САМОМ НАЧАЛЕ (ПЕРВОЕ ПРЕДЛОЖЕНИЕ): Диктор ОБЯЗАН в первых же словах заявить мощный хук и ПРЯМО ОБЪЯВИТЬ ТЕМУ И РОВНО ${factsCount} ${concept.headerWord}: например, «Вот ${factsCount} ${concept.hookWord} на тему [Тема]...», «Сегодня разберем ${factsCount} ${concept.labelPlural} о [Тема]...»!\n` +
+        `2. 🔢 ОБЯЗАТЕЛЬНАЯ НУМЕРАЦИЯ ВСЛУХ (СЧЕТ КАЖДОГО ПУНКТА ОТ 1 ДО ${factsCount}): Диктор ОБЯЗАН четко проговаривать номер каждого пункта («${concept.labelSingle} первый: ...», «${concept.labelSingle} номер два: ...», ..., «${concept.labelSingle} номер ${factsCount}: ...»)!\n` +
+        `3. Текст ОБЯЗАН последовательно назвать и подробно раскрыть КАЖДЫЙ ИЗ ВСЕХ ${factsCount} пунктов без пропуска!\n`
+      : '';
+
     return {
-      systemInstruction: ytCfg.systemInstruction,
-      userInstruction: `ТЕМА: ${newsTitle}\nМАТЕРИАЛ:\n"""\n${newsSummary || ''}\n"""\n\nСоздай 3-минутный монолог (СТРОГО 400–550 слов) в стиле «${ytCfg.name}» без приветствий:`,
+      systemInstruction: ytSys,
+      userInstruction: `ТЕМА: ${newsTitle}\n${factsPrompt}\nМАТЕРИАЛ:\n"""\n${newsSummary || ''}\n"""\n\nСоздай сценарий (${wordCountTarget}) в стиле «${ytCfg.name}» без приветствий:`,
     };
   }
 
-  const concept = getConceptInfo(conceptType);
   const scriptsDir = path.resolve(__dirname, '../../scripts');
   const effectiveKey = styleKey === 'analytics' ? 'gibrid' : styleKey;
   const styleConfig = STYLES[effectiveKey] || STYLES.golubuzki;
@@ -40,50 +120,65 @@ export function buildStyledFeuilletonPrompt(newsTitle, newsSummary = '', styleKe
   }
 
   const isAnalytics = tone === 'analytics';
-  const roleName = isAnalytics ? 'глубокий военный и политический аналитик' : 'ведущий сатирический колумнист и аналитик';
-  const textGenre = isAnalytics ? 'увлекательный 3-минутный аналитический обзор' : 'яркий 3-минутный фельетон';
-  const hasExtractedFacts = /(?:ФАКТ|ТЕЗИС|ДЕТАЛ|СИГНАЛ|ВЫВОД|ПУНКТ)/i.test(newsSummary) && /(?:1\.|ФАКТ 1|ТЕЗИС 1|🌟)/i.test(newsSummary);
+  const roleName = isNonPolitical
+    ? 'ведущий эксперт-популяризатор и автор захватывающего научно-популярного канала ChaosChronicle'
+    : (isAnalytics ? 'глубокий военный и политический аналитик канала ChaosChronicle' : 'ведущий сатирический колумнист и аналитик канала ChaosChronicle');
+
+  const textGenre = isNonPolitical
+    ? `захватывающий видео-разбор (${wordCountTarget})`
+    : (isAnalytics ? `увлекательный аналитический обзор (${wordCountTarget})` : `яркий фельетон (${wordCountTarget})`);
 
   const hookRule = hasExtractedFacts
-    ? `2. 🎯 ОБЯЗАТЕЛЬНЫЙ ХУК В САМОМ НАЧАЛЕ (ПЕРВОЕ ПРЕДЛОЖЕНИЕ): Диктор ОБЯЗАН в первых же словах заявить мощный хук и ПРЯМО ОБЪЯВИТЬ ТЕМУ И 10 ${concept.headerWord}: например, «Вот 10 ${concept.hookWord} на тему [Тема]...», «Сегодня разберем 10 ${concept.labelPlural} о [Тема]...» или «10 поразительных ${concept.labelPlural}, которые объясняют [Тема]...»!`
+    ? `2. 🎯 ОБЯЗАТЕЛЬНЫЙ ХУК В САМОМ НАЧАЛЕ (ПЕРВОЕ ПРЕДЛОЖЕНИЕ): Диктор ОБЯЗАН в первых же словах заявить мощный хук и ПРЯМО ОБЪЯВИТЬ ТЕМУ И РОВНО ${factsCount} ${concept.headerWord}: например, «Вот ${factsCount} ${concept.hookWord} на тему [Тема]...», «Сегодня разберем ${factsCount} ${concept.labelPlural} о [Тема]...» или «${factsCount} поразительных ${concept.labelPlural}, которые объясняют [Тема]...»!`
     : isAnalytics
     ? '2. 🎯 ПЕРВЫЕ 3 СЕКУНДЫ (СИЛЬНЫЙ АНАЛИТИЧЕСКИЙ ХУК): Первое предложение (7–12 слов) ОБЯЗАНО вскрывать скрытую суть события!'
     : '2. 💥 ПЕРВЫЕ 3 СЕКУНДЫ (ВЗРЫВНОЙ ХУК): Первое предложение (7–12 слов) ОБЯЗАНО быть парадоксальным столкновением противоположностей!';
 
   const coreRule = hasExtractedFacts
-    ? `3. 🔢 ОБЯЗАТЕЛЬНАЯ НУМЕРАЦИЯ ВСЛУХ (СЧЕТ КАЖДОГО ПУНКТА): Диктор ОБЯЗАН четко проговаривать номер каждого пункта перед его разбором (например: «${concept.labelSingle} первый: ...», «${concept.labelSingle} номер два: ...», ..., «Десятый ${concept.labelSingle.toLowerCase()}: ...»)! Зритель должен слышать точный счет всех 10 пунктов.`
+    ? `3. 🔢 ОБЯЗАТЕЛЬНАЯ НУМЕРАЦИЯ ВСЛУХ (СЧЕТ КАЖДОГО ПУНКТА ОТ 1 ДО ${factsCount}): Диктор ОБЯЗАН четко проговаривать номер каждого пункта перед его разбором (например: «${concept.labelSingle} первый: ...», «${concept.labelSingle} номер два: ...», ..., «${concept.labelSingle} номер ${factsCount}: ...»)! Зритель должен слышать точный счет всех ${factsCount} пунктов без исключения.`
     : isAnalytics
     ? '3. 🧠 УВЛЕКАТЕЛЬНЫЙ АНАЛИЗ: Раскрывай причинно-следственные связи, ставки и мотивы. БЕЗ цирка и кричащего гротеска!'
     : '3. 🎬 ВИЗУАЛЬНЫЙ ГРОТЕСК И МЕТАФОРЫ-МЕМЫ: Создавай 2–3 кинематографичные сцены с физическими деталями!';
 
   let focusDesc = styleConfig.focus;
-  if (isAnalytics) {
+  if (isNonPolitical) {
+    focusDesc = 'Глубокий, интригующий и психологически точный разбор всех приемов, механизмов мозга и поведения людей с яркими примерами.';
+  } else if (isAnalytics) {
     if (styleKey === 'kasjanov') focusDesc = 'Военно-инженерный реализм Касьянова: анализ ТТХ, тактики БПЛА, РЭБ, ПВО и логистики.';
     else if (styleKey === 'klimovski') focusDesc = 'Геополитический реализм Климовского: анатомия теневых решений, клановые интересы.';
     else if (styleKey === 'golubuzki') focusDesc = 'Острая политическая публицистика Голобуцкого: деконструкция пропаганды, факты и анализ.';
     else if (styleKey === 'gibrid') focusDesc = 'Синтез военно-технического (Касьянов) и геополитического (Климовский) анализа.';
   }
 
-  const systemInstruction = `Ты — ${roleName} канала ChaosChronicle. Напиши ${textGenre} (400-550 слов) на русском языке для видео.
-СТРОГАЯ ПОЗИЦИЯ: СТРОГО НА СТОРОНЕ УКРАИНЫ. Вскрывай кремлевскую пропаганду, ложь властей РФ и военную агрессию.
-АВТОРСКИЙ СТИЛЬ: ${styleConfig.label} (${isAnalytics ? 'РЕЖИМ АНАЛИТИКИ' : 'РЕЖИМ САТИРЫ'})
+  const systemPosition = isNonPolitical
+    ? 'ФОКУС: Научно-популярный и психологический анализ. Раскрывай реальные психологические механизмы, трюки восприятия и поведение людей.'
+    : 'СТРОГАЯ ПОЗИЦИЯ: СТРОГО НА СТОРОНЕ УКРАИНЫ. Вскрывай кремлевскую пропаганду, ложь властей РФ и военную агрессию.';
+
+  const systemInstruction = `Ты — ${roleName}. Напиши ${textGenre} на русском языке для видео.
+${systemPosition}
+АВТОРСКИЙ СТИЛЬ: ${styleConfig.label} (${isNonPolitical ? 'НАУЧПОП & ПСИХОЛОГИЯ' : (isAnalytics ? 'РЕЖИМ АНАЛИТИКИ' : 'РЕЖИМ САТИРЫ')})
 ГЛАВНЫЙ ФОКУС: ${focusDesc}
-${styleGuide && !isAnalytics ? `\nПОДРОБНОЕ РУКОВОДСТВО ПО СТИЛЮ:\n${styleGuide}\n` : ''}
+${styleGuide && !isAnalytics && !isNonPolitical ? `\nПОДРОБНОЕ РУКОВОДСТВО ПО СТИЛЮ:\n${styleGuide}\n` : ''}
 СТРОЖАЙШИЕ ПРАВИЛА ДЛЯ АУДИО-ОЗВУЧКИ (TTS):
-1. ПИШИ ТОЛЬКО ЧИСТЫЙ ПРОИЗНОСИМЫЙ ТЕКСТ ДИКТОРА (400-550 слов, ~3 мин.).
+0. 🔒 ГЛАВНОЕ И НЕЗЫБЛЕМОЕ ПРАВИЛО (100% ОПОРА НА СОХРАНЕННЫЙ ОРИГИНАЛ): Сценарий ОБЯЗАН СТРОГО И ПОЛНОСТЬЮ основываться на предоставленном тексте оригинальной новости / сохраненных фактах (ИСХОДНЫЙ МАТЕРИАЛ). Запрещено заменять тему или придумывать посторонние сюжеты. Все события, факты, тезисы, аргументы и примеры берутся ИСКЛЮЧИТЕЛЬНО из переданного материала!
+1. ПИШИ ТОЛЬКО ЧИСТЫЙ ПРОИЗНОСИМЫЙ ТЕКСТ ДИКТОРА (${wordCountTarget}).
 ${hookRule}
 ${coreRule}
 4. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО начинать с приветствий («Привет, друзья!», «С вами ChaosChronicle»).
 5. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО писать заголовки блоков («**Блок 1**»), тайминги, плейсхолдеры [B-Roll:...], концовки «Работаем дальше. Без иллюзий.».
-${hasExtractedFacts ? `6. ОБЯЗАТЕЛЬНО раскрой и объясни КАЖДЫЙ из 10 ${concept.labelPlural} по порядку от 1-го до 10-го с четким голосовым счетом!` : '6. Веди повествование динамично и уверенно!'}`;
+${hasExtractedFacts ? `6. ОБЯЗАТЕЛЬНО раскрой и понятно объясни КАЖДЫЙ из ВСЕХ ${factsCount} ${concept.labelPlural} по порядку от 1-го до ${factsCount}-го с четким голосовым счетом!` : '6. Веди повествование динамично и уверенно!'}`;
+
+  const formattedFactsList = hasExtractedFacts
+    ? extractedFacts.map((f, i) => `${concept.labelSingle.toUpperCase()} ${i + 1}: [${f.title}] ➜ ${f.text}`).join('\n\n')
+    : newsSummary;
 
   const userInstruction = hasExtractedFacts
-    ? `ТЕМА: ${newsTitle}\n10 КЛЮЧЕВЫХ ${concept.headerWord}:\n"""\n${newsSummary || ''}\n"""\n\nСоздай 3-минутный сценарий в стиле ${styleConfig.label}. ОБЯЗАТЕЛЬНО начни с хука с объявлением 10 ${concept.labelPlural} на тему, а затем четко отсчитай и объясни каждый («${concept.labelSingle} первый: ...», «${concept.labelSingle} номер два: ...»):`
+    ? `ТЕМА: ${newsTitle}\nРОВНО ${factsCount} КЛЮЧЕВЫХ ${concept.headerWord} ДЛЯ РАЗБОРА:\n"""\n${formattedFactsList}\n"""\n\nСоздай сценарий (${wordCountTarget}) в стиле ${styleConfig.label}. ОБЯЗАТЕЛЬНО начни с хука с объявлением ${factsCount} ${concept.labelPlural} на тему, а затем четко отсчитай и подробно объясни КАЖДЫЙ из ВСЕХ ${factsCount} пунктов («${concept.labelSingle} первый: ...», «${concept.labelSingle} номер два: ...», ..., «${concept.labelSingle} номер ${factsCount}: ...»):`
     : isAnalytics
     ? `ТЕМА: ${newsTitle}\nФАКТЫ: ${newsSummary || ''}\n\nНапиши увлекательный аналитический текст в стиле ${styleConfig.label} простым языком (БЕЗ приветствий, сразу с сути):`
     : `ТЕМА НОВОСТИ: ${newsTitle}\nКОНТЕКСТ/ФАКТЫ: ${newsSummary || ''}\n\nНапиши монолог фельетона в стиле ${styleConfig.label} с яркими метафорами и парадоксальным хуком (БЕЗ приветствий):`;
 
-  return { systemInstruction, userInstruction };
+  return { systemInstruction, userInstruction, factsCount, hasExtractedFacts };
 }
 
 
@@ -108,23 +203,28 @@ async function callGeminiDirect(systemInstruction, userInstruction, maxTokens = 
   } catch { return null; }
 }
 
-export async function generateGolubuzkiTitle(newsTitle, newsSummary = '', monologueText = '', tone = 'satire', style = 'golubuzki') {
+export async function generateGolubuzkiTitle(newsTitle, newsSummary = '', monologueText = '', tone = 'satire', style = 'golubuzki', keywords = '') {
   const textContext = monologueText && monologueText.trim() ? monologueText.slice(0, 1200) : (newsSummary || newsTitle);
   const isAnalytics = tone === 'analytics';
   const isYt = ['scipop', 'mystery', 'tech_future', 'psychology', 'storytelling'].includes(style);
+  const hasKeywords = Boolean(keywords && keywords.trim());
+  const cleanKeywords = hasKeywords ? keywords.trim() : '';
+
+  const kwReq = hasKeywords ? ` ОБЯЗАТЕЛЬНО включи ключевые слова "${cleanKeywords}" в заголовок!` : '';
   const sysPrompt = isYt
-    ? `Ты — ведущий YouTube-продюсер. Создай 1 ЗАХВАТЫВАЮЩИЙ заголовок по теме (СТРОГО 4-5 СЛОВ, UPPERCASE). Главная суть/интрига. БЕЗ политики и сатиры.`
+    ? `Ты — ведущий YouTube-продюсер. Создай 1 ЗАХВАТЫВАЮЩИЙ заголовок по теме (СТРОГО 4-6 СЛОВ, UPPERCASE). Главная суть/интрига. БЕЗ политики и сатиры.${kwReq}`
     : isAnalytics
-    ? `Ты — военный аналитик ChaosChronicle. Создай 1 МОЩНЫЙ АНАЛИТИЧЕСКИЙ YouTube-заголовок (СТРОГО 4-5 СЛОВ, UPPERCASE). Серьезный диагноз и нерв темы. БЕЗ клоунады.`
-    : `Ты — мастер острой сатиры. Создай 1 ХЛЕСТКИЙ сатирический YouTube-заголовок (СТРОГО 4-5 СЛОВ, UPPERCASE). Острый парадокс реальности. БЕЗ клоунады.`;
-  const userPrompt = `ТЕКСТ:\n"""\n${textContext}\n"""\n\nСоздай 1 заголовок из 4-5 слов капсом:`;
+    ? `Ты — военный аналитик ChaosChronicle. Создай 1 МОЩНЫЙ АНАЛИТИЧЕСКИЙ YouTube-заголовок (СТРОГО 4-6 СЛОВ, UPPERCASE). Серьезный диагноз и нерв темы. БЕЗ клоунады.${kwReq}`
+    : `Ты — мастер острой сатиры. Создай 1 ХЛЕСТКИЙ сатирический YouTube-заголовок (СТРОГО 4-6 СЛОВ, UPPERCASE). Острый парадокс реальности. БЕЗ клоунады.${kwReq}`;
+  const kwUser = hasKeywords ? `\nОБЯЗАТЕЛЬНЫЕ СЛОВА: "${cleanKeywords}"` : '';
+  const userPrompt = `ТЕКСТ:\n"""\n${textContext}\n"""${kwUser}\n\nСоздай 1 заголовок из 4-6 слов капсом:`;
 
   try {
     const directTitle = await callGeminiDirect(sysPrompt, userPrompt, 1200);
     if (directTitle) {
       const clean = directTitle.replace(/["'«»`]/g, '').replace(/\.$/, '').trim();
       const words = clean.split(/\s+/).filter(Boolean);
-      if (words.length >= 3 && words.length <= 6) return clean.toUpperCase();
+      if (words.length >= 3 && words.length <= 8) return clean.toUpperCase();
     }
   } catch {}
 
@@ -147,12 +247,13 @@ export async function generateGolubuzkiTitle(newsTitle, newsSummary = '', monolo
         if (text) {
           text = text.replace(/["'«»`]/g, '').replace(/\.$/, '').trim();
           const words = text.split(/\s+/).filter(Boolean);
-          if (words.length >= 3 && words.length <= 6) return text.toUpperCase();
+          if (words.length >= 3 && words.length <= 8) return text.toUpperCase();
         }
       }
     } catch {}
   }
-  return (newsTitle || 'ГЛАВНАЯ НОВОСТЬ ДНЯ').split(/\s+/).slice(0, 5).join(' ').toUpperCase();
+  const baseWords = (newsTitle || 'ГЛАВНАЯ НОВОСТЬ ДНЯ').split(/\s+/).slice(0, 4).join(' ').toUpperCase();
+  return (hasKeywords ? `${cleanKeywords.toUpperCase()}: ${baseWords}` : baseWords);
 }
 
 function cleanSpeechTextForAudio(rawText) {
@@ -184,7 +285,7 @@ router.post('/api/generate-feuilleton', async (req, res) => {
   let effectiveSummary = (summary || req.body.original_news || req.body.originalNews || req.body.sourceText || '').trim();
   const folderName = req.body.folderName || req.body.matchingPkg?.folderName || '';
   const bundleDir = req.body.bundleDir || req.body.matchingPkg?.bundleDir || '';
-  if (folderName || bundleDir) {
+  if ((!effectiveSummary || effectiveSummary.length < 20) && (folderName || bundleDir)) {
     const targetDir = bundleDir || path.resolve(__dirname, '../../news', folderName);
     const srcFile = path.join(targetDir, 'source.txt'), origFile = path.join(targetDir, 'original_news.txt');
     if (fs.existsSync(srcFile)) {
@@ -195,7 +296,7 @@ router.post('/api/generate-feuilleton', async (req, res) => {
   }
 
   const articleUrl = req.body.url || req.body.link || req.body.matchingPkg?.url || '';
-  if ((effectiveSummary.length < 1200 || req.body.forceScrape) && articleUrl && /^https?:\/\//i.test(articleUrl)) {
+  if ((effectiveSummary.length < 1200 || req.body.forceScrape) && articleUrl && /^https?:\/\//i.test(articleUrl) && !articleUrl.includes('youtube.com') && !articleUrl.includes('youtu.be')) {
     try {
       const scraped = await scrapeArticleText(articleUrl);
       if (scraped && scraped.length > effectiveSummary.length) effectiveSummary = scraped;
@@ -203,13 +304,14 @@ router.post('/api/generate-feuilleton', async (req, res) => {
   }
 
   const modelId = MODELS[model] || MODELS.gemini;
-  const { systemInstruction, userInstruction } = buildStyledFeuilletonPrompt(title, effectiveSummary, style, tone, conceptType);
-
+  const explicitFacts = req.body.selectedFacts || req.body.facts || null;
+  const { systemInstruction, userInstruction, factsCount, hasExtractedFacts } = buildStyledFeuilletonPrompt(title, effectiveSummary, style, tone, conceptType, explicitFacts);
 
   try {
     let rawText = '';
+    const maxAiTokens = factsCount >= 15 ? 7000 : (factsCount >= 10 ? 5500 : 4000);
     if (model === 'gemini') {
-      try { rawText = await callGeminiDirect(systemInstruction, userInstruction, 4000); } catch {}
+      try { rawText = await callGeminiDirect(systemInstruction, userInstruction, maxAiTokens); } catch {}
     }
 
     if (!rawText) {
@@ -255,6 +357,10 @@ router.post('/api/generate-feuilleton', async (req, res) => {
       const targetDir = bundleDir || path.resolve(__dirname, '../../news', folderName);
       if (fs.existsSync(targetDir)) {
         fs.writeFileSync(path.join(targetDir, 'script.txt'), text, 'utf-8');
+        if (effectiveSummary && effectiveSummary.length > 20) {
+          fs.writeFileSync(path.join(targetDir, 'source.txt'), effectiveSummary, 'utf-8');
+          fs.writeFileSync(path.join(targetDir, 'original_news.txt'), effectiveSummary, 'utf-8');
+        }
         const origSection = effectiveSummary ? `## 📝 Исходное сообщение\n${effectiveSummary}\n\n---\n\n` : '';
         fs.writeFileSync(path.join(targetDir, 'script.md'), `# 🎭 ${punchyTitle || title}\n\n---\n\n${origSection}## 🎬 Сценарий\n${text}\n`, 'utf-8');
         const jsonPath = path.join(targetDir, 'project.json');
@@ -262,6 +368,10 @@ router.post('/api/generate-feuilleton', async (req, res) => {
           try {
             const m = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
             m.word_count = words; m.style = style; m.text_updated_at = new Date().toISOString();
+            if (effectiveSummary) {
+              m.summary = effectiveSummary;
+              m.original_news = effectiveSummary;
+            }
             if (punchyTitle && (!m.title || m.title === m.original_title)) m.title = punchyTitle;
             fs.writeFileSync(jsonPath, JSON.stringify(m, null, 2), 'utf-8');
           } catch {}

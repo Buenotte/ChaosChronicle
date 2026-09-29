@@ -1,0 +1,51 @@
+{
+  "text": "РФ : КАРЬЕРА\nМАРШАЛА ПОБЕДЫ\nДЛИЛАСЬ ДВЕ\nНЕДЕЛИ",
+  "customLines": [
+    "РФ : КАРЬЕРА",
+    "МАРШАЛА ПОБЕДЫ",
+    "ДЛИЛАСЬ ДВЕ",
+    "НЕДЕЛИ"
+  ],
+  "font": "Saxonia_Antiqua_Bold.ttf",
+  "fontFamilyName": "\"Saxonia_Antiqua_Bold\", sans-serif",
+  "fontSize": 143,
+  "customSizeNum": 143,
+  "lineFontSizes": null,
+  "fontColor": "yellow",
+  "lineColors": null,
+  "wordColors": [
+    "red",
+    "red",
+    "yellow",
+    "cyan",
+    "cyan",
+    null,
+    null,
+    "green"
+  ],
+  "wordFontSizes": null,
+  "borderColor": "black",
+  "borderWidth": 5,
+  "shadowDistance": 12,
+  "lineSpacing": 1.15,
+  "wordSpacing": 0,
+  "isItalic": false,
+  "tiltAngle": 0,
+  "position": "center",
+  "offsetY": 50,
+  "offsetX": 50,
+  "textAlign": "center",
+  "hasBox": true,
+  "boxStyle": "per_line",
+  "boxOpacity": 30,
+  "lineBadges": {
+    "enabled": true,
+    "style": "solid",
+    "shadow": "soft",
+    "tiltMode": "none",
+    "color": "#000000",
+    "opacity": 30
+  },
+  "photoUrl": "/news-static/2026-09-16T17-30_БУНКЕРНЫЙ_ГЕРОЙ_НЕ_ПЕРЕЖИЛ_НАГРАДЫ/photos/photo_20.jpg",
+  "updatedAt": "2026-09-16T17:50:30.964Z"
+}

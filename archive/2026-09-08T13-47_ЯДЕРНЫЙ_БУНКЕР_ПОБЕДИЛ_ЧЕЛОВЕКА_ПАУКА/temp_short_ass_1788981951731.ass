@@ -1,0 +1,12 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1080
+PlayResY: 1920
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Title,Saxonia Antiqua,176,&H0000E6FF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,5,10,8,10,10,10,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,0:01:00.00,Title,,0,0,0,,{\an8\pos(540,262)}{\c&H002A2AFF&\fs176\bord5\3c&H00000000&\shad10\4c&H00000000&}КРЕМЛЬ\N{\c&H00FFF000&\fs176\bord5\3c&H00000000&\shad10\4c&H00000000&}СРАЖАЕТСЯ\N{\c&H0000E6FF&\fs176\bord5\3c&H00000000&\shad10\4c&H00000000&}С {\c&H0000E6FF&\fs176\bord5\3c&H00000000&\shad10\4c&H00000000&}ПИРАТСКИМ\N{\c&H0066FF00&\fs176\bord5\3c&H00000000&\shad10\4c&H00000000&}ЧЕЛОВЕКОМ-\N{\c&H00FFF000&\fs176\bord5\3c&H00000000&\shad10\4c&H00000000&}ПАУКОМ

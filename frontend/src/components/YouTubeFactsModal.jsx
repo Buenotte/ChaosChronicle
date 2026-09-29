@@ -13,7 +13,7 @@ export default function YouTubeFactsModal({
 
   useEffect(() => {
     if (isOpen) {
-      const defaultIds = facts.length > 0 ? facts.slice(0, Math.min(10, facts.length)).map(f => f.id) : [1, 2, 3]
+      const defaultIds = facts.length > 0 ? facts.map(f => f.id) : [1, 2, 3]
       setSelectedIds(new Set(defaultIds))
       setSearchQuery('')
       setSelectedStyle(currentStyle || 'scipop')
@@ -69,7 +69,7 @@ export default function YouTubeFactsModal({
         {/* Header */}
         <ModalHeader
           icon="🔍"
-          title={`${facts.length || 20} ключевых ${concept.labelPlural} & тем из видео`}
+          title={`${facts.length || 10} ключевых ${concept.labelPlural} & тем из видео`}
           subtitle={videoTitle ? `«${videoTitle.slice(0, 80)}»` : `Выберите ${concept.labelPlural} для сценария`}
           onClose={onClose}
           style={{ flexShrink: 0, padding: '1.1rem 1.5rem', borderBottom: '1px solid #2d2248', background: '#18142b' }}
@@ -79,8 +79,8 @@ export default function YouTubeFactsModal({
         <div style={{ flexShrink: 0, padding: '0.75rem 1.5rem', background: '#161226', borderBottom: '1px solid #281e3d', display: 'flex', flexWrap: 'wrap', gap: '0.65rem', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', gap: '0.45rem', alignItems: 'center', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '0.76rem', color: '#9ca3af', marginRight: '0.2rem' }}>Пресеты:</span>
-            {[{ label: '⚡ Топ-3', count: 3 }, { label: '🌟 Топ-5', count: 5 }, { label: '💎 Топ-10', count: 10 }, { label: '🔥 Все 20', count: 20 }]
-              .filter(p => p.count <= Math.max(facts.length, 3))
+            {[{ label: '⚡ Топ-3', count: 3 }, { label: '🌟 Топ-5', count: 5 }, { label: '💎 Топ-7', count: 7 }, { label: '👑 Топ-10', count: 10 }, { label: '🚀 Топ-15', count: 15 }]
+              .filter(p => p.count < facts.length)
               .map(p => (
                 <button
                   key={p.count} type="button" onClick={() => selectTopN(p.count)}
@@ -93,7 +93,7 @@ export default function YouTubeFactsModal({
                   {p.label}
                 </button>
             ))}
-            <button type="button" onClick={selectAll} style={{ background: '#241a45', color: '#c4b5fd', border: '1px solid #4c1d95', borderRadius: '6px', padding: '0.35rem 0.65rem', fontSize: '0.78rem', cursor: 'pointer' }}>
+            <button type="button" onClick={selectAll} style={{ background: selectedCount === facts.length ? '#6d28d9' : '#241a45', color: '#c4b5fd', border: '1px solid #4c1d95', borderRadius: '6px', padding: '0.35rem 0.65rem', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}>
               Все ({facts.length})
             </button>
             <button type="button" onClick={clearAll} style={{ background: '#1f1a30', color: '#9ca3af', border: '1px solid #3730a3', borderRadius: '6px', padding: '0.35rem 0.65rem', fontSize: '0.78rem', cursor: 'pointer' }}>

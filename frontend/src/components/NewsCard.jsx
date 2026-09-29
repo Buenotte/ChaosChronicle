@@ -84,29 +84,42 @@ export default function NewsCard({
           <span className="card-badge" style={{ background: catColor }}>
             {CATEGORIES.find(c => c.key === article.category)?.label || article.category}
           </span>
-          {hasWebUrl ? (
-            <a
-              href={rawUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              title="Открыть оригинальную статью в новой вкладке"
-              style={{ fontSize: '0.75rem', color: '#38bdf8', fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}
-            >
-              🔗 {article.source || 'Источник'} ↗
-            </a>
-          ) : (
-            <span className="card-source">{article.source || 'Telegram'}</span>
-          )}
-          {article.isCustom && (
-            <span style={{ background: '#7c3aed', color: '#fff', fontSize: '0.68rem', fontWeight: 700, padding: '0.12rem 0.45rem', borderRadius: '4px' }}>
-              ✍️ Своя
-            </span>
-          )}
-          {(article.isYouTube || article.source?.includes('YouTube')) ? (
+          {(article.isYouTube || article.source?.includes('YouTube') || (typeof rawUrl === 'string' && (rawUrl.includes('youtube.com') || rawUrl.includes('youtu.be')))) ? (
             <>
               <span style={{ background: '#ef4444', color: '#fff', fontSize: '0.68rem', fontWeight: 700, padding: '0.12rem 0.45rem', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
                 ▶ YouTube
               </span>
+              {(article.blogger || article.channel || (article.source && !/^YouTube$/i.test(article.source))) && (
+                <span
+                  className="card-blogger-badge"
+                  style={{
+                    background: 'rgba(59, 130, 246, 0.2)',
+                    border: '1px solid rgba(96, 165, 250, 0.45)',
+                    color: '#93c5fd',
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    padding: '0.12rem 0.5rem',
+                    borderRadius: '4px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.25rem'
+                  }}
+                  title={`Автор / Канал: ${article.blogger || article.channel || article.source?.replace(/^YouTube\s*\((.*)\)$/i, '$1')}`}
+                >
+                  🎙️ {article.blogger || article.channel || article.source?.replace(/^YouTube\s*\((.*)\)$/i, '$1')}
+                </span>
+              )}
+              {hasWebUrl && (
+                <a
+                  href={rawUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="Открыть оригинальное видео на YouTube в новой вкладке"
+                  style={{ fontSize: '0.75rem', color: '#38bdf8', fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}
+                >
+                  🔗 Видео ↗
+                </a>
+              )}
               {(article.viewsText || article.viewCount) && (
                 <span style={{ background: 'rgba(239, 68, 68, 0.18)', color: '#fca5a5', border: '1px solid rgba(239, 68, 68, 0.35)', fontSize: '0.72rem', fontWeight: 700, padding: '0.12rem 0.5rem', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
                   👁️ {article.viewsText || (article.viewCount ? Number(article.viewCount).toLocaleString('ru-RU') + ' просмотров' : '')}
@@ -117,7 +130,27 @@ export default function NewsCard({
               </span>
             </>
           ) : (
-            <span className="card-time">{timeAgo(article.pubDate)}</span>
+            <>
+              {hasWebUrl ? (
+                <a
+                  href={rawUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="Открыть оригинальную статью в новой вкладке"
+                  style={{ fontSize: '0.75rem', color: '#38bdf8', fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}
+                >
+                  🔗 {article.source || 'Источник'} ↗
+                </a>
+              ) : (
+                <span className="card-source">{article.source || 'Telegram'}</span>
+              )}
+              <span className="card-time">{timeAgo(article.pubDate)}</span>
+            </>
+          )}
+          {article.isCustom && (
+            <span style={{ background: '#7c3aed', color: '#fff', fontSize: '0.68rem', fontWeight: 700, padding: '0.12rem 0.45rem', borderRadius: '4px' }}>
+              ✍️ Своя
+            </span>
           )}
           {isSaved && (
             <span className="saved-status-badge">

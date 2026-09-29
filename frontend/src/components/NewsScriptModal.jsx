@@ -111,6 +111,12 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
           setOriginalNews(data.originalNews)
           pkg.original_news = data.originalNews
           pkg.summary = data.originalNews
+        } else if (chosenFacts && Array.isArray(chosenFacts) && chosenFacts.length > 0) {
+          const factsText = `📌 Выбранные ключевые темы (${chosenFacts.length}):\n\n` +
+            chosenFacts.map((f, i) => `${i + 1}. 🌟 ${f.title}\n${f.text}`).join('\n\n')
+          setOriginalNews(factsText)
+          pkg.original_news = factsText
+          pkg.summary = factsText
         }
         if (fData.title) pkg.title = fData.title
         if (onSaved) onSaved()
