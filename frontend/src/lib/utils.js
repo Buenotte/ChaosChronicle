@@ -121,3 +121,9 @@ export function getConceptConfig(conceptId = 'facts') {
   return FACT_CONCEPT_TYPES.find(c => c.id === conceptId) || FACT_CONCEPT_TYPES[0]
 }
 
+export const SCRIPT_PRESENTATION_FORMATS = [
+  { id: 'feuilleton', name: '🎭 Цельный фельетон / связный текст (без счета вслух)', shortName: '🎭 Фельетон', icon: '🎭', desc: 'Связный сатирический или аналитический монолог диктора (текст для озвучки) без нумерации и объявления пунктов вслух' },
+  { id: 'facts',      name: '🔢 По пунктам / фактам (со счетом каждого пункта вслух)', shortName: '🔢 По пунктам', icon: '🔢', desc: 'Четкое объявление количества фактов и голосовой счет каждого пункта («Факт первый: ...», «Факт номер два: ...»)' },
+]
+
+

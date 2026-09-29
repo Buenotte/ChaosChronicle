@@ -16,6 +16,7 @@ export default function ScriptToolbar({
   onRegenerate,
 }) {
   const [selectedConcept, setSelectedConcept] = useState(pkg?.conceptType || 'theses')
+  const [scriptFormat, setScriptFormat] = useState(pkg?.scriptFormat || 'feuilleton') // 'feuilleton' (цельный текст без счета) vs 'facts' (счет пунктов вслух)
   const [facts, setFacts] = useState([])
   const [factsLoading, setFactsLoading] = useState(false)
   const [showFactsModal, setShowFactsModal] = useState(false)
@@ -63,7 +64,7 @@ export default function ScriptToolbar({
 
   const handleConfirmFacts = (chosenFacts) => {
     setShowFactsModal(false)
-    onRegenerate(selectedStyle, selectedModel, selectedTone, chosenFacts, selectedConcept)
+    onRegenerate(selectedStyle, selectedModel, selectedTone, chosenFacts, selectedConcept, scriptFormat)
   }
 
   return (
@@ -86,7 +87,7 @@ export default function ScriptToolbar({
 
         {/* Выбор понятия: Факты / Тезисы / Детали / Сигналы / Выводы / Пункты */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#94a3b8' }}>📌 Формат:</span>
+          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#94a3b8' }}>📌 Тематика:</span>
           <select
             value={selectedConcept}
             onChange={e => {
@@ -104,6 +105,46 @@ export default function ScriptToolbar({
           </select>
         </div>
 
+        {/* Переключатель: Цельный фельетон vs По пунктам со счетом */}
+        <div style={{ display: 'flex', alignItems: 'center', background: '#020617', borderRadius: '6px', padding: '2px', border: '1px solid #d97706' }}>
+          <button
+            type="button"
+            onClick={() => setScriptFormat('feuilleton')}
+            style={{
+              background: scriptFormat === 'feuilleton' ? 'linear-gradient(135deg, #7c3aed, #6d28d9)' : 'transparent',
+              color: scriptFormat === 'feuilleton' ? '#ffffff' : '#94a3b8',
+              border: 'none',
+              borderRadius: '4px',
+              padding: '0.22rem 0.55rem',
+              fontSize: '0.76rem',
+              fontWeight: scriptFormat === 'feuilleton' ? 700 : 500,
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+            title="Цельный фельетон / связный монолог диктора без счета и номеров пунктов вслух"
+          >
+            🎭 Фельетон
+          </button>
+          <button
+            type="button"
+            onClick={() => setScriptFormat('facts')}
+            style={{
+              background: scriptFormat === 'facts' ? 'linear-gradient(135deg, #d97706, #b45309)' : 'transparent',
+              color: scriptFormat === 'facts' ? '#ffffff' : '#94a3b8',
+              border: 'none',
+              borderRadius: '4px',
+              padding: '0.22rem 0.55rem',
+              fontSize: '0.76rem',
+              fontWeight: scriptFormat === 'facts' ? 700 : 500,
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+            title="Сценарий с четким голосовым счетом пунктов («Факт первый: ...», «Факт второй: ...»)"
+          >
+            🔢 По пунктам
+          </button>
+        </div>
+
         <div style={{ display: 'flex', alignItems: 'center', background: '#0f172a', borderRadius: '6px', padding: '2px', border: '1px solid #334155' }}>
           <button type="button" onClick={() => setSelectedTone('grotesque')} style={{ background: selectedTone === 'grotesque' ? '#dc2626' : 'transparent', color: selectedTone === 'grotesque' ? '#fff' : '#94a3b8', border: 'none', borderRadius: '4px', padding: '0.22rem 0.45rem', fontSize: '0.75rem', fontWeight: selectedTone === 'grotesque' ? 700 : 500, cursor: 'pointer' }}>💥 Сатира</button>
           <button type="button" onClick={() => setSelectedTone('analytics')} style={{ background: selectedTone === 'analytics' ? '#2563eb' : 'transparent', color: selectedTone === 'analytics' ? '#fff' : '#94a3b8', border: 'none', borderRadius: '4px', padding: '0.22rem 0.45rem', fontSize: '0.75rem', fontWeight: selectedTone === 'analytics' ? 700 : 500, cursor: 'pointer' }}>🧠 Аналитика</button>
@@ -115,13 +156,13 @@ export default function ScriptToolbar({
         <button
           type="button"
           className="refresh-btn"
-          onClick={() => onRegenerate(selectedStyle, selectedModel, selectedTone, null, selectedConcept)}
+          onClick={() => onRegenerate(selectedStyle, selectedModel, selectedTone, null, selectedConcept, scriptFormat)}
           disabled={regenerating}
           style={{
             fontSize: '0.82rem',
             padding: '0.42rem 0.9rem',
-            background: 'linear-gradient(135deg, #7c3aed, #4f46e5)',
-            border: '1px solid #8b5cf6',
+            background: scriptFormat === 'feuilleton' ? 'linear-gradient(135deg, #7c3aed, #4f46e5)' : 'linear-gradient(135deg, #d97706, #ea580c)',
+            border: scriptFormat === 'feuilleton' ? '1px solid #8b5cf6' : '1px solid #f59e0b',
             color: '#ffffff',
             fontWeight: 700,
             borderRadius: '6px',
@@ -129,11 +170,11 @@ export default function ScriptToolbar({
             display: 'inline-flex',
             alignItems: 'center',
             gap: '0.4rem',
-            boxShadow: '0 2px 10px rgba(124, 58, 237, 0.45)',
+            boxShadow: scriptFormat === 'feuilleton' ? '0 2px 10px rgba(124, 58, 237, 0.45)' : '0 2px 10px rgba(217, 119, 6, 0.45)',
           }}
-          title="Сгенерировать 3-минутный дикторский текст для озвучки с помощью ИИ"
+          title={scriptFormat === 'feuilleton' ? "Сгенерировать цельный фельетон без счета вслух" : "Сгенерировать сценарий с голосовым счетом всех пунктов"}
         >
-          {regenerating ? '⏳ Генерация текста...' : '✨ Сгенерировать текст'}
+          {regenerating ? '⏳ Генерация...' : (scriptFormat === 'feuilleton' ? '✨ Фельетон (цельный)' : '✨ По пунктам (со счетом)')}
         </button>
 
         {/* Дополнительная опция: Выбор и извлечение пунктов (Selectbox от 5 до 15) */}

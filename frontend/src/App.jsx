@@ -108,6 +108,7 @@ export default function App() {
     }
     setLoading(true)
     setError(null)
+    const toastId = force ? toast.loading('🔄 Обновление лент новостей из интернета...', { description: 'Загрузка RSS и YouTube...' }) : null
     try {
       const url = `/api/news?category=${cat === 'vse' ? 'alle' : cat}${force ? '&force=true' : ''}`
       const res = await fetch(url)
@@ -117,11 +118,18 @@ export default function App() {
       setLastRefresh(new Date().toLocaleTimeString('ru-RU'))
 
       if (force) {
-        toast.success('Ленты новостей успешно обновлены!')
+        toast.success('✨ Ленты новостей успешно обновлены!', {
+          id: toastId,
+          description: `Загружено ${data.articles?.length || 0} новостей (всего ${data.total || 0})`,
+        })
       }
     } catch (err) {
       setError(`Ошибка загрузки новостей: ${err.message}`)
-      toast.error('Ошибка загрузки новостей', { description: err.message })
+      if (force && toastId) {
+        toast.error('Ошибка обновления новостей', { id: toastId, description: err.message })
+      } else {
+        toast.error('Ошибка загрузки новостей', { description: err.message })
+      }
       setArticles([])
     } finally {
       setLoading(false)

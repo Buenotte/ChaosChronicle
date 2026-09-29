@@ -61,7 +61,8 @@ export function extractFactsListFromText(text) {
   return [];
 }
 
-export function buildStyledFeuilletonPrompt(newsTitle, newsSummary = '', styleKey = 'golubuzki', tone = 'grotesque', conceptType = 'facts', explicitFacts = null) {
+export function buildStyledFeuilletonPrompt(newsTitle, newsSummary = '', styleKey = 'golubuzki', tone = 'grotesque', conceptType = 'facts', explicitFacts = null, scriptFormat = 'facts') {
+  const isNarrativeFormat = scriptFormat === 'feuilleton' || scriptFormat === 'narrative'; // Режим цельного фельетона без нумерации и счета вслух (narrative format)
   const concept = getConceptInfo(conceptType);
   const extractedFacts = (Array.isArray(explicitFacts) && explicitFacts.length > 0)
     ? explicitFacts
@@ -88,18 +89,32 @@ export function buildStyledFeuilletonPrompt(newsTitle, newsSummary = '', styleKe
     const ytCfg = YOUTUBE_STYLES[styleKey];
     let ytSys = ytCfg.systemInstruction;
     if (hasExtractedFacts) {
-      ytSys = ytSys.replace(/\(СТРОГО 400–550 слов\)/g, `(ОБЪЕМ: ${wordCountTarget}, ОБЯЗАТЕЛЬНО ХУК С ОБЪЯВЛЕНИЕМ ${factsCount} ${concept.labelPlural.toUpperCase()}, СЧЕТ ВСЛУХ И РАЗБОР ВСЕХ ${factsCount} ПУНКТОВ)`);
+      if (isNarrativeFormat) {
+        ytSys = ytSys.replace(/\(СТРОГО 400–550 слов\)/g, `(ОБЪЕМ: ${wordCountTarget}, ЦЕЛЬНЫЙ ЗАХВАТЫВАЮЩИЙ РАССКАЗ/ФЕЛЬЕТОН БЕЗ СЧЕТА И НУМЕРАЦИИ ВСЛУХ, НА ОСНОВЕ ВСЕХ ${factsCount} ТЕМ)`);
+      } else {
+        ytSys = ytSys.replace(/\(СТРОГО 400–550 слов\)/g, `(ОБЪЕМ: ${wordCountTarget}, ОБЯЗАТЕЛЬНО ХУК С ОБЪЯВЛЕНИЕМ ${factsCount} ${concept.labelPlural.toUpperCase()}, СЧЕТ ВСЛУХ И РАЗБОР ВСЕХ ${factsCount} ПУНКТОВ)`);
+      }
     }
 
     const factsPrompt = hasExtractedFacts
-      ? `\n═══════════════════════════════════════════════════════════════════\n` +
-        `📌 СПИСОК ИЗ ${factsCount} КЛЮЧЕВЫХ ${concept.headerWord}, КОТОРЫЕ ОБЯЗАТЕЛЬНО ДОЛЖНЫ БЫТЬ ПРОНУМЕРОВАНЫ ВСЛУХ И ПОДРОБНО ОБЪЯСНЕНЫ В СЦЕНАРИИ:\n` +
-        extractedFacts.map((f, i) => `${concept.labelSingle.toUpperCase()} ${i + 1}: [${f.title}] ➜ ${f.text}`).join('\n\n') +
-        `\n═══════════════════════════════════════════════════════════════════\n` +
-        `🚨 СТРОЖАЙШИЕ ТРЕБОВАНИЯ ПО СЦЕНАРИЮ:\n` +
-        `1. 🎯 ОБЯЗАТЕЛЬНЫЙ ХУК В САМОМ НАЧАЛЕ (ПЕРВОЕ ПРЕДЛОЖЕНИЕ): Диктор ОБЯЗАН в первых же словах заявить мощный хук и ПРЯМО ОБЪЯВИТЬ ТЕМУ И РОВНО ${factsCount} ${concept.headerWord}: например, «Вот ${factsCount} ${concept.hookWord} на тему [Тема]...», «Сегодня разберем ${factsCount} ${concept.labelPlural} о [Тема]...»!\n` +
-        `2. 🔢 ОБЯЗАТЕЛЬНАЯ НУМЕРАЦИЯ ВСЛУХ (СЧЕТ КАЖДОГО ПУНКТА ОТ 1 ДО ${factsCount}): Диктор ОБЯЗАН четко проговаривать номер каждого пункта («${concept.labelSingle} первый: ...», «${concept.labelSingle} номер два: ...», ..., «${concept.labelSingle} номер ${factsCount}: ...»)!\n` +
-        `3. Текст ОБЯЗАН последовательно назвать и подробно раскрыть КАЖДЫЙ ИЗ ВСЕХ ${factsCount} пунктов без пропуска!\n`
+      ? (isNarrativeFormat
+        ? `\n═══════════════════════════════════════════════════════════════════\n` +
+          `📌 СПИСОК ИЗ ${factsCount} КЛЮЧЕВЫХ ${concept.headerWord}, КОТОРЫЕ ДОЛЖНЫ БЫТЬ ПОЛНОСТЬЮ ВПЛЕТЕНЫ В СЮЖЕТ И РАССКАЗ СЦЕНАРИЯ (БЕЗ СЧЕТА ВСЛУХ):\n` +
+          extractedFacts.map((f, i) => `${concept.labelSingle.toUpperCase()} ${i + 1}: [${f.title}] ➜ ${f.text}`).join('\n\n') +
+          `\n═══════════════════════════════════════════════════════════════════\n` +
+          `🚨 СТРОЖАЙШИЕ ТРЕБОВАНИЯ ПО СЦЕНАРИЮ (ЦЕЛЬНЫЙ ТЕКСТ / БЕЗ СЧЕТА ВСЛУХ):\n` +
+          `1. 🎯 МОЩНЫЙ ХУК В САМОМ НАЧАЛЕ (ПЕРВОЕ ПРЕДЛОЖЕНИЕ): Первое предложение сразу вскрывает парадокс или интригу темы (БЕЗ объявления номеров и БЕЗ приветствий)!\n` +
+          `2. 🎭 ЦЕЛЬНЫЙ СВЯЗНЫЙ ТЕКСТ (БЕЗ НУМЕРАЦИИ И БЕЗ СЧЕТА ВСЛУХ): КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО говорить «Факт первый», «Пункт номер два». Текст льется как единый захватывающий монолог/рассказ!\n` +
+          `3. Текст ОБЯЗАН органично раскрыть все ключевые детали и механизмы из переданного списка без выдумок!\n`
+        : `\n═══════════════════════════════════════════════════════════════════\n` +
+          `📌 СПИСОК ИЗ ${factsCount} КЛЮЧЕВЫХ ${concept.headerWord}, КОТОРЫЕ ОБЯЗАТЕЛЬНО ДОЛЖНЫ БЫТЬ ПРОНУМЕРОВАНЫ ВСЛУХ И ПОДРОБНО ОБЪЯСНЕНЫ В СЦЕНАРИИ:\n` +
+          extractedFacts.map((f, i) => `${concept.labelSingle.toUpperCase()} ${i + 1}: [${f.title}] ➜ ${f.text}`).join('\n\n') +
+          `\n═══════════════════════════════════════════════════════════════════\n` +
+          `🚨 СТРОЖАЙШИЕ ТРЕБОВАНИЯ ПО СЦЕНАРИЮ:\n` +
+          `1. 🎯 ОБЯЗАТЕЛЬНЫЙ ХУК В САМОМ НАЧАЛЕ (ПЕРВОЕ ПРЕДЛОЖЕНИЕ): Диктор ОБЯЗАН в первых же словах заявить мощный хук и ПРЯМО ОБЪЯВИТЬ ТЕМУ И РОВНО ${factsCount} ${concept.headerWord}: например, «Вот ${factsCount} ${concept.hookWord} на тему [Тема]...», «Сегодня разберем ${factsCount} ${concept.labelPlural} о [Тема]...»!\n` +
+          `2. 🔢 ОБЯЗАТЕЛЬНАЯ НУМЕРАЦИЯ ВСЛУХ (СЧЕТ КАЖДОГО ПУНКТА ОТ 1 ДО ${factsCount}): Диктор ОБЯЗАН четко проговаривать номер каждого пункта («${concept.labelSingle} первый: ...», «${concept.labelSingle} номер два: ...», ..., «${concept.labelSingle} номер ${factsCount}: ...»)!\n` +
+          `3. Текст ОБЯЗАН последовательно назвать и подробно раскрыть КАЖДЫЙ ИЗ ВСЕХ ${factsCount} пунктов без пропуска!\n`
+        )
       : '';
 
     return {
@@ -128,17 +143,17 @@ export function buildStyledFeuilletonPrompt(newsTitle, newsSummary = '', styleKe
     ? `захватывающий видео-разбор (${wordCountTarget})`
     : (isAnalytics ? `увлекательный аналитический обзор (${wordCountTarget})` : `яркий фельетон (${wordCountTarget})`);
 
-  const hookRule = hasExtractedFacts
+  const hookRule = (!isNarrativeFormat && hasExtractedFacts)
     ? `2. 🎯 ОБЯЗАТЕЛЬНЫЙ ХУК В САМОМ НАЧАЛЕ (ПЕРВОЕ ПРЕДЛОЖЕНИЕ): Диктор ОБЯЗАН в первых же словах заявить мощный хук и ПРЯМО ОБЪЯВИТЬ ТЕМУ И РОВНО ${factsCount} ${concept.headerWord}: например, «Вот ${factsCount} ${concept.hookWord} на тему [Тема]...», «Сегодня разберем ${factsCount} ${concept.labelPlural} о [Тема]...» или «${factsCount} поразительных ${concept.labelPlural}, которые объясняют [Тема]...»!`
     : isAnalytics
     ? '2. 🎯 ПЕРВЫЕ 3 СЕКУНДЫ (СИЛЬНЫЙ АНАЛИТИЧЕСКИЙ ХУК): Первое предложение (7–12 слов) ОБЯЗАНО вскрывать скрытую суть события!'
     : '2. 💥 ПЕРВЫЕ 3 СЕКУНДЫ (ВЗРЫВНОЙ ХУК): Первое предложение (7–12 слов) ОБЯЗАНО быть парадоксальным столкновением противоположностей!';
 
-  const coreRule = hasExtractedFacts
+  const coreRule = (!isNarrativeFormat && hasExtractedFacts)
     ? `3. 🔢 ОБЯЗАТЕЛЬНАЯ НУМЕРАЦИЯ ВСЛУХ (СЧЕТ КАЖДОГО ПУНКТА ОТ 1 ДО ${factsCount}): Диктор ОБЯЗАН четко проговаривать номер каждого пункта перед его разбором (например: «${concept.labelSingle} первый: ...», «${concept.labelSingle} номер два: ...», ..., «${concept.labelSingle} номер ${factsCount}: ...»)! Зритель должен слышать точный счет всех ${factsCount} пунктов без исключения.`
     : isAnalytics
-    ? '3. 🧠 УВЛЕКАТЕЛЬНЫЙ АНАЛИЗ: Раскрывай причинно-следственные связи, ставки и мотивы. БЕЗ цирка и кричащего гротеска!'
-    : '3. 🎬 ВИЗУАЛЬНЫЙ ГРОТЕСК И МЕТАФОРЫ-МЕМЫ: Создавай 2–3 кинематографичные сцены с физическими деталями!';
+    ? '3. 🧠 УВЛЕКАТЕЛЬНЫЙ АНАЛИЗ (ЦЕЛЬНЫЙ ТЕКСТ): Раскрывай причинно-следственные связи, ставки и мотивы единым связным текстом. БЕЗ объявления пунктов вслух, БЕЗ цирка и кричащего гротеска!'
+    : '3. 🎬 ВИЗУАЛЬНЫЙ ГРОТЕСК И МЕТАФОРЫ-МЕМЫ (ЦЕЛЬНЫЙ ФЕЛЬЕТОН): Создавай единую сатирическую историю с 2–3 кинематографичными сценами, вплетая факты в единую драматургию БЕЗ произнесения номеров пунктов!';
 
   let focusDesc = styleConfig.focus;
   if (isNonPolitical) {
@@ -166,14 +181,16 @@ ${hookRule}
 ${coreRule}
 4. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО начинать с приветствий («Привет, друзья!», «С вами ChaosChronicle»).
 5. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО писать заголовки блоков («**Блок 1**»), тайминги, плейсхолдеры [B-Roll:...], концовки «Работаем дальше. Без иллюзий.».
-${hasExtractedFacts ? `6. ОБЯЗАТЕЛЬНО раскрой и понятно объясни КАЖДЫЙ из ВСЕХ ${factsCount} ${concept.labelPlural} по порядку от 1-го до ${factsCount}-го с четким голосовым счетом!` : '6. Веди повествование динамично и уверенно!'}`;
+${(!isNarrativeFormat && hasExtractedFacts) ? `6. ОБЯЗАТЕЛЬНО раскрой и понятно объясни КАЖДЫЙ из ВСЕХ ${factsCount} ${concept.labelPlural} по порядку от 1-го до ${factsCount}-го с четким голосовым счетом!` : '6. Веди повествование динамично и связно как единую драматургическую историю!'}`;
 
   const formattedFactsList = hasExtractedFacts
     ? extractedFacts.map((f, i) => `${concept.labelSingle.toUpperCase()} ${i + 1}: [${f.title}] ➜ ${f.text}`).join('\n\n')
     : newsSummary;
 
-  const userInstruction = hasExtractedFacts
+  const userInstruction = (!isNarrativeFormat && hasExtractedFacts)
     ? `ТЕМА: ${newsTitle}\nРОВНО ${factsCount} КЛЮЧЕВЫХ ${concept.headerWord} ДЛЯ РАЗБОРА:\n"""\n${formattedFactsList}\n"""\n\nСоздай сценарий (${wordCountTarget}) в стиле ${styleConfig.label}. ОБЯЗАТЕЛЬНО начни с хука с объявлением ${factsCount} ${concept.labelPlural} на тему, а затем четко отсчитай и подробно объясни КАЖДЫЙ из ВСЕХ ${factsCount} пунктов («${concept.labelSingle} первый: ...», «${concept.labelSingle} номер два: ...», ..., «${concept.labelSingle} номер ${factsCount}: ...»):`
+    : hasExtractedFacts
+    ? `ТЕМА: ${newsTitle}\nМАТЕРИАЛ И ${factsCount} КЛЮЧЕВЫХ ТЕМ ДЛЯ ФЕЛЬЕТОНА/ОБЗОРА:\n"""\n${formattedFactsList}\n"""\n\nНапиши ЦЕЛЬНЫЙ ${isAnalytics ? 'аналитический обзор' : 'сатирический фельетон'} (${wordCountTarget}) в стиле ${styleConfig.label}. Вплети все факты и механизмы в единый связный рассказ (БЕЗ счета вслух, БЕЗ «Факт 1», «Пункт 2», сразу начиная с мощного хука без приветствий):`
     : isAnalytics
     ? `ТЕМА: ${newsTitle}\nФАКТЫ: ${newsSummary || ''}\n\nНапиши увлекательный аналитический текст в стиле ${styleConfig.label} простым языком (БЕЗ приветствий, сразу с сути):`
     : `ТЕМА НОВОСТИ: ${newsTitle}\nКОНТЕКСТ/ФАКТЫ: ${newsSummary || ''}\n\nНапиши монолог фельетона в стиле ${styleConfig.label} с яркими метафорами и парадоксальным хуком (БЕЗ приветствий):`;
@@ -279,7 +296,7 @@ function cleanSpeechTextForAudio(rawText) {
 }
 
 router.post('/api/generate-feuilleton', async (req, res) => {
-  const { title, summary, model = 'gemini', source, style = 'golubuzki', tone = 'grotesque', conceptType = 'facts' } = req.body;
+  const { title, summary, model = 'gemini', source, style = 'golubuzki', tone = 'grotesque', conceptType = 'facts', scriptFormat = 'facts' } = req.body;
   if (!title) return res.status(400).json({ error: 'Title is required' });
 
   let effectiveSummary = (summary || req.body.original_news || req.body.originalNews || req.body.sourceText || '').trim();
@@ -305,7 +322,7 @@ router.post('/api/generate-feuilleton', async (req, res) => {
 
   const modelId = MODELS[model] || MODELS.gemini;
   const explicitFacts = req.body.selectedFacts || req.body.facts || null;
-  const { systemInstruction, userInstruction, factsCount, hasExtractedFacts } = buildStyledFeuilletonPrompt(title, effectiveSummary, style, tone, conceptType, explicitFacts);
+  const { systemInstruction, userInstruction, factsCount, hasExtractedFacts } = buildStyledFeuilletonPrompt(title, effectiveSummary, style, tone, conceptType, explicitFacts, scriptFormat);
 
   try {
     let rawText = '';
@@ -340,6 +357,7 @@ router.post('/api/generate-feuilleton', async (req, res) => {
       model: modelId,
       modelName: model,
       style,
+      scriptFormat,
       words,
       readingTimeMinutes: minutes,
       minutes,
@@ -367,7 +385,7 @@ router.post('/api/generate-feuilleton', async (req, res) => {
         if (fs.existsSync(jsonPath)) {
           try {
             const m = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
-            m.word_count = words; m.style = style; m.text_updated_at = new Date().toISOString();
+            m.word_count = words; m.style = style; m.scriptFormat = scriptFormat; m.text_updated_at = new Date().toISOString();
             if (effectiveSummary) {
               m.summary = effectiveSummary;
               m.original_news = effectiveSummary;

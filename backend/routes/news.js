@@ -104,110 +104,110 @@ export async function fetchYouTubeCategoryVideos(searchQueries, category, defaul
   const allVideos = [];
   const seenIds = new Set();
   const irrelevantPattern = /(художественный\s+фильм|комедия|полный\s+фильм|мелодрама|боевик|кинопраздник|кино\b|фильм\b|сериал\b|трейлер|reaction|реакци|смотрит:|нарезк|9\/11|катастроф)/i;
-  // Für Psychologie nach Zuschauerzahl (sp=CAM%253D) und Relevanz suchen
   const isViewSort = category === 'psikh' || sortType === 'views';
   const filterParams = isViewSort ? ['sp=CAM%253D', ''] : ['sp=CAI%253D'];
   const maxLimit = isViewSort ? 25 : 12;
 
-  for (const query of searchQueries) {
-    if (allVideos.length >= maxLimit) break;
-    for (const sp of filterParams) {
-      if (allVideos.length >= maxLimit) break;
-      let html = null;
-      for (let attempt = 0; attempt < 2; attempt++) {
-        try {
-          await sleep(100);
-          const searchUrl = sp ? `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}&${sp}` : `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
-          const resp = await fetch(searchUrl, {
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-              'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
-              'Connection': 'close'
-            },
-            signal: AbortSignal.timeout(3500)
-          });
-          if (resp.ok) {
-            html = await resp.text();
-            break;
-          }
-        } catch (err) {
-          if (attempt === 0) await sleep(150);
-          else console.error('YouTube search error for query:', query, err.message);
+  const fetchOneQuery = async (query, sp) => {
+    try {
+      const searchUrl = sp ? `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}&${sp}` : `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+      const resp = await fetch(searchUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+          'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
+          'Connection': 'close'
+        },
+        signal: AbortSignal.timeout(3500)
+      });
+      if (!resp.ok) return [];
+      const html = await resp.text();
+      const match = html.match(/var ytInitialData = ({.*?});<\/script>/s) || html.match(/ytInitialData\s*=\s*({.+?});/);
+      if (!match) return [];
+
+      const data = JSON.parse(match[1]);
+      const contents = data.contents?.twoColumnSearchResultsRenderer?.primaryContents?.sectionListRenderer?.contents;
+      const itemSection = contents?.find(c => c.itemSectionRenderer)?.itemSectionRenderer?.contents;
+      const videoRenderers = extractVideoRenderers(itemSection);
+      const list = [];
+
+      for (const v of videoRenderers) {
+        if (!v || !v.videoId) continue;
+        const title = v.title?.runs?.map(r => r.text).join('') || v.title?.simpleText || '';
+        const channel = v.ownerText?.runs?.[0]?.text || defaultChannel || 'YouTube';
+        const snippetText = v.detailedMetadataSnippets?.[0]?.snippetText?.runs?.map(r => r.text).join('') || '';
+        const fullInfo = `${title} ${channel} ${snippetText}`;
+
+        if (irrelevantPattern.test(title)) continue;
+        if (KREMLIN_PROPAGANDA_REGEX.test(fullInfo)) continue;
+        if (!/[а-яёіїєґ]/i.test(title)) continue;
+
+        const publishedText = v.publishedTimeText?.simpleText || 'Популярное видео';
+        const ageMins = parsePublishedAgeMinutes(publishedText);
+        if (['rossija', 'ukraina', 'politika'].includes(category)) {
+          if (ageMins > 3 * 24 * 60) continue;
+        } else if (category === 'emigr') {
+          if (ageMins > 45 * 24 * 60) continue;
         }
+
+        const viewsText = v.viewCountText?.simpleText || v.shortViewCountText?.simpleText || '';
+        const thumb = v.thumbnail?.thumbnails?.[v.thumbnail.thumbnails.length - 1]?.url || `https://i.ytimg.com/vi/${v.videoId}/hqdefault.jpg`;
+        const viewCount = parseViewCount(viewsText);
+        const is24h = isPublishedWithin24Hours(publishedText);
+        const exactPubDate = new Date(Date.now() - (ageMins === 999999 ? 24 * 60 : ageMins) * 60 * 1000).toISOString();
+
+        list.push({
+          id: `yt-${v.videoId}`,
+          title: `🎬 ${title}`,
+          summary: snippetText || title,
+          original_news: title,
+          url: `https://www.youtube.com/watch?v=${v.videoId}`,
+          imageUrl: thumb,
+          images: [thumb],
+          source: channel || defaultChannel || 'YouTube',
+          channel: channel || defaultChannel || 'YouTube',
+          blogger: channel || defaultChannel || '',
+          author: channel || defaultChannel || '',
+          category: category,
+          viewCount: viewCount,
+          viewsText: viewsText || (viewCount ? `${viewCount.toLocaleString('ru-RU')} просмотров` : ''),
+          publishedDateText: publishedText,
+          is24h: is24h,
+          pubDate: exactPubDate,
+          relativeTime: `🎬 ${viewsText || viewCount.toLocaleString('ru-RU') + ' просм.'} • 🕒 ${publishedText}`,
+          isYouTube: true,
+        });
       }
-      if (!html) continue;
+      return list;
+    } catch {
+      return [];
+    }
+  };
 
-      try {
-        const match = html.match(/var ytInitialData = ({.*?});<\/script>/s) || html.match(/ytInitialData\s*=\s*({.+?});/);
-        if (!match) continue;
+  const queriesToRun = searchQueries.slice(0, 6);
+  const tasks = [];
+  for (const q of queriesToRun) {
+    for (const sp of filterParams) {
+      tasks.push(fetchOneQuery(q, sp));
+    }
+  }
 
-        const data = JSON.parse(match[1]);
-        const contents = data.contents?.twoColumnSearchResultsRenderer?.primaryContents?.sectionListRenderer?.contents;
-        const itemSection = contents?.find(c => c.itemSectionRenderer)?.itemSectionRenderer?.contents;
-        const videoRenderers = extractVideoRenderers(itemSection);
-
-        for (const v of videoRenderers) {
-          if (!v || !v.videoId || seenIds.has(v.videoId)) continue;
-
-          const title = v.title?.runs?.map(r => r.text).join('') || v.title?.simpleText || '';
-          const channel = v.ownerText?.runs?.[0]?.text || defaultChannel || 'YouTube';
-          const snippetText = v.detailedMetadataSnippets?.[0]?.snippetText?.runs?.map(r => r.text).join('') || '';
-          const fullInfo = `${title} ${channel} ${snippetText}`;
-
-          if (irrelevantPattern.test(title)) continue;
-          if (KREMLIN_PROPAGANDA_REGEX.test(fullInfo)) continue;
-          if (!/[а-яёіїєґ]/i.test(title)) continue;
-
-          seenIds.add(v.videoId);
-
-          const publishedText = v.publishedTimeText?.simpleText || 'Популярное видео';
-          const ageMins = parsePublishedAgeMinutes(publishedText);
-          if (['rossija', 'ukraina', 'politika'].includes(category)) {
-            // Strikte 3-Tage-Grenze (maximal 3 Tage = 4320 Minuten) für tagesaktuelle Politik- & Frontnachrichten
-            if (ageMins > 3 * 24 * 60) continue;
-          } else if (category === 'emigr') {
-            // Maximal 45 Tage für Emigration
-            if (ageMins > 45 * 24 * 60) continue;
-          }
-
-          const viewsText = v.viewCountText?.simpleText || v.shortViewCountText?.simpleText || '';
-          const thumb = v.thumbnail?.thumbnails?.[v.thumbnail.thumbnails.length - 1]?.url || `https://i.ytimg.com/vi/${v.videoId}/hqdefault.jpg`;
-          const viewCount = parseViewCount(viewsText);
-          const is24h = isPublishedWithin24Hours(publishedText);
-          const exactPubDate = new Date(Date.now() - (ageMins === 999999 ? 24 * 60 : ageMins) * 60 * 1000).toISOString();
-
-          allVideos.push({
-            id: `yt-${v.videoId}`,
-            title: `🎬 ${title}`,
-            summary: snippetText || title,
-            original_news: title,
-            url: `https://www.youtube.com/watch?v=${v.videoId}`,
-            imageUrl: thumb,
-            images: [thumb],
-            source: channel || defaultChannel || 'YouTube',
-            channel: channel || defaultChannel || 'YouTube',
-            blogger: channel || defaultChannel || '',
-            author: channel || defaultChannel || '',
-            category: category,
-            viewCount: viewCount,
-            viewsText: viewsText || (viewCount ? `${viewCount.toLocaleString('ru-RU')} просмотров` : ''),
-            publishedDateText: publishedText,
-            is24h: is24h,
-            pubDate: exactPubDate,
-            relativeTime: `🎬 ${viewsText || viewCount.toLocaleString('ru-RU') + ' просм.'} • 🕒 ${publishedText}`,
-            isYouTube: true,
-          });
+  const results = await Promise.allSettled(tasks);
+  for (const r of results) {
+    if (r.status === 'fulfilled' && Array.isArray(r.value)) {
+      for (const v of r.value) {
+        if (!seenIds.has(v.url)) {
+          seenIds.add(v.url);
+          allVideos.push(v);
+          if (allVideos.length >= maxLimit) break;
         }
-      } catch (err) {
-        console.error('YouTube search error for query:', query, err.message);
       }
     }
+    if (allVideos.length >= maxLimit) break;
   }
 
   if (isViewSort) {
     allVideos.sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0));
   } else {
-    // Strengste Aktualität zuerst
     sortYouTubeVideosFreshnessFirst(allVideos);
   }
   return allVideos;
@@ -312,9 +312,8 @@ export async function fetchTopThreeAnalystVideos(analystName, searchQueries, cat
   const seenIds = new Set();
   const irrelevantPattern = /(художественный\s+фильм|комедия|полный\s+фильм|мелодрама|боевик|кинопраздник|кино\b|фильм\b|сериал\b|трейлер|reaction|реакци|смотрит:|нарезк|9\/11|катастроф)/i;
 
-  for (const query of searchQueries) {
+  const fetchOne = async (query) => {
     try {
-      await sleep(100);
       const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}&sp=CAI%253D`;
       const resp = await fetch(searchUrl, {
         headers: {
@@ -324,19 +323,19 @@ export async function fetchTopThreeAnalystVideos(analystName, searchQueries, cat
         },
         signal: AbortSignal.timeout(3500)
       });
-      if (!resp.ok) continue;
+      if (!resp.ok) return [];
       const html = await resp.text();
       const match = html.match(/var ytInitialData = ({.*?});<\/script>/s) || html.match(/ytInitialData\s*=\s*({.+?});/);
-      if (!match) continue;
+      if (!match) return [];
 
       const data = JSON.parse(match[1]);
       const contents = data.contents?.twoColumnSearchResultsRenderer?.primaryContents?.sectionListRenderer?.contents;
       const itemSection = contents?.find(c => c.itemSectionRenderer)?.itemSectionRenderer?.contents;
       const videoRenderers = extractVideoRenderers(itemSection);
+      const list = [];
 
       for (const v of videoRenderers) {
-        if (!v || !v.videoId || seenIds.has(v.videoId)) continue;
-
+        if (!v || !v.videoId) continue;
         const title = v.title?.runs?.map(r => r.text).join('') || v.title?.simpleText || '';
         const channel = v.ownerText?.runs?.[0]?.text || analystName;
         const snippetText = v.detailedMetadataSnippets?.[0]?.snippetText?.runs?.map(r => r.text).join('') || '';
@@ -346,11 +345,8 @@ export async function fetchTopThreeAnalystVideos(analystName, searchQueries, cat
         if (KREMLIN_PROPAGANDA_REGEX.test(fullInfo)) continue;
         if (!/[а-яёіїєґ]/i.test(title)) continue;
 
-        seenIds.add(v.videoId);
-
         const publishedText = v.publishedTimeText?.simpleText || 'Свежее видео';
         const ageMins = parsePublishedAgeMinutes(publishedText);
-        // Strikte 3-Tage-Grenze (maximal 3 Tage = 4320 Minuten) ausnahmslos für alle Videos
         if (ageMins > 3 * 24 * 60) continue;
 
         const viewsText = v.viewCountText?.simpleText || v.shortViewCountText?.simpleText || '';
@@ -359,7 +355,7 @@ export async function fetchTopThreeAnalystVideos(analystName, searchQueries, cat
         const is24h = isPublishedWithin24Hours(publishedText);
         const exactPubDate = new Date(Date.now() - (ageMins === 999999 ? 24 * 60 : ageMins) * 60 * 1000).toISOString();
 
-        analystVideos.push({
+        list.push({
           id: `yt-${v.videoId}`,
           title: `🎬 ${title}`,
           summary: snippetText || title,
@@ -381,14 +377,27 @@ export async function fetchTopThreeAnalystVideos(analystName, searchQueries, cat
           isYouTube: true,
           isKeyAnalyst: true,
         });
-
-        if (analystVideos.length >= 3) break;
       }
-    } catch (err) {
-      console.error(`Error fetching 3 videos for ${analystName}:`, err.message);
+      return list;
+    } catch {
+      return [];
+    }
+  };
+
+  const results = await Promise.allSettled(searchQueries.map(q => fetchOne(q)));
+  for (const r of results) {
+    if (r.status === 'fulfilled' && Array.isArray(r.value)) {
+      for (const v of r.value) {
+        if (!seenIds.has(v.url)) {
+          seenIds.add(v.url);
+          analystVideos.push(v);
+          if (analystVideos.length >= 3) break;
+        }
+      }
     }
     if (analystVideos.length >= 3) break;
   }
+
   return analystVideos.slice(0, 3);
 }
 
@@ -660,36 +669,41 @@ export async function fetchAllFeeds(forceRefresh = false) {
       const now = Date.now();
 
       const rssPromise = Promise.allSettled(
-    FEEDS.map(async (feed) => {
-      const parsed = await parser.parseURL(feed.url);
-      const maxAgeMs = 7 * 24 * 60 * 60 * 1000; // Maximal 7 Tage
-      const limitItems = feed.category === 'psikh' ? 30 : 15;
+        FEEDS.map(async (feed) => {
+          try {
+            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Feed timeout')), 4000));
+            const parsed = await Promise.race([parser.parseURL(feed.url), timeoutPromise]);
+            const maxAgeMs = 7 * 24 * 60 * 60 * 1000; // Maximal 7 Tage
+            const limitItems = feed.category === 'psikh' ? 30 : 15;
 
-      return (parsed.items || []).slice(0, limitItems).filter(item => {
-        const d = item.pubDate || item.isoDate;
-        if (!d) return true;
-        const time = new Date(d).getTime();
-        return !isNaN(time) && (now - time) <= maxAgeMs;
-      }).map((item, idx) => {
-        const imgData = extractImages(item);
-        const fullContent = item['content:encoded'] || item.content || item.summary || item.description || item.contentSnippet || '';
-        const fullCleaned = cleanText(fullContent, true);
-        return {
-          id: `${feed.source}-${idx}-${Date.now()}`,
-          title: cleanText(item.title || ''),
-          summary: fullCleaned || cleanText(item.title || ''),
-          original_news: fullCleaned || cleanText(item.title || ''),
-          url: item.link || item.guid || '',
-          imageUrl: imgData.imageUrl,
-          images: imgData.images,
-          source: feed.source,
-          category: feed.category,
-          pubDate: item.pubDate || item.isoDate || new Date().toISOString(),
-          relativeTime: getRelativeTime(item.pubDate || item.isoDate),
-        };
-      });
-    })
-  );
+            return (parsed.items || []).slice(0, limitItems).filter(item => {
+              const d = item.pubDate || item.isoDate;
+              if (!d) return true;
+              const time = new Date(d).getTime();
+              return !isNaN(time) && (now - time) <= maxAgeMs;
+            }).map((item, idx) => {
+              const imgData = extractImages(item);
+              const fullContent = item['content:encoded'] || item.content || item.summary || item.description || item.contentSnippet || '';
+              const fullCleaned = cleanText(fullContent, true);
+              return {
+                id: `${feed.source}-${idx}-${Date.now()}`,
+                title: cleanText(item.title || ''),
+                summary: fullCleaned || cleanText(item.title || ''),
+                original_news: fullCleaned || cleanText(item.title || ''),
+                url: item.link || item.guid || '',
+                imageUrl: imgData.imageUrl,
+                images: imgData.images,
+                source: feed.source,
+                category: feed.category,
+                pubDate: item.pubDate || item.isoDate || new Date().toISOString(),
+                relativeTime: getRelativeTime(item.pubDate || item.isoDate),
+              };
+            });
+          } catch {
+            return [];
+          }
+        })
+      );
 
   const [
     ytKeyAnalystsRes,
@@ -917,6 +931,21 @@ router.get('/api/news', async (req, res) => {
       const topYt = ytList.slice(0, 15);
       const rssList = psikhAll.filter(a => !a.isYouTube).sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate)).slice(0, 15);
       filtered = [...topYt, ...rssList];
+    } else if (category === 'absurd') {
+      const absurdKeywords = /(курьез|абсурд|нелепо|странно|дичь|анекдот|скандал|задержали|оштрафовали|запретили|приняли закон|госдум|шаман|экстрасенс|чиновни|курьёз|прикол|фейк|бред|холод|вёрстка)/i;
+      filtered = nonSportsAll.filter(a => a.category === 'absurd' || absurdKeywords.test(`${a.title || ''} ${a.summary || ''}`));
+    } else if (category === 'ekonomika') {
+      const ecoKeywords = /(эконом|рубл|доллар|евро\b|банк\b|цб\b|центробанк|ставк|инфляц|налог|бюджет|нефт|газ\b|газпром|акци|бизнес|санкци|дефицит|торговл|рынок|зарплат|пенси|цен[аы]|кризис\s+в|ввп\b)/i;
+      filtered = nonSportsAll.filter(a => a.category === 'ekonomika' || ecoKeywords.test(`${a.title || ''} ${a.summary || ''}`));
+    } else if (category === 'kultura') {
+      const culKeywords = /(культур|кино|фильм|сериал|актер|актрис|режиссер|музык|песн|концерт|театр|спектакл|книг|писател|музей|выставк|шоу|звезд|преми|фестивал|искусств|художник|живопис)/i;
+      filtered = nonSportsAll.filter(a => a.category === 'kultura' || culKeywords.test(`${a.title || ''} ${a.summary || ''}`));
+    } else if (category === 'tekh' || category === 'tech') {
+      const techKeywords = /(технолог|наук|it\b|ии\b|нейросет|робот|смартфон|apple|google|microsoft|чип\b|процессор|код\b|разработ|космос|nasa|роскосмос|физик|биолог|генет|квантов|гаджет)/i;
+      filtered = nonSportsAll.filter(a => a.category === 'tekh' || a.category === 'tech' || techKeywords.test(`${a.title || ''} ${a.summary || ''}`));
+    } else if (category === 'mir') {
+      const mirKeywords = /(сша|европ|германи|франци|великобритани|лондон|вашингтон|китай|пекин|инди|ближн\w*\s+восток|израил|газ[ае]|иран|трамп|байден|оон\b|нато\b|nato|ес\b|евросоюз|мир\b|международн)/i;
+      filtered = nonSportsAll.filter(a => a.category === 'mir' || mirKeywords.test(`${a.title || ''} ${a.summary || ''}`));
     } else if (category !== 'alle' && category !== 'vse') {
       filtered = nonSportsAll.filter(a => a.category === category);
     }

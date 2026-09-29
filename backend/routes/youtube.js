@@ -77,6 +77,8 @@ async function generateScriptWithAI(systemInstruction, userInstruction, maxToken
 
 export async function buildYouTubeScript(rawText, selectedStyle, metadata = {}) {
   const conceptType = metadata.conceptType || metadata.concept || 'facts';
+  const scriptFormat = metadata.scriptFormat || 'facts';
+  const isNarrativeFormat = scriptFormat === 'feuilleton' || scriptFormat === 'narrative'; // Режим цельного фельетона без счета и нумерации вслух
   const concept = getConceptInfo(conceptType);
 
   let effectiveFacts = Array.isArray(metadata.selectedFacts) && metadata.selectedFacts.length > 0
@@ -108,32 +110,49 @@ export async function buildYouTubeScript(rawText, selectedStyle, metadata = {}) 
 
   let systemInstruction = selectedStyle.systemInstruction || YOUTUBE_STYLES.scipop.systemInstruction;
   if (factsCount > 0) {
-    systemInstruction = systemInstruction.replace(/\(СТРОГО 400–550 слов\)/g, `(ОБЪЕМ: ${wordCountTarget}, ОБЯЗАТЕЛЬНО ХУК С ОБЪЯВЛЕНИЕМ ${factsCount} ${concept.labelPlural.toUpperCase()}, СЧЕТ ВСЛУХ И РАЗБОР ВСЕХ ${factsCount} ПУНКТОВ)`);
+    if (isNarrativeFormat) {
+      systemInstruction = systemInstruction.replace(/\(СТРОГО 400–550 слов\)/g, `(ОБЪЕМ: ${wordCountTarget}, ЦЕЛЬНЫЙ СВЯЗНЫЙ ФЕЛЬЕТОН / РАССКАЗ БЕЗ СЧЕТА И НУМЕРАЦИИ ВСЛУХ, НА ОСНОВЕ ВСЕХ ФАКТОВ)`);
+    } else {
+      systemInstruction = systemInstruction.replace(/\(СТРОГО 400–550 слов\)/g, `(ОБЪЕМ: ${wordCountTarget}, ОБЯЗАТЕЛЬНО ХУК С ОБЪЯВЛЕНИЕМ ${factsCount} ${concept.labelPlural.toUpperCase()}, СЧЕТ ВСЛУХ И РАЗБОР ВСЕХ ${factsCount} ПУНКТОВ)`);
+    }
   }
 
   let factsPrompt = '';
   if (effectiveFacts && effectiveFacts.length > 0) {
-    factsPrompt = `\n═══════════════════════════════════════════════════════════════════\n` +
-      `📌 СПИСОК ИЗ ${factsCount} КЛЮЧЕВЫХ ${concept.headerWord}, КОТОРЫЕ ОБЯЗАТЕЛЬНО ДОЛЖНЫ БЫТЬ ПРОНУМЕРОВАНЫ ВСЛУХ И ПОДРОБНО ОБЪЯСНЕНЫ В СЦЕНАРИИ:\n` +
-      effectiveFacts.map((f, i) => `${concept.labelSingle.toUpperCase()} ${i + 1}: [${f.title}] ➜ ${f.text}`).join('\n\n') +
-      `\n═══════════════════════════════════════════════════════════════════\n` +
-      `🚨 СТРОЖАЙШИЕ ТРЕБОВАНИЯ ПО СЦЕНАРИЮ (ХУК, СЧЕТ ВСЛУХ И ВСЕ ${factsCount} ${concept.labelPlural.toUpperCase()}):\n` +
-      `1. 🎯 ОБЯЗАТЕЛЬНЫЙ ХУК В САМОМ НАЧАЛЕ (ПЕРВОЕ ПРЕДЛОЖЕНИЕ): Диктор ОБЯЗАН в первых же словах заявить мощный хук и ПРЯМО ОБЪЯВИТЬ ТЕМУ И КОЛИЧЕСТВО ${concept.headerWord}: например, «Вот ${factsCount} ${concept.hookWord} на тему [Тема]...», «Сегодня разберем ${factsCount} ${concept.labelPlural} о [Тема]...» или «${factsCount} важнейших ${concept.labelPlural}, которые объясняют [Тема]...»!\n` +
-      `2. 🔢 ОБЯЗАТЕЛЬНАЯ НУМЕРАЦИЯ ВСЛУХ (СЧЕТ КАЖДОГО ПУНКТА): Диктор ОБЯЗАН четко проговаривать номер каждого пункта перед его разбором (например: «${concept.labelSingle} первый: ...», «${concept.labelSingle} номер два: ...», ..., «Десятый ${concept.labelSingle.toLowerCase()}: ...»)! Зритель должен слышать точный счет от 1 до ${factsCount}.\n` +
-      `3. Текст ОБЯЗАН последовательно назвать по теме и понятно объяснить КАЖДЫЙ ИЗ ВСЕХ ${factsCount} ${concept.labelPlural} из списка выше без исключения!\n` +
-      `4. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО пропускать, объединять в один ком или сбиваться со счета ${factsCount} пунктов.\n` +
-      `5. Для каждого пункта посвяти отдельный абзац дикторского текста: назови номер, тему и дай емкое, захватывающее объяснение с деталями.\n` +
-      `6. Текст должен звучать как единый, цельный и увлекательный 3-минутный монолог диктора, начинающийся с объявления ${factsCount} ${concept.labelPlural} и четко отсчитывающий каждый из них.\n`;
+    if (isNarrativeFormat) {
+      factsPrompt = `\n═══════════════════════════════════════════════════════════════════\n` +
+        `📌 СПИСОК ИЗ ${factsCount} КЛЮЧЕВЫХ ${concept.headerWord} И ТЕМ, КОТОРЫЕ ДОЛЖНЫ БЫТЬ ВПЛЕТЕНЫ В ЕДИНЫЙ СВЯЗНЫЙ ФЕЛЬЕТОН / СЮЖЕТ (БЕЗ СЧЕТА ВСЛУХ):\n` +
+        effectiveFacts.map((f, i) => `${concept.labelSingle.toUpperCase()} ${i + 1}: [${f.title}] ➜ ${f.text}`).join('\n\n') +
+        `\n═══════════════════════════════════════════════════════════════════\n` +
+        `🚨 СТРОЖАЙШИЕ ТРЕБОВАНИЯ ПО СЦЕНАРИЮ (ЦЕЛЬНЫЙ ФЕЛЬЕТОН / РАССКАЗ):\n` +
+        `1. 🎯 МОЩНЫЙ ХУК В САМОМ НАЧАЛЕ: Первое предложение сразу вскрывает парадокс или драму событий (БЕЗ объявления номеров и БЕЗ приветствий).\n` +
+        `2. 🎭 ЦЕЛЬНЫЙ СВЯЗНЫЙ ТЕКСТ (БЕЗ СЧЕТА И БЕЗ НУМЕРАЦИИ ВСЛУХ): КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО произносить «Факт первый», «Пункт номер два». Текст должен звучать как цельный сатирический или аналитический монолог на одном дыхании.\n` +
+        `3. 🔒 100% ОПОРА НА МАТЕРИАЛ: Все события, примеры и детали из списка выше должны быть полностью вплетены в единое повествование.\n`;
+    } else {
+      factsPrompt = `\n═══════════════════════════════════════════════════════════════════\n` +
+        `📌 СПИСОК ИЗ ${factsCount} КЛЮЧЕВЫХ ${concept.headerWord}, КОТОРЫЕ ОБЯЗАТЕЛЬНО ДОЛЖНЫ БЫТЬ ПРОНУМЕРОВАНЫ ВСЛУХ И ПОДРОБНО ОБЪЯСНЕНЫ В СЦЕНАРИИ:\n` +
+        effectiveFacts.map((f, i) => `${concept.labelSingle.toUpperCase()} ${i + 1}: [${f.title}] ➜ ${f.text}`).join('\n\n') +
+        `\n═══════════════════════════════════════════════════════════════════\n` +
+        `🚨 СТРОЖАЙШИЕ ТРЕБОВАНИЯ ПО СЦЕНАРИЮ (ХУК, СЧЕТ ВСЛУХ И ВСЕ ${factsCount} ${concept.labelPlural.toUpperCase()}):\n` +
+        `1. 🎯 ОБЯЗАТЕЛЬНЫЙ ХУК В САМОМ НАЧАЛЕ (ПЕРВОЕ ПРЕДЛОЖЕНИЕ): Диктор ОБЯЗАН в первых же словах заявить мощный хук и ПРЯМО ОБЪЯВИТЬ ТЕМУ И КОЛИЧЕСТВО ${concept.headerWord}: например, «Вот ${factsCount} ${concept.hookWord} на тему [Тема]...», «Сегодня разберем ${factsCount} ${concept.labelPlural} о [Тема]...» или «${factsCount} важнейших ${concept.labelPlural}, которые объясняют [Тема]...»!\n` +
+        `2. 🔢 ОБЯЗАТЕЛЬНАЯ НУМЕРАЦИЯ ВСЛУХ (СЧЕТ КАЖДОГО ПУНКТА): Диктор ОБЯЗАН четко проговаривать номер каждого пункта перед его разбором (например: «${concept.labelSingle} первый: ...», «${concept.labelSingle} номер два: ...», ..., «Десятый ${concept.labelSingle.toLowerCase()}: ...»)! Зритель должен слышать точный счет от 1 до ${factsCount}.\n` +
+        `3. Текст ОБЯЗАН последовательно назвать по теме и понятно объяснить КАЖДЫЙ ИЗ ВСЕХ ${factsCount} ${concept.labelPlural} из списка выше без исключения!\n` +
+        `4. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО пропускать, объединять в один ком или сбиваться со счета ${factsCount} пунктов.\n` +
+        `5. Для каждого пункта посвяти отдельный абзац дикторского текста: назови номер, тему и дай емкое, захватывающее объяснение с деталями.\n` +
+        `6. Текст должен звучать как единый, цельный и увлекательный 3-минутный монолог диктора, начинающийся с объявления ${factsCount} ${concept.labelPlural} и четко отсчитывающий каждый из них.\n`;
+    }
   }
 
-  const userPrompt = `ИСТОЧНИК: YouTube "${metadata.title || 'YouTube'}" (${metadata.channel || ''})
-${metadata.duration ? `ПРОДОЛЖИТЕЛЬНОСТЬ ИСХОДНИКА: ${Math.round(metadata.duration / 60)} мин.` : ''}
-${factsPrompt}
-ТЕКСТ ИЗ АУДИО / СУТЬ ВИДЕО (ДЛЯ ДОПОЛНИТЕЛЬНОГО КОНТЕКСТА И ДЕТАЛЕЙ):
-"""
-${rawText.slice(0, 60000)}
-"""
-ЗАДАЧА:
+  const userPromptRules = isNarrativeFormat
+    ? `ЗАДАЧА:
+Создай ЗАХВАТЫВАЮЩИЙ, ЦЕЛЬНЫЙ И СВЯЗНЫЙ ФЕЛЬЕТОН / СЦЕНАРИЙ ДЛЯ ОЗВУЧКИ (${wordCountTarget}) в стиле «${selectedStyle.name}».
+ПРАВИЛА:
+1. 🔒 НЕЗЫБЛЕМОЕ ПРАВИЛО: Сценарий ОБЯЗАН СТРОГО основываться на предоставленной оригинальной новости / списке ключевых тем. Все тезисы, факты и объяснения берутся ИСКЛЮЧИТЕЛЬНО из переданного материала!
+2. КАТЕГОРИЧЕСКИ БЕЗ ФОРМАТА ИНТЕРВЬЮ: Никаких гостей, интервьюеров и ведущих.
+3. БЕЗ ДИАЛОГОВ И ПРИВЕТСТВИЙ: Никаких «Добрый день», реплик и символов «>>».
+4. 🎭 ЦЕЛЬНЫЙ ТЕКСТ БЕЗ СЧЕТА ВСЛУХ: КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО произносить номера пунктов («Факт первый», «Пункт второй»).
+5. Чистый непрерывный монолог диктора для озвучки (${wordCountTarget}):`
+    : `ЗАДАЧА:
 Создай ЗАХВАТЫВАЮЩИЙ, ЦЕЛЬНЫЙ И ПОДРОБНЫЙ СЦЕНАРИЙ ДЛЯ ОЗВУЧКИ (${wordCountTarget}) в стиле «${selectedStyle.name}».
 ПРАВИЛА:
 1. 🔒 НЕЗЫБЛЕМОЕ ПРАВИЛО: Сценарий ОБЯЗАН СТРОГО основываться на предоставленной оригинальной новости / списке фактов из исходника. Все тезисы, факты и объяснения берутся ИСКЛЮЧИТЕЛЬНО из переданного материала!
@@ -142,6 +161,15 @@ ${rawText.slice(0, 60000)}
 4. 🎯 ХУК В САМОМ НАЧАЛЕ ОБЯЗАН прямо объявить тему и ${factsCount} ${concept.labelPlural} (например: «Вот ${factsCount} ${concept.hookWord} на тему...»).
 5. 🔢 Диктор ОБЯЗАН вести точный счет («${concept.labelSingle} 1: ...», «${concept.labelSingle} 2: ...») и последовательно раскрыть КАЖДЫЙ из ${factsCount} пунктов по порядку с деталями и глубиной.
 6. Чистый монолог диктора для озвучки (${wordCountTarget}):`;
+
+  const userPrompt = `ИСТОЧНИК: YouTube "${metadata.title || 'YouTube'}" (${metadata.channel || ''})
+${metadata.duration ? `ПРОДОЛЖИТЕЛЬНОСТЬ ИСХОДНИКА: ${Math.round(metadata.duration / 60)} мин.` : ''}
+${factsPrompt}
+ТЕКСТ ИЗ АУДИО / СУТЬ ВИДЕО (ДЛЯ ДОПОЛНИТЕЛЬНОГО КОНТЕКСТА И ДЕТАЛЕЙ):
+"""
+${rawText.slice(0, 60000)}
+"""
+${userPromptRules}`;
 
   const rawGenerated = await generateScriptWithAI(systemInstruction, userPrompt, maxAiTokens);
   return rawGenerated.replace(/&gt;&gt;/g, '').replace(/>>/g, '').replace(/^[\-\u2013\u2014]\s+/gm, '').replace(/^(Добрый (день|вечер|утро)|Здравствуйте)[^.!?\n]*[.!?\n]+/gmi, '').trim();
@@ -410,7 +438,7 @@ ${factsFormatted}
 // POST /api/youtube/regenerate-script
 router.post('/api/youtube/regenerate-script', async (req, res) => {
   try {
-    const { bundleDir, folderName, style = 'scipop', selectedFacts, conceptType: reqConceptType } = req.body;
+    const { bundleDir, folderName, style = 'scipop', selectedFacts, conceptType: reqConceptType, scriptFormat = 'facts' } = req.body;
     const targetFolder = bundleDir || (folderName ? path.join(newsDir, folderName) : null);
     if (!targetFolder || !fs.existsSync(targetFolder)) return res.status(404).json({ success: false, error: 'Папка пакета не найдена' });
 
@@ -436,6 +464,7 @@ router.post('/api/youtube/regenerate-script', async (req, res) => {
       channel: meta.youtubeMetadata?.channel,
       selectedFacts: effectiveFacts,
       conceptType,
+      scriptFormat,
     });
     const wordCount = generatedScript.split(/\s+/).filter(Boolean).length;
     fs.writeFileSync(txtPath, generatedScript, 'utf-8');
@@ -468,6 +497,7 @@ router.post('/api/youtube/regenerate-script', async (req, res) => {
         m.word_count = wordCount;
         m.isYouTube = true;
         m.conceptType = conceptType;
+        m.scriptFormat = scriptFormat;
         if (selectedFacts !== undefined) {
           m.selectedFacts = selectedFacts;
           m.facts = selectedFacts;
@@ -487,7 +517,7 @@ router.post('/api/youtube/regenerate-script', async (req, res) => {
     }
 
     const finalOriginalNews = fs.existsSync(origPath) ? fs.readFileSync(origPath, 'utf-8') : sourceText;
-    res.json({ success: true, text: generatedScript, titleVariants, wordCount, style: selectedStyle.id, conceptType, originalNews: finalOriginalNews, facts: effectiveFacts });
+    res.json({ success: true, text: generatedScript, titleVariants, wordCount, style: selectedStyle.id, conceptType, scriptFormat, originalNews: finalOriginalNews, facts: effectiveFacts });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

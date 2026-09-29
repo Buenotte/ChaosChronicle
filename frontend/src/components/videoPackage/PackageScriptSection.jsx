@@ -14,6 +14,7 @@ export default function PackageScriptSection({
   onRefresh,
 }) {
   const [selectedConcept, setSelectedConcept] = useState(pkg?.conceptType || 'theses')
+  const [scriptFormat, setScriptFormat] = useState(pkg?.scriptFormat || 'feuilleton') // 'feuilleton' (цельный текст) vs 'facts' (по пунктам со счетом)
   const [generating, setGenerating] = useState(false)
   const [factsLoading, setFactsLoading] = useState(false)
   const [facts, setFacts] = useState([])
@@ -23,16 +24,17 @@ export default function PackageScriptSection({
 
   const currentConcept = getConceptConfig(selectedConcept)
 
-  // 1. Генерация сценария (1 клик: 10 фактов/тезисов, хук, счет и объяснения)
+  // 1. Генерация сценария (1 клик: фельетон или по пунктам)
   const handleGenerateFromOriginal = async () => {
     const isYt = ['scipop', 'mystery', 'tech_future', 'psychology', 'storytelling'].includes(selectedScriptStyle) || pkg.isYouTube || (pkg.source || '').includes('YouTube') || (pkg.url || '').includes('youtube.com') || (pkg.url || '').includes('youtu.be')
-    const toastId = toast.loading(isYt ? `✨ ИИ создает 3-мин. сценарий (10 ${currentConcept.labelPlural} + хук + счет)...` : '✍️ ИИ пишет текст из оригинала...')
+    const formatLabel = scriptFormat === 'feuilleton' ? '🎭 цельный фельетон' : `🔢 по 10 ${currentConcept.labelPlural} со счетом`
+    const toastId = toast.loading(`✨ ИИ создает ${formatLabel}...`)
     try {
       setGenerating(true)
       const endpoint = isYt ? '/api/youtube/regenerate-script' : '/api/generate-feuilleton'
       const payload = isYt
-        ? { folderName: pkg.folderName, bundleDir: pkg.bundleDir, style: selectedScriptStyle, selectedFacts: pkg.facts || pkg.selectedFacts || null, conceptType: selectedConcept }
-        : { folderName: pkg.folderName, bundleDir: pkg.bundleDir, title: pkg.title || pkg.original_title, summary: pkg.summary || pkg.original_news || '', url: pkg.url || '', style: selectedScriptStyle, conceptType: selectedConcept, saveToPackage: true }
+        ? { folderName: pkg.folderName, bundleDir: pkg.bundleDir, style: selectedScriptStyle, selectedFacts: pkg.facts || pkg.selectedFacts || null, conceptType: selectedConcept, scriptFormat }
+        : { folderName: pkg.folderName, bundleDir: pkg.bundleDir, title: pkg.title || pkg.original_title, summary: pkg.summary || pkg.original_news || '', url: pkg.url || '', style: selectedScriptStyle, conceptType: selectedConcept, scriptFormat, saveToPackage: true }
 
       const res = await fetch(endpoint, {
         method: 'POST',
@@ -47,13 +49,14 @@ export default function PackageScriptSection({
         pkg.scriptTxt = data.text || data.feuilleton.text
         pkg.selectedFacts = data.facts || pkg.selectedFacts || null
         pkg.conceptType = selectedConcept
+        pkg.scriptFormat = scriptFormat
         if (data.originalNews) {
           pkg.original_news = data.originalNews
           pkg.summary = data.originalNews
         }
         if (data.feuilleton?.title) pkg.title = data.feuilleton.title
         if (data.titleVariants?.length) pkg.title_variants = data.titleVariants
-        toast.success(`✨ 3-минутный сценарий с 10 ${currentConcept.labelPlural} и счетом готов!`)
+        toast.success(`✨ Текст (${scriptFormat === 'feuilleton' ? 'цельный фельетон' : `по ${currentConcept.labelPlural} со счетом`}) готов!`)
         if (onRefresh) onRefresh()
       } else {
         toast.error('❌ Ошибка: ' + (data.error || 'Не удалось сгенерировать'))
@@ -109,14 +112,15 @@ export default function PackageScriptSection({
   const handleGenerateByFacts = async (chosenFacts) => {
     setFactsGenerating(true)
     const isYt = ['scipop', 'mystery', 'tech_future', 'psychology', 'storytelling'].includes(selectedScriptStyle)
-    const toastId = toast.loading(`✨ Создание сценария по ${chosenFacts.length} ${currentConcept.labelPlural}...`, {
-      description: 'Gemini 3.8 Flash пишет связный 3-минутный монолог...',
+    const formatLabel = scriptFormat === 'feuilleton' ? 'цельного фельетона' : `сценария по ${chosenFacts.length} ${currentConcept.labelPlural}`
+    const toastId = toast.loading(`✨ Создание ${formatLabel}...`, {
+      description: 'Gemini 3.8 Flash пишет захватывающий текст...',
     })
     try {
       const endpoint = isYt ? '/api/youtube/regenerate-script' : '/api/generate-feuilleton'
       const payload = isYt
-        ? { folderName: pkg.folderName, bundleDir: pkg.bundleDir, style: selectedScriptStyle, selectedFacts: chosenFacts, conceptType: selectedConcept }
-        : { folderName: pkg.folderName, bundleDir: pkg.bundleDir, title: pkg.title || pkg.original_title, summary: chosenFacts.map(f => `${f.title}: ${f.text}`).join('\n\n'), url: pkg.url || '', style: selectedScriptStyle, conceptType: selectedConcept, saveToPackage: true }
+        ? { folderName: pkg.folderName, bundleDir: pkg.bundleDir, style: selectedScriptStyle, selectedFacts: chosenFacts, conceptType: selectedConcept, scriptFormat }
+        : { folderName: pkg.folderName, bundleDir: pkg.bundleDir, title: pkg.title || pkg.original_title, summary: chosenFacts.map(f => `${f.title}: ${f.text}`).join('\n\n'), url: pkg.url || '', style: selectedScriptStyle, conceptType: selectedConcept, scriptFormat, saveToPackage: true }
 
       const res = await fetch(endpoint, {
         method: 'POST',
@@ -131,6 +135,7 @@ export default function PackageScriptSection({
         pkg.scriptTxt = data.text || data.feuilleton.text
         pkg.selectedFacts = chosenFacts || data.facts || null
         pkg.conceptType = selectedConcept
+        pkg.scriptFormat = scriptFormat
         if (data.originalNews) {
           pkg.original_news = data.originalNews
           pkg.summary = data.originalNews
@@ -138,7 +143,7 @@ export default function PackageScriptSection({
         if (data.feuilleton?.title) pkg.title = data.feuilleton.title
         if (data.titleVariants?.length) pkg.title_variants = data.titleVariants
         setShowFactsModal(false)
-        toast.success(`🎉 Сценарий готов по ${chosenFacts.length} ${currentConcept.labelPlural}!`)
+        toast.success(`🎉 Текст (${scriptFormat === 'feuilleton' ? 'цельный фельетон' : `по ${chosenFacts.length} ${currentConcept.labelPlural}`}) готов!`)
         if (onRefresh) onRefresh()
       } else {
         toast.error('❌ Ошибка: ' + (data.error || 'Не удалось создать'))
@@ -163,7 +168,12 @@ export default function PackageScriptSection({
           </h3>
           {activeFactsCount > 0 && (
             <span style={{ background: '#7c3aed', color: '#fff', fontSize: '0.72rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '6px' }}>
-              📌 По {activeFactsCount} {currentConcept.labelPlural}
+              📌 {activeFactsCount} {currentConcept.labelPlural}
+            </span>
+          )}
+          {pkg.scriptFormat && (
+            <span style={{ background: pkg.scriptFormat === 'feuilleton' ? '#065f46' : '#92400e', color: '#fff', fontSize: '0.7rem', fontWeight: 700, padding: '0.15rem 0.45rem', borderRadius: '6px' }}>
+              {pkg.scriptFormat === 'feuilleton' ? '🎭 Фельетон' : '🔢 Со счетом'}
             </span>
           )}
         </div>
@@ -191,6 +201,44 @@ export default function PackageScriptSection({
           >
             {FACT_CONCEPT_TYPES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
+
+          {/* Переключатель: Цельный фельетон vs По пунктам со счетом */}
+          <div style={{ display: 'inline-flex', alignItems: 'center', background: '#020617', borderRadius: '6px', padding: '2px', border: '1px solid #d97706' }}>
+            <button
+              type="button"
+              onClick={() => setScriptFormat('feuilleton')}
+              style={{
+                background: scriptFormat === 'feuilleton' ? 'linear-gradient(135deg, #7c3aed, #6d28d9)' : 'transparent',
+                color: scriptFormat === 'feuilleton' ? '#ffffff' : '#94a3b8',
+                border: 'none',
+                borderRadius: '4px',
+                padding: '0.22rem 0.5rem',
+                fontSize: '0.74rem',
+                fontWeight: scriptFormat === 'feuilleton' ? 700 : 500,
+                cursor: 'pointer',
+              }}
+              title="Цельный фельетон / связный рассказ без счета вслух"
+            >
+              🎭 Фельетон
+            </button>
+            <button
+              type="button"
+              onClick={() => setScriptFormat('facts')}
+              style={{
+                background: scriptFormat === 'facts' ? 'linear-gradient(135deg, #d97706, #b45309)' : 'transparent',
+                color: scriptFormat === 'facts' ? '#ffffff' : '#94a3b8',
+                border: 'none',
+                borderRadius: '4px',
+                padding: '0.22rem 0.5rem',
+                fontSize: '0.74rem',
+                fontWeight: scriptFormat === 'facts' ? 700 : 500,
+                cursor: 'pointer',
+              }}
+              title="Сценарий с четким счетом каждого пункта вслух"
+            >
+              🔢 По пунктам
+            </button>
+          </div>
 
           {/* Вариант 1: Извлечь от 5 до 15 пунктов (Selectbox) */}
           <div style={{ display: 'inline-flex', alignItems: 'center', background: '#1c192e', borderRadius: '6px', border: '1px solid #d97706', padding: '2px 4px', gap: '4px' }}>
@@ -248,10 +296,17 @@ export default function PackageScriptSection({
             className="generate-btn"
             onClick={handleGenerateFromOriginal}
             disabled={generating}
-            style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', fontWeight: 700, background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', color: '#fff', boxShadow: '0 2px 8px rgba(124, 58, 237, 0.4)' }}
-            title="Сгенерировать 3-минутный сценарий с помощью ИИ"
+            style={{
+              padding: '0.35rem 0.75rem',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              background: scriptFormat === 'feuilleton' ? 'linear-gradient(135deg, #7c3aed, #4f46e5)' : 'linear-gradient(135deg, #d97706, #ea580c)',
+              color: '#fff',
+              boxShadow: scriptFormat === 'feuilleton' ? '0 2px 8px rgba(124, 58, 237, 0.4)' : '0 2px 8px rgba(217, 119, 6, 0.4)',
+            }}
+            title={scriptFormat === 'feuilleton' ? "Сгенерировать цельный фельетон без счета вслух" : "Сгенерировать сценарий с голосовым счетом пунктов"}
           >
-            {generating ? '⏳ Генерация...' : '✨ Сгенерировать текст'}
+            {generating ? '⏳ Генерация...' : (scriptFormat === 'feuilleton' ? '✨ Фельетон' : '✨ По пунктам')}
           </button>
         </div>
       </div>
