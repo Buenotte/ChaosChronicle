@@ -220,17 +220,26 @@ router.get('/api/package-script-text', (req, res) => {
     const sourceTxtPath = path.join(targetDir, 'source.txt'), origNewsPath = path.join(targetDir, 'original_news.txt'), jsonPath = path.join(targetDir, 'project.json');
     const text = fs.existsSync(txtPath) ? fs.readFileSync(txtPath, 'utf-8') : (fs.existsSync(mdPath) ? fs.readFileSync(mdPath, 'utf-8') : '');
     let originalNews = fs.existsSync(sourceTxtPath) ? fs.readFileSync(sourceTxtPath, 'utf-8') : (fs.existsSync(origNewsPath) ? fs.readFileSync(origNewsPath, 'utf-8') : '');
-    if (!originalNews && fs.existsSync(jsonPath)) {
-      try { const m = JSON.parse(fs.readFileSync(jsonPath, 'utf-8')); originalNews = m.original_news || m.summary || ''; } catch {}
+    let facts = null;
+    const factsJsonPath = path.join(targetDir, 'facts.json');
+    if (fs.existsSync(factsJsonPath)) {
+      try { facts = JSON.parse(fs.readFileSync(factsJsonPath, 'utf-8')); } catch {}
     }
-    res.json({ success: true, text, originalNews, summary: originalNews, folderName: path.basename(targetDir) });
+    if (fs.existsSync(jsonPath)) {
+      try {
+        const m = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+        if (!originalNews) originalNews = m.original_news || m.summary || '';
+        if (!facts) facts = m.facts || m.selectedFacts || null;
+      } catch {}
+    }
+    res.json({ success: true, text, originalNews, summary: originalNews, facts, folderName: path.basename(targetDir) });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // POST /api/save-script-text
 router.post('/api/save-script-text', async (req, res) => {
   try {
-    const { bundleDir: inputBundleDir, folderName, text, originalNews } = req.body;
+    const { bundleDir: inputBundleDir, folderName, text, originalNews, facts } = req.body;
     const newsDir = path.resolve(__dirname, '../../news');
     let targetDir = inputBundleDir || (folderName ? path.join(newsDir, folderName) : null);
     if (!targetDir && folderName && fs.existsSync(newsDir)) {
@@ -244,6 +253,12 @@ router.post('/api/save-script-text', async (req, res) => {
       fs.writeFileSync(path.join(targetDir, 'source.txt'), originalNews, 'utf-8');
       fs.writeFileSync(path.join(targetDir, 'original_news.txt'), originalNews, 'utf-8');
     }
+    if (Array.isArray(facts)) {
+      fs.writeFileSync(path.join(targetDir, 'facts.json'), JSON.stringify(facts, null, 2), 'utf-8');
+      const factsFormatted = `📌 ИЗВЛЕЧЕННЫЕ КЛЮЧЕВЫЕ ПУНКТЫ (${facts.length}):\n\n` +
+        facts.map((f, i) => `${i + 1}. 🌟 ${f.title}\n${f.text}`).join('\n\n');
+      fs.writeFileSync(path.join(targetDir, 'facts.txt'), factsFormatted, 'utf-8');
+    }
 
     const jsonPath = path.join(targetDir, 'project.json');
     if (fs.existsSync(jsonPath)) {
@@ -251,6 +266,7 @@ router.post('/api/save-script-text', async (req, res) => {
         const manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
         if (typeof text === 'string') { manifest.word_count = text.split(/\s+/).filter(Boolean).length; manifest.text_updated_at = new Date().toISOString(); }
         if (typeof originalNews === 'string' && originalNews.trim()) { manifest.original_news = originalNews; manifest.summary = originalNews; }
+        if (Array.isArray(facts)) { manifest.facts = facts; manifest.selectedFacts = facts; }
         fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
       } catch {}
     }

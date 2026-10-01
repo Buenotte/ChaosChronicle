@@ -21,6 +21,7 @@ export const AI_MODELS = [
 ]
 
 export const FEUILLETON_STYLES = [
+  { id: 'short_sarcasm', name: '⚡ Хлесткий Сарказм (Коротко & Просто)', icon: '⚡', desc: 'Простой разговорный слог, впечатляющий хук, едкая ирония и высокий темп' },
   { id: 'golubuzki', name: '🎭 Алексей Голобуцкий (Сатира & Сарказм)', icon: '🎭', desc: 'Едкая ирония, смех как оружие, деконструкция официальной лжи' },
   { id: 'kasjanov',  name: '🪖 Юрий Касьянов (Военный реализм)',       icon: '🪖', desc: 'Рубленый синтаксис, ТТХ, дроны, логистика, точный расчет' },
   { id: 'klimovski', name: '🔬 Юрий Климовский (Клиническая геополитика)', icon: '🔬', desc: 'Мир как операционный стол, диагнозы, снятие имперских брендов' },
@@ -29,6 +30,7 @@ export const FEUILLETON_STYLES = [
 ]
 
 export const YOUTUBE_TOPIC_STYLES = [
+  { id: 'short_sarcasm', name: '⚡ Хлесткий Сарказм (Коротко & Просто)', icon: '⚡', desc: 'Простой разговорный слог, впечатляющий хук, едкая ирония и высокий темп' },
   { id: 'scipop',      name: '🌟 Увлекательный Научпоп & Факты',        icon: '🌟', desc: 'Открытия, природные явления, космос, парадоксы и яркие аналогии' },
   { id: 'mystery',     name: '🕵️ Тайны Истории & Загадки Прошлого',     icon: '🕵️', desc: 'Исторические тайны, археология, забытые цивилизации и саспенс' },
   { id: 'tech_future', name: '🚀 Технологии Будущего & Инженерия',     icon: '🚀', desc: 'Прорывной ИИ, покорение космоса, роботы и дерзкие мегапроекты' },
@@ -115,9 +117,27 @@ export const FACT_CONCEPT_TYPES = [
   { id: 'signals',     name: '⚡ Сигналы',  labelSingle: 'Сигнал', labelPlural: 'сигналов', hookWord: 'тревожных сигналов', headerWord: 'СИГНАЛЫ' },
   { id: 'conclusions', name: '🎯 Выводы',   labelSingle: 'Вывод',  labelPlural: 'выводов',  hookWord: 'главных выводов',   headerWord: 'ВЫВОДЫ' },
   { id: 'points',      name: '📌 Пункты',   labelSingle: 'Пункт',  labelPlural: 'пунктов',  hookWord: 'ключевых пунктов',  headerWord: 'ПУНКТЫ' },
+  { id: 'reasons',     name: '❓ Причины',  labelSingle: 'Причина', labelPlural: 'причин',   hookWord: 'ключевых причин',   headerWord: 'ПРИЧИНЫ' },
+  { id: 'mistakes',    name: '⚠️ Ошибки',   labelSingle: 'Ошибка',  labelPlural: 'ошибок',   hookWord: 'главных ошибок',    headerWord: 'ОШИБКИ' },
+  { id: 'secrets',     name: '🤫 Секреты',  labelSingle: 'Секрет',  labelPlural: 'секретов', hookWord: 'главных секретов',  headerWord: 'СЕКРЕТЫ' },
+  { id: 'rules',       name: '📋 Правила',  labelSingle: 'Правило', labelPlural: 'правил',   hookWord: 'главных правил',    headerWord: 'ПРАВИЛА' },
+  { id: 'custom',      name: '✍️ Своё слово...', labelSingle: 'Пункт',  labelPlural: 'пунктов',  hookWord: 'пунктов',           headerWord: 'ПУНКТЫ' },
 ]
 
-export function getConceptConfig(conceptId = 'facts') {
+export function getConceptConfig(conceptId = 'facts', customWord = '') {
+  const cleanCustom = (customWord || '').trim()
+  if (cleanCustom || conceptId === 'custom') {
+    const word = cleanCustom || 'пунктов'
+    const capitalizedSingle = word.charAt(0).toUpperCase() + word.slice(1)
+    return {
+      id: 'custom',
+      name: `✍️ ${word}`,
+      labelSingle: capitalizedSingle,
+      labelPlural: word,
+      hookWord: word,
+      headerWord: word.toUpperCase(),
+    }
+  }
   return FACT_CONCEPT_TYPES.find(c => c.id === conceptId) || FACT_CONCEPT_TYPES[0]
 }
 

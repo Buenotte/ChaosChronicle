@@ -73,18 +73,36 @@ export const CONCEPT_MAP = {
   signals:     { id: 'signals',     labelSingle: 'Сигнал', labelPlural: 'сигналов', adjPlural: 'тревожных и решающих сигналов',        hookWord: 'тревожных сигналов', headerWord: 'СИГНАЛЫ' },
   conclusions: { id: 'conclusions', labelSingle: 'Вывод',  labelPlural: 'выводов',  adjPlural: 'главных выводов и итогов',             hookWord: 'главных выводов',   headerWord: 'ВЫВОДЫ' },
   points:      { id: 'points',      labelSingle: 'Пункт',  labelPlural: 'пунктов',  adjPlural: 'ключевых пунктов и положений',         hookWord: 'ключевых пунктов',  headerWord: 'ПУНКТЫ' },
+  reasons:     { id: 'reasons',     labelSingle: 'Причина', labelPlural: 'причин',   adjPlural: 'главных причин и факторов',            hookWord: 'ключевых причин',   headerWord: 'ПРИЧИНЫ' },
+  mistakes:    { id: 'mistakes',    labelSingle: 'Ошибка',  labelPlural: 'ошибок',   adjPlural: 'фатальных ошибок и провалов',          hookWord: 'главных ошибок',    headerWord: 'ОШИБКИ' },
+  secrets:     { id: 'secrets',     labelSingle: 'Секрет',  labelPlural: 'секретов', adjPlural: 'скрытых секретов и тайн',              hookWord: 'главных секретов',  headerWord: 'СЕКРЕТЫ' },
+  rules:       { id: 'rules',       labelSingle: 'Правило', labelPlural: 'правил',   adjPlural: 'золотых правил и законов',             hookWord: 'главных правил',    headerWord: 'ПРАВИЛА' },
 };
 
-export function getConceptInfo(conceptKey = 'facts') {
+export function getConceptInfo(conceptKey = 'facts', customWord = '') {
+  const cleanCustom = (customWord || '').trim();
+  if (cleanCustom || conceptKey === 'custom') {
+    const word = cleanCustom || 'пунктов';
+    const singleWord = word.replace(/(ов|ев|ей|ин|а|ы|и|ь)$/i, '') || word;
+    const capitalizedSingle = word.charAt(0).toUpperCase() + word.slice(1);
+    return {
+      id: 'custom',
+      labelSingle: capitalizedSingle,
+      labelPlural: word,
+      adjPlural: `важнейших ${word}`,
+      hookWord: word,
+      headerWord: word.toUpperCase(),
+    };
+  }
   return CONCEPT_MAP[conceptKey] || CONCEPT_MAP.facts;
 }
 
-export async function extractTwentyFactsFromTranscript(transcriptText = '', title = '', requestedCount = 20, conceptType = 'facts') {
+export async function extractTwentyFactsFromTranscript(transcriptText = '', title = '', requestedCount = 20, conceptType = 'facts', customWord = '') {
   if (!transcriptText || transcriptText.trim().length < 50) {
     throw new Error('Текст транскрипта слишком короткий для анализа фактов');
   }
 
-  const concept = getConceptInfo(conceptType);
+  const concept = getConceptInfo(conceptType, customWord);
   const parsedCount = parseInt(requestedCount, 10);
   const count = (!isNaN(parsedCount) && parsedCount >= 3 && parsedCount <= 30) ? parsedCount : 10;
   const cleanText = transcriptText.slice(0, 65000);

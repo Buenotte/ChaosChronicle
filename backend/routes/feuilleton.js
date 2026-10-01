@@ -16,6 +16,7 @@ const STYLES = {
   kasjanov: { file: 'kasjanov_style.txt', label: '🪖 Юрий Касьянов', focus: 'Военно-инженерный реализм, аналитика ТТХ, логистики и тактики.' },
   klimovski: { file: 'klimovski_style.txt', label: '🔬 Юрий Климовский', focus: 'Клинический геополитический реализм, анатомия решений Кремля.' },
   gibrid: { file: 'gibrid_style.txt', label: '⚡ Гибридный стиль (3 в 1)', focus: 'Синтез сатиры Голобуцкого, военного реализма и геополитики.' },
+  short_sarcasm: { file: 'short_sarcasm_style.txt', label: '⚡ Хлесткий Сарказм & Короткий Рассказчик', focus: 'Простой, впечатляющий, ультра-динамичный сторителлинг с едким сарказмом и мощным хуком.' },
 };
 
 export function extractFactsListFromText(text) {
@@ -61,9 +62,9 @@ export function extractFactsListFromText(text) {
   return [];
 }
 
-export function buildStyledFeuilletonPrompt(newsTitle, newsSummary = '', styleKey = 'golubuzki', tone = 'grotesque', conceptType = 'facts', explicitFacts = null, scriptFormat = 'facts') {
+export function buildStyledFeuilletonPrompt(newsTitle, newsSummary = '', styleKey = 'golubuzki', tone = 'grotesque', conceptType = 'facts', explicitFacts = null, scriptFormat = 'facts', customWord = '') {
   const isNarrativeFormat = scriptFormat === 'feuilleton' || scriptFormat === 'narrative'; // Режим цельного фельетона без нумерации и счета вслух (narrative format)
-  const concept = getConceptInfo(conceptType);
+  const concept = getConceptInfo(conceptType, customWord);
   const extractedFacts = (Array.isArray(explicitFacts) && explicitFacts.length > 0)
     ? explicitFacts
     : extractFactsListFromText(newsSummary);
@@ -296,7 +297,7 @@ function cleanSpeechTextForAudio(rawText) {
 }
 
 router.post('/api/generate-feuilleton', async (req, res) => {
-  const { title, summary, model = 'gemini', source, style = 'golubuzki', tone = 'grotesque', conceptType = 'facts', scriptFormat = 'facts' } = req.body;
+  const { title, summary, model = 'gemini', source, style = 'golubuzki', tone = 'grotesque', conceptType = 'facts', customWord = '', scriptFormat = 'facts' } = req.body;
   if (!title) return res.status(400).json({ error: 'Title is required' });
 
   let effectiveSummary = (summary || req.body.original_news || req.body.originalNews || req.body.sourceText || '').trim();
@@ -322,7 +323,7 @@ router.post('/api/generate-feuilleton', async (req, res) => {
 
   const modelId = MODELS[model] || MODELS.gemini;
   const explicitFacts = req.body.selectedFacts || req.body.facts || null;
-  const { systemInstruction, userInstruction, factsCount, hasExtractedFacts } = buildStyledFeuilletonPrompt(title, effectiveSummary, style, tone, conceptType, explicitFacts, scriptFormat);
+  const { systemInstruction, userInstruction, factsCount, hasExtractedFacts } = buildStyledFeuilletonPrompt(title, effectiveSummary, style, tone, conceptType, explicitFacts, scriptFormat, customWord);
 
   try {
     let rawText = '';
@@ -379,6 +380,12 @@ router.post('/api/generate-feuilleton', async (req, res) => {
           fs.writeFileSync(path.join(targetDir, 'source.txt'), effectiveSummary, 'utf-8');
           fs.writeFileSync(path.join(targetDir, 'original_news.txt'), effectiveSummary, 'utf-8');
         }
+        if (explicitFacts && Array.isArray(explicitFacts) && explicitFacts.length > 0) {
+          fs.writeFileSync(path.join(targetDir, 'facts.json'), JSON.stringify(explicitFacts, null, 2), 'utf-8');
+          const factsFormatted = `📌 ИЗВЛЕЧЕННЫЕ КЛЮЧЕВЫЕ ${concept.headerWord} (${explicitFacts.length}):\n\n` +
+            explicitFacts.map((f, i) => `${i + 1}. 🌟 ${f.title}\n${f.text}`).join('\n\n');
+          fs.writeFileSync(path.join(targetDir, 'facts.txt'), factsFormatted, 'utf-8');
+        }
         const origSection = effectiveSummary ? `## 📝 Исходное сообщение\n${effectiveSummary}\n\n---\n\n` : '';
         fs.writeFileSync(path.join(targetDir, 'script.md'), `# 🎭 ${punchyTitle || title}\n\n---\n\n${origSection}## 🎬 Сценарий\n${text}\n`, 'utf-8');
         const jsonPath = path.join(targetDir, 'project.json');
@@ -389,6 +396,10 @@ router.post('/api/generate-feuilleton', async (req, res) => {
             if (effectiveSummary) {
               m.summary = effectiveSummary;
               m.original_news = effectiveSummary;
+            }
+            if (explicitFacts) {
+              m.facts = explicitFacts;
+              m.selectedFacts = explicitFacts;
             }
             if (punchyTitle && (!m.title || m.title === m.original_title)) m.title = punchyTitle;
             fs.writeFileSync(jsonPath, JSON.stringify(m, null, 2), 'utf-8');

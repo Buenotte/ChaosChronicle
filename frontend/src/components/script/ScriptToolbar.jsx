@@ -15,18 +15,19 @@ export default function ScriptToolbar({
   regenerating,
   onRegenerate,
 }) {
-  const [selectedConcept, setSelectedConcept] = useState(pkg?.conceptType || 'theses')
+  const [selectedConcept, setSelectedConcept] = useState(pkg?.customWord ? 'custom' : (pkg?.conceptType || 'theses'))
+  const [customConceptWord, setCustomConceptWord] = useState(pkg?.customWord || '')
   const [scriptFormat, setScriptFormat] = useState(pkg?.scriptFormat || 'feuilleton') // 'feuilleton' (цельный текст без счета) vs 'facts' (счет пунктов вслух)
   const [facts, setFacts] = useState([])
   const [factsLoading, setFactsLoading] = useState(false)
   const [showFactsModal, setShowFactsModal] = useState(false)
   const [factsCount, setFactsCount] = useState(10)
 
-  const currentConcept = getConceptConfig(selectedConcept)
+  const currentConcept = getConceptConfig(selectedConcept, customConceptWord)
 
-  const handleOpenFacts = async (targetCount = factsCount, conceptToUse = selectedConcept) => {
-    const conceptCfg = getConceptConfig(conceptToUse)
-    if (facts.length > 0 && facts.length === targetCount && pkg?.conceptType === conceptToUse) {
+  const handleOpenFacts = async (targetCount = factsCount, conceptToUse = selectedConcept, customWordToUse = customConceptWord) => {
+    const conceptCfg = getConceptConfig(conceptToUse, customWordToUse)
+    if (facts.length > 0 && facts.length === targetCount && pkg?.conceptType === conceptToUse && (!customWordToUse || pkg?.customWord === customWordToUse)) {
       setShowFactsModal(true)
       return
     }
@@ -43,6 +44,7 @@ export default function ScriptToolbar({
           title: pkg?.original_title || pkg?.title || 'Новость',
           count: targetCount,
           conceptType: conceptToUse,
+          customWord: customWordToUse,
         }),
       })
       const data = await res.json()
@@ -64,7 +66,7 @@ export default function ScriptToolbar({
 
   const handleConfirmFacts = (chosenFacts) => {
     setShowFactsModal(false)
-    onRegenerate(selectedStyle, selectedModel, selectedTone, chosenFacts, selectedConcept, scriptFormat)
+    onRegenerate(selectedStyle, selectedModel, selectedTone, chosenFacts, selectedConcept, scriptFormat, customConceptWord)
   }
 
   return (
@@ -85,8 +87,8 @@ export default function ScriptToolbar({
           </select>
         </div>
 
-        {/* Выбор понятия: Факты / Тезисы / Детали / Сигналы / Выводы / Пункты */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+        {/* Выбор понятия: Факты / Тезисы / Детали / Сигналы / Выводы / Пункты / Причины / Своё слово */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
           <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#94a3b8' }}>📌 Тематика:</span>
           <select
             value={selectedConcept}
@@ -97,12 +99,36 @@ export default function ScriptToolbar({
             }}
             disabled={regenerating}
             style={{ background: '#020617', color: '#fcd34d', border: '1px solid #d97706', borderRadius: '6px', padding: '0.3rem 0.55rem', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}
-            title="Выберите понятие для ключевых пунктов сценария (Факты, Тезисы, Детали, Сигналы, Выводы, Пункты)"
+            title="Выберите понятие для ключевых пунктов сценария (Факты, Тезисы, Детали, Причины, Ошибки, Секреты или своё слово)"
           >
             {FACT_CONCEPT_TYPES.map(c => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
+
+          {selectedConcept === 'custom' && (
+            <input
+              type="text"
+              placeholder="Своё слово (причин, ошибок, секретов...)"
+              value={customConceptWord}
+              onChange={e => {
+                setCustomConceptWord(e.target.value)
+                setFacts([])
+              }}
+              disabled={regenerating}
+              style={{
+                background: '#020617',
+                color: '#fcd34d',
+                border: '1px solid #d97706',
+                borderRadius: '6px',
+                padding: '0.28rem 0.5rem',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                width: '190px',
+              }}
+              title="Введите ваше понятие в родительном падеже (например: причин, секретов, ударов, шагов, парадоксов)"
+            />
+          )}
         </div>
 
         {/* Переключатель: Цельный фельетон vs По пунктам со счетом */}
@@ -156,7 +182,7 @@ export default function ScriptToolbar({
         <button
           type="button"
           className="refresh-btn"
-          onClick={() => onRegenerate(selectedStyle, selectedModel, selectedTone, null, selectedConcept, scriptFormat)}
+          onClick={() => onRegenerate(selectedStyle, selectedModel, selectedTone, null, selectedConcept, scriptFormat, customConceptWord)}
           disabled={regenerating}
           style={{
             fontSize: '0.82rem',
@@ -185,7 +211,7 @@ export default function ScriptToolbar({
             onChange={e => {
               const nextCnt = Number(e.target.value)
               setFactsCount(nextCnt)
-              handleOpenFacts(nextCnt, selectedConcept)
+              handleOpenFacts(nextCnt, selectedConcept, customConceptWord)
             }}
             disabled={regenerating || factsLoading}
             style={{
@@ -208,7 +234,7 @@ export default function ScriptToolbar({
           </select>
           <button
             type="button"
-            onClick={() => handleOpenFacts(factsCount, selectedConcept)}
+            onClick={() => handleOpenFacts(factsCount, selectedConcept, customConceptWord)}
             disabled={regenerating || factsLoading}
             style={{
               fontSize: '0.76rem',
@@ -235,6 +261,7 @@ export default function ScriptToolbar({
           facts={facts}
           videoTitle={pkg?.title || pkg?.original_title || 'Оригинальный текст'}
           conceptType={selectedConcept}
+          customWord={customConceptWord}
           onConfirm={handleConfirmFacts}
           loading={regenerating}
         />

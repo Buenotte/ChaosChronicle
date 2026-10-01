@@ -77,9 +77,10 @@ async function generateScriptWithAI(systemInstruction, userInstruction, maxToken
 
 export async function buildYouTubeScript(rawText, selectedStyle, metadata = {}) {
   const conceptType = metadata.conceptType || metadata.concept || 'facts';
+  const customWord = metadata.customWord || metadata.customConcept || '';
   const scriptFormat = metadata.scriptFormat || 'facts';
   const isNarrativeFormat = scriptFormat === 'feuilleton' || scriptFormat === 'narrative'; // Режим цельного фельетона без счета и нумерации вслух
-  const concept = getConceptInfo(conceptType);
+  const concept = getConceptInfo(conceptType, customWord);
 
   let effectiveFacts = Array.isArray(metadata.selectedFacts) && metadata.selectedFacts.length > 0
     ? metadata.selectedFacts
@@ -87,7 +88,7 @@ export async function buildYouTubeScript(rawText, selectedStyle, metadata = {}) 
 
   if (!effectiveFacts && rawText && rawText.length >= 40) {
     try {
-      effectiveFacts = await extractTwentyFactsFromTranscript(rawText, metadata.title || 'YouTube', 10, conceptType);
+      effectiveFacts = await extractTwentyFactsFromTranscript(rawText, metadata.title || 'YouTube', 10, conceptType, customWord);
     } catch (err) {
       console.warn('Auto facts extraction in buildYouTubeScript warning:', err.message);
     }
@@ -191,10 +192,10 @@ router.post('/api/youtube/info', async (req, res) => {
 // POST /api/youtube/extract-facts - Extract 5 to 15 key facts/theses/details (from URL, package folder, or raw text)
 router.post('/api/youtube/extract-facts', async (req, res) => {
   try {
-    const { url, folderName, bundleDir: inputBundleDir, text: inputText, title: inputTitle, force = false, count = 10, conceptType = 'facts' } = req.body;
+    const { url, folderName, bundleDir: inputBundleDir, text: inputText, title: inputTitle, force = false, count = 10, conceptType = 'facts', customWord = '' } = req.body;
     const parsedCount = parseInt(count, 10);
     const targetCount = (!isNaN(parsedCount) && parsedCount >= 3 && parsedCount <= 30) ? parsedCount : 10;
-    const concept = getConceptInfo(conceptType);
+    const concept = getConceptInfo(conceptType, customWord);
     let rawText = (inputText || '').trim(), title = (inputTitle || '').trim();
     const targetFolder = inputBundleDir || (folderName ? path.join(newsDir, folderName) : null);
 
@@ -206,8 +207,8 @@ router.post('/api/youtube/extract-facts', async (req, res) => {
         try { manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8')); } catch {}
       }
       if (!title) title = manifest.title || manifest.original_title || path.basename(targetFolder);
-      if (!force && Array.isArray(manifest.facts) && manifest.facts.length >= targetCount && manifest.conceptType === conceptType) {
-        return res.json({ success: true, facts: manifest.facts.slice(0, targetCount), factsCount: Math.min(manifest.facts.length, targetCount), title, conceptType, cached: true });
+      if (!force && Array.isArray(manifest.facts) && manifest.facts.length >= targetCount && manifest.conceptType === conceptType && (!customWord || manifest.customWord === customWord)) {
+        return res.json({ success: true, facts: manifest.facts.slice(0, targetCount), factsCount: Math.min(manifest.facts.length, targetCount), title, conceptType, customWord, cached: true });
       }
       if (!rawText) {
         const origPath = path.join(targetFolder, 'original_news.txt'), srcPath = path.join(targetFolder, 'source.txt'), mdPath = path.join(targetFolder, 'script.md');
@@ -217,34 +218,27 @@ router.post('/api/youtube/extract-facts', async (req, res) => {
         else if (manifest.original_news || manifest.summary) rawText = manifest.original_news || manifest.summary;
       }
       if (rawText && rawText.length >= 40) {
-        const facts = await extractTwentyFactsFromTranscript(rawText, title, targetCount, conceptType);
+        const facts = await extractTwentyFactsFromTranscript(rawText, title, targetCount, conceptType, customWord);
         manifest.facts = facts;
         manifest.selectedFacts = facts;
         manifest.conceptType = conceptType;
+        if (customWord) manifest.customWord = customWord;
 
-        const cleanRaw = rawText.includes('ПОЛНЫЙ ТРАНСКРИПТ ВИДЕО:') ? rawText.split('ПОЛНЫЙ ТРАНСКРИПТ ВИДЕО:')[1].trim() : rawText;
         const factsFormatted = `📌 ИЗВЛЕЧЕННЫЕ КЛЮЧЕВЫЕ ${concept.headerWord} И ТЕМЫ (${facts.length}):\n\n` +
-          facts.map((f, i) => `${i + 1}. 🌟 ${f.title}\n${f.text}`).join('\n\n') +
-          `\n\n═══════════════════════════════════════════════════════════════════\n📝 ПОЛНЫЙ ТРАНСКРИПТ ВИДЕО:\n\n${cleanRaw}`;
+          facts.map((f, i) => `${i + 1}. 🌟 ${f.title}\n${f.text}`).join('\n\n');
 
-        manifest.original_news = factsFormatted;
-        manifest.summary = `📌 Ключевые ${concept.labelPlural} (${facts.length}):\n` + facts.map((f, i) => `${i + 1}. ${f.title}`).join('\n');
-
-        const origPath = path.join(targetFolder, 'original_news.txt');
-        fs.writeFileSync(origPath, factsFormatted, 'utf-8');
-        fs.writeFileSync(path.join(targetFolder, 'source.txt'), factsFormatted, 'utf-8');
+        // Факты сохраняются в отдельный файл facts.json и facts.txt, а original_news.txt остается нетронутым!
+        fs.writeFileSync(path.join(targetFolder, 'facts.json'), JSON.stringify(facts, null, 2), 'utf-8');
+        fs.writeFileSync(path.join(targetFolder, 'facts.txt'), factsFormatted, 'utf-8');
         fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
-        return res.json({ success: true, facts, factsCount: facts.length, title, conceptType, originalNews: factsFormatted });
+        return res.json({ success: true, facts, factsCount: facts.length, title, conceptType, customWord, originalNews: rawText });
       }
     }
 
     // 2. Из переданного текста
     if (rawText && rawText.length >= 40) {
-      const facts = await extractTwentyFactsFromTranscript(rawText, title || 'Материал', targetCount, conceptType);
-      const factsFormatted = `📌 ВЫБРАННЫЕ КЛЮЧЕВЫЕ ${concept.headerWord} И ТЕМЫ (${facts.length}):\n\n` +
-        facts.map((f, i) => `${i + 1}. 🌟 ${f.title}\n${f.text}`).join('\n\n') +
-        `\n\n═══════════════════════════════════════════════════════════════════\n📝 ПОЛНЫЙ ТРАНСКРИПТ ВИДЕО:\n\n${rawText}`;
-      return res.json({ success: true, facts, factsCount: facts.length, title: title || 'Материал', conceptType, originalNews: factsFormatted, summary: factsFormatted });
+      const facts = await extractTwentyFactsFromTranscript(rawText, title || 'Материал', targetCount, conceptType, customWord);
+      return res.json({ success: true, facts, factsCount: facts.length, title: title || 'Материал', conceptType, customWord, originalNews: rawText, summary: rawText.slice(0, 600) });
     }
 
     // 3. Скачивание по YouTube URL
@@ -270,11 +264,11 @@ router.post('/api/youtube/extract-facts', async (req, res) => {
     try { fs.rmSync(tempDir, { recursive: true, force: true }); } catch {}
     if (!rawText || rawText.length < 40) rawText = `${metadata.title}\n\n${metadata.description || ''}`;
 
-    const facts = await extractTwentyFactsFromTranscript(rawText, metadata.title, targetCount, conceptType);
+    const facts = await extractTwentyFactsFromTranscript(rawText, metadata.title, targetCount, conceptType, customWord);
     const factsFormatted = `📌 ВЫБРАННЫЕ КЛЮЧЕВЫЕ ${concept.headerWord} И ТЕМЫ (${facts.length}):\n\n` +
       facts.map((f, i) => `${i + 1}. 🌟 ${f.title}\n${f.text}`).join('\n\n') +
       `\n\n═══════════════════════════════════════════════════════════════════\n📝 ПОЛНЫЙ ТРАНСКРИПТ ВИДЕО:\n\n${rawText}`;
-    res.json({ success: true, metadata, facts, factsCount: facts.length, conceptType, originalNews: factsFormatted, summary: factsFormatted });
+    res.json({ success: true, metadata, facts, factsCount: facts.length, conceptType, customWord, originalNews: factsFormatted, summary: factsFormatted });
   } catch (err) {
     console.error('Extract facts error:', err);
     res.status(500).json({ success: false, error: err.message || 'Ошибка извлечения' });
@@ -283,8 +277,8 @@ router.post('/api/youtube/extract-facts', async (req, res) => {
 
 // POST /api/youtube/import-to-package - Complete pipeline
 router.post('/api/youtube/import-to-package', async (req, res) => {
-  const { url, style = 'scipop', model = 'gemini', selectedFacts = null, conceptType = 'facts' } = req.body;
-  const concept = getConceptInfo(conceptType);
+  const { url, style = 'scipop', model = 'gemini', selectedFacts = null, conceptType = 'facts', customWord = '' } = req.body;
+  const concept = getConceptInfo(conceptType, customWord);
   if (!isValidYouTubeUrl(url)) return res.status(400).json({ success: false, error: 'Укажите корректную ссылку на YouTube' });
 
   try {
@@ -323,7 +317,7 @@ router.post('/api/youtube/import-to-package', async (req, res) => {
     if (!effectiveFacts || !Array.isArray(effectiveFacts) || effectiveFacts.length === 0) {
       try {
         if (rawText && rawText.length >= 40) {
-          effectiveFacts = await extractTwentyFactsFromTranscript(rawText, metadata.title, 10, conceptType);
+          effectiveFacts = await extractTwentyFactsFromTranscript(rawText, metadata.title, 10, conceptType, customWord);
         }
       } catch (err) {
         console.warn('Auto facts extraction warning during import:', err.message);
@@ -331,7 +325,7 @@ router.post('/api/youtube/import-to-package', async (req, res) => {
     }
 
     const selectedStyle = YOUTUBE_STYLES[style] || YOUTUBE_STYLES.scipop;
-    const generatedScript = await buildYouTubeScript(rawText, selectedStyle, { ...metadata, selectedFacts: effectiveFacts, conceptType });
+    const generatedScript = await buildYouTubeScript(rawText, selectedStyle, { ...metadata, selectedFacts: effectiveFacts, conceptType, customWord });
     const wordCount = generatedScript.split(/\s+/).filter(Boolean).length;
 
     const thumbDir = path.join(bundleDir, 'thumbnail');
@@ -356,8 +350,12 @@ router.post('/api/youtube/import-to-package', async (req, res) => {
       : rawText.slice(0, 600);
 
     fs.writeFileSync(path.join(bundleDir, 'script.txt'), generatedScript, 'utf-8');
-    fs.writeFileSync(path.join(bundleDir, 'source.txt'), factsFormatted, 'utf-8');
-    fs.writeFileSync(path.join(bundleDir, 'original_news.txt'), factsFormatted, 'utf-8');
+    fs.writeFileSync(path.join(bundleDir, 'source.txt'), rawText, 'utf-8');
+    fs.writeFileSync(path.join(bundleDir, 'original_news.txt'), rawText, 'utf-8');
+    if (effectiveFacts?.length) {
+      fs.writeFileSync(path.join(bundleDir, 'facts.json'), JSON.stringify(effectiveFacts, null, 2), 'utf-8');
+      fs.writeFileSync(path.join(bundleDir, 'facts.txt'), factsFormatted, 'utf-8');
+    }
 
     const mdContent = `# 🎬 ${metadata.title}
 **Источник:** YouTube · ${metadata.channel} | **Длина:** ${metadata.duration || 0} сек.
@@ -367,8 +365,8 @@ ${selectedFacts?.length ? `\n### 📌 Выбранные ${concept.labelPlural}:
 ## 🎙️ Сценарий YouTube видео (3 минуты)
 ${generatedScript}
 ---
-## 📝 Исходный транскрипт и ${concept.labelPlural}
-${factsFormatted}
+## 📝 Исходный оригинальный текст / транскрипт
+${rawText}
 `;
     fs.writeFileSync(path.join(bundleDir, 'script.md'), mdContent, 'utf-8');
 
@@ -395,11 +393,12 @@ ${factsFormatted}
       style: selectedStyle.id,
       style_name: selectedStyle.name,
       conceptType,
+      customWord: customWord || undefined,
       selectedFacts: effectiveFacts || null,
       facts: effectiveFacts || null,
       source: `YouTube: ${metadata.channel}`,
-      summary: summaryFormatted,
-      original_news: factsFormatted,
+      summary: rawText.slice(0, 500),
+      original_news: rawText,
       word_count: wordCount,
       created_at: new Date().toISOString(),
       photos: metadata.thumbnail ? ['/news-static/' + folderName + '/photos/yt_original_cover.jpg'] : [],
@@ -426,6 +425,7 @@ ${factsFormatted}
       wordCount,
       metadata,
       conceptType,
+      customWord,
       hasAudio: fs.existsSync(audioPath),
       transcript: transcriptResult,
     });
@@ -438,7 +438,7 @@ ${factsFormatted}
 // POST /api/youtube/regenerate-script
 router.post('/api/youtube/regenerate-script', async (req, res) => {
   try {
-    const { bundleDir, folderName, style = 'scipop', selectedFacts, conceptType: reqConceptType, scriptFormat = 'facts' } = req.body;
+    const { bundleDir, folderName, style = 'scipop', selectedFacts, conceptType: reqConceptType, customWord: reqCustomWord, scriptFormat = 'facts' } = req.body;
     const targetFolder = bundleDir || (folderName ? path.join(newsDir, folderName) : null);
     if (!targetFolder || !fs.existsSync(targetFolder)) return res.status(404).json({ success: false, error: 'Папка пакета не найдена' });
 
@@ -455,7 +455,8 @@ router.post('/api/youtube/regenerate-script', async (req, res) => {
     }
 
     const conceptType = reqConceptType || meta.conceptType || 'facts';
-    const concept = getConceptInfo(conceptType);
+    const customWord = reqCustomWord !== undefined ? reqCustomWord : (meta.customWord || '');
+    const concept = getConceptInfo(conceptType, customWord);
     const selectedStyle = YOUTUBE_STYLES[style] || YOUTUBE_STYLES.scipop;
 
     const effectiveFacts = selectedFacts !== undefined ? selectedFacts : meta.selectedFacts;
@@ -464,6 +465,7 @@ router.post('/api/youtube/regenerate-script', async (req, res) => {
       channel: meta.youtubeMetadata?.channel,
       selectedFacts: effectiveFacts,
       conceptType,
+      customWord,
       scriptFormat,
     });
     const wordCount = generatedScript.split(/\s+/).filter(Boolean).length;
@@ -476,17 +478,11 @@ router.post('/api/youtube/regenerate-script', async (req, res) => {
     } catch {}
 
     if (selectedFacts && Array.isArray(selectedFacts) && selectedFacts.length > 0) {
-      const origRaw = fs.existsSync(path.join(targetFolder, 'source.txt'))
-        ? fs.readFileSync(path.join(targetFolder, 'source.txt'), 'utf-8')
-        : sourceText;
-      const cleanRaw = origRaw.includes('ПОЛНЫЙ ТРАНСКРИПТ ВИДЕО:') ? origRaw.split('ПОЛНЫЙ ТРАНСКРИПТ ВИДЕО:')[1].trim() : origRaw;
-
       const factsFormatted = `📌 ВЫБРАННЫЕ КЛЮЧЕВЫЕ ${concept.headerWord} И ТЕМЫ ДЛЯ СЦЕНАРИЯ (${selectedFacts.length}):\n\n` +
-        selectedFacts.map((f, i) => `${i + 1}. 🌟 ${f.title}\n${f.text}`).join('\n\n') +
-        `\n\n═══════════════════════════════════════════════════════════════════\n📝 ПОЛНЫЙ ТРАНСКРИПТ ВИДЕО:\n\n${cleanRaw}`;
+        selectedFacts.map((f, i) => `${i + 1}. 🌟 ${f.title}\n${f.text}`).join('\n\n');
 
-      fs.writeFileSync(origPath, factsFormatted, 'utf-8');
-      fs.writeFileSync(path.join(targetFolder, 'source.txt'), factsFormatted, 'utf-8');
+      fs.writeFileSync(path.join(targetFolder, 'facts.json'), JSON.stringify(selectedFacts, null, 2), 'utf-8');
+      fs.writeFileSync(path.join(targetFolder, 'facts.txt'), factsFormatted, 'utf-8');
     }
 
     if (fs.existsSync(jsonPath)) {
@@ -497,16 +493,11 @@ router.post('/api/youtube/regenerate-script', async (req, res) => {
         m.word_count = wordCount;
         m.isYouTube = true;
         m.conceptType = conceptType;
+        if (customWord) m.customWord = customWord;
         m.scriptFormat = scriptFormat;
         if (selectedFacts !== undefined) {
           m.selectedFacts = selectedFacts;
           m.facts = selectedFacts;
-          if (selectedFacts?.length) {
-            m.summary = `📌 Выбранные ключевые ${concept.labelPlural} (${selectedFacts.length}):\n` + selectedFacts.map((f, i) => `${i + 1}. ${f.title}`).join('\n');
-            const factsFormatted = `📌 ВЫБРАННЫЕ КЛЮЧЕВЫЕ ${concept.headerWord} И ТЕМЫ ДЛЯ СЦЕНАРИЯ (${selectedFacts.length}):\n\n` +
-              selectedFacts.map((f, i) => `${i + 1}. 🌟 ${f.title}\n${f.text}`).join('\n\n');
-            m.original_news = factsFormatted;
-          }
         }
         if (titleVariants.length > 0) {
           m.title_variants = titleVariants;
@@ -517,7 +508,7 @@ router.post('/api/youtube/regenerate-script', async (req, res) => {
     }
 
     const finalOriginalNews = fs.existsSync(origPath) ? fs.readFileSync(origPath, 'utf-8') : sourceText;
-    res.json({ success: true, text: generatedScript, titleVariants, wordCount, style: selectedStyle.id, conceptType, scriptFormat, originalNews: finalOriginalNews, facts: effectiveFacts });
+    res.json({ success: true, text: generatedScript, titleVariants, wordCount, style: selectedStyle.id, conceptType, customWord, scriptFormat, originalNews: finalOriginalNews, facts: effectiveFacts });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

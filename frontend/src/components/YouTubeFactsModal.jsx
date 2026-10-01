@@ -3,13 +3,13 @@ import ModalHeader from './common/ModalHeader'
 import { YOUTUBE_TOPIC_STYLES, getConceptConfig } from '../lib/utils'
 
 export default function YouTubeFactsModal({
-  isOpen, onClose, facts = [], videoTitle = '', onConfirm, loading = false, currentStyle = 'scipop', conceptType = 'facts',
+  isOpen, onClose, facts = [], videoTitle = '', onConfirm, loading = false, currentStyle = 'scipop', conceptType = 'facts', customWord = '',
 }) {
   const [selectedIds, setSelectedIds] = useState(new Set([1, 2, 3]))
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedStyle, setSelectedStyle] = useState(currentStyle)
 
-  const concept = getConceptConfig(conceptType)
+  const concept = getConceptConfig(conceptType, customWord)
 
   useEffect(() => {
     if (isOpen) {

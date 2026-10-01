@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 import { FEUILLETON_STYLES, YOUTUBE_TOPIC_STYLES, AI_MODELS } from '../lib/utils'
 import ScriptHookGenerator from './script/ScriptHookGenerator'
 import ScriptToolbar from './script/ScriptToolbar'
+import YouTubeFactsModal from './YouTubeFactsModal'
 import ModalHeader from './common/ModalHeader'
 
 export default function NewsScriptModal({ pkg, onClose, onSaved }) {
@@ -10,7 +11,10 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
 
   const [text, setText] = useState(pkg.scriptTxt || pkg.scriptMd || '')
   const [originalNews, setOriginalNews] = useState(pkg.original_news || pkg.summary || pkg.originalNews || '')
+  const [extractedFacts, setExtractedFacts] = useState(pkg.facts || pkg.selectedFacts || [])
   const [showOriginal, setShowOriginal] = useState(true)
+  const [showFactsSection, setShowFactsSection] = useState(Boolean(pkg.facts?.length || pkg.selectedFacts?.length))
+  const [showFactsModalFromSection, setShowFactsModalFromSection] = useState(false)
   const [selectedStyle, setSelectedStyle] = useState(pkg.style || (pkg.isYouTube ? 'scipop' : 'golubuzki'))
   const [selectedModel, setSelectedModel] = useState(pkg.model || 'gemini')
   const [selectedTone, setSelectedTone] = useState(pkg.tone || 'grotesque')
@@ -28,6 +32,7 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
   useEffect(() => {
     setText(pkg.scriptTxt || pkg.scriptMd || '')
     setOriginalNews(pkg.original_news || pkg.summary || pkg.originalNews || '')
+    if (pkg.facts || pkg.selectedFacts) setExtractedFacts(pkg.facts || pkg.selectedFacts)
     setPos({ x: 0, y: 0 })
 
     const folderName = pkg.folderName || ''
@@ -40,6 +45,11 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
           if (data.success) {
             if (typeof data.text === 'string') setText(data.text)
             if (data.originalNews || data.summary) setOriginalNews(data.originalNews || data.summary)
+            if (data.facts && Array.isArray(data.facts)) {
+              setExtractedFacts(data.facts)
+              pkg.facts = data.facts
+              pkg.selectedFacts = data.facts
+            }
           }
         })
         .catch(() => {})
@@ -68,27 +78,29 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
     }
   }, [isDragging])
 
-  const handleRegenerateScript = async (styleToUse = selectedStyle, modelToUse = selectedModel, toneToUse = selectedTone, chosenFacts = null, conceptToUse = 'facts', scriptFormat = 'feuilleton') => {
+  const handleRegenerateScript = async (styleToUse = selectedStyle, modelToUse = selectedModel, toneToUse = selectedTone, chosenFacts = null, conceptToUse = pkg.conceptType || 'facts', scriptFormat = pkg.scriptFormat || 'feuilleton', customWord = pkg.customWord || '') => {
     setRegenerating(true)
-    const isYt = ['scipop', 'mystery', 'tech_future', 'psychology', 'storytelling'].includes(styleToUse) || pkg.isYouTube
+    const isYt = ['scipop', 'mystery', 'tech_future', 'psychology', 'storytelling', 'short_sarcasm'].includes(styleToUse) || pkg.isYouTube
     const allStyles = [...FEUILLETON_STYLES, ...YOUTUBE_TOPIC_STYLES]
     const styleName = allStyles.find(s => s.id === styleToUse)?.name || styleToUse
     const modelName = AI_MODELS.find(m => m.id === modelToUse)?.name || modelToUse
     const toneLabel = toneToUse === 'analytics' ? '🧠 Аналитика' : '💥 Сатира'
     const formatLabel = scriptFormat === 'feuilleton' ? '🎭 Фельетон' : '🔢 По пунктам'
-    const toastId = toast.loading(chosenFacts?.length ? `✨ Сценарий (${formatLabel}, ${chosenFacts.length} пунктов)...` : `🔄 Перегенерация (${formatLabel}, ${toneLabel})...`, {
+    const hasFacts = Array.isArray(chosenFacts) && chosenFacts.length > 0
+    const toastId = toast.loading(hasFacts ? `✨ Сценарий (${formatLabel}, ${chosenFacts.length} пунктов)...` : `🔄 Генерация (${formatLabel}, напрямую из оригинала)...`, {
       description: `${modelName} | ${styleName}`,
     })
 
     try {
       const endpoint = isYt ? '/api/youtube/regenerate-script' : '/api/generate-feuilleton'
       const payload = isYt
-        ? { folderName: pkg.folderName, bundleDir: pkg.bundleDir, style: styleToUse, selectedFacts: chosenFacts, conceptType: conceptToUse, scriptFormat }
+        ? { folderName: pkg.folderName, bundleDir: pkg.bundleDir, style: styleToUse, selectedFacts: chosenFacts, conceptType: conceptToUse, customWord, scriptFormat }
         : {
             folderName: pkg.folderName, bundleDir: pkg.bundleDir, url: pkg.url || pkg.link || '',
             title: pkg.original_title || pkg.title,
-            summary: chosenFacts?.length ? chosenFacts.map(f => `${f.title}: ${f.text}`).join('\n\n') : (originalNews || pkg.original_news || pkg.summary || (text ? text.slice(0, 350) : '') || ''),
-            style: styleToUse, tone: toneToUse, source: pkg.source || '', model: modelToUse, conceptType: conceptToUse, scriptFormat,
+            summary: originalNews || pkg.original_news || pkg.summary || (text ? text.slice(0, 350) : '') || '',
+            selectedFacts: chosenFacts,
+            style: styleToUse, tone: toneToUse, source: pkg.source || '', model: modelToUse, conceptType: conceptToUse, customWord, scriptFormat,
             saveToPackage: Boolean(pkg.folderName || pkg.bundleDir),
           }
 
@@ -108,26 +120,23 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
         pkg.hasScriptTxt = true
         pkg.hasScriptMd = true
         pkg.scriptFormat = scriptFormat
-        pkg.selectedFacts = chosenFacts || data.facts || null
-        if (data.originalNews) {
-          setOriginalNews(data.originalNews)
-          pkg.original_news = data.originalNews
-          pkg.summary = data.originalNews
-        } else if (chosenFacts && Array.isArray(chosenFacts) && chosenFacts.length > 0) {
-          const factsText = `📌 Выбранные ключевые темы (${chosenFacts.length}):\n\n` +
-            chosenFacts.map((f, i) => `${i + 1}. 🌟 ${f.title}\n${f.text}`).join('\n\n')
-          setOriginalNews(factsText)
-          pkg.original_news = factsText
-          pkg.summary = factsText
+        pkg.conceptType = conceptToUse
+        if (customWord) pkg.customWord = customWord
+        if (hasFacts || (data.facts && Array.isArray(data.facts) && data.facts.length > 0)) {
+          const finalFacts = chosenFacts || data.facts
+          setExtractedFacts(finalFacts)
+          pkg.selectedFacts = finalFacts
+          pkg.facts = finalFacts
+          setShowFactsSection(true)
         }
         if (fData.title) pkg.title = fData.title
         if (onSaved) onSaved()
-        toast.success(chosenFacts?.length ? `🎉 Сценарий (${formatLabel}) создан по ${chosenFacts.length} ключевым фактам!` : `✨ Новый вариант текста (${formatLabel}) готов и сохранен!`, { id: toastId })
+        toast.success(hasFacts ? `🎉 Сценарий (${formatLabel}) создан по ${chosenFacts.length} ключевым пунктам!` : `✨ Текст (${formatLabel}) успешно сгенерирован напрямую из оригинальной новости!`, { id: toastId })
       } else {
         toast.warning('Ответ ИИ не содержит нового текста', { id: toastId })
       }
     } catch (err) {
-      toast.error('Ошибка перегенерации', { id: toastId, description: err.message })
+      toast.error('Ошибка генерации', { id: toastId, description: err.message })
     } finally {
       setRegenerating(false)
     }
@@ -136,13 +145,13 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
   const handleSaveText = async () => {
     if (!text.trim() && !originalNews.trim()) return
     setSavingText(true)
-    const toastId = toast.loading('Сохранение script.txt и оригинала...', { description: 'Обновление файлов на диске...' })
+    const toastId = toast.loading('Сохранение script.txt, оригинала и фактов...', { description: 'Обновление файлов на диске...' })
 
     try {
       const res = await fetch('/api/save-script-text', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bundleDir: pkg.bundleDir, folderName: pkg.folderName, text, originalNews }),
+        body: JSON.stringify({ bundleDir: pkg.bundleDir, folderName: pkg.folderName, text, originalNews, facts: extractedFacts }),
       })
       const data = await res.json()
       if (!res.ok || !data.success) throw new Error(data.error || 'Ошибка сохранения текста')
@@ -150,12 +159,14 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
       pkg.scriptTxt = text
       pkg.original_news = originalNews
       pkg.summary = originalNews
+      pkg.facts = extractedFacts
+      pkg.selectedFacts = extractedFacts
       if (onSaved) onSaved()
 
-      toast.success('💾 Сценарий и оригинальная новость успешно сохранены!', {
+      toast.success('💾 Сценарий, оригинальная новость и пункты успешно сохранены!', {
         id: toastId,
-        description: `Сохранено в news/${data.folderName}/script.txt и source.txt`,
-        duration: 6000,
+        description: `Сохранено в news/${data.folderName}/`,
+        duration: 5000,
       })
     } catch (err) {
       toast.error('Ошибка сохранения текста', { id: toastId, description: err.message })
@@ -304,6 +315,110 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
             )}
           </div>
 
+          {/* 💡 Отдельный блок извлеченных фактов / тезисов */}
+          <div style={{ background: '#090d16', border: '1px solid #d97706', borderRadius: '6px', padding: '0.65rem 0.85rem', marginBottom: '0.75rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <span style={{ fontSize: '0.76rem', fontWeight: 800, color: '#fcd34d', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                💡 Извлеченные пункты / тезисы ({extractedFacts.length})
+                {extractedFacts.length > 0 && (
+                  <span style={{ fontSize: '0.7rem', color: '#fbbf24', background: '#451a03', padding: '0.1rem 0.4rem', borderRadius: '4px', border: '1px solid #b45309' }}>
+                    Готовы для генерации
+                  </span>
+                )}
+              </span>
+              <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                {extractedFacts.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => handleRegenerateScript(selectedStyle, selectedModel, selectedTone, extractedFacts, pkg.conceptType, pkg.scriptFormat, pkg.customWord)}
+                    disabled={regenerating}
+                    style={{
+                      background: 'linear-gradient(135deg, #d97706, #b45309)',
+                      border: '1px solid #f59e0b',
+                      color: '#ffffff',
+                      borderRadius: '4px',
+                      padding: '0.2rem 0.6rem',
+                      fontSize: '0.74rem',
+                      cursor: regenerating ? 'not-allowed' : 'pointer',
+                      fontWeight: 700,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.3rem',
+                    }}
+                    title="Сгенерировать дикторский текст на основе этих сохраненных пунктов"
+                  >
+                    ⚡ Сгенерировать по пунктам
+                  </button>
+                )}
+                {extractedFacts.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowFactsModalFromSection(true)}
+                    style={{ background: '#1e293b', border: '1px solid #d97706', color: '#fcd34d', borderRadius: '4px', padding: '0.2rem 0.55rem', fontSize: '0.72rem', cursor: 'pointer', fontWeight: 600 }}
+                    title="Открыть детальный диалог выбора и редактирования пунктов"
+                  >
+                    🔍 Диалог пунктов
+                  </button>
+                )}
+                {extractedFacts.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setExtractedFacts([])
+                      pkg.facts = []
+                      pkg.selectedFacts = []
+                      toast.info('Список извлеченных пунктов очищен')
+                    }}
+                    style={{ background: 'transparent', border: '1px solid #475569', color: '#94a3b8', borderRadius: '4px', padding: '0.2rem 0.45rem', fontSize: '0.72rem', cursor: 'pointer' }}
+                    title="Очистить список пунктов (оригинальная новость останется нетронутой)"
+                  >
+                    🗑️ Очистить
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setShowFactsSection(!showFactsSection)}
+                  style={{ background: 'transparent', border: '1px solid #334155', color: '#94a3b8', borderRadius: '4px', padding: '0.2rem 0.45rem', fontSize: '0.72rem', cursor: 'pointer' }}
+                >
+                  {showFactsSection ? 'Свернуть ▲' : 'Развернуть ▼'}
+                </button>
+              </div>
+            </div>
+
+            {showFactsSection && (
+              <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid #1e293b' }}>
+                {extractedFacts.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', maxHeight: '200px', overflowY: 'auto', paddingRight: '0.3rem' }}>
+                    {extractedFacts.map((fact, idx) => (
+                      <div
+                        key={fact.id || idx}
+                        style={{
+                          background: '#040711',
+                          border: '1px solid #1e293b',
+                          borderRadius: '5px',
+                          padding: '0.4rem 0.6rem',
+                          fontSize: '0.8rem',
+                          color: '#e2e8f0',
+                        }}
+                      >
+                        <div style={{ fontWeight: 700, color: '#fcd34d', marginBottom: '0.15rem' }}>
+                          #{idx + 1}. {fact.title || `Пункт ${idx + 1}`}
+                        </div>
+                        <div style={{ color: '#cbd5e1', fontSize: '0.78rem', lineHeight: '1.4' }}>
+                          {fact.text || fact.description || (typeof fact === 'string' ? fact : '')}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ fontSize: '0.82rem', color: '#64748b', fontStyle: 'italic', padding: '0.3rem 0' }}>
+                    Пункты еще не извлечены. Нажмите «🔍 Извлечь» в верхней панели, чтобы сгенерировать тезисы/факты отдельно от оригинальной новости, либо генерируйте текст сразу напрямую из оригинала.
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
           <ScriptHookGenerator
             title={pkg.original_title || pkg.title}
             summary={originalNews || pkg.summary || ''}
@@ -378,6 +493,22 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
           <button className="close-btn" onClick={onClose}>Закрыть</button>
         </div>
       </div>
+
+      {showFactsModalFromSection && (
+        <YouTubeFactsModal
+          isOpen={showFactsModalFromSection}
+          onClose={() => setShowFactsModalFromSection(false)}
+          facts={extractedFacts}
+          videoTitle={pkg.title || pkg.original_title || 'Оригинальный текст'}
+          conceptType={pkg.conceptType || 'theses'}
+          customWord={pkg.customWord || ''}
+          onConfirm={(chosenFacts, style) => {
+            setShowFactsModalFromSection(false)
+            handleRegenerateScript(style || selectedStyle, selectedModel, selectedTone, chosenFacts, pkg.conceptType, pkg.scriptFormat, pkg.customWord)
+          }}
+          loading={regenerating}
+        />
+      )}
     </div>
   )
 }

@@ -13,7 +13,8 @@ export default function PackageScriptSection({
   onOpenTitleVariants,
   onRefresh,
 }) {
-  const [selectedConcept, setSelectedConcept] = useState(pkg?.conceptType || 'theses')
+  const [selectedConcept, setSelectedConcept] = useState(pkg?.customWord ? 'custom' : (pkg?.conceptType || 'theses'))
+  const [customConceptWord, setCustomConceptWord] = useState(pkg?.customWord || '')
   const [scriptFormat, setScriptFormat] = useState(pkg?.scriptFormat || 'feuilleton') // 'feuilleton' (цельный текст) vs 'facts' (по пунктам со счетом)
   const [generating, setGenerating] = useState(false)
   const [factsLoading, setFactsLoading] = useState(false)
@@ -22,19 +23,19 @@ export default function PackageScriptSection({
   const [factsGenerating, setFactsGenerating] = useState(false)
   const [factsCount, setFactsCount] = useState(10)
 
-  const currentConcept = getConceptConfig(selectedConcept)
+  const currentConcept = getConceptConfig(selectedConcept, customConceptWord)
 
   // 1. Генерация сценария (1 клик: фельетон или по пунктам)
   const handleGenerateFromOriginal = async () => {
-    const isYt = ['scipop', 'mystery', 'tech_future', 'psychology', 'storytelling'].includes(selectedScriptStyle) || pkg.isYouTube || (pkg.source || '').includes('YouTube') || (pkg.url || '').includes('youtube.com') || (pkg.url || '').includes('youtu.be')
+    const isYt = ['scipop', 'mystery', 'tech_future', 'psychology', 'storytelling', 'short_sarcasm'].includes(selectedScriptStyle) || pkg.isYouTube || (pkg.source || '').includes('YouTube') || (pkg.url || '').includes('youtube.com') || (pkg.url || '').includes('youtu.be')
     const formatLabel = scriptFormat === 'feuilleton' ? '🎭 цельный фельетон' : `🔢 по 10 ${currentConcept.labelPlural} со счетом`
     const toastId = toast.loading(`✨ ИИ создает ${formatLabel}...`)
     try {
       setGenerating(true)
       const endpoint = isYt ? '/api/youtube/regenerate-script' : '/api/generate-feuilleton'
       const payload = isYt
-        ? { folderName: pkg.folderName, bundleDir: pkg.bundleDir, style: selectedScriptStyle, selectedFacts: pkg.facts || pkg.selectedFacts || null, conceptType: selectedConcept, scriptFormat }
-        : { folderName: pkg.folderName, bundleDir: pkg.bundleDir, title: pkg.title || pkg.original_title, summary: pkg.summary || pkg.original_news || '', url: pkg.url || '', style: selectedScriptStyle, conceptType: selectedConcept, scriptFormat, saveToPackage: true }
+        ? { folderName: pkg.folderName, bundleDir: pkg.bundleDir, style: selectedScriptStyle, selectedFacts: pkg.facts || pkg.selectedFacts || null, conceptType: selectedConcept, customWord: customConceptWord, scriptFormat }
+        : { folderName: pkg.folderName, bundleDir: pkg.bundleDir, title: pkg.title || pkg.original_title, summary: pkg.summary || pkg.original_news || '', url: pkg.url || '', style: selectedScriptStyle, conceptType: selectedConcept, customWord: customConceptWord, scriptFormat, saveToPackage: true }
 
       const res = await fetch(endpoint, {
         method: 'POST',
@@ -49,6 +50,7 @@ export default function PackageScriptSection({
         pkg.scriptTxt = data.text || data.feuilleton.text
         pkg.selectedFacts = data.facts || pkg.selectedFacts || null
         pkg.conceptType = selectedConcept
+        if (customConceptWord) pkg.customWord = customConceptWord
         pkg.scriptFormat = scriptFormat
         if (data.originalNews) {
           pkg.original_news = data.originalNews
@@ -70,9 +72,9 @@ export default function PackageScriptSection({
   }
 
   // 2. Открытие модального окна пунктов (от 5 до 15, или 20)
-  const handleOpenFactsModal = async (targetCount = factsCount, conceptToUse = selectedConcept) => {
-    const conceptCfg = getConceptConfig(conceptToUse)
-    if (facts.length > 0 && facts.length === targetCount && pkg?.conceptType === conceptToUse) {
+  const handleOpenFactsModal = async (targetCount = factsCount, conceptToUse = selectedConcept, customWordToUse = customConceptWord) => {
+    const conceptCfg = getConceptConfig(conceptToUse, customWordToUse)
+    if (facts.length > 0 && facts.length === targetCount && pkg?.conceptType === conceptToUse && (!customWordToUse || pkg?.customWord === customWordToUse)) {
       setShowFactsModal(true)
       return
     }
@@ -89,6 +91,7 @@ export default function PackageScriptSection({
           title: pkg.original_title || pkg.title || '',
           count: targetCount,
           conceptType: conceptToUse,
+          customWord: customWordToUse,
         }),
       })
       const data = await res.json()
@@ -111,7 +114,7 @@ export default function PackageScriptSection({
   // 3. Генерация сценария по выбранным пунктам
   const handleGenerateByFacts = async (chosenFacts) => {
     setFactsGenerating(true)
-    const isYt = ['scipop', 'mystery', 'tech_future', 'psychology', 'storytelling'].includes(selectedScriptStyle)
+    const isYt = ['scipop', 'mystery', 'tech_future', 'psychology', 'storytelling', 'short_sarcasm'].includes(selectedScriptStyle)
     const formatLabel = scriptFormat === 'feuilleton' ? 'цельного фельетона' : `сценария по ${chosenFacts.length} ${currentConcept.labelPlural}`
     const toastId = toast.loading(`✨ Создание ${formatLabel}...`, {
       description: 'Gemini 3.8 Flash пишет захватывающий текст...',
@@ -119,8 +122,8 @@ export default function PackageScriptSection({
     try {
       const endpoint = isYt ? '/api/youtube/regenerate-script' : '/api/generate-feuilleton'
       const payload = isYt
-        ? { folderName: pkg.folderName, bundleDir: pkg.bundleDir, style: selectedScriptStyle, selectedFacts: chosenFacts, conceptType: selectedConcept, scriptFormat }
-        : { folderName: pkg.folderName, bundleDir: pkg.bundleDir, title: pkg.title || pkg.original_title, summary: chosenFacts.map(f => `${f.title}: ${f.text}`).join('\n\n'), url: pkg.url || '', style: selectedScriptStyle, conceptType: selectedConcept, scriptFormat, saveToPackage: true }
+        ? { folderName: pkg.folderName, bundleDir: pkg.bundleDir, style: selectedScriptStyle, selectedFacts: chosenFacts, conceptType: selectedConcept, customWord: customConceptWord, scriptFormat }
+        : { folderName: pkg.folderName, bundleDir: pkg.bundleDir, title: pkg.title || pkg.original_title, summary: chosenFacts.map(f => `${f.title}: ${f.text}`).join('\n\n'), url: pkg.url || '', style: selectedScriptStyle, conceptType: selectedConcept, customWord: customConceptWord, scriptFormat, saveToPackage: true }
 
       const res = await fetch(endpoint, {
         method: 'POST',
@@ -135,6 +138,7 @@ export default function PackageScriptSection({
         pkg.scriptTxt = data.text || data.feuilleton.text
         pkg.selectedFacts = chosenFacts || data.facts || null
         pkg.conceptType = selectedConcept
+        if (customConceptWord) pkg.customWord = customConceptWord
         pkg.scriptFormat = scriptFormat
         if (data.originalNews) {
           pkg.original_news = data.originalNews
@@ -188,19 +192,46 @@ export default function PackageScriptSection({
             <optgroup label="🎭 Авторские (Сатира)">{FEUILLETON_STYLES.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</optgroup>
           </select>
 
-          {/* Выбор понятия: Факты / Тезисы / Детали / Сигналы / Выводы / Пункты */}
-          <select
-            value={selectedConcept}
-            onChange={e => {
-              const nextVal = e.target.value
-              setSelectedConcept(nextVal)
-              setFacts([])
-            }}
-            style={{ background: '#1e293b', color: '#fcd34d', border: '1px solid #d97706', borderRadius: '6px', fontSize: '0.8rem', padding: '0.35rem 0.5rem', cursor: 'pointer', fontWeight: 600 }}
-            title="Формат пунктов (Факты, Тезисы, Детали, Сигналы, Выводы, Пункты)"
-          >
-            {FACT_CONCEPT_TYPES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
+          {/* Выбор понятия: Факты / Тезисы / Детали / Сигналы / Выводы / Пункты / Причины / Своё слово */}
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#94a3b8' }}>📌 Тематика:</span>
+            <select
+              value={selectedConcept}
+              onChange={e => {
+                const nextVal = e.target.value
+                setSelectedConcept(nextVal)
+                setFacts([])
+              }}
+              style={{ background: '#1e293b', color: '#fcd34d', border: '1px solid #d97706', borderRadius: '6px', fontSize: '0.8rem', padding: '0.35rem 0.5rem', cursor: 'pointer', fontWeight: 600 }}
+              title="Формат пунктов (Факты, Тезисы, Детали, Причины, Ошибки, Секреты или своё слово)"
+            >
+              {FACT_CONCEPT_TYPES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+
+            {selectedConcept === 'custom' && (
+              <input
+                type="text"
+                placeholder="Своё слово (причин, ошибок...)"
+                value={customConceptWord}
+                onChange={e => {
+                  setCustomConceptWord(e.target.value)
+                  setFacts([])
+                }}
+                disabled={generating || factsLoading}
+                style={{
+                  background: '#090d16',
+                  color: '#fcd34d',
+                  border: '1px solid #d97706',
+                  borderRadius: '6px',
+                  padding: '0.28rem 0.45rem',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  width: '180px',
+                }}
+                title="Введите ваше понятие в родительном падеже (например: причин, секретов, ударов, шагов)"
+              />
+            )}
+          </div>
 
           {/* Переключатель: Цельный фельетон vs По пунктам со счетом */}
           <div style={{ display: 'inline-flex', alignItems: 'center', background: '#020617', borderRadius: '6px', padding: '2px', border: '1px solid #d97706' }}>
@@ -248,7 +279,7 @@ export default function PackageScriptSection({
               onChange={e => {
                 const nextCnt = Number(e.target.value)
                 setFactsCount(nextCnt)
-                handleOpenFactsModal(nextCnt, selectedConcept)
+                handleOpenFactsModal(nextCnt, selectedConcept, customConceptWord)
               }}
               disabled={factsLoading || factsGenerating}
               style={{
@@ -271,7 +302,7 @@ export default function PackageScriptSection({
             </select>
             <button
               type="button"
-              onClick={() => handleOpenFactsModal(factsCount, selectedConcept)}
+              onClick={() => handleOpenFactsModal(factsCount, selectedConcept, customConceptWord)}
               disabled={factsLoading || factsGenerating}
               style={{
                 fontSize: '0.76rem',
@@ -324,6 +355,7 @@ export default function PackageScriptSection({
           videoTitle={pkg.title || pkg.original_title || 'Оригинальный текст'}
           currentStyle={selectedScriptStyle}
           conceptType={selectedConcept}
+          customWord={customConceptWord}
           onConfirm={(chosenFacts, chosenStyle) => {
             if (chosenStyle && setSelectedScriptStyle) setSelectedScriptStyle(chosenStyle)
             handleGenerateByFacts(chosenFacts)
