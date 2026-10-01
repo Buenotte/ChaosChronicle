@@ -20,6 +20,8 @@ export default function PackageVideoSection({
   setSubBannerTime,
   bannerStyle = 'modern_dark',
   setBannerStyle,
+  includeKaraokeSubtitles = true,
+  setIncludeKaraokeSubtitles,
   videoRef,
   isPlaying,
   currentTime,
@@ -28,6 +30,7 @@ export default function PackageVideoSection({
   seekVideo,
   onGenerateVideo,
   onOpenVideoModal,
+  onOpenSubtitlesStudio,
   onTimeUpdate,
   onLoadedMetadata,
 }) {
@@ -198,6 +201,15 @@ export default function PackageVideoSection({
                 {generatingVideo ? '⏳ Пересборка...' : '🔄 Собрать видео заново'}
               </button>
               <button
+                type="button"
+                className="copy-btn"
+                style={{ background: '#2563eb', fontWeight: 700 }}
+                onClick={onOpenSubtitlesStudio}
+                title="Настройка шрифта, размера, цвета, подложки и точного предпросмотра караоке-субтитров 16:9"
+              >
+                🎨 Субтитры (16:9 Студия)
+              </button>
+              <button
                 className="copy-btn"
                 style={{ background: '#10b981' }}
                 onClick={onOpenVideoModal}
@@ -227,6 +239,9 @@ export default function PackageVideoSection({
               setBannerStyle={setBannerStyle}
               subBannerTime={subBannerTime}
               setSubBannerTime={setSubBannerTime}
+              includeKaraokeSubtitles={includeKaraokeSubtitles}
+              setIncludeKaraokeSubtitles={setIncludeKaraokeSubtitles}
+              onOpenSubtitlesStudio={onOpenSubtitlesStudio}
             />
           </div>
         </div>
@@ -271,6 +286,15 @@ export default function PackageVideoSection({
                 <button
                   type="button"
                   className="copy-btn"
+                  style={{ background: '#2563eb', fontWeight: 700 }}
+                  onClick={onOpenSubtitlesStudio}
+                  title="Настроить субтитры 16:9 с живым предпросмотром перед созданием видео"
+                >
+                  🎨 Настроить субтитры (16:9)
+                </button>
+                <button
+                  type="button"
+                  className="copy-btn"
                   style={{
                     background: showBannerPreview ? '#ec4899' : '#1e293b',
                     color: '#fff',
@@ -291,6 +315,9 @@ export default function PackageVideoSection({
                 setBannerStyle={setBannerStyle}
                 subBannerTime={subBannerTime}
                 setSubBannerTime={setSubBannerTime}
+                includeKaraokeSubtitles={includeKaraokeSubtitles}
+                setIncludeKaraokeSubtitles={setIncludeKaraokeSubtitles}
+                onOpenSubtitlesStudio={onOpenSubtitlesStudio}
               />
             </div>
           </div>
@@ -299,19 +326,54 @@ export default function PackageVideoSection({
   )
 }
 
-function BannerSettingsBar({ includeSubBanner, setIncludeSubBanner, bannerStyle, setBannerStyle, subBannerTime, setSubBannerTime }) {
-  if (!setIncludeSubBanner) return null
+function BannerSettingsBar({ includeSubBanner, setIncludeSubBanner, bannerStyle, setBannerStyle, subBannerTime, setSubBannerTime, includeKaraokeSubtitles, setIncludeKaraokeSubtitles, onOpenSubtitlesStudio }) {
+  if (!setIncludeSubBanner && !setIncludeKaraokeSubtitles) return null
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', background: '#181c27', padding: '0.45rem 0.75rem', borderRadius: '6px', border: '1px solid #27272a' }}>
-      <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.82rem', color: '#cbd5e1', cursor: 'pointer', margin: 0 }}>
-        <input
-          type="checkbox"
-          checked={includeSubBanner}
-          onChange={e => setIncludeSubBanner(e.target.checked)}
-          style={{ accentColor: '#10b981', cursor: 'pointer' }}
-        />
-        <span>🔔 Анимация подписки</span>
-      </label>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', background: '#181c27', padding: '0.45rem 0.75rem', borderRadius: '6px', border: '1px solid #27272a' }}>
+      {setIncludeKaraokeSubtitles && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.82rem', color: '#fcd34d', cursor: 'pointer', margin: 0, fontWeight: 700 }}>
+            <input
+              type="checkbox"
+              checked={Boolean(includeKaraokeSubtitles)}
+              onChange={e => setIncludeKaraokeSubtitles(e.target.checked)}
+              style={{ accentColor: '#f59e0b', cursor: 'pointer' }}
+            />
+            <span>💬 Караоке-субтитры (подсветка слов)</span>
+          </label>
+          {onOpenSubtitlesStudio && (
+            <button
+              type="button"
+              onClick={onOpenSubtitlesStudio}
+              style={{
+                background: '#2563eb22',
+                color: '#60a5fa',
+                border: '1px solid #3b82f6',
+                borderRadius: '4px',
+                padding: '0.15rem 0.45rem',
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+              title="Открыть редактор караоке-субтитров 16:9 с предпросмотром"
+            >
+              ⚙️ Стиль и Live Preview
+            </button>
+          )}
+        </div>
+      )}
+
+      {setIncludeSubBanner && (
+        <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.82rem', color: '#cbd5e1', cursor: 'pointer', margin: 0 }}>
+          <input
+            type="checkbox"
+            checked={includeSubBanner}
+            onChange={e => setIncludeSubBanner(e.target.checked)}
+            style={{ accentColor: '#10b981', cursor: 'pointer' }}
+          />
+          <span>🔔 Анимация подписки</span>
+        </label>
+      )}
 
       {includeSubBanner && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: 'auto', flexWrap: 'wrap' }}>

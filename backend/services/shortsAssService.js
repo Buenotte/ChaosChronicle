@@ -70,6 +70,7 @@ export function generateSpeechDialogueEvents(opts = {}) {
     speechFontSize = 115, speechColor = 'yellow', speechInactiveColor = 'white', speechPosY = 980,
     speechStrokeWidth = 12, speechStrokeColor = 'black', speechShadowDistance = 6, speechShadowColor = 'black',
     speechBoxMode = 'pill', speechBoxColor = 'black', speechBoxOpacity = 88, speechPacing = 'wave', speechFont = 'Russo One',
+    resX = 1080, resY = 1920, isLandscape = false,
   } = opts;
 
   if (!speechText || typeof speechText !== 'string') return [];
@@ -108,25 +109,40 @@ export function generateSpeechDialogueEvents(opts = {}) {
   }
 
   const isSingle = speechPacing === 'single', isTwoWords = speechPacing === 'blitz' || speechPacing === 'two';
-  const maxWordsPerWave = isSingle ? 1 : (isTwoWords ? 2 : 4);
-  const maxLenPerWave = isSingle ? 14 : (isTwoWords ? 24 : 36);
+  const customMaxWords = Number(opts.speechMaxWords) > 0 ? Number(opts.speechMaxWords) : 0;
+  const customMaxChars = Number(opts.speechMaxChars) > 0 ? Number(opts.speechMaxChars) : 0;
+  const maxWordsPerWave = customMaxWords || (isSingle ? 1 : (isTwoWords ? 2 : (isLandscape ? 8 : 4)));
+  const maxLenPerWave = customMaxChars || (isSingle ? 14 : (isTwoWords ? 24 : (isLandscape ? 70 : 36)));
+  const lineMode = opts.speechLineMode || 'auto'; // 'auto' | 'single' | 'double'
 
   const waveChunks = [];
   let curChunk = [], curLen = 0;
   for (let i = 0; i < timedWords.length; i++) {
     const tw = timedWords[i];
     curChunk.push(tw); curLen += tw.word.length;
-    if (/[.!?]$/.test(tw.word) || curChunk.length >= maxWordsPerWave || curLen >= maxLenPerWave || i === timedWords.length - 1) {
+    const isPunctEnd = /[.!?]$/.test(tw.word);
+    const reachedWordLimit = curChunk.length >= maxWordsPerWave;
+    const reachedLenLimit = curLen >= maxLenPerWave;
+    const isLastWord = i === timedWords.length - 1;
+
+    if (isSingle || isTwoWords) {
+      if (curChunk.length >= maxWordsPerWave || isLastWord) {
+        waveChunks.push(curChunk); curChunk = []; curLen = 0;
+      }
+    } else if (reachedWordLimit || reachedLenLimit || isLastWord || (isPunctEnd && curChunk.length >= Math.max(2, Math.floor(maxWordsPerWave * 0.4)))) {
       waveChunks.push(curChunk); curChunk = []; curLen = 0;
     }
   }
   if (curChunk.length > 0) waveChunks.push(curChunk);
   if (waveChunks.length === 0) return [];
 
-  const bW = Number(speechStrokeWidth) >= 0 ? Number(speechStrokeWidth) : 8, sD = Number(speechShadowDistance) >= 0 ? Number(speechShadowDistance) : 4;
+  const bW = Number(speechStrokeWidth) >= 0 ? Number(speechStrokeWidth) : (isLandscape ? 4 : 8);
+  const sD = Number(speechShadowDistance) >= 0 ? Number(speechShadowDistance) : (isLandscape ? 2 : 4);
   const strokeTag = toShortsAssTagColor(speechStrokeColor || 'black'), shadowTag = toShortsAssTagColor(speechShadowColor || 'black');
   const highlightTag = toShortsAssTagColor(speechColor || 'yellow'), inactiveTag = toShortsAssTagColor(speechInactiveColor || 'white');
   const dialogues = [];
+  const centerX = Math.round(resX / 2);
+  const maxSafeW = Math.round(resX * (isLandscape ? 0.94 : 0.88));
 
   const calcLineW = (words, sz) => {
     let w = 0;
@@ -144,32 +160,53 @@ export function generateSpeechDialogueEvents(opts = {}) {
     const chunkEnd = Math.min(maxEnd, Math.max(chunkStart + 0.3, lastWordEnd + 0.2));
     const chunkStartTime = formatAssTime(chunkStart), chunkEndTime = formatAssTime(chunkEnd);
 
-    let baseFontSize = Number(speechFontSize) || 115;
-    const isMultiLine = chunk.length > 2;
-    const splitIdx = isMultiLine ? Math.ceil(chunk.length / 2) : chunk.length;
-    const line1Words = chunk.slice(0, splitIdx), line2Words = isMultiLine ? chunk.slice(splitIdx) : [];
+    let baseFontSize = Number(speechFontSize) || (isLandscape ? 44 : 115);
+    
+    let isMultiLine = false;
+    if (lineMode === 'double') {
+      isMultiLine = chunk.length >= 2;
+    } else if (lineMode === 'single') {
+      isMultiLine = false;
+    } else {
+      // 'auto' mode
+      isMultiLine = isLandscape ? (chunk.length >= 8) : (chunk.length > 2);
+    }
+
+    let splitIdx = isMultiLine ? Math.ceil(chunk.length / 2) : chunk.length;
+    let line1Words = chunk.slice(0, splitIdx), line2Words = isMultiLine ? chunk.slice(splitIdx) : [];
 
     let w1 = calcLineW(line1Words, baseFontSize), w2 = isMultiLine ? calcLineW(line2Words, baseFontSize) : 0;
     let maxLineW = Math.max(w1, w2);
 
-    if (maxLineW > 960) {
-      baseFontSize = Math.max(80, Math.floor(baseFontSize * (960 / maxLineW)));
-      w1 = calcLineW(line1Words, baseFontSize); w2 = isMultiLine ? calcLineW(line2Words, baseFontSize) : 0;
-      maxLineW = Math.max(w1, w2);
+    if (maxLineW > maxSafeW) {
+      if (lineMode === 'auto' && !isMultiLine && chunk.length >= 4) {
+        isMultiLine = true;
+        splitIdx = Math.ceil(chunk.length / 2);
+        line1Words = chunk.slice(0, splitIdx);
+        line2Words = chunk.slice(splitIdx);
+        w1 = calcLineW(line1Words, baseFontSize);
+        w2 = calcLineW(line2Words, baseFontSize);
+        maxLineW = Math.max(w1, w2);
+      }
+      if (maxLineW > maxSafeW) {
+        baseFontSize = Math.max(isLandscape ? 22 : 75, Math.floor(baseFontSize * (maxSafeW / maxLineW)));
+        w1 = calcLineW(line1Words, baseFontSize);
+        w2 = isMultiLine ? calcLineW(line2Words, baseFontSize) : 0;
+        maxLineW = Math.max(w1, w2);
+      }
     }
 
     if (speechBoxMode !== 'none') {
-      const boxW = Math.min(1020, Math.max(180, Math.round(maxLineW + 70)));
-      const boxH = isMultiLine ? Math.round(baseFontSize * 1.95 + 40) : Math.round(baseFontSize * 0.95 + 32);
-      const badgeX = Math.max(20, Math.round(540 - boxW / 2)), badgeY = Math.round(speechPosY - boxH / 2);
-      const r = speechBoxMode === 'solid' ? 6 : 24;
+      const boxW = Math.min(Math.round(resX * 0.94), Math.max(180, Math.round(maxLineW + (isLandscape ? 50 : 70))));
+      const boxH = isMultiLine ? Math.round(baseFontSize * 1.95 + 30) : Math.round(baseFontSize * 1.25 + 20);
+      const badgeX = Math.max(20, Math.round(centerX - boxW / 2)), badgeY = Math.round(speechPosY - boxH / 2);
+      const r = speechBoxMode === 'solid' ? 6 : (isLandscape ? 12 : 24);
       const poly = `m ${r} 0 l ${boxW - r} 0 l ${boxW} ${r} l ${boxW} ${boxH - r} l ${boxW - r} ${boxH} l ${r} ${boxH} l 0 ${boxH - r} l 0 ${r}`;
-      const op = Math.max(0, Math.min(100, Number(speechBoxOpacity) || 88)), assAlphaNum = Math.round(255 * (1 - op / 100));
+      const op = Math.max(0, Math.min(100, Number(speechBoxOpacity) ?? 82)), assAlphaNum = Math.round(255 * (1 - op / 100));
       const boxAlpha = assAlphaNum.toString(16).padStart(2, '0').toUpperCase();
-      const rawHex = (typeof speechBoxColor === 'string' && speechBoxColor.startsWith('#') ? speechBoxColor : '#000000').replace('#', '');
-      const rHex = rawHex.slice(0, 2) || '00', gHex = rawHex.slice(2, 4) || '00', bHex = rawHex.slice(4, 6) || '00';
-      const assBoxCol = `&H00${bHex}${gHex}${rHex}&`, borderTag = speechBoxMode === 'glow' ? `\\bord5\\3c${highlightTag}` : '\\bord0';
-      dialogues.push(`Dialogue: 1,${chunkStartTime},${chunkEndTime},Badge,,0,0,0,,{\\an7\\pos(${badgeX},${badgeY})\\fad(30,30)\\c${assBoxCol}\\1a&H${boxAlpha}&${borderTag}\\shad8\\blur4\\4c&H000000&\\4a&H${boxAlpha}&\\p1}${poly}{\\p0}`);
+      const assBoxCol = toShortsAssTagColor(speechBoxColor || 'black');
+      const borderTag = speechBoxMode === 'glow' ? `\\bord4\\3c${highlightTag}` : '\\bord0';
+      dialogues.push(`Dialogue: 1,${chunkStartTime},${chunkEndTime},Badge,,0,0,0,,{\\an7\\pos(${badgeX},${badgeY})\\c${assBoxCol}\\1a&H${boxAlpha}&${borderTag}\\shad2\\4c&H000000&\\4a&H${boxAlpha}&\\p1}${poly}{\\p0}`);
     }
 
     chunk.forEach((activeTw, activeIdx) => {
@@ -179,13 +216,20 @@ export function generateSpeechDialogueEvents(opts = {}) {
       
       const formatWords = (wList, offset) => wList.map((tw, subIdx) => {
         const globalWIdx = offset + subIdx, isCurrent = (globalWIdx === activeIdx);
-        const colTag = isCurrent ? highlightTag : inactiveTag;
-        const scaleTag = isCurrent ? '\\fscx115\\fscy115' : '\\fscx100\\fscy100';
-        return `{\\c${colTag}\\fs${baseFontSize}${scaleTag}\\bord${bW}\\3c${strokeTag}\\shad${sD}\\4c${shadowTag}}${tw.word.toUpperCase()}`;
+        let colTag = isCurrent ? highlightTag : inactiveTag;
+        if (Array.isArray(opts.wordColors) && opts.wordColors[globalWIdx]) {
+          colTag = toShortsAssTagColor(opts.wordColors[globalWIdx]);
+        }
+        let wSz = baseFontSize;
+        if (Array.isArray(opts.wordFontSizes) && opts.wordFontSizes[globalWIdx] && Number(opts.wordFontSizes[globalWIdx]) > 0) {
+          wSz = Number(opts.wordFontSizes[globalWIdx]);
+        }
+        const scaleTag = isCurrent ? '\\fscx112\\fscy112' : '\\fscx100\\fscy100';
+        return `{\\c${colTag}\\fs${wSz}${scaleTag}\\bord${bW}\\3c${strokeTag}\\shad${sD}\\4c${shadowTag}}${tw.word.toUpperCase()}`;
       }).join(' ');
 
       const styledText = isMultiLine ? `${formatWords(line1Words, 0)}\\N${formatWords(line2Words, splitIdx)}` : formatWords(line1Words, 0);
-      dialogues.push(`Dialogue: 2,${wStart},${wEnd},Speech,,0,0,0,,{\\an5\\pos(540,${speechPosY})}${styledText}`);
+      dialogues.push(`Dialogue: 2,${wStart},${wEnd},Speech,,0,0,0,,{\\an5\\pos(${centerX},${speechPosY})}${styledText}`);
     });
   });
 
@@ -295,4 +339,52 @@ export function buildAssShortsSubtitle(wrappedText, options = {}) {
   }
 
   return `[Script Info]\nScriptType: v4.00+\nPlayResX: 1080\nPlayResY: 1920\n\n[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\nStyle: Title,${assFontName},${effectiveSize},&H0000E6FF,&H000000FF,${assOutlineCol},${assShadowCol},-1,0,0,0,100,100,0,0,1,${bWidth},${sDist},8,10,10,10,1\nStyle: Speech,${assSpeechFontName},${speechFontSize},&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,${speechStrokeWidth},${speechShadowDistance},5,20,20,20,1\nStyle: Badge,Arial,20,&H00000000,&H00000000,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1\n\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n${dialogues.join('\n')}\n`;
+}
+
+export function buildAssVideoSubtitle(speechText, options = {}) {
+  const {
+    duration = 60, totalAudioDuration = 0, speechFontSize = 44, speechColor = 'yellow',
+    speechInactiveColor = 'white', speechPosY = 960, speechFont = 'RussoOne-Regular.ttf',
+    speechBoxMode = 'pill', speechBoxColor = 'black', speechBoxOpacity = 82,
+    speechPacing = 'wave', speechStrokeWidth = 4, speechShadowDistance = 2,
+    whisperWords = null, resX = 1920, resY = 1080,
+  } = options;
+
+  const fontNameMap = {
+    impact: 'Impact', arial_black: 'Arial Black', 'Saxonia_Antiqua_Bold.ttf': 'Saxonia Antiqua Bold',
+    'Saxonia_Antiqua.ttf': 'Saxonia Antiqua', 'SeymourOne-Regular.ttf': 'Seymour One', 'StalinistOne-Regular.ttf': 'Stalinist One',
+    'Unbounded-Black.ttf': 'Unbounded', 'Buran_USSR.ttf': 'Buran USSR', 'RussoOne-Regular.ttf': 'Russo One',
+    'DelaGothicOne-Regular.ttf': 'Dela Gothic One', 'RubikMonoOne-Regular.ttf': 'Rubik Mono One', 'PROPAGAN.ttf': 'Propaganda', 'YesevaOne-Regular.ttf': 'Yeseva One',
+  };
+  const assSpeechFontName = fontNameMap[speechFont] || (speechFont ? String(speechFont).replace(/\.[^.]+$/, '').replace(/_/g, ' ').trim() : 'Russo One');
+
+  const dialogues = generateSpeechDialogueEvents({
+    speechText,
+    duration,
+    totalAudioDuration: totalAudioDuration || duration,
+    speechFontSize,
+    speechColor,
+    speechInactiveColor,
+    speechPosY,
+    speechStrokeWidth,
+    speechStrokeColor: 'black',
+    speechShadowDistance,
+    speechShadowColor: 'black',
+    speechBoxMode,
+    speechBoxColor,
+    speechBoxOpacity,
+    speechPacing,
+    speechLineMode: options.speechLineMode || 'auto',
+    speechMaxWords: options.speechMaxWords || 0,
+    speechMaxChars: options.speechMaxChars || 0,
+    speechFont: assSpeechFontName,
+    wordColors: options.wordColors,
+    wordFontSizes: options.wordFontSizes,
+    whisperWords,
+    resX,
+    resY,
+    isLandscape: true,
+  });
+
+  return `[Script Info]\nScriptType: v4.00+\nPlayResX: ${resX}\nPlayResY: ${resY}\n\n[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\nStyle: Speech,${assSpeechFontName},${speechFontSize},&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,${speechStrokeWidth},${speechShadowDistance},5,20,20,20,1\nStyle: Badge,Arial,20,&H00000000,&H00000000,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1\n\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n${dialogues.join('\n')}\n`;
 }

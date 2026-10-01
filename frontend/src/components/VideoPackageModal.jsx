@@ -5,6 +5,7 @@ import ThumbnailSettingsModal from './ThumbnailSettingsModal'
 import TitleVariantsModal from './TitleVariantsModal'
 import YouTubeMetadataModal from './YouTubeMetadataModal'
 import ShortsEditorModal from './ShortsEditorModal'
+import VideoSubtitlesEditorModal from './videoPackage/VideoSubtitlesEditorModal'
 import PackageHeader from './videoPackage/PackageHeader'
 import PackageThumbnailSection from './videoPackage/PackageThumbnailSection'
 import PackageAudioSection from './videoPackage/PackageAudioSection'
@@ -27,6 +28,9 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
   const [videoProgress, setVideoProgress] = useState(0), [progressLog, setProgressLog] = useState('')
   const [selectedVoice, setSelectedVoice] = useState('el_adam'), [selectedTransition, setSelectedTransition] = useState('concat')
   const [includeSubBanner, setIncludeSubBanner] = useState(true), [subBannerTime, setSubBannerTime] = useState(25), [bannerStyle, setBannerStyle] = useState('modern_dark')
+  const [includeKaraokeSubtitles, setIncludeKaraokeSubtitles] = useState(pkg.videoConfig?.includeKaraokeSubtitles ?? true)
+  const [videoConfig, setVideoConfig] = useState(pkg.videoConfig || null)
+  const [showVideoSubtitlesModal, setShowVideoSubtitlesModal] = useState(false)
 
   const [audioState, setAudioState] = useState({ hasAudio: !!pkg.hasAudio, audioUrl: pkg.audioUrl })
   const [videoState, setVideoState] = useState({ hasVideo: !!pkg.hasVideo, videoUrl: pkg.videoUrl })
@@ -39,6 +43,11 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
     setAudioState({ hasAudio: !!pkg.hasAudio, audioUrl: pkg.audioUrl })
     setVideoState({ hasVideo: !!pkg.hasVideo, videoUrl: pkg.videoUrl })
     setShortState({ hasShort: !!pkg.hasShort, shortUrl: pkg.folderName ? `/news-static/${pkg.folderName}/short.mp4?t=${Date.now()}` : null })
+    setShortsConfig(pkg.shortsConfig || null)
+    setVideoConfig(pkg.videoConfig || null)
+    if (pkg.videoConfig?.includeKaraokeSubtitles !== undefined) {
+      setIncludeKaraokeSubtitles(pkg.videoConfig.includeKaraokeSubtitles)
+    }
     setYoutubeState({
       hasYouTube: Boolean(pkg.hasYouTubeMetadata || pkg.youtubeMetadata?.description || pkg.youtubeMetadata?.title || pkg.youtubeMetadata?.clickbait?.description || pkg.youtubeMetadata?.golubuzki?.description),
       hasFacebook: Boolean(pkg.hasFacebookPost || (pkg.facebookPosts && Object.keys(pkg.facebookPosts).length > 0) || pkg.youtubeMetadata?.facebookPost || pkg.youtubeMetadata?.clickbait?.facebookPost || pkg.youtubeMetadata?.golubuzki?.facebookPost)
@@ -85,7 +94,7 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
     finally { setGeneratingAudio(false) }
   }
 
-  const handleGenerateVideo = async () => {
+  const handleGenerateVideo = async (videoOpts = {}) => {
     if (!audioState.hasAudio) return toast.error('❌ Сначала создайте аудио-озвучку (audio.mp3) в разделе 3!')
     if (actualPhotoCount === 0) return toast.error('❌ В пакете нет фотографий. Сначала откройте раздел 2 и сохраните фото!')
     const jobId = `job_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
@@ -100,13 +109,28 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
         }
       } catch {}
 
+      const mergedOpts = { ...(videoConfig || {}), ...videoOpts }
       const res = await fetch('/api/render-video', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bundleDir: pkg.bundleDir, folderName: pkg.folderName, transition: selectedTransition, jobId, includeSubBanner, subBannerTime: Number(subBannerTime) || 25, bannerStyle }),
+        body: JSON.stringify({
+          bundleDir: pkg.bundleDir,
+          folderName: pkg.folderName,
+          transition: selectedTransition,
+          jobId,
+          includeSubBanner,
+          subBannerTime: Number(subBannerTime) || 25,
+          bannerStyle,
+          includeKaraokeSubtitles,
+          ...mergedOpts,
+        }),
       }), data = await res.json()
       toast.dismiss(toastId)
       if (data.success) {
         setVideoProgress(100); setProgressLog('Видео успешно создано!'); setVideoState({ hasVideo: true, videoUrl: data.videoUrl }); toast.success('🎬 Финальное видео 16:9 готово!')
+        if (data.videoConfig) {
+          setVideoConfig(data.videoConfig)
+          pkg.videoConfig = data.videoConfig
+        }
         if (onRefresh) onRefresh()
       } else { toast.error('❌ Ошибка: ' + (data.error || 'Не удалось создать видео')) }
     } catch (err) { toast.error('❌ Ошибка рендеринга видео: ' + err.message) }
@@ -350,9 +374,12 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
             includeSubBanner={includeSubBanner} setIncludeSubBanner={setIncludeSubBanner}
             subBannerTime={subBannerTime} setSubBannerTime={setSubBannerTime}
             bannerStyle={bannerStyle} setBannerStyle={setBannerStyle}
+            includeKaraokeSubtitles={includeKaraokeSubtitles} setIncludeKaraokeSubtitles={setIncludeKaraokeSubtitles}
             videoRef={videoRef} isPlaying={isPlaying} currentTime={currentTime} duration={duration}
             togglePlay={togglePlay} seekVideo={seekVideo} onGenerateVideo={handleGenerateVideo}
-            onOpenVideoModal={() => onOpenVideo(pkg)} onTimeUpdate={handleTimeUpdate} onLoadedMetadata={handleLoadedMetadata}
+            onOpenVideoModal={() => onOpenVideo(pkg)}
+            onOpenSubtitlesStudio={() => setShowVideoSubtitlesModal(true)}
+            onTimeUpdate={handleTimeUpdate} onLoadedMetadata={handleLoadedMetadata}
           />
 
           {/* 4.5 YouTube Shorts 9:16 (16 сек) */}
@@ -371,6 +398,22 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
         </div>
       </div>
 
+      {showVideoSubtitlesModal && (
+        <VideoSubtitlesEditorModal
+          pkg={pkg}
+          previewPhotoUrl={pkg.photoUrls?.[0] || currentThumbnail}
+          onConfigSaved={(savedCfg) => {
+            setVideoConfig(savedCfg)
+            pkg.videoConfig = savedCfg
+            if (savedCfg.includeKaraokeSubtitles !== undefined) {
+              setIncludeKaraokeSubtitles(savedCfg.includeKaraokeSubtitles)
+            }
+            if (onRefresh) onRefresh()
+          }}
+          onClose={() => setShowVideoSubtitlesModal(false)}
+        />
+      )}
+
       {showShortsEditorModal && (
         <ShortsEditorModal
           pkg={pkg}
@@ -379,6 +422,11 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
           generatingShort={generatingShort}
           onGenerateShort={(opts) => handleGenerateShort(opts)}
           onCancelShort={handleCancelShort}
+          onConfigSaved={(savedCfg) => {
+            setShortsConfig(savedCfg)
+            pkg.shortsConfig = savedCfg
+            if (onRefresh) onRefresh()
+          }}
           onClose={() => setShowShortsEditorModal(false)}
         />
       )}

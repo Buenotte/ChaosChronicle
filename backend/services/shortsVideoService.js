@@ -1,9 +1,10 @@
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
 import { fileURLToPath } from 'url';
-import { execFile, execSync } from 'child_process';
+import { execFile, execSync, spawn } from 'child_process';
 import { promisify } from 'util';
-import { buildAssShortsSubtitle, FFMPEG_SHORTS_COLOR_MAP } from './shortsAssService.js';
+import { buildAssShortsSubtitle, buildAssVideoSubtitle, FFMPEG_SHORTS_COLOR_MAP } from './shortsAssService.js';
 
 const execFileAsync = promisify(execFile);
 const __filename = fileURLToPath(import.meta.url);
@@ -208,7 +209,7 @@ export async function processRenderShort({
       speechPacing: speechPacing || 'wave', speechStrokeWidth: Number(speechStrokeWidth) || 12, speechShadowDistance: Number(speechShadowDistance) || 6,
       whisperWords,
     });
-    const assFile = path.join(targetFolder, `temp_short_ass_${Date.now()}.ass`);
+    const assFile = path.join(os.tmpdir(), `short_ass_${Date.now()}_${Math.random().toString(36).slice(2, 6)}.ass`);
     tempFiles.push(assFile);
     fs.writeFileSync(assFile, assContent, 'utf-8');
     const safeAssPath = assFile.replace(/\\/g, '/').replace(/:/g, '\\:'), safeFontsDir = customFontsDir.replace(/\\/g, '/').replace(/:/g, '\\:');
@@ -219,17 +220,32 @@ export async function processRenderShort({
     activeShortsJobs.set(jobKey, currentJob);
 
     await new Promise((resolve, reject) => {
-      const proc = execFile('ffmpeg', [
+      const proc = spawn('ffmpeg', [
         '-y', '-f', 'concat', '-safe', '0', '-i', concatListFile, '-i', audioPath,
         '-vf', vf, '-af', af, '-c:v', 'libx264', '-preset', 'ultrafast', '-tune', 'fastdecode',
         '-threads', '0', '-crf', '22', '-c:a', 'aac', '-b:a', '192k', '-ac', '2',
         '-pix_fmt', 'yuv420p', '-r', '30', '-shortest', outShortPath,
-      ], { timeout: 120000 }, (err) => {
+      ], { cwd: targetFolder });
+      currentJob.proc = proc;
+
+      let stderrChunks = '';
+      proc.stderr.on('data', (d) => {
+        stderrChunks += d.toString();
+        if (stderrChunks.length > 60000) stderrChunks = stderrChunks.slice(-30000);
+      });
+
+      proc.on('close', (code) => {
         if (currentJob.canceled) return reject(new Error('Монтаж отменен'));
-        if (err) return reject(err);
+        if (code !== 0) {
+          console.error('FFmpeg Shorts render error (code ' + code + '):', stderrChunks);
+          return reject(new Error(`Ошибка FFmpeg (${code}): ${stderrChunks.slice(-600) || 'сбой кодирования'}`));
+        }
         resolve();
       });
-      currentJob.proc = proc;
+
+      proc.on('error', (err) => {
+        reject(err);
+      });
     });
   } finally {
     activeShortsJobs.delete(path.resolve(targetFolder));
@@ -262,6 +278,11 @@ export async function processRenderShort({
       fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
     } catch {}
   }
+
+  const shortsConfigPath = path.join(targetFolder, 'shorts_config.json');
+  try {
+    fs.writeFileSync(shortsConfigPath, JSON.stringify(shortsConfig, null, 2), 'utf-8');
+  } catch {}
 
   const resFolder = path.basename(targetFolder);
   return { success: true, shortUrl: `/news-static/${resFolder}/short.mp4?t=${Date.now()}`, folderName: resFolder, duration: targetDur, shortsConfig };
@@ -305,7 +326,7 @@ export async function processPreviewShortFrame(options) {
       speechBoxColor: speechBoxColor || 'black', speechBoxOpacity: Number(speechBoxOpacity) || 88, speechPacing: speechPacing || 'wave',
       speechStrokeWidth: Number(speechStrokeWidth) || 12, speechShadowDistance: Number(speechShadowDistance) || 6, whisperWords: null,
     });
-    assFile = path.join(targetFolder, `temp_preview_short_ass_${Date.now()}.ass`);
+    assFile = path.join(os.tmpdir(), `preview_short_ass_${Date.now()}_${Math.random().toString(36).slice(2, 6)}.ass`);
     fs.writeFileSync(assFile, assContent, 'utf-8');
     const safeAssPath = assFile.replace(/\\/g, '/').replace(/:/g, '\\:'), safeFontsDir = customFontsDir.replace(/\\/g, '/').replace(/:/g, '\\:');
     const vf = `scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,subtitles=filename='${safeAssPath}':fontsdir='${safeFontsDir}'`;
@@ -317,3 +338,81 @@ export async function processPreviewShortFrame(options) {
   const resFolder = path.basename(targetFolder);
   return { success: true, frameUrl: `/news-static/${resFolder}/preview_short_frame.jpg?t=${Date.now()}` };
 }
+
+export async function processPreviewVideoFrame(options) {
+  const {
+    bundleDir: inputBundleDir, folderName, selectedPhoto,
+    speechSubtitlesEnabled = true, subtitleColor = 'yellow', subtitleInactiveColor = 'white',
+    subtitleFontSize = 44, subtitlePosY = 960, subtitleFont = 'RussoOne-Regular.ttf',
+    subtitleBoxMode = 'pill', subtitleBoxColor = 'black', subtitleBoxOpacity = 82,
+    subtitlePacing = 'wave', subtitleStrokeWidth = 4, subtitleShadowDistance = 2,
+    subtitleLineMode = 'auto', subtitleMaxWords = 0, subtitleMaxChars = 0,
+    wordColors = null, wordFontSizes = null,
+    speechText: inputSpeech = null,
+  } = options;
+
+  let targetFolder = inputBundleDir || (folderName ? path.join(newsDir, folderName) : null);
+  if (!targetFolder || !fs.existsSync(targetFolder)) {
+    if (fs.existsSync(newsDir)) {
+      const searchTarget = folderName || (inputBundleDir ? path.basename(inputBundleDir) : '');
+      const prefix = searchTarget.slice(0, 16);
+      const entries = fs.readdirSync(newsDir, { withFileTypes: true });
+      const matched = entries.find(e => e.isDirectory() && (e.name === searchTarget || (prefix && e.name.startsWith(prefix))));
+      if (matched) targetFolder = path.join(newsDir, matched.name);
+    }
+  }
+  if (!targetFolder || !fs.existsSync(targetFolder)) throw new Error('Папка не найдена');
+
+  const photosDir = path.join(targetFolder, 'photos');
+  let basePhoto = resolveShortsPhoto(selectedPhoto, targetFolder);
+  if (!basePhoto || !fs.existsSync(basePhoto)) {
+    const files = fs.existsSync(photosDir) ? fs.readdirSync(photosDir).filter(f => /\.(jpg|jpeg|png|webp)$/i.test(f)) : [];
+    basePhoto = files[0] ? path.join(photosDir, files[0]) : path.join(targetFolder, 'thumbnail', 'thumbnail.jpg');
+  }
+  if (!fs.existsSync(basePhoto)) throw new Error('Фото не найдено');
+
+  const customFontsDir = path.resolve(__dirname, '../custom_fonts');
+  const previewOut = path.join(targetFolder, 'preview_video_frame.jpg');
+  const speechText = getSpeechText(targetFolder, inputSpeech);
+  let assFile = null;
+
+  try {
+    const assContent = buildAssVideoSubtitle(speechText || 'Пример караоке субтитров на горизонтальном видео 16:9', {
+      duration: 20,
+      totalAudioDuration: 20,
+      speechFontSize: Math.max(16, Math.min(Number(subtitleFontSize) || 44, 160)),
+      speechColor: subtitleColor || 'yellow',
+      speechInactiveColor: subtitleInactiveColor || 'white',
+      speechPosY: Math.max(20, Math.min(Number(subtitlePosY) || 960, 1060)),
+      speechFont: subtitleFont || 'RussoOne-Regular.ttf',
+      speechBoxMode: subtitleBoxMode || 'pill',
+      speechBoxColor: subtitleBoxColor || 'black',
+      speechBoxOpacity: Number(subtitleBoxOpacity) ?? 82,
+      speechPacing: subtitlePacing || 'wave',
+      speechStrokeWidth: Math.max(0, Math.min(Number(subtitleStrokeWidth) ?? 4, 20)),
+      speechShadowDistance: Math.max(0, Math.min(Number(subtitleShadowDistance) ?? 2, 20)),
+      speechLineMode: subtitleLineMode || 'auto',
+      speechMaxWords: Number(subtitleMaxWords) || 0,
+      speechMaxChars: Number(subtitleMaxChars) || 0,
+      wordColors,
+      wordFontSizes,
+      whisperWords: null,
+      resX: 1920,
+      resY: 1080,
+    });
+    assFile = path.join(os.tmpdir(), `preview_vid_ass_${Date.now()}_${Math.random().toString(36).slice(2, 6)}.ass`);
+    fs.writeFileSync(assFile, assContent, 'utf-8');
+    const safeAssPath = assFile.replace(/\\/g, '/').replace(/:/g, '\\:');
+    const safeFontsDir = customFontsDir.replace(/\\/g, '/').replace(/:/g, '\\:');
+    const blurFilter = 'split[bg][fg];[bg]scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,boxblur=10:1[blurred];[fg]scale=1920:1080:force_original_aspect_ratio=decrease[sharp];[blurred][sharp]overlay=(W-w)/2:(H-h)/2,setsar=1';
+    const subFilter = speechSubtitlesEnabled !== false ? `,subtitles=filename='${safeAssPath}':fontsdir='${safeFontsDir}'` : '';
+    const vf = `${blurFilter}${subFilter}`;
+    await execFileAsync('ffmpeg', ['-y', '-i', basePhoto, '-vf', vf, '-frames:v', '1', '-q:v', '2', previewOut]);
+  } finally {
+    if (assFile && fs.existsSync(assFile)) { try { fs.unlinkSync(assFile); } catch {} }
+  }
+
+  const resFolder = path.basename(targetFolder);
+  return { success: true, frameUrl: `/news-static/${resFolder}/preview_video_frame.jpg?t=${Date.now()}` };
+}
+

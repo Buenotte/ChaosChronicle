@@ -7,7 +7,7 @@ import ShortsSpeechSubtitlesControls from './shorts/ShortsSpeechSubtitlesControl
 import ShortsTitleControls from './shorts/ShortsTitleControls'
 import { SHORTS_FONTS, TEXT_COLORS, BOX_COLORS, wrapShortsText, extractCleanSpeechText } from './shorts/shortsConfig'
 
-export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortState, generatingShort, onGenerateShort, onCancelShort, onClose }) {
+export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortState, generatingShort, onGenerateShort, onCancelShort, onConfigSaved, onClose }) {
   const cfg = pkg?.shortsConfig || {}
   const [activeTab, setActiveTab] = useState('speech'), [duration, setDuration] = useState(cfg.duration || pkg?.short_duration || 25)
   const [showHookTitle, setShowHookTitle] = useState(cfg.showHookTitle ?? true), [text, setText] = useState(cfg.hookTitle || pkg?.title || '')
@@ -28,6 +28,59 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
   const [selectedPhoto, setSelectedPhoto] = useState(cfg.selectedPhoto || null), [isDragging, setIsDragging] = useState(false), [viewMode, setViewMode] = useState('editor')
   const [realFrameUrl, setRealFrameUrl] = useState(null), [renderingFrame, setRenderingFrame] = useState(false), [savingConfig, setSavingConfig] = useState(false)
   const previewRef = useRef(null), [speechScriptText, setSpeechScriptText] = useState(''), [globalWordIdx, setGlobalWordIdx] = useState(0), [isSubtitlesPlaying, setIsSubtitlesPlaying] = useState(true)
+
+  const applyConfig = (loadedCfg) => {
+    if (!loadedCfg) return
+    if (loadedCfg.duration !== undefined || pkg?.short_duration !== undefined) setDuration(loadedCfg.duration || pkg?.short_duration || 25)
+    if (loadedCfg.showHookTitle !== undefined) setShowHookTitle(loadedCfg.showHookTitle)
+    if (loadedCfg.hookTitle !== undefined) setText(loadedCfg.hookTitle)
+    else if (pkg?.title) setText(pkg.title)
+    if (loadedCfg.font) setFont(loadedCfg.font)
+    if (loadedCfg.fontSize !== undefined) setFontSize(loadedCfg.fontSize)
+    if (loadedCfg.fontColor) setFontColor(loadedCfg.fontColor)
+    if (loadedCfg.strokeWidth !== undefined) setStrokeWidth(loadedCfg.strokeWidth)
+    if (loadedCfg.strokeColor) setStrokeColor(loadedCfg.strokeColor)
+    if (loadedCfg.shadowDistance !== undefined) setShadowDistance(loadedCfg.shadowDistance)
+    if (loadedCfg.shadowColor) setShadowColor(loadedCfg.shadowColor)
+    if (loadedCfg.shadowStyle) setShadowStyle(loadedCfg.shadowStyle)
+    if (loadedCfg.wordColors !== undefined) setWordColors(loadedCfg.wordColors)
+    if (loadedCfg.wordFontSizes !== undefined) setWordFontSizes(loadedCfg.wordFontSizes)
+    if (loadedCfg.boxEnabled !== undefined) setBoxEnabled(loadedCfg.boxEnabled)
+    if (loadedCfg.boxColor) setBoxColor(loadedCfg.boxColor)
+    if (loadedCfg.boxOpacity !== undefined) setBoxOpacity(loadedCfg.boxOpacity)
+    if (loadedCfg.posY !== undefined) setPosY(loadedCfg.posY)
+    if (loadedCfg.speechSubtitlesEnabled !== undefined) setSpeechSubtitlesEnabled(loadedCfg.speechSubtitlesEnabled)
+    if (loadedCfg.speechFont) setSpeechFont(loadedCfg.speechFont)
+    if (loadedCfg.speechColor) setSpeechColor(loadedCfg.speechColor)
+    if (loadedCfg.speechInactiveColor) setSpeechInactiveColor(loadedCfg.speechInactiveColor)
+    if (loadedCfg.speechFontSize !== undefined) setSpeechFontSize(loadedCfg.speechFontSize)
+    if (loadedCfg.speechPosY !== undefined) setSpeechPosY(loadedCfg.speechPosY)
+    if (loadedCfg.speechBoxMode) setSpeechBoxMode(loadedCfg.speechBoxMode)
+    if (loadedCfg.speechPacing) setSpeechPacing(loadedCfg.speechPacing)
+    if (loadedCfg.speechBoxColor) setSpeechBoxColor(loadedCfg.speechBoxColor)
+    if (loadedCfg.speechBoxOpacity !== undefined) setSpeechBoxOpacity(loadedCfg.speechBoxOpacity)
+    if (loadedCfg.lineBadges) setLineBadges(loadedCfg.lineBadges)
+    if (loadedCfg.selectedPhoto !== undefined) setSelectedPhoto(loadedCfg.selectedPhoto)
+  }
+
+  useEffect(() => {
+    if (pkg?.shortsConfig) {
+      applyConfig(pkg.shortsConfig)
+    }
+    const folderName = pkg?.folderName || ''
+    const bundleDir = pkg?.bundleDir || ''
+    if (folderName || bundleDir) {
+      fetch(`/api/package-shorts-config?folderName=${encodeURIComponent(folderName)}&bundleDir=${encodeURIComponent(bundleDir)}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data?.success && data?.shortsConfig) {
+            pkg.shortsConfig = data.shortsConfig
+            applyConfig(data.shortsConfig)
+          }
+        })
+        .catch(() => {})
+    }
+  }, [pkg?.folderName, pkg?.bundleDir])
 
   useEffect(() => {
     fetch('/api/custom-fonts').then(r => r.json()).then(data => {
@@ -131,12 +184,21 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
   const handleSaveConfig = async () => {
     try {
       setSavingConfig(true)
-      const res = await fetch('/api/save-shorts-config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(getShortsPayload()) })
+      const payload = getShortsPayload()
+      const res = await fetch('/api/save-shorts-config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
       const data = await res.json()
-      if (data.success) { toast.success('💾 Настройки Shorts сохранены в пакет!'); if (pkg) pkg.shortsConfig = data.shortsConfig }
-      else toast.error('Ошибка: ' + (data.error || 'Не удалось сохранить'))
-    } catch (err) { toast.error('Ошибка: ' + err.message) }
-    finally { setSavingConfig(false) }
+      if (data.success) {
+        toast.success('💾 Настройки Shorts сохранены в пакет!')
+        if (pkg) pkg.shortsConfig = data.shortsConfig
+        if (onConfigSaved) onConfigSaved(data.shortsConfig)
+      } else {
+        toast.error('Ошибка: ' + (data.error || 'Не удалось сохранить'))
+      }
+    } catch (err) {
+      toast.error('Ошибка: ' + err.message)
+    } finally {
+      setSavingConfig(false)
+    }
   }
 
   const handleApply = async () => {

@@ -1,9 +1,11 @@
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
 import { fileURLToPath } from 'url';
 import { exec, execSync, execFile, spawn } from 'child_process';
-import { processRenderShort, processPreviewShortFrame, cancelShortRender } from '../services/shortsVideoService.js';
+import { processRenderShort, processPreviewShortFrame, processPreviewVideoFrame, cancelShortRender, extractCleanSpeechText, getWhisperTimedWords } from '../services/shortsVideoService.js';
+import { buildAssVideoSubtitle } from '../services/shortsAssService.js';
 import { invalidatePackagesCache } from './packages.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -65,6 +67,23 @@ const handleGenerateVideo = async (req, res) => {
       includeSubBanner = true,
       subBannerTime = 30,
       bannerStyle = 'modern_dark',
+      includeKaraokeSubtitles = true,
+      subtitleColor = 'yellow',
+      subtitleInactiveColor = 'white',
+      subtitleFontSize = 44,
+      subtitleFont = 'RussoOne-Regular.ttf',
+      subtitlePosY = 960,
+      subtitleBoxMode = 'pill',
+      subtitleBoxColor = 'black',
+      subtitleBoxOpacity = 82,
+      subtitlePacing = 'wave',
+      subtitleStrokeWidth = 4,
+      subtitleShadowDistance = 2,
+      subtitleLineMode = 'auto',
+      subtitleMaxWords = 0,
+      subtitleMaxChars = 0,
+      wordColors = null,
+      wordFontSizes = null,
     } = req.body;
 
     const newsDir = path.resolve(__dirname, '../../news');
@@ -172,6 +191,59 @@ const handleGenerateVideo = async (req, res) => {
       const hasBanner = includeSubBanner && fs.existsSync(bannerPath);
       const bannerSec = Math.max(0, Number(subBannerTime) || 30);
 
+      // Karaoke / Speech Subtitles (16:9 Landscape)
+      let assTempFile = null;
+      let hasSubtitles = false;
+      let safeAssPath = '';
+      const customFontsDir = path.resolve(__dirname, '../custom_fonts');
+      const safeFontsDir = customFontsDir.replace(/\\/g, '/').replace(/:/g, '\\:');
+
+      if (includeKaraokeSubtitles !== false) {
+        let rawSpeech = '';
+        const txtPath = path.join(bundleDir, 'script.txt');
+        const mdPath = path.join(bundleDir, 'script.md');
+        if (fs.existsSync(txtPath)) { try { rawSpeech = fs.readFileSync(txtPath, 'utf-8'); } catch {} }
+        if (!rawSpeech && fs.existsSync(mdPath)) { try { rawSpeech = fs.readFileSync(mdPath, 'utf-8'); } catch {} }
+
+        const cleanSpeech = extractCleanSpeechText(rawSpeech);
+        if (cleanSpeech) {
+          try {
+            const whisperWords = await getWhisperTimedWords(audioPath, audioDuration, bundleDir);
+            const assContent = buildAssVideoSubtitle(cleanSpeech, {
+              duration: audioDuration,
+              totalAudioDuration: audioDuration,
+              speechFontSize: Math.max(16, Math.min(Number(subtitleFontSize) || 44, 160)),
+              speechColor: subtitleColor || 'yellow',
+              speechInactiveColor: subtitleInactiveColor || 'white',
+              speechFont: subtitleFont || 'RussoOne-Regular.ttf',
+              speechPosY: Math.max(20, Math.min(Number(subtitlePosY) || 960, 1060)),
+              speechBoxMode: subtitleBoxMode || 'pill',
+              speechBoxColor: subtitleBoxColor || 'black',
+              speechBoxOpacity: Number(subtitleBoxOpacity) ?? 82,
+              speechPacing: subtitlePacing || 'wave',
+              speechStrokeWidth: Math.max(0, Math.min(Number(subtitleStrokeWidth) ?? 4, 20)),
+              speechShadowDistance: Math.max(0, Math.min(Number(subtitleShadowDistance) ?? 2, 20)),
+              speechLineMode: subtitleLineMode || 'auto',
+              speechMaxWords: Number(subtitleMaxWords) || 0,
+              speechMaxChars: Number(subtitleMaxChars) || 0,
+              wordColors,
+              wordFontSizes,
+              whisperWords,
+              resX: 1920,
+              resY: 1080,
+            });
+            assTempFile = path.join(os.tmpdir(), `video_sub_${Date.now()}_${Math.random().toString(36).slice(2, 6)}.ass`);
+            fs.writeFileSync(assTempFile, assContent, 'utf-8');
+            safeAssPath = assTempFile.replace(/\\/g, '/').replace(/:/g, '\\:');
+            hasSubtitles = true;
+          } catch (subErr) {
+            console.warn('⚠️ Не удалось сгенерировать субтитры для видео:', subErr.message);
+          }
+        }
+      }
+
+      const subFilter = hasSubtitles ? `,subtitles=filename='${safeAssPath}':fontsdir='${safeFontsDir}'` : '';
+
       const isXfade = (transition === 'crossfade' || transition === 'fadeblack') && activeFrames.length > 1;
       const xfadeType = transition === 'fadeblack' ? 'fadeblack' : 'fade';
 
@@ -208,10 +280,11 @@ const handleGenerateVideo = async (req, res) => {
 
         if (hasBanner) {
           filterParts.push(`[${bannerIdx}:v]setpts=PTS-STARTPTS+${bannerSec}/TB[sub_b]`);
-          filterParts.push(`[v_slides][sub_b]overlay=(W-w)/2:H-h-50:enable='between(t,${bannerSec},${bannerSec + 6})':eof_action=pass[v]`);
+          filterParts.push(`[v_slides][sub_b]overlay=(W-w)/2:H-h-50:enable='between(t,${bannerSec},${bannerSec + 6})':eof_action=pass${subFilter}[v]`);
           ffmpegArgs.push('-filter_complex', filterParts.join(';'), '-map', '[v]', '-map', `${audioIdx}:a`);
         } else {
-          ffmpegArgs.push('-filter_complex', filterParts.join(';'), '-map', '[v_slides]', '-map', `${audioIdx}:a`);
+          filterParts.push(`[v_slides]fps=24${subFilter}[v]`);
+          ffmpegArgs.push('-filter_complex', filterParts.join(';'), '-map', '[v]', '-map', `${audioIdx}:a`);
         }
 
         ffmpegArgs.push(...hwEnc, '-c:a', 'aac', '-b:a', '192k', '-ac', '2', '-shortest', videoPath);
@@ -222,7 +295,7 @@ const handleGenerateVideo = async (req, res) => {
             '-f', 'concat', '-safe', '0', '-i', concatPath,
             '-i', audioPath,
             '-i', bannerPath,
-            '-filter_complex', `[0:v]fps=30[bg];[2:v]setpts=PTS-STARTPTS+${bannerSec}/TB[sub_b];[bg][sub_b]overlay=(W-w)/2:H-h-50:enable='between(t,${bannerSec},${bannerSec + 6})':eof_action=pass[v]`,
+            '-filter_complex', `[0:v]fps=30[bg];[2:v]setpts=PTS-STARTPTS+${bannerSec}/TB[sub_b];[bg][sub_b]overlay=(W-w)/2:H-h-50:enable='between(t,${bannerSec},${bannerSec + 6})':eof_action=pass${subFilter}[v]`,
             '-map', '[v]',
             '-map', '1:a',
             ...hwEnc,
@@ -235,6 +308,9 @@ const handleGenerateVideo = async (req, res) => {
             '-y',
             '-f', 'concat', '-safe', '0', '-i', concatPath,
             '-i', audioPath,
+            '-filter_complex', `[0:v]fps=30${subFilter}[v]`,
+            '-map', '[v]',
+            '-map', '1:a',
             ...hwEnc,
             '-c:a', 'aac', '-b:a', '192k', '-ac', '2',
             '-shortest',
@@ -264,6 +340,10 @@ const handleGenerateVideo = async (req, res) => {
       });
 
       ffmpegProcess.on('close', (code) => {
+        if (assTempFile && fs.existsSync(assTempFile)) {
+          try { fs.unlinkSync(assTempFile); } catch {}
+        }
+
         if (code !== 0) {
           broadcastProgress(0, 'error', `FFmpeg завершился с ошибкой (код ${code})`);
           console.error('FFmpeg error:', ffmpegStderr.slice(-800));
@@ -272,6 +352,31 @@ const handleGenerateVideo = async (req, res) => {
 
         broadcastProgress(100, 'done', 'Видео успешно смонтировано!');
 
+        const videoConfig = {
+          includeKaraokeSubtitles: includeKaraokeSubtitles !== false,
+          subtitleColor: subtitleColor || 'yellow',
+          subtitleInactiveColor: subtitleInactiveColor || 'white',
+          subtitleFontSize: Number(subtitleFontSize) || 44,
+          subtitleFont: subtitleFont || 'RussoOne-Regular.ttf',
+          subtitlePosY: Number(subtitlePosY) || 960,
+          subtitleBoxMode: subtitleBoxMode || 'pill',
+          subtitleBoxColor: subtitleBoxColor || 'black',
+          subtitleBoxOpacity: Number(subtitleBoxOpacity) ?? 82,
+          subtitlePacing: subtitlePacing || 'wave',
+          subtitleStrokeWidth: Number(subtitleStrokeWidth) ?? 4,
+          subtitleShadowDistance: Number(subtitleShadowDistance) ?? 2,
+          subtitleLineMode: subtitleLineMode || 'auto',
+          subtitleMaxWords: Number(subtitleMaxWords) || 0,
+          subtitleMaxChars: Number(subtitleMaxChars) || 0,
+          wordColors: wordColors || null,
+          wordFontSizes: wordFontSizes || null,
+          transition: transition || 'concat',
+          includeSubBanner: includeSubBanner !== false,
+          subBannerTime: Number(subBannerTime) || 30,
+          bannerStyle: bannerStyle || 'modern_dark',
+          savedAt: new Date().toISOString(),
+        };
+
         const jsonPath = path.join(bundleDir, 'project.json');
         if (fs.existsSync(jsonPath)) {
           try {
@@ -279,9 +384,17 @@ const handleGenerateVideo = async (req, res) => {
             manifest.hasVideo = true;
             manifest.video_generated_at = new Date().toISOString();
             manifest.transition = transition;
+            manifest.hasSubtitles = hasSubtitles;
+            manifest.subtitlesEnabled = hasSubtitles;
+            manifest.videoConfig = videoConfig;
             fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
           } catch {}
         }
+
+        const videoConfigPath = path.join(bundleDir, 'video_config.json');
+        try {
+          fs.writeFileSync(videoConfigPath, JSON.stringify(videoConfig, null, 2), 'utf-8');
+        } catch {}
 
         const resFolderName = path.basename(bundleDir);
         try {
@@ -341,11 +454,35 @@ router.post('/api/preview-short-frame', async (req, res) => {
   }
 });
 
+// GET /api/package-shorts-config
+router.get('/api/package-shorts-config', (req, res) => {
+  try {
+    const { folderName, bundleDir: inputBundleDir } = req.query;
+    const newsDir = path.resolve(__dirname, '../../news');
+    let bundleDir = inputBundleDir || (folderName ? path.join(newsDir, folderName) : null);
+    if (!bundleDir || !fs.existsSync(bundleDir)) {
+      return res.status(404).json({ success: false, error: 'Папка не найдена' });
+    }
+
+    const jsonPath = path.join(bundleDir, 'project.json');
+    const shortsJsonPath = path.join(bundleDir, 'shorts_config.json');
+    let manifest = {};
+    if (fs.existsSync(jsonPath)) {
+      try { manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8')); } catch {}
+    }
+    let shortsConfig = manifest.shortsConfig || (fs.existsSync(shortsJsonPath) ? JSON.parse(fs.readFileSync(shortsJsonPath, 'utf-8')) : null);
+
+    res.json({ success: true, shortsConfig: shortsConfig || null });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // POST /api/save-shorts-config
 router.post('/api/save-shorts-config', (req, res) => {
   try {
     const {
-      bundleDir: inputBundleDir, folderName, duration, hookTitle, font, fontSize, fontColor, strokeWidth, strokeColor, shadowDistance, shadowColor, shadowStyle,
+      bundleDir: inputBundleDir, folderName, duration, hookTitle, showHookTitle, font, fontSize, fontColor, strokeWidth, strokeColor, shadowDistance, shadowColor, shadowStyle,
       wordColors, wordFontSizes, boxEnabled, boxColor, boxOpacity, posY, lineBadges, selectedPhoto, speechSubtitlesEnabled, speechFont, speechColor, speechInactiveColor,
       speechFontSize, speechPosY, speechBoxMode, speechBoxColor, speechBoxOpacity, speechPacing, speechStrokeWidth, speechShadowDistance,
     } = req.body;
@@ -363,24 +500,189 @@ router.post('/api/save-shorts-config', (req, res) => {
     }
 
     const shortsConfig = {
-      duration: Number(duration) || 25, hookTitle: (hookTitle || '').trim(), font: font || 'impact',
-      fontSize: Number(fontSize) || 110, fontColor: fontColor || 'yellow', strokeWidth: Number(strokeWidth) || 0,
-      strokeColor: strokeColor || 'black', shadowDistance: Number(shadowDistance) || 0, shadowColor: shadowColor || 'black',
-      shadowStyle: shadowStyle || 'hard', wordColors: wordColors || null, wordFontSizes: wordFontSizes || null,
-      boxEnabled: Boolean(boxEnabled), boxColor: boxColor || 'black', boxOpacity: boxEnabled ? (Number(boxOpacity) || 75) : 0,
-      speechSubtitlesEnabled: speechSubtitlesEnabled !== false, speechFont: speechFont || 'impact', speechColor: speechColor || 'yellow',
-      speechInactiveColor: speechInactiveColor || 'white', speechFontSize: Number(speechFontSize) || 115, speechPosY: Number(speechPosY) || 980,
-      speechBoxMode: speechBoxMode || 'pill', speechBoxColor: speechBoxColor || 'black', speechBoxOpacity: Number(speechBoxOpacity) || 88,
-      speechPacing: speechPacing || 'wave', speechStrokeWidth: Number(speechStrokeWidth) || 12, speechShadowDistance: Number(speechShadowDistance) || 6,
+      duration: Number(duration) || 25,
+      hookTitle: (hookTitle || '').trim(),
+      showHookTitle: showHookTitle !== false,
+      font: font || 'impact',
+      fontSize: Number(fontSize) || 110,
+      fontColor: fontColor || 'yellow',
+      strokeWidth: Number(strokeWidth) ?? 8,
+      strokeColor: strokeColor || 'black',
+      shadowDistance: Number(shadowDistance) ?? 4,
+      shadowColor: shadowColor || 'black',
+      shadowStyle: shadowStyle || 'hard',
+      wordColors: wordColors || null,
+      wordFontSizes: wordFontSizes || null,
+      boxEnabled: Boolean(boxEnabled),
+      boxColor: boxColor || 'black',
+      boxOpacity: boxEnabled ? (Number(boxOpacity) ?? 75) : 0,
+      posY: Number(posY) || 200,
+      lineBadges: lineBadges || null,
+      selectedPhoto: selectedPhoto || null,
+      speechSubtitlesEnabled: speechSubtitlesEnabled !== false,
+      speechFont: speechFont || 'impact',
+      speechColor: speechColor || 'yellow',
+      speechInactiveColor: speechInactiveColor || 'white',
+      speechFontSize: Number(speechFontSize) || 115,
+      speechPosY: Number(speechPosY) || 980,
+      speechBoxMode: speechBoxMode || 'pill',
+      speechBoxColor: speechBoxColor || 'black',
+      speechBoxOpacity: Number(speechBoxOpacity) ?? 88,
+      speechPacing: speechPacing || 'wave',
+      speechStrokeWidth: Number(speechStrokeWidth) ?? 12,
+      speechShadowDistance: Number(speechShadowDistance) ?? 6,
       savedAt: new Date().toISOString(),
     };
 
     manifest.shortsConfig = shortsConfig;
     if (duration) manifest.short_duration = Number(duration);
     fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
+
+    // Also persist directly to shorts_config.json for maximum resilience
+    const shortsConfigPath = path.join(bundleDir, 'shorts_config.json');
+    try {
+      fs.writeFileSync(shortsConfigPath, JSON.stringify(shortsConfig, null, 2), 'utf-8');
+    } catch {}
+
     invalidatePackagesCache();
     res.json({ success: true, shortsConfig, folderName: path.basename(bundleDir) });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+});
+
+// POST /api/preview-video-frame
+router.post('/api/preview-video-frame', async (req, res) => {
+  try {
+    const result = await processPreviewVideoFrame(req.body);
+    res.json(result);
+  } catch (err) {
+    console.error('Preview video frame error:', err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+const defaultVideoSubtitlesPath = path.resolve(__dirname, '../default_video_subtitles_config.json');
+
+// GET /api/default-video-subtitles-config
+router.get('/api/default-video-subtitles-config', (req, res) => {
+  try {
+    if (fs.existsSync(defaultVideoSubtitlesPath)) {
+      const data = JSON.parse(fs.readFileSync(defaultVideoSubtitlesPath, 'utf-8'));
+      return res.json({ success: true, config: data });
+    }
+    return res.json({ success: true, config: null });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/default-video-subtitles-config
+router.post('/api/default-video-subtitles-config', (req, res) => {
+  try {
+    const config = req.body;
+    fs.writeFileSync(defaultVideoSubtitlesPath, JSON.stringify(config, null, 2), 'utf-8');
+    res.json({ success: true, message: 'Шаблон субтитров по умолчанию сохранен', config });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/package-video-config
+router.get('/api/package-video-config', (req, res) => {
+  try {
+    const { folderName, bundleDir: inputBundleDir } = req.query;
+    const newsDir = path.resolve(__dirname, '../../news');
+    let bundleDir = inputBundleDir || (folderName ? path.join(newsDir, folderName) : null);
+    if (!bundleDir || !fs.existsSync(bundleDir)) {
+      return res.status(404).json({ success: false, error: 'Папка не найдена' });
+    }
+
+    const jsonPath = path.join(bundleDir, 'project.json');
+    const videoJsonPath = path.join(bundleDir, 'video_config.json');
+    let manifest = {};
+    if (fs.existsSync(jsonPath)) {
+      try { manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8')); } catch {}
+    }
+    let videoConfig = manifest.videoConfig || (fs.existsSync(videoJsonPath) ? JSON.parse(fs.readFileSync(videoJsonPath, 'utf-8')) : null);
+
+    if (!videoConfig && fs.existsSync(defaultVideoSubtitlesPath)) {
+      try {
+        videoConfig = JSON.parse(fs.readFileSync(defaultVideoSubtitlesPath, 'utf-8'));
+      } catch {}
+    }
+
+    res.json({ success: true, videoConfig: videoConfig || null });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/save-video-config
+router.post('/api/save-video-config', (req, res) => {
+  try {
+    const {
+      bundleDir: inputBundleDir, folderName,
+      includeKaraokeSubtitles, subtitleColor, subtitleInactiveColor, subtitleFontSize, subtitleFont,
+      subtitlePosY, subtitleBoxMode, subtitleBoxColor, subtitleBoxOpacity, subtitlePacing,
+      subtitleStrokeWidth, subtitleShadowDistance, subtitleLineMode, subtitleMaxWords, subtitleMaxChars,
+      wordColors, wordFontSizes, selectedPhoto, transition, includeSubBanner, subBannerTime, bannerStyle,
+    } = req.body;
+
+    const newsDir = path.resolve(__dirname, '../../news');
+    let bundleDir = inputBundleDir || (folderName ? path.join(newsDir, folderName) : null);
+    if (!bundleDir || !fs.existsSync(bundleDir)) {
+      return res.status(400).json({ success: false, error: 'Папка проекта не найдена' });
+    }
+
+    const jsonPath = path.join(bundleDir, 'project.json');
+    let manifest = {};
+    if (fs.existsSync(jsonPath)) {
+      try { manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8')); } catch {}
+    }
+
+    const videoConfig = {
+      includeKaraokeSubtitles: includeKaraokeSubtitles !== false,
+      subtitleColor: subtitleColor || 'yellow',
+      subtitleInactiveColor: subtitleInactiveColor || 'white',
+      subtitleFontSize: Number(subtitleFontSize) || 44,
+      subtitleFont: subtitleFont || 'RussoOne-Regular.ttf',
+      subtitlePosY: Number(subtitlePosY) || 960,
+      subtitleBoxMode: subtitleBoxMode || 'pill',
+      subtitleBoxColor: subtitleBoxColor || 'black',
+      subtitleBoxOpacity: Number(subtitleBoxOpacity) ?? 82,
+      subtitlePacing: subtitlePacing || 'wave',
+      subtitleStrokeWidth: Number(subtitleStrokeWidth) ?? 4,
+      subtitleShadowDistance: Number(subtitleShadowDistance) ?? 2,
+      subtitleLineMode: subtitleLineMode || 'auto',
+      subtitleMaxWords: Number(subtitleMaxWords) || 0,
+      subtitleMaxChars: Number(subtitleMaxChars) || 0,
+      wordColors: wordColors || null,
+      wordFontSizes: wordFontSizes || null,
+      selectedPhoto: selectedPhoto || null,
+      transition: transition || 'concat',
+      includeSubBanner: includeSubBanner !== false,
+      subBannerTime: Number(subBannerTime) || 30,
+      bannerStyle: bannerStyle || 'modern_dark',
+      savedAt: new Date().toISOString(),
+    };
+
+    manifest.videoConfig = videoConfig;
+    if (transition) manifest.transition = transition;
+    if (includeKaraokeSubtitles !== undefined) {
+      manifest.hasSubtitles = Boolean(includeKaraokeSubtitles);
+      manifest.subtitlesEnabled = Boolean(includeKaraokeSubtitles);
+    }
+    fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
+
+    const videoConfigPath = path.join(bundleDir, 'video_config.json');
+    try {
+      fs.writeFileSync(videoConfigPath, JSON.stringify(videoConfig, null, 2), 'utf-8');
+    } catch {}
+
+    invalidatePackagesCache();
+    res.json({ success: true, videoConfig, folderName: path.basename(bundleDir) });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 export default router;

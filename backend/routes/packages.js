@@ -175,7 +175,11 @@ router.get('/api/saved-packages', async (req, res) => {
         hasYouTubeMetadata, hasFacebookPost, youtubeMetadata: ytMeta || null, facebookPosts: manifest.facebookPosts || null,
         artifactCount, hasAnyArtifact: artifactCount > 0, headlineConfig: thumbnailStyle,
         title_variants: manifest.title_variants || [], audioUrl: hasAudio ? `/news-static/${entry.name}/audio.mp3` : null, videoUrl,
-        shortsConfig: manifest.shortsConfig || null,
+        shortsConfig: manifest.shortsConfig || (() => {
+          const scPath = path.join(bundleDir, 'shorts_config.json');
+          if (fs.existsSync(scPath)) { try { return JSON.parse(fs.readFileSync(scPath, 'utf-8')); } catch {} }
+          return null;
+        })(),
         scriptTxt: hasScriptTxt ? fs.readFileSync(txtPath, 'utf-8') : '', scriptMd: hasScriptMd ? fs.readFileSync(mdPath, 'utf-8') : '',
       });
     }
