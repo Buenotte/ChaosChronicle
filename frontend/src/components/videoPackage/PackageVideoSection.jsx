@@ -195,7 +195,7 @@ export default function PackageVideoSection({
               <button
                 className="copy-btn"
                 style={{ background: '#3f3f46', fontWeight: 600 }}
-                onClick={onGenerateVideo}
+                onClick={() => onGenerateVideo && onGenerateVideo({})}
                 disabled={generatingVideo}
               >
                 {generatingVideo ? '⏳ Пересборка...' : '🔄 Собрать видео заново'}
@@ -278,7 +278,7 @@ export default function PackageVideoSection({
                 <button
                   className="copy-btn"
                   style={{ background: '#10b981', fontWeight: 700 }}
-                  onClick={onGenerateVideo}
+                  onClick={() => onGenerateVideo && onGenerateVideo({})}
                   disabled={generatingVideo}
                 >
                   🎬 Создать видео (FFmpeg)

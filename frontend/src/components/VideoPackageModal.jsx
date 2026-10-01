@@ -94,24 +94,52 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
     finally { setGeneratingAudio(false) }
   }
 
-  const handleGenerateVideo = async (videoOpts = {}) => {
+  const handleGenerateVideo = async (rawOpts = {}) => {
     if (!audioState.hasAudio) return toast.error('❌ Сначала создайте аудио-озвучку (audio.mp3) в разделе 3!')
     if (actualPhotoCount === 0) return toast.error('❌ В пакете нет фотографий. Сначала откройте раздел 2 и сохраните фото!')
+    
+    // Ensure rawOpts is a plain config object, NOT a React SyntheticEvent / Click Event
+    const videoOpts = (rawOpts && typeof rawOpts === 'object' && !rawOpts.nativeEvent && !rawOpts.target && !rawOpts._reactName) ? rawOpts : {}
     const jobId = `job_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
     let evtSource = null
+    let pollInterval = null
+
     try {
-      setGeneratingVideo(true); setVideoProgress(5); setProgressLog('Инициализация монтажа видео...')
+      setGeneratingVideo(true)
+      setVideoProgress(5)
+      setProgressLog('Инициализация монтажа видео...')
       const toastId = toast.loading('🎬 Монтаж видео 16:9 через FFmpeg...')
+
+      // 1. SSE Connection for real-time stream
       try {
         evtSource = new EventSource(`/api/video-progress/${jobId}`)
         evtSource.onmessage = (e) => {
-          try { const d = JSON.parse(e.data); if (d.progress !== undefined && !isNaN(d.progress)) setVideoProgress(d.progress); if (d.log) setProgressLog(d.log) } catch {}
+          try {
+            const d = JSON.parse(e.data)
+            if (d.progress !== undefined && !isNaN(d.progress)) {
+              setVideoProgress(prev => Math.max(prev, Number(d.progress)))
+            }
+            if (d.log) setProgressLog(d.log)
+          } catch {}
         }
       } catch {}
 
+      // 2. High-reliability Polling Fallback (every 350ms)
+      pollInterval = setInterval(async () => {
+        try {
+          const pRes = await fetch(`/api/video-progress-poll/${jobId}`)
+          const pData = await pRes.json()
+          if (pData?.progress !== undefined && !isNaN(pData.progress)) {
+            setVideoProgress(prev => Math.max(prev, Number(pData.progress)))
+          }
+          if (pData?.log) setProgressLog(pData.log)
+        } catch {}
+      }, 350)
+
       const mergedOpts = { ...(videoConfig || {}), ...videoOpts }
       const res = await fetch('/api/render-video', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           bundleDir: pkg.bundleDir,
           folderName: pkg.folderName,
@@ -123,18 +151,29 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
           includeKaraokeSubtitles,
           ...mergedOpts,
         }),
-      }), data = await res.json()
+      })
+      const data = await res.json()
       toast.dismiss(toastId)
       if (data.success) {
-        setVideoProgress(100); setProgressLog('Видео успешно создано!'); setVideoState({ hasVideo: true, videoUrl: data.videoUrl }); toast.success('🎬 Финальное видео 16:9 готово!')
+        setVideoProgress(100)
+        setProgressLog('Видео 16:9 успешно создано!')
+        setVideoState({ hasVideo: true, videoUrl: data.videoUrl })
+        toast.success('🎬 Финальное видео 16:9 готово!')
         if (data.videoConfig) {
           setVideoConfig(data.videoConfig)
           pkg.videoConfig = data.videoConfig
         }
         if (onRefresh) onRefresh()
-      } else { toast.error('❌ Ошибка: ' + (data.error || 'Не удалось создать видео')) }
-    } catch (err) { toast.error('❌ Ошибка рендеринга видео: ' + err.message) }
-    finally { if (evtSource) { try { evtSource.close() } catch {} }; setGeneratingVideo(false) }
+      } else {
+        toast.error('❌ Ошибка: ' + (data.error || 'Не удалось создать видео'))
+      }
+    } catch (err) {
+      toast.error('❌ Ошибка рендеринга видео: ' + err.message)
+    } finally {
+      if (evtSource) { try { evtSource.close() } catch {} }
+      if (pollInterval) clearInterval(pollInterval)
+      setGeneratingVideo(false)
+    }
   }
 
   const [shortsConfig, setShortsConfig] = useState(pkg.shortsConfig || null)
@@ -314,7 +353,46 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
           onClose={onClose}
         />
 
-        <div className="modal-body">
+        <div className="modal-body" style={{ position: 'relative' }}>
+          {/* 🚀 Sticky Top Progress Bar при рендеринге видео 16:9 */}
+          {generatingVideo && (
+            <div style={{
+              position: 'sticky',
+              top: '0px',
+              zIndex: 100,
+              background: 'linear-gradient(135deg, #090d16 0%, #0f172a 100%)',
+              padding: '0.85rem 1.15rem',
+              borderRadius: '10px',
+              border: '1.5px solid #10b981',
+              boxShadow: '0 8px 24px rgba(16,185,129,0.35)',
+              marginBottom: '1rem',
+              backdropFilter: 'blur(8px)',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem' }}>
+                <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#10b981', display: 'inline-block', boxShadow: '0 0 8px #10b981' }} />
+                  🎬 Генерация видео 16:9 (FFmpeg)...
+                </span>
+                <span style={{ fontSize: '0.92rem', fontWeight: 900, color: '#10b981' }}>{videoProgress}%</span>
+              </div>
+              <div style={{ height: '10px', background: '#1e293b', borderRadius: '6px', overflow: 'hidden', border: '1px solid #334155' }}>
+                <div style={{
+                  width: `${videoProgress}%`,
+                  height: '100%',
+                  background: 'linear-gradient(90deg, #059669 0%, #10b981 50%, #34d399 100%)',
+                  borderRadius: '6px',
+                  boxShadow: '0 0 12px rgba(16,185,129,0.8)',
+                  transition: 'width 0.25s ease-out',
+                }} />
+              </div>
+              {progressLog && (
+                <div style={{ fontSize: '0.76rem', color: '#94a3b8', marginTop: '0.4rem', fontFamily: 'monospace', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  ⚡ {progressLog}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* 1. Скрипт текста и Заголовок */}
           <PackageScriptSection
             pkg={pkg}

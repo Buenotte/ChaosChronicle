@@ -1,0 +1,17 @@
+{
+  "includeKaraokeSubtitles": true,
+  "subtitleColor": "red",
+  "subtitleInactiveColor": "yellow",
+  "subtitleFontSize": 64,
+  "subtitleFont": "RussoOne-Regular.ttf",
+  "subtitlePosY": 960,
+  "subtitleBoxMode": "none",
+  "subtitleBoxColor": "black",
+  "subtitleBoxOpacity": 82,
+  "subtitlePacing": "wave",
+  "subtitleStrokeWidth": 4,
+  "subtitleShadowDistance": 2,
+  "subtitleLineMode": "auto",
+  "subtitleMaxWords": 8,
+  "subtitleMaxChars": 70
+}

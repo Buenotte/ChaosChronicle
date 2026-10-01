@@ -23,7 +23,7 @@ const getHwEncoderArgs = () => new Promise((resolve) => {
   });
 });
 
-// GET /api/video-progress/:jobId
+// GET /api/video-progress/:jobId (SSE Stream)
 router.get('/api/video-progress/:jobId', (req, res) => {
   const { jobId } = req.params;
   res.setHeader('Content-Type', 'text/event-stream');
@@ -54,6 +54,16 @@ router.get('/api/video-progress/:jobId', (req, res) => {
       videoJobs.delete(jobId);
     }
   });
+});
+
+// GET /api/video-progress-poll/:jobId (JSON Polling Fallback)
+router.get('/api/video-progress-poll/:jobId', (req, res) => {
+  const { jobId } = req.params;
+  if (!videoJobs.has(jobId)) {
+    return res.json({ progress: 0, status: 'waiting', log: '' });
+  }
+  const job = videoJobs.get(jobId);
+  res.json({ progress: job.progress, status: job.status, log: job.log });
 });
 
 // POST /api/generate-video & /api/render-video
