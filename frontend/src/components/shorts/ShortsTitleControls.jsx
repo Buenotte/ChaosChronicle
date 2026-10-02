@@ -35,7 +35,25 @@ export default function ShortsTitleControls({
       {showHookTitle && (
         <>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-            <textarea rows={2} value={text} onChange={e => { setText(e.target.value); onDirty() }} placeholder="Введите текст заголовка..." style={{ background: '#090d16', border: '1px solid #374151', color: '#fff', borderRadius: '6px', padding: '0.45rem 0.65rem', fontSize: '0.82rem', resize: 'vertical', width: '100%', boxSizing: 'border-box' }} />
+            <textarea
+              rows={3}
+              value={text}
+              onChange={e => { setText(e.target.value); onDirty() }}
+              placeholder="Введите текст заголовка..."
+              style={{
+                background: '#090d16',
+                border: '1px solid #374151',
+                color: '#fff',
+                borderRadius: '6px',
+                padding: '0.55rem 0.75rem',
+                fontSize: '0.85rem',
+                lineHeight: '1.4',
+                minHeight: '75px',
+                resize: 'vertical',
+                width: '100%',
+                boxSizing: 'border-box'
+              }}
+            />
           </div>
 
           <div style={{ display: 'flex', gap: '0.35rem' }}>

@@ -342,8 +342,23 @@ export default function ThumbnailSettingsModal({ pkg, currentThumbnail, onClose,
                 </div>
 
                 <textarea
-                  value={text} onChange={e => setText(e.target.value)} rows={2}
-                  style={{ width: '100%', background: '#09090b', color: '#fff', border: '1px solid #3f3f46', borderRadius: '6px', padding: '0.55rem', fontSize: '0.95rem', fontWeight: 700, resize: 'vertical', lineHeight: 1.3 }}
+                  value={text}
+                  onChange={e => setText(e.target.value)}
+                  rows={4}
+                  style={{
+                    width: '100%',
+                    minHeight: '110px',
+                    background: '#09090b',
+                    color: '#fff',
+                    border: '1px solid #3f3f46',
+                    borderRadius: '6px',
+                    padding: '0.65rem 0.75rem',
+                    fontSize: '0.95rem',
+                    fontWeight: 700,
+                    resize: 'vertical',
+                    lineHeight: 1.4,
+                    boxSizing: 'border-box',
+                  }}
                   placeholder="Введите текст заголовка..."
                 />
                 {titleVariants && titleVariants.length > 0 && (
