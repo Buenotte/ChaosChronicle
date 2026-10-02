@@ -114,8 +114,11 @@ export default function App() {
       const res = await fetch(url)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json()
-      setArticles(data.articles || [])
+      if (Array.isArray(data.articles)) {
+        setArticles(data.articles)
+      }
       setLastRefresh(new Date().toLocaleTimeString('ru-RU'))
+      fetchSavedPackages()
 
       if (force) {
         toast.success('✨ Ленты новостей успешно обновлены!', {
@@ -124,13 +127,13 @@ export default function App() {
         })
       }
     } catch (err) {
+      console.error('fetchNews error:', err)
       setError(`Ошибка загрузки новостей: ${err.message}`)
       if (force && toastId) {
         toast.error('Ошибка обновления новостей', { id: toastId, description: err.message })
       } else {
         toast.error('Ошибка загрузки новостей', { description: err.message })
       }
-      setArticles([])
     } finally {
       setLoading(false)
     }
@@ -301,7 +304,11 @@ export default function App() {
         setSearch={setSearch}
         category={category}
         setCategory={setCategory}
-        onRefresh={() => (category === 'saved' ? fetchSavedPackages() : fetchNews(category, true))}
+        onRefresh={(targetCat) => {
+          const effectiveCat = (typeof targetCat === 'string' && targetCat) ? targetCat : category
+          if (effectiveCat === 'saved') fetchSavedPackages()
+          else fetchNews(effectiveCat, true)
+        }}
         loading={loading}
         savedCount={savedPackages?.length || 0}
         onOpenCustomNews={() => setShowCustomNewsModal(true)}

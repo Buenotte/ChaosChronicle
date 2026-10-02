@@ -156,12 +156,17 @@ export default function AppHeader({
       <nav className="category-tabs" aria-label="Категории новостей">
         {CATEGORIES.map(cat => {
           const countBadge = cat.key === 'saved' && savedCount > 0 ? ` (${savedCount})` : ''
+          const isActive = category === cat.key
           return (
             <button
               key={cat.key}
-              className={`tab-btn ${category === cat.key ? 'active' : ''}`}
+              className={`tab-btn ${isActive ? 'active' : ''}`}
               style={{ '--tab-color': cat.color }}
-              onClick={() => setCategory(cat.key)}
+              onClick={() => {
+                setCategory(cat.key)
+                if (onRefresh) onRefresh(cat.key)
+              }}
+              title={`Показать категорию «${cat.label}» (обновить)`}
             >
               {cat.label}{countBadge}
             </button>

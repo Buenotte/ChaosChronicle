@@ -105,8 +105,8 @@ export async function fetchYouTubeCategoryVideos(searchQueries, category, defaul
   const seenIds = new Set();
   const irrelevantPattern = /(художественный\s+фильм|комедия|полный\s+фильм|мелодрама|боевик|кинопраздник|кино\b|фильм\b|сериал\b|трейлер|reaction|реакци|смотрит:|нарезк|9\/11|катастроф)/i;
   const isViewSort = category === 'psikh' || sortType === 'views';
-  const filterParams = isViewSort ? ['sp=CAM%253D', ''] : ['sp=CAI%253D'];
-  const maxLimit = isViewSort ? 25 : 12;
+  const filterParams = isViewSort ? ['sp=CAM%253D'] : ['sp=CAI%253D'];
+  const maxLimit = isViewSort ? 20 : 10;
 
   const fetchOneQuery = async (query, sp) => {
     try {
@@ -117,7 +117,7 @@ export async function fetchYouTubeCategoryVideos(searchQueries, category, defaul
           'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
           'Connection': 'close'
         },
-        signal: AbortSignal.timeout(3500)
+        signal: AbortSignal.timeout(2200)
       });
       if (!resp.ok) return [];
       const html = await resp.text();
@@ -183,7 +183,7 @@ export async function fetchYouTubeCategoryVideos(searchQueries, category, defaul
     }
   };
 
-  const queriesToRun = searchQueries.slice(0, 6);
+  const queriesToRun = searchQueries.slice(0, 2);
   const tasks = [];
   for (const q of queriesToRun) {
     for (const sp of filterParams) {
@@ -321,7 +321,7 @@ export async function fetchTopThreeAnalystVideos(analystName, searchQueries, cat
           'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
           'Connection': 'close'
         },
-        signal: AbortSignal.timeout(3500)
+        signal: AbortSignal.timeout(2200)
       });
       if (!resp.ok) return [];
       const html = await resp.text();
@@ -384,7 +384,7 @@ export async function fetchTopThreeAnalystVideos(analystName, searchQueries, cat
     }
   };
 
-  const results = await Promise.allSettled(searchQueries.map(q => fetchOne(q)));
+  const results = await Promise.allSettled(searchQueries.slice(0, 1).map(q => fetchOne(q)));
   for (const r of results) {
     if (r.status === 'fulfilled' && Array.isArray(r.value)) {
       for (const v of r.value) {
@@ -581,22 +581,20 @@ export async function fetchOgImage(url) {
 }
 
 export async function enrichArticlesWithOgImages(articles) {
-  const missing = articles.filter(a => !a.imageUrl && a.url);
+  const missing = articles.filter(a => !a.imageUrl && a.url).slice(0, 10);
   if (missing.length === 0) return articles;
 
-  const chunkSize = 15;
-  for (let i = 0; i < missing.length; i += chunkSize) {
-    const chunk = missing.slice(i, i + chunkSize);
-    await Promise.allSettled(
-      chunk.map(async (art) => {
+  await Promise.allSettled(
+    missing.map(async (art) => {
+      try {
         const img = await fetchOgImage(art.url);
         if (img) {
           art.imageUrl = img;
           art.images = [img];
         }
-      })
-    );
-  }
+      } catch {}
+    })
+  );
 
   try {
     fs.writeFileSync(cacheFilePath, JSON.stringify({ lastFetch, articles }, null, 2), 'utf-8');
@@ -637,41 +635,36 @@ if (fs.existsSync(cacheFilePath)) {
     }).slice(0, 1000);
     lastFetch = cachedData.lastFetch || 0;
     console.log(`📦 ${newsCache.length} frische Nachrichten aus Festplatten-Cache geladen.`);
-    // Hintergrund-Ergänzung für fehlende Bilder
-    const missingCount = newsCache.filter(a => !a.imageUrl && a.url).length;
-    if (missingCount > 0) {
-      enrichArticlesWithOgImages(newsCache).then(enriched => {
-        const withImg = enriched.filter(a => a.imageUrl).length;
-        console.log(`✨ Fotos angereichert: ${withImg}/${enriched.length} Nachrichten haben jetzt Original-Bilder!`);
-      });
-    }
   } catch (e) {
     console.error('Fehler beim Lesen von cache_news.json:', e.message);
   }
 }
 
-// Sofort alle Feeds mit den neuen Psychologie- und Lebensgeschichten-Quellen synchronisieren
-setTimeout(() => {
-  fetchAllFeeds(true).catch(() => {});
-}, 500);
+// Falls der Cache leer ist, initial im Hintergrund laden
+if (newsCache.length === 0) {
+  setTimeout(() => {
+    fetchAllFeeds(true).catch(() => {});
+  }, 500);
+}
 
 let fetchInProgress = null;
 
 export async function fetchAllFeeds(forceRefresh = false) {
-  if (!forceRefresh && newsCache.length > 0) {
+  const isCacheFresh = newsCache.length > 0 && (Date.now() - lastFetch < 60000);
+  if (!forceRefresh && isCacheFresh) {
     return newsCache;
   }
   if (fetchInProgress) return fetchInProgress;
 
   fetchInProgress = (async () => {
     try {
-      console.log(forceRefresh ? '↻ Nachrichten werden neu im Internet gesucht...' : '📰 Erste Nachrichten-Suche...');
+      console.log(forceRefresh ? '↻ Nachrichten werden neu im Internet gesucht...' : '📰 Erste/Periodische Nachrichten-Suche...');
       const now = Date.now();
 
       const rssPromise = Promise.allSettled(
         FEEDS.map(async (feed) => {
           try {
-            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Feed timeout')), 4000));
+            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Feed timeout')), 2500));
             const parsed = await Promise.race([parser.parseURL(feed.url), timeoutPromise]);
             const maxAgeMs = 7 * 24 * 60 * 60 * 1000; // Maximal 7 Tage
             const limitItems = feed.category === 'psikh' ? 30 : 15;
@@ -705,78 +698,75 @@ export async function fetchAllFeeds(forceRefresh = false) {
         })
       );
 
-  const [
-    ytKeyAnalystsRes,
-    ytUkraineRes,
-    ytRussiaRes,
-    ytPolitikaRes,
-    ytEmigrRes,
-    ytPsychRes,
-    results
-  ] = await Promise.allSettled([
-    fetchAllKeyAnalystsVideos().catch(() => []),
-    fetchYouTubeUkraineVideos().catch(() => []),
-    fetchYouTubeRussiaVideos().catch(() => []),
-    fetchYouTubePoliticsVideos().catch(() => []),
-    fetchYouTubeEmigrationVideos().catch(() => []),
-    fetchYouTubePsychologyVideos().catch(() => []),
-    rssPromise
-  ]);
+      const cachedYt = newsCache.filter(a => a.isYouTube);
+      const shouldFetchYt = cachedYt.length === 0;
 
-  const ytKeyAnalysts = ytKeyAnalystsRes.status === 'fulfilled' ? ytKeyAnalystsRes.value : [];
-  const ytUkraineVideos = ytUkraineRes.status === 'fulfilled' ? ytUkraineRes.value : [];
-  const ytRussiaVideos = ytRussiaRes.status === 'fulfilled' ? ytRussiaRes.value : [];
-  const ytPolitikaVideos = ytPolitikaRes.status === 'fulfilled' ? ytPolitikaRes.value : [];
-  const ytEmigrVideos = ytEmigrRes.status === 'fulfilled' ? ytEmigrRes.value : [];
-  const ytPsychVideos = ytPsychRes.status === 'fulfilled' ? ytPsychRes.value : [];
+      const ytPromise = shouldFetchYt
+        ? Promise.allSettled([
+            fetchAllKeyAnalystsVideos().catch(() => []),
+            fetchYouTubeUkraineVideos().catch(() => []),
+            fetchYouTubeRussiaVideos().catch(() => []),
+            fetchYouTubePoliticsVideos().catch(() => []),
+            fetchYouTubeEmigrationVideos().catch(() => []),
+            fetchYouTubePsychologyVideos().catch(() => []),
+          ])
+        : Promise.resolve([]);
 
-  const feedArticles = (results.status === 'fulfilled' && Array.isArray(results.value))
-    ? results.value.filter(r => r.status === 'fulfilled').flatMap(r => r.value)
-    : [];
+      const [results, ytResults] = await Promise.all([
+        rssPromise,
+        ytPromise
+      ]);
 
-  const rawArticles = [
-    ...(ytKeyAnalysts || []),
-    ...(ytUkraineVideos || []),
-    ...(ytRussiaVideos || []),
-    ...(ytPolitikaVideos || []),
-    ...(ytEmigrVideos || []),
-    ...(ytPsychVideos || []),
-    ...feedArticles
-  ].sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+      const freshYtArticles = (Array.isArray(ytResults) && ytResults.length > 0)
+        ? ytResults.filter(r => r.status === 'fulfilled').flatMap(r => r.value || [])
+        : [];
 
-  // Strikte Duplikats-Filterung nach URL und normalisiertem Titel
-  const seenUrls = new Set();
-  const seenTitles = new Set();
-  const articles = [];
+      const finalYt = freshYtArticles.length > 0 ? freshYtArticles : cachedYt;
 
-  for (const art of rawArticles) {
-    if (isSportsArticle(art)) continue;
-    const isYt = (art.url || '').includes('youtube.com') || (art.url || '').includes('youtu.be') || art.isYouTube;
-    const normUrl = isYt ? ((art.url || '').trim().toLowerCase() + (art.category ? `-${art.category}` : '')) : (art.url || '').split('?')[0].replace(/\/$/, '').toLowerCase();
-    const normTitle = (art.title || '').toLowerCase().replace(/[^a-zа-я0-9]/gi, '');
-    if (normUrl && seenUrls.has(normUrl)) continue;
-    if (normTitle && normTitle.length > 12 && seenTitles.has(normTitle)) continue;
-    if (normUrl) seenUrls.add(normUrl);
-    if (normTitle) seenTitles.add(normTitle);
-    articles.push(art);
-    if (articles.length >= 1000) break;
-  }
+      const feedArticles = (results.status === 'fulfilled' && Array.isArray(results.value))
+        ? results.value.filter(r => r.status === 'fulfilled').flatMap(r => r.value)
+        : [];
 
-  newsCache = articles;
-  lastFetch = Date.now();
+      const rawArticles = [
+        ...feedArticles,
+        ...newsCache,
+        ...finalYt
+      ].sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
 
-  try {
-    fs.writeFileSync(cacheFilePath, JSON.stringify({ lastFetch, articles }, null, 2), 'utf-8');
-  } catch (e) {
-    console.error('Fehler beim Speichern von cache_news.json:', e.message);
-  }
+      // Strikte Duplikats-Filterung nach URL und normalisiertem Titel
+      const seenUrls = new Set();
+      const seenTitles = new Set();
+      const articles = [];
 
-  // Sofort Web-Fotos für Artikel ohne RSS-Bild nachladen
-  enrichArticlesWithOgImages(articles).then(enriched => {
-    newsCache = enriched;
-  });
+      for (const art of rawArticles) {
+        if (isSportsArticle(art)) continue;
+        const isYt = (art.url || '').includes('youtube.com') || (art.url || '').includes('youtu.be') || art.isYouTube;
+        const normUrl = isYt ? ((art.url || '').trim().toLowerCase() + (art.category ? `-${art.category}` : '')) : (art.url || '').split('?')[0].replace(/\/$/, '').toLowerCase();
+        const normTitle = (art.title || '').toLowerCase().replace(/[^a-zа-я0-9]/gi, '');
+        if (normUrl && seenUrls.has(normUrl)) continue;
+        if (normTitle && normTitle.length > 12 && seenTitles.has(normTitle)) continue;
+        if (normUrl) seenUrls.add(normUrl);
+        if (normTitle) seenTitles.add(normTitle);
+        articles.push(art);
+        if (articles.length >= 1000) break;
+      }
 
-      return articles;
+      if (articles.length > 0) {
+        newsCache = articles;
+        lastFetch = Date.now();
+        try {
+          fs.writeFileSync(cacheFilePath, JSON.stringify({ lastFetch, articles }, null, 2), 'utf-8');
+        } catch (e) {
+          console.error('Fehler beim Speichern von cache_news.json:', e.message);
+        }
+      }
+
+      // Web-Fotos für Artikel ohne Bild nachladen (asynchron im Hintergrund)
+      enrichArticlesWithOgImages(newsCache).then(enriched => {
+        if (Array.isArray(enriched) && enriched.length > 0) newsCache = enriched;
+      }).catch(() => {});
+
+      return newsCache;
     } finally {
       fetchInProgress = null;
     }
@@ -800,9 +790,18 @@ router.get('/api/news', async (req, res) => {
   try {
     const { category = 'alle', force = 'false' } = req.query;
     const isForce = force === 'true';
-    const all = await fetchAllFeeds(isForce);
 
-    const nonSportsAll = all.filter(a => !isSportsArticle(a));
+    let all;
+    if (isForce) {
+      // Frische Suche im Internet starten und maximal 800ms warten, damit das Frontend nie blockiert
+      const quickTimeout = new Promise(resolve => setTimeout(() => resolve(newsCache), 800));
+      all = await Promise.race([fetchAllFeeds(true), quickTimeout]);
+      if (!all || all.length === 0) all = newsCache;
+    } else {
+      all = (newsCache.length > 0) ? newsCache : await fetchAllFeeds(false);
+    }
+
+    const nonSportsAll = (all || newsCache || []).filter(a => !isSportsArticle(a));
     let filtered = nonSportsAll;
     if (category === 'alle' || category === 'vse') {
       // Ausdrücklich KEINE YouTube-Videos im Tab "Все новости" (alle / vse), nur 50 neueste echte Nachrichten (RSS & Web)
@@ -811,7 +810,7 @@ router.get('/api/news', async (req, res) => {
         if (a.category === 'tekh' || a.category === 'tech') return false; // Technologien nur im tekh-Tab
         return true;
       });
-      filtered = newsOnly.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate)).slice(0, 50);
+      filtered = (newsOnly.length > 0 ? newsOnly : nonSportsAll).sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate)).slice(0, 50);
     } else if (category === 'rossija') {
       const russiaKeywords = /(росси|рф\b|москв|петербург|питер|кремл|путин|госдум|росстат|минфин|центробанк|цб рф|минобороны рф|фсб|мвд|росгварди|белгород|курск|брянск|воронеж|ростов|шебекино|сибирь|урал|татарстан|башкортостан|кавказ|дагестан|чечн|краснодар|сочи|владивосток|приморь|новосибирск|екатеринбург|россиян|российск|отечествен)/i;
       const rusAll = nonSportsAll.filter(a => {
