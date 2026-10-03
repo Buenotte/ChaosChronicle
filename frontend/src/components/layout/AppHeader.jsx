@@ -19,8 +19,8 @@ export default function AppHeader({
     <header className="app-header">
       <div className="header-inner">
         <div className="brand-wrap">
-          <h1 className="brand-title">ChaosChronicle</h1>
-          <p className="brand-sub">Политическая сатира & Фельетоны · Генератор контента</p>
+          <h1 className="brand-title">OCEANVS OCCIDENTALIS</h1>
+          <p className="brand-sub">Западный Океан · Геополитика & Аналитика</p>
         </div>
 
         <div className="header-actions" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>

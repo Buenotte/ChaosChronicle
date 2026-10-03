@@ -11,8 +11,9 @@ import { invalidatePackagesCache } from './packages.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const router = express.Router();
 
-// SSE Job Store für Video-Fortschritt
+// SSE Job Store für Video-Fortschritt (verknüpft nach jobId und folderName)
 const videoJobs = new Map();
+const activeFolderJobs = new Map(); // folderName -> jobId
 
 let cachedHwEncoder = null;
 const getHwEncoderArgs = () => new Promise((resolve) => {
@@ -41,18 +42,15 @@ router.get('/api/video-progress/:jobId', (req, res) => {
   };
 
   if (!videoJobs.has(jobId)) {
-    videoJobs.set(jobId, { clients: new Set(), progress: 0, status: 'waiting', log: '' });
+    videoJobs.set(jobId, { clients: new Set(), progress: 0, status: 'waiting', log: '', jobId });
   }
   const job = videoJobs.get(jobId);
   job.clients.add(sendEvent);
 
-  sendEvent({ progress: job.progress, status: job.status, log: job.log });
+  sendEvent({ progress: job.progress, status: job.status, log: job.log, jobId, videoUrl: job.videoUrl });
 
   req.on('close', () => {
     job.clients.delete(sendEvent);
-    if (job.clients.size === 0 && job.status === 'done') {
-      videoJobs.delete(jobId);
-    }
   });
 });
 
@@ -63,7 +61,86 @@ router.get('/api/video-progress-poll/:jobId', (req, res) => {
     return res.json({ progress: 0, status: 'waiting', log: '' });
   }
   const job = videoJobs.get(jobId);
-  res.json({ progress: job.progress, status: job.status, log: job.log });
+  res.json({ progress: job.progress, status: job.status, log: job.log, videoUrl: job.videoUrl, jobId });
+});
+
+// GET /api/video-status (Prüfen, ob für ein Paket aktuell gerendert wird)
+router.get('/api/video-status', (req, res) => {
+  const folderName = (req.query.folderName || '').trim();
+  const bundleDir = (req.query.bundleDir || '').trim();
+  const normFolder = folderName || (bundleDir ? path.basename(bundleDir) : '');
+
+  let foundJob = null;
+  if (normFolder && activeFolderJobs.has(normFolder)) {
+    const jId = activeFolderJobs.get(normFolder);
+    foundJob = videoJobs.get(jId);
+  } else if (req.query.jobId && videoJobs.has(req.query.jobId)) {
+    foundJob = videoJobs.get(req.query.jobId);
+  } else if (normFolder) {
+    for (const job of videoJobs.values()) {
+      if (job.folderName === normFolder) {
+        foundJob = job;
+        break;
+      }
+    }
+  }
+
+  if (foundJob) {
+    const isRunning = foundJob.status !== 'done' && foundJob.status !== 'error' && foundJob.status !== 'canceled';
+    return res.json({
+      success: true,
+      isRendering: isRunning,
+      jobId: foundJob.jobId,
+      folderName: foundJob.folderName,
+      progress: foundJob.progress,
+      status: foundJob.status,
+      log: foundJob.log,
+      videoUrl: foundJob.videoUrl || null,
+      startTime: foundJob.startTime,
+    });
+  }
+
+  res.json({ success: true, isRendering: false, progress: 0, status: 'idle', log: '' });
+});
+
+// POST /api/cancel-video (Rendervorgang sicher abbrechen)
+router.post('/api/cancel-video', (req, res) => {
+  const { folderName, bundleDir, jobId } = req.body || {};
+  const normFolder = (folderName || (bundleDir ? path.basename(bundleDir) : '')).trim();
+
+  let foundJob = null;
+  if (jobId && videoJobs.has(jobId)) {
+    foundJob = videoJobs.get(jobId);
+  } else if (normFolder && activeFolderJobs.has(normFolder)) {
+    const jId = activeFolderJobs.get(normFolder);
+    foundJob = videoJobs.get(jId);
+  } else if (normFolder) {
+    for (const job of videoJobs.values()) {
+      if (job.folderName === normFolder) {
+        foundJob = job;
+        break;
+      }
+    }
+  }
+
+  if (foundJob) {
+    foundJob.canceled = true;
+    foundJob.status = 'canceled';
+    foundJob.log = 'Монтаж видео отменен пользователем';
+    if (foundJob.ffmpegProcess && !foundJob.ffmpegProcess.killed) {
+      try { foundJob.ffmpegProcess.kill('SIGTERM'); } catch {}
+      try { foundJob.ffmpegProcess.kill('SIGKILL'); } catch {}
+    }
+    if (activeFolderJobs.get(foundJob.folderName) === foundJob.jobId) {
+      activeFolderJobs.delete(foundJob.folderName);
+    }
+    for (const client of foundJob.clients) {
+      try { client({ progress: 0, status: 'canceled', log: 'Монтаж видео отменен' }); } catch {}
+    }
+    return res.json({ success: true, canceled: true, jobId: foundJob.jobId });
+  }
+
+  res.json({ success: true, canceled: false });
 });
 
 // POST /api/generate-video & /api/render-video
@@ -129,17 +206,41 @@ const handleGenerateVideo = async (req, res) => {
       return res.status(400).json({ success: false, error: 'В папке photos/ нет фотографий!' });
     }
 
+    const normFolder = (folderName || (bundleDir ? path.basename(bundleDir) : '')).trim();
+    const effectiveJobId = (jobId && typeof jobId === 'string' && jobId.trim()) ? jobId.trim() : `job_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+
+    if (!videoJobs.has(effectiveJobId)) {
+      videoJobs.set(effectiveJobId, {
+        jobId: effectiveJobId,
+        folderName: normFolder,
+        bundleDir,
+        clients: new Set(),
+        progress: 5,
+        status: 'probing',
+        log: 'Определение длительности аудио...',
+        startTime: Date.now(),
+        ffmpegProcess: null,
+        canceled: false,
+        videoUrl: null,
+      });
+    } else {
+      const existing = videoJobs.get(effectiveJobId);
+      existing.folderName = normFolder;
+      existing.bundleDir = bundleDir;
+      existing.status = 'probing';
+      existing.progress = 5;
+    }
+    if (normFolder) activeFolderJobs.set(normFolder, effectiveJobId);
+
     const broadcastProgress = (progress, status, log = '') => {
-      if (!jobId) return;
-      if (!videoJobs.has(jobId)) {
-        videoJobs.set(jobId, { clients: new Set(), progress: 0, status: 'waiting', log: '' });
-      }
-      const job = videoJobs.get(jobId);
-      job.progress = progress;
-      job.status = status;
-      job.log = log;
-      for (const client of job.clients) {
-        try { client({ progress, status, log }); } catch {}
+      const job = videoJobs.get(effectiveJobId);
+      if (job) {
+        job.progress = progress;
+        job.status = status;
+        job.log = log;
+        for (const client of job.clients) {
+          try { client({ progress, status, log, jobId: effectiveJobId, folderName: normFolder, videoUrl: job.videoUrl }); } catch {}
+        }
       }
     };
 
@@ -332,6 +433,8 @@ const handleGenerateVideo = async (req, res) => {
       broadcastProgress(15, 'encoding', 'Начало кодирования видео FFmpeg...');
 
       const ffmpegProcess = spawn('ffmpeg', ffmpegArgs);
+      const curJob = videoJobs.get(effectiveJobId);
+      if (curJob) curJob.ffmpegProcess = ffmpegProcess;
       let ffmpegStderr = '';
 
       ffmpegProcess.stderr.on('data', (data) => {
@@ -354,10 +457,31 @@ const handleGenerateVideo = async (req, res) => {
           try { fs.unlinkSync(assTempFile); } catch {}
         }
 
+        const activeJob = videoJobs.get(effectiveJobId);
+
         if (code !== 0) {
-          broadcastProgress(0, 'error', `FFmpeg завершился с ошибкой (код ${code})`);
+          if (activeJob) {
+            activeJob.status = activeJob.canceled ? 'canceled' : 'error';
+            activeJob.log = activeJob.canceled ? 'Монтаж видео отменен' : `FFmpeg код ${code}`;
+            activeJob.ffmpegProcess = null;
+          }
+          if (activeFolderJobs.get(normFolder) === effectiveJobId) {
+            activeFolderJobs.delete(normFolder);
+          }
+          broadcastProgress(0, activeJob?.canceled ? 'canceled' : 'error', activeJob?.log || `FFmpeg код ${code}`);
           console.error('FFmpeg error:', ffmpegStderr.slice(-800));
-          return res.status(500).json({ success: false, error: `Ошибка создания видео: FFmpeg код ${code}` });
+          return res.status(500).json({ success: false, error: activeJob?.canceled ? 'Монтаж отменен' : `Ошибка создания видео: FFmpeg код ${code}` });
+        }
+
+        const resFolderName = path.basename(bundleDir);
+        const finalVideoUrl = `/news-static/${resFolderName}/video.mp4?t=${Date.now()}`;
+
+        if (activeJob) {
+          activeJob.status = 'done';
+          activeJob.progress = 100;
+          activeJob.log = 'Видео успешно смонтировано!';
+          activeJob.videoUrl = finalVideoUrl;
+          activeJob.ffmpegProcess = null;
         }
 
         broadcastProgress(100, 'done', 'Видео успешно смонтировано!');
@@ -406,7 +530,6 @@ const handleGenerateVideo = async (req, res) => {
           fs.writeFileSync(videoConfigPath, JSON.stringify(videoConfig, null, 2), 'utf-8');
         } catch {}
 
-        const resFolderName = path.basename(bundleDir);
         try {
           fs.copyFileSync(videoPath, path.join(bundleDir, 'video.mp4'));
         } catch {}
@@ -417,12 +540,22 @@ const handleGenerateVideo = async (req, res) => {
           success: true,
           videoPath,
           videoFileName: `video/${videoFileName}`,
-          videoUrl: `/news-static/${resFolderName}/video.mp4?t=${Date.now()}`,
+          videoUrl: finalVideoUrl,
           folderName: resFolderName,
           duration: audioDuration,
           photosCount: photoFiles.length,
           transition,
+          jobId: effectiveJobId,
         });
+
+        setTimeout(() => {
+          if (activeFolderJobs.get(normFolder) === effectiveJobId) {
+            activeFolderJobs.delete(normFolder);
+          }
+          setTimeout(() => {
+            videoJobs.delete(effectiveJobId);
+          }, 60000);
+        }, 120000);
       });
     });
   } catch (err) {

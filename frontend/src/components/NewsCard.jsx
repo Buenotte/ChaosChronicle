@@ -152,6 +152,11 @@ export default function NewsCard({
               ✍️ Своя
             </span>
           )}
+          {(article.customPrompt || savedPkg?.customPrompt) && (
+            <span style={{ background: '#4338ca', color: '#c7d2fe', border: '1px solid #6366f1', fontSize: '0.68rem', fontWeight: 700, padding: '0.12rem 0.45rem', borderRadius: '4px' }} title={`Промпт: ${article.customPrompt || savedPkg?.customPrompt}`}>
+              🎯 С промптом
+            </span>
+          )}
           {isSaved && (
             <span className="saved-status-badge">
               🟢 📦 В news/

@@ -22,6 +22,11 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
   const scriptStyles = isYouTube ? YOUTUBE_TOPIC_STYLES : FEUILLETON_STYLES
   const videoRef = useRef(null)
   const shortAbortControllerRef = useRef(null)
+  const evtSourceRef = useRef(null)
+  const pollIntervalRef = useRef(null)
+  const activeJobIdRef = useRef(null)
+  const activeToastIdRef = useRef(null)
+
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0), [duration, setDuration] = useState(0)
   const [generatingAudio, setGeneratingAudio] = useState(false), [generatingVideo, setGeneratingVideo] = useState(false)
@@ -39,6 +44,90 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
   const [generatingShort, setGeneratingShort] = useState(false), [showShortsEditorModal, setShowShortsEditorModal] = useState(false), [isMaximized, setIsMaximized] = useState(false)
   const [currentThumbnail, setCurrentThumbnail] = useState(pkg.hasThumbnail ? (pkg.thumbnailUrl || (pkg.folderName ? `/news-static/${pkg.folderName}/thumbnail/thumbnail.jpg` : null)) : null)
 
+  const cleanupJobListeners = () => {
+    if (evtSourceRef.current) {
+      try { evtSourceRef.current.close() } catch {}
+      evtSourceRef.current = null
+    }
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current)
+      pollIntervalRef.current = null
+    }
+  }
+
+  const handleJobDone = (videoUrl) => {
+    cleanupJobListeners()
+    setVideoProgress(100)
+    setProgressLog('Видео 16:9 успешно создано!')
+    const freshUrl = videoUrl || (pkg.folderName ? `/news-static/${pkg.folderName}/video.mp4?t=${Date.now()}` : null)
+    if (freshUrl) {
+      setVideoState({ hasVideo: true, videoUrl: freshUrl })
+      pkg.hasVideo = true
+      pkg.videoUrl = freshUrl
+    }
+    if (activeToastIdRef.current) {
+      toast.dismiss(activeToastIdRef.current)
+      activeToastIdRef.current = null
+    }
+    setTimeout(() => {
+      setGeneratingVideo(false)
+    }, 1500)
+    toast.success('🎬 Финальное видео 16:9 готово!')
+    if (onRefresh) onRefresh()
+  }
+
+  const handleJobFailed = (msg) => {
+    cleanupJobListeners()
+    setGeneratingVideo(false)
+    if (activeToastIdRef.current) {
+      toast.dismiss(activeToastIdRef.current)
+      activeToastIdRef.current = null
+    }
+    if (msg !== 'canceled' && !msg?.includes('отменен')) {
+      toast.error('❌ Ошибка рендеринга видео: ' + msg)
+    }
+  }
+
+  const attachJobListener = (jobId) => {
+    cleanupJobListeners()
+    activeJobIdRef.current = jobId
+
+    try {
+      const evt = new EventSource(`/api/video-progress/${jobId}`)
+      evtSourceRef.current = evt
+      evt.onmessage = (e) => {
+        try {
+          const d = JSON.parse(e.data)
+          if (d.progress !== undefined && !isNaN(d.progress)) {
+            setVideoProgress(prev => Math.max(prev, Number(d.progress)))
+          }
+          if (d.log) setProgressLog(d.log)
+          if (d.status === 'done' || Number(d.progress) >= 100) {
+            handleJobDone(d.videoUrl)
+          } else if (d.status === 'error' || d.status === 'canceled') {
+            handleJobFailed(d.log || d.status)
+          }
+        } catch {}
+      }
+    } catch {}
+
+    pollIntervalRef.current = setInterval(async () => {
+      try {
+        const pRes = await fetch(`/api/video-progress-poll/${jobId}`)
+        const pData = await pRes.json()
+        if (pData?.progress !== undefined && !isNaN(pData.progress)) {
+          setVideoProgress(prev => Math.max(prev, Number(pData.progress)))
+        }
+        if (pData?.log) setProgressLog(pData.log)
+        if (pData?.status === 'done' || Number(pData?.progress) >= 100) {
+          handleJobDone(pData.videoUrl)
+        } else if (pData?.status === 'error' || pData?.status === 'canceled') {
+          handleJobFailed(pData.log || pData.status)
+        }
+      } catch {}
+    }, 400)
+  }
+
   useEffect(() => {
     setAudioState({ hasAudio: !!pkg.hasAudio, audioUrl: pkg.audioUrl })
     setVideoState({ hasVideo: !!pkg.hasVideo, videoUrl: pkg.videoUrl })
@@ -55,6 +144,30 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
     setIsPlaying(false)
     setCurrentTime(0)
     setCurrentThumbnail(pkg.hasThumbnail && pkg.folderName ? `/news-static/${pkg.folderName}/thumbnail/thumbnail.jpg?t=${Date.now()}` : (pkg.thumbnailUrl || null))
+
+    // Prüfen, ob für dieses Paket aktuell ein Video gerendert wird (selbst wenn das Modal geschlossen war)
+    const folder = pkg?.folderName || (pkg?.bundleDir ? pkg.bundleDir.split(/[/\\]/).pop() : '')
+    if (folder) {
+      fetch(`/api/video-status?folderName=${encodeURIComponent(folder)}&bundleDir=${encodeURIComponent(pkg?.bundleDir || '')}`)
+        .then(r => r.json())
+        .then(st => {
+          if (st?.success && st.isRendering && st.jobId) {
+            setGeneratingVideo(true)
+            setVideoProgress(st.progress || 5)
+            setProgressLog(st.log || 'Кодирование видео FFmpeg в фоне...')
+            attachJobListener(st.jobId)
+          } else if (st?.status === 'done' && st.videoUrl) {
+            setVideoState({ hasVideo: true, videoUrl: st.videoUrl })
+            pkg.hasVideo = true
+            pkg.videoUrl = st.videoUrl
+          }
+        })
+        .catch(() => {})
+    }
+
+    return () => {
+      cleanupJobListeners()
+    }
   }, [pkg])
 
   const togglePlay = () => { if (videoRef.current) { videoRef.current.muted = false; if (isPlaying) videoRef.current.pause(); else videoRef.current.play(); setIsPlaying(!isPlaying); } }
@@ -94,6 +207,20 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
     finally { setGeneratingAudio(false) }
   }
 
+  const handleCancelVideo = async () => {
+    try {
+      await fetch('/api/cancel-video', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bundleDir: pkg.bundleDir, folderName: pkg.folderName, jobId: activeJobIdRef.current }),
+      })
+      toast.info('🛑 Монтаж видео отменен')
+    } catch {}
+    finally {
+      handleJobFailed('canceled')
+    }
+  }
+
   const handleGenerateVideo = async (rawOpts = {}) => {
     if (!audioState.hasAudio) return toast.error('❌ Сначала создайте аудио-озвучку (audio.mp3) в разделе 3!')
     if (actualPhotoCount === 0) return toast.error('❌ В пакете нет фотографий. Сначала откройте раздел 2 и сохраните фото!')
@@ -101,40 +228,18 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
     // Ensure rawOpts is a plain config object, NOT a React SyntheticEvent / Click Event
     const videoOpts = (rawOpts && typeof rawOpts === 'object' && !rawOpts.nativeEvent && !rawOpts.target && !rawOpts._reactName) ? rawOpts : {}
     const jobId = `job_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
-    let evtSource = null
-    let pollInterval = null
 
     try {
       setGeneratingVideo(true)
       setVideoProgress(5)
       setProgressLog('Инициализация монтажа видео...')
-      const toastId = toast.loading('🎬 Монтаж видео 16:9 через FFmpeg...')
+      const toastId = toast.loading('🎬 Монтаж видео 16:9 через FFmpeg...', {
+        description: 'Монтаж идет на сервере. Окно можно закрывать — генерация не прервется.',
+      })
+      activeToastIdRef.current = toastId
 
-      // 1. SSE Connection for real-time stream
-      try {
-        evtSource = new EventSource(`/api/video-progress/${jobId}`)
-        evtSource.onmessage = (e) => {
-          try {
-            const d = JSON.parse(e.data)
-            if (d.progress !== undefined && !isNaN(d.progress)) {
-              setVideoProgress(prev => Math.max(prev, Number(d.progress)))
-            }
-            if (d.log) setProgressLog(d.log)
-          } catch {}
-        }
-      } catch {}
-
-      // 2. High-reliability Polling Fallback (every 350ms)
-      pollInterval = setInterval(async () => {
-        try {
-          const pRes = await fetch(`/api/video-progress-poll/${jobId}`)
-          const pData = await pRes.json()
-          if (pData?.progress !== undefined && !isNaN(pData.progress)) {
-            setVideoProgress(prev => Math.max(prev, Number(pData.progress)))
-          }
-          if (pData?.log) setProgressLog(pData.log)
-        } catch {}
-      }, 350)
+      // Hook up stream and polling
+      attachJobListener(jobId)
 
       const mergedOpts = { ...(videoConfig || {}), ...videoOpts }
       const res = await fetch('/api/render-video', {
@@ -153,26 +258,17 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
         }),
       })
       const data = await res.json()
-      toast.dismiss(toastId)
       if (data.success) {
-        setVideoProgress(100)
-        setProgressLog('Видео 16:9 успешно создано!')
-        setVideoState({ hasVideo: true, videoUrl: data.videoUrl })
-        toast.success('🎬 Финальное видео 16:9 готово!')
+        handleJobDone(data.videoUrl)
         if (data.videoConfig) {
           setVideoConfig(data.videoConfig)
           pkg.videoConfig = data.videoConfig
         }
-        if (onRefresh) onRefresh()
       } else {
-        toast.error('❌ Ошибка: ' + (data.error || 'Не удалось создать видео'))
+        handleJobFailed(data.error || 'Не удалось создать видео')
       }
     } catch (err) {
-      toast.error('❌ Ошибка рендеринга видео: ' + err.message)
-    } finally {
-      if (evtSource) { try { evtSource.close() } catch {} }
-      if (pollInterval) clearInterval(pollInterval)
-      setGeneratingVideo(false)
+      handleJobFailed(err.message)
     }
   }
 
@@ -368,12 +464,22 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
               marginBottom: '1rem',
               backdropFilter: 'blur(8px)',
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem', flexWrap: 'wrap', gap: '0.4rem' }}>
                 <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
                   <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#10b981', display: 'inline-block', boxShadow: '0 0 8px #10b981' }} />
                   🎬 Генерация видео 16:9 (FFmpeg)...
                 </span>
-                <span style={{ fontSize: '0.92rem', fontWeight: 900, color: '#10b981' }}>{videoProgress}%</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                  <span style={{ fontSize: '0.92rem', fontWeight: 900, color: '#10b981' }}>{videoProgress}%</span>
+                  <button
+                    type="button"
+                    onClick={handleCancelVideo}
+                    style={{ background: '#ef4444', border: 'none', color: '#fff', borderRadius: '5px', padding: '0.2rem 0.55rem', fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer' }}
+                    title="Прервать процесс создания видео"
+                  >
+                    🛑 Отменить
+                  </button>
+                </div>
               </div>
               <div style={{ height: '10px', background: '#1e293b', borderRadius: '6px', overflow: 'hidden', border: '1px solid #334155' }}>
                 <div style={{
@@ -385,11 +491,16 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
                   transition: 'width 0.25s ease-out',
                 }} />
               </div>
-              {progressLog && (
-                <div style={{ fontSize: '0.76rem', color: '#94a3b8', marginTop: '0.4rem', fontFamily: 'monospace', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  ⚡ {progressLog}
-                </div>
-              )}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.45rem', flexWrap: 'wrap', gap: '0.4rem' }}>
+                {progressLog && (
+                  <div style={{ fontSize: '0.76rem', color: '#94a3b8', fontFamily: 'monospace' }}>
+                    ⚡ {progressLog}
+                  </div>
+                )}
+                <span style={{ fontSize: '0.72rem', color: '#38bdf8', fontStyle: 'italic' }}>
+                  ℹ️ Монтаж идет в фоне на сервере. Окно можно закрывать — генерация не прервется.
+                </span>
+              </div>
             </div>
           )}
 
@@ -455,6 +566,7 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
             includeKaraokeSubtitles={includeKaraokeSubtitles} setIncludeKaraokeSubtitles={setIncludeKaraokeSubtitles}
             videoRef={videoRef} isPlaying={isPlaying} currentTime={currentTime} duration={duration}
             togglePlay={togglePlay} seekVideo={seekVideo} onGenerateVideo={handleGenerateVideo}
+            onCancelVideo={handleCancelVideo}
             onOpenVideoModal={() => onOpenVideo(pkg)}
             onOpenSubtitlesStudio={() => setShowVideoSubtitlesModal(true)}
             onTimeUpdate={handleTimeUpdate} onLoadedMetadata={handleLoadedMetadata}

@@ -22,6 +22,8 @@ export default function PackageScriptSection({
   const [showFactsModal, setShowFactsModal] = useState(false)
   const [factsGenerating, setFactsGenerating] = useState(false)
   const [factsCount, setFactsCount] = useState(10)
+  const [showPromptEdit, setShowPromptEdit] = useState(true)
+  const [packagePrompt, setPackagePrompt] = useState(pkg?.customPrompt || '')
 
   const currentConcept = getConceptConfig(selectedConcept, customConceptWord)
 
@@ -34,8 +36,8 @@ export default function PackageScriptSection({
       setGenerating(true)
       const endpoint = isYt ? '/api/youtube/regenerate-script' : '/api/generate-feuilleton'
       const payload = isYt
-        ? { folderName: pkg.folderName, bundleDir: pkg.bundleDir, style: selectedScriptStyle, selectedFacts: pkg.facts || pkg.selectedFacts || null, conceptType: selectedConcept, customWord: customConceptWord, scriptFormat }
-        : { folderName: pkg.folderName, bundleDir: pkg.bundleDir, title: pkg.title || pkg.original_title, summary: pkg.summary || pkg.original_news || '', url: pkg.url || '', style: selectedScriptStyle, conceptType: selectedConcept, customWord: customConceptWord, scriptFormat, saveToPackage: true }
+        ? { folderName: pkg.folderName, bundleDir: pkg.bundleDir, style: selectedScriptStyle, originalNews: pkg.original_news || pkg.summary || '', summary: pkg.summary || pkg.original_news || '', selectedFacts: null, conceptType: selectedConcept, customWord: customConceptWord, scriptFormat, customPrompt: packagePrompt.trim() }
+        : { folderName: pkg.folderName, bundleDir: pkg.bundleDir, title: pkg.title || pkg.original_title, original_news: pkg.original_news || pkg.summary || '', summary: pkg.summary || pkg.original_news || '', url: pkg.url || '', style: selectedScriptStyle, conceptType: selectedConcept, customWord: customConceptWord, scriptFormat, customPrompt: packagePrompt.trim(), saveToPackage: true }
 
       const res = await fetch(endpoint, {
         method: 'POST',
@@ -52,6 +54,7 @@ export default function PackageScriptSection({
         pkg.conceptType = selectedConcept
         if (customConceptWord) pkg.customWord = customConceptWord
         pkg.scriptFormat = scriptFormat
+        if (packagePrompt) pkg.customPrompt = packagePrompt
         if (data.originalNews) {
           pkg.original_news = data.originalNews
           pkg.summary = data.originalNews
@@ -122,8 +125,8 @@ export default function PackageScriptSection({
     try {
       const endpoint = isYt ? '/api/youtube/regenerate-script' : '/api/generate-feuilleton'
       const payload = isYt
-        ? { folderName: pkg.folderName, bundleDir: pkg.bundleDir, style: selectedScriptStyle, selectedFacts: chosenFacts, conceptType: selectedConcept, customWord: customConceptWord, scriptFormat }
-        : { folderName: pkg.folderName, bundleDir: pkg.bundleDir, title: pkg.title || pkg.original_title, summary: chosenFacts.map(f => `${f.title}: ${f.text}`).join('\n\n'), url: pkg.url || '', style: selectedScriptStyle, conceptType: selectedConcept, customWord: customConceptWord, scriptFormat, saveToPackage: true }
+        ? { folderName: pkg.folderName, bundleDir: pkg.bundleDir, style: selectedScriptStyle, selectedFacts: chosenFacts, conceptType: selectedConcept, customWord: customConceptWord, scriptFormat, customPrompt: pkg.customPrompt || '' }
+        : { folderName: pkg.folderName, bundleDir: pkg.bundleDir, title: pkg.title || pkg.original_title, summary: chosenFacts.map(f => `${f.title}: ${f.text}`).join('\n\n'), url: pkg.url || '', style: selectedScriptStyle, conceptType: selectedConcept, customWord: customConceptWord, scriptFormat, customPrompt: pkg.customPrompt || '', saveToPackage: true }
 
       const res = await fetch(endpoint, {
         method: 'POST',
@@ -342,10 +345,37 @@ export default function PackageScriptSection({
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
         <button className="copy-btn" style={{ background: '#3b82f6' }} onClick={() => onOpenScriptText(pkg)}>📜 Открыть и редактировать текст</button>
         <button className="copy-btn" style={{ background: '#ec4899', fontWeight: 600 }} onClick={onOpenTitleVariants}>⚡ 10 вариантов заголовков</button>
+        <button
+          type="button"
+          className="copy-btn"
+          style={{ background: packagePrompt ? '#4338ca' : '#1e1b4b', border: '1px solid #6366f1', color: '#e0e7ff', fontWeight: 600 }}
+          onClick={() => setShowPromptEdit(prev => !prev)}
+          title="Задать индивидуальный промпт / пожелания к тексту"
+        >
+          🎯 {packagePrompt ? 'Промпт задан ✏️' : '+ Добавить промпт'}
+        </button>
       </div>
+
+      {showPromptEdit && (
+        <div style={{ background: '#0f172a', border: '1px solid #6366f1', borderRadius: '8px', padding: '0.65rem 0.85rem', marginTop: '0.2rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#e0e7ff', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <span>🎯</span> Индивидуальный промпт для ИИ к этому пакету:
+            </span>
+            <span style={{ fontSize: '0.7rem', color: '#a5b4fc' }}>Учитывается кнопками «✨ Фельетон / ✨ По пунктам»</span>
+          </div>
+          <textarea
+            value={packagePrompt}
+            onChange={e => setPackagePrompt(e.target.value)}
+            placeholder="Например: Сделай особый акцент на военных аспектах, начни с вопроса к зрителю, раскрой мотивы Кремля и заверши мощным выводом..."
+            rows={2}
+            style={{ width: '100%', background: '#020617', border: '1px solid #4338ca', borderRadius: '6px', color: '#fff', padding: '0.45rem 0.65rem', fontSize: '0.82rem', resize: 'vertical', minHeight: '50px', lineHeight: 1.4, fontFamily: 'inherit' }}
+          />
+        </div>
+      )}
 
       {showFactsModal && (
         <YouTubeFactsModal

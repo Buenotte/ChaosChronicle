@@ -29,6 +29,7 @@ export default function PackageVideoSection({
   togglePlay,
   seekVideo,
   onGenerateVideo,
+  onCancelVideo,
   onOpenVideoModal,
   onOpenSubtitlesStudio,
   onTimeUpdate,
@@ -69,17 +70,37 @@ export default function PackageVideoSection({
         4. Финальное видео 16:9 (FFmpeg):
       </h3>
 
-      {/* 🎬 Live-Fortschrittsbalken beim Rendern (immer sichtbar bei Erstellung & Neuerstellung) */}
+      {/* 🎬 Live-Fortschrittsbalken beim Rendern (immer sichtbar bei Erstellung & Neuerstellung, auch nach Schließen/Öffnen) */}
       {generatingVideo && (
-        <div style={{ background: '#181c27', padding: '0.85rem 1rem', borderRadius: '8px', border: '1px solid #10b981', marginBottom: '0.75rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.45rem', fontSize: '0.84rem', fontWeight: 600, color: '#e8eaf0' }}>
-            <span>🎬 Рендеринг видео 16:9 (FFmpeg)...</span>
-            <span style={{ color: '#10b981' }}>{videoProgress}%</span>
+        <div style={{ background: '#181c27', padding: '0.85rem 1rem', borderRadius: '8px', border: '1px solid #10b981', marginBottom: '0.75rem', boxShadow: '0 4px 16px rgba(16,185,129,0.2)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem', fontSize: '0.84rem', fontWeight: 600, color: '#e8eaf0' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', display: 'inline-block', boxShadow: '0 0 6px #10b981' }} />
+              🎬 Рендеринг видео 16:9 (FFmpeg)...
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <span style={{ color: '#10b981', fontWeight: 700 }}>{videoProgress}%</span>
+              {onCancelVideo && (
+                <button
+                  type="button"
+                  onClick={onCancelVideo}
+                  style={{ background: '#ef4444', border: 'none', color: '#fff', borderRadius: '4px', padding: '0.18rem 0.5rem', fontSize: '0.72rem', cursor: 'pointer', fontWeight: 700 }}
+                  title="Остановить рендеринг видео"
+                >
+                  🛑 Отменить
+                </button>
+              )}
+            </div>
           </div>
           <div style={{ height: '8px', background: '#27272a', borderRadius: '4px', overflow: 'hidden' }}>
             <div style={{ width: `${videoProgress}%`, height: '100%', background: '#10b981', transition: 'width 0.3s ease-out' }} />
           </div>
-          {progressLog && <p style={{ fontSize: '0.76rem', color: '#9ca3af', marginTop: '0.45rem', fontFamily: 'monospace' }}>{progressLog}</p>}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.45rem', flexWrap: 'wrap', gap: '0.35rem' }}>
+            {progressLog && <p style={{ fontSize: '0.76rem', color: '#9ca3af', margin: 0, fontFamily: 'monospace' }}>⚡ {progressLog}</p>}
+            <span style={{ fontSize: '0.72rem', color: '#38bdf8', fontStyle: 'italic' }}>
+              ℹ️ Монтаж идет на сервере. Окно можно закрывать — рендеринг продолжится в фоне.
+            </span>
+          </div>
         </div>
       )}
 

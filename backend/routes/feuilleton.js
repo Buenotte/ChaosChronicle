@@ -62,7 +62,7 @@ export function extractFactsListFromText(text) {
   return [];
 }
 
-export function buildStyledFeuilletonPrompt(newsTitle, newsSummary = '', styleKey = 'golubuzki', tone = 'grotesque', conceptType = 'facts', explicitFacts = null, scriptFormat = 'facts', customWord = '') {
+export function buildStyledFeuilletonPrompt(newsTitle, newsSummary = '', styleKey = 'golubuzki', tone = 'grotesque', conceptType = 'facts', explicitFacts = null, scriptFormat = 'facts', customWord = '', customPrompt = '') {
   const isNarrativeFormat = scriptFormat === 'feuilleton' || scriptFormat === 'narrative'; // Режим цельного фельетона без нумерации и счета вслух (narrative format)
   const concept = getConceptInfo(conceptType, customWord);
   const extractedFacts = (Array.isArray(explicitFacts) && explicitFacts.length > 0)
@@ -118,9 +118,13 @@ export function buildStyledFeuilletonPrompt(newsTitle, newsSummary = '', styleKe
         )
       : '';
 
+    const customPromptInstruction = customPrompt && customPrompt.trim()
+      ? `\n🎯 ДОПОЛНИТЕЛЬНЫЕ ИНСТРУКЦИИ АВТОРА (ОБЯЗАТЕЛЬНО УЧЕСТЬ ПРИ НАПИСАНИИ):\n"""\n${customPrompt.trim()}\n"""\n`
+      : '';
+
     return {
-      systemInstruction: ytSys,
-      userInstruction: `ТЕМА: ${newsTitle}\n${factsPrompt}\nМАТЕРИАЛ:\n"""\n${newsSummary || ''}\n"""\n\nСоздай сценарий (${wordCountTarget}) в стиле «${ytCfg.name}» без приветствий:`,
+      systemInstruction: ytSys + customPromptInstruction,
+      userInstruction: `ТЕМА: ${newsTitle}\n${factsPrompt}\n${customPromptInstruction}МАТЕРИАЛ:\n"""\n${newsSummary || ''}\n"""\n\nСоздай сценарий (${wordCountTarget}) в стиле «${ytCfg.name}» без приветствий:`,
     };
   }
 
@@ -182,19 +186,23 @@ ${hookRule}
 ${coreRule}
 4. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО начинать с приветствий («Привет, друзья!», «С вами ChaosChronicle»).
 5. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО писать заголовки блоков («**Блок 1**»), тайминги, плейсхолдеры [B-Roll:...], концовки «Работаем дальше. Без иллюзий.».
-${(!isNarrativeFormat && hasExtractedFacts) ? `6. ОБЯЗАТЕЛЬНО раскрой и понятно объясни КАЖДЫЙ из ВСЕХ ${factsCount} ${concept.labelPlural} по порядку от 1-го до ${factsCount}-го с четким голосовым счетом!` : '6. Веди повествование динамично и связно как единую драматургическую историю!'}`;
+${(!isNarrativeFormat && hasExtractedFacts) ? `6. ОБЯЗАТЕЛЬНО раскрой и понятно объясни КАЖДЫЙ из ВСЕХ ${factsCount} ${concept.labelPlural} по порядку от 1-го до ${factsCount}-го с четким голосовым счетом!` : '6. Веди повествование динамично и связно как единую драматургическую историю!'}${customPrompt && customPrompt.trim() ? `\n7. 🎯 ДОПОЛНИТЕЛЬНЫЕ ИНСТРУКЦИИ АВТОРА (ОБЯЗАТЕЛЬНО УЧЕСТЬ): ${customPrompt.trim()}` : ''}`;
 
   const formattedFactsList = hasExtractedFacts
     ? extractedFacts.map((f, i) => `${concept.labelSingle.toUpperCase()} ${i + 1}: [${f.title}] ➜ ${f.text}`).join('\n\n')
     : newsSummary;
 
+  const customPromptBlock = customPrompt && customPrompt.trim()
+    ? `\n🎯 ДОПОЛНИТЕЛЬНЫЕ ИНСТРУКЦИИ И ПОЖЕЛАНИЯ АВТОРА К ТЕКСТУ (ОБЯЗАТЕЛЬНО УЧТИ ИХ):\n"""\n${customPrompt.trim()}\n"""\n`
+    : '';
+
   const userInstruction = (!isNarrativeFormat && hasExtractedFacts)
-    ? `ТЕМА: ${newsTitle}\nРОВНО ${factsCount} КЛЮЧЕВЫХ ${concept.headerWord} ДЛЯ РАЗБОРА:\n"""\n${formattedFactsList}\n"""\n\nСоздай сценарий (${wordCountTarget}) в стиле ${styleConfig.label}. ОБЯЗАТЕЛЬНО начни с хука с объявлением ${factsCount} ${concept.labelPlural} на тему, а затем четко отсчитай и подробно объясни КАЖДЫЙ из ВСЕХ ${factsCount} пунктов («${concept.labelSingle} первый: ...», «${concept.labelSingle} номер два: ...», ..., «${concept.labelSingle} номер ${factsCount}: ...»):`
+    ? `ТЕМА: ${newsTitle}\nРОВНО ${factsCount} КЛЮЧЕВЫХ ${concept.headerWord} ДЛЯ РАЗБОРА:\n"""\n${formattedFactsList}\n"""${customPromptBlock}\n\nСоздай сценарий (${wordCountTarget}) в стиле ${styleConfig.label}. ОБЯЗАТЕЛЬНО начни с хука с объявлением ${factsCount} ${concept.labelPlural} на тему, а затем четко отсчитай и подробно объясни КАЖДЫЙ из ВСЕХ ${factsCount} пунктов («${concept.labelSingle} первый: ...», «${concept.labelSingle} номер два: ...», ..., «${concept.labelSingle} номер ${factsCount}: ...»):`
     : hasExtractedFacts
-    ? `ТЕМА: ${newsTitle}\nМАТЕРИАЛ И ${factsCount} КЛЮЧЕВЫХ ТЕМ ДЛЯ ФЕЛЬЕТОНА/ОБЗОРА:\n"""\n${formattedFactsList}\n"""\n\nНапиши ЦЕЛЬНЫЙ ${isAnalytics ? 'аналитический обзор' : 'сатирический фельетон'} (${wordCountTarget}) в стиле ${styleConfig.label}. Вплети все факты и механизмы в единый связный рассказ (БЕЗ счета вслух, БЕЗ «Факт 1», «Пункт 2», сразу начиная с мощного хука без приветствий):`
+    ? `ТЕМА: ${newsTitle}\nМАТЕРИАЛ И ${factsCount} КЛЮЧЕВЫХ ТЕМ ДЛЯ ФЕЛЬЕТОНА/ОБЗОРА:\n"""\n${formattedFactsList}\n"""${customPromptBlock}\n\nНапиши ЦЕЛЬНЫЙ ${isAnalytics ? 'аналитический обзор' : 'сатирический фельетон'} (${wordCountTarget}) в стиле ${styleConfig.label}. Вплети все факты и механизмы в единый связный рассказ (БЕЗ счета вслух, БЕЗ «Факт 1», «Пункт 2», сразу начиная с мощного хука без приветствий):`
     : isAnalytics
-    ? `ТЕМА: ${newsTitle}\nФАКТЫ: ${newsSummary || ''}\n\nНапиши увлекательный аналитический текст в стиле ${styleConfig.label} простым языком (БЕЗ приветствий, сразу с сути):`
-    : `ТЕМА НОВОСТИ: ${newsTitle}\nКОНТЕКСТ/ФАКТЫ: ${newsSummary || ''}\n\nНапиши монолог фельетона в стиле ${styleConfig.label} с яркими метафорами и парадоксальным хуком (БЕЗ приветствий):`;
+    ? `ТЕМА: ${newsTitle}\nФАКТЫ: ${newsSummary || ''}${customPromptBlock}\n\nНапиши увлекательный аналитический текст в стиле ${styleConfig.label} простым языком (БЕЗ приветствий, сразу с сути):`
+    : `ТЕМА НОВОСТИ: ${newsTitle}\nКОНТЕКСТ/ФАКТЫ: ${newsSummary || ''}${customPromptBlock}\n\nНапиши монолог фельетона в стиле ${styleConfig.label} с яркими метафорами и парадоксальным хуком (БЕЗ приветствий):`;
 
   return { systemInstruction, userInstruction, factsCount, hasExtractedFacts };
 }
@@ -297,7 +305,7 @@ function cleanSpeechTextForAudio(rawText) {
 }
 
 router.post('/api/generate-feuilleton', async (req, res) => {
-  const { title, summary, model = 'gemini', source, style = 'golubuzki', tone = 'grotesque', conceptType = 'facts', customWord = '', scriptFormat = 'facts' } = req.body;
+  const { title, summary, model = 'gemini', source, style = 'golubuzki', tone = 'grotesque', conceptType = 'facts', customWord = '', scriptFormat = 'facts', customPrompt = '' } = req.body;
   if (!title) return res.status(400).json({ error: 'Title is required' });
 
   let effectiveSummary = (summary || req.body.original_news || req.body.originalNews || req.body.sourceText || '').trim();
@@ -314,7 +322,8 @@ router.post('/api/generate-feuilleton', async (req, res) => {
   }
 
   const articleUrl = req.body.url || req.body.link || req.body.matchingPkg?.url || '';
-  if ((effectiveSummary.length < 1200 || req.body.forceScrape) && articleUrl && /^https?:\/\//i.test(articleUrl) && !articleUrl.includes('youtube.com') && !articleUrl.includes('youtu.be')) {
+  // Scrapen nur wenn kein eigener Text vorhanden ist ODER forceScrape explizit angefordert wurde (niemals gekürzten Nutzertext überschreiben!)
+  if ((!effectiveSummary || req.body.forceScrape) && articleUrl && /^https?:\/\//i.test(articleUrl) && !articleUrl.includes('youtube.com') && !articleUrl.includes('youtu.be')) {
     try {
       const scraped = await scrapeArticleText(articleUrl);
       if (scraped && scraped.length > effectiveSummary.length) effectiveSummary = scraped;
@@ -323,7 +332,7 @@ router.post('/api/generate-feuilleton', async (req, res) => {
 
   const modelId = MODELS[model] || MODELS.gemini;
   const explicitFacts = req.body.selectedFacts || req.body.facts || null;
-  const { systemInstruction, userInstruction, factsCount, hasExtractedFacts } = buildStyledFeuilletonPrompt(title, effectiveSummary, style, tone, conceptType, explicitFacts, scriptFormat, customWord);
+  const { systemInstruction, userInstruction, factsCount, hasExtractedFacts } = buildStyledFeuilletonPrompt(title, effectiveSummary, style, tone, conceptType, explicitFacts, scriptFormat, customWord, customPrompt);
 
   try {
     let rawText = '';
@@ -385,6 +394,11 @@ router.post('/api/generate-feuilleton', async (req, res) => {
           const factsFormatted = `📌 ИЗВЛЕЧЕННЫЕ КЛЮЧЕВЫЕ ${concept.headerWord} (${explicitFacts.length}):\n\n` +
             explicitFacts.map((f, i) => `${i + 1}. 🌟 ${f.title}\n${f.text}`).join('\n\n');
           fs.writeFileSync(path.join(targetDir, 'facts.txt'), factsFormatted, 'utf-8');
+        } else if (req.body.clearCachedFacts) {
+          try {
+            if (fs.existsSync(path.join(targetDir, 'facts.json'))) fs.unlinkSync(path.join(targetDir, 'facts.json'));
+            if (fs.existsSync(path.join(targetDir, 'facts.txt'))) fs.unlinkSync(path.join(targetDir, 'facts.txt'));
+          } catch {}
         }
         const origSection = effectiveSummary ? `## 📝 Исходное сообщение\n${effectiveSummary}\n\n---\n\n` : '';
         fs.writeFileSync(path.join(targetDir, 'script.md'), `# 🎭 ${punchyTitle || title}\n\n---\n\n${origSection}## 🎬 Сценарий\n${text}\n`, 'utf-8');
@@ -400,6 +414,9 @@ router.post('/api/generate-feuilleton', async (req, res) => {
             if (explicitFacts) {
               m.facts = explicitFacts;
               m.selectedFacts = explicitFacts;
+            } else if (req.body.clearCachedFacts) {
+              delete m.facts;
+              delete m.selectedFacts;
             }
             if (punchyTitle && (!m.title || m.title === m.original_title)) m.title = punchyTitle;
             fs.writeFileSync(jsonPath, JSON.stringify(m, null, 2), 'utf-8');

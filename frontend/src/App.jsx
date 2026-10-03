@@ -226,6 +226,7 @@ export default function App() {
       images: article.images || pkg?.photoUrls || (article.imageUrl ? [article.imageUrl] : []),
       text: pkg?.scriptTxt || '', style: customStyle || pkg?.style || selectedStyle,
       modelName: pkg?.model || selectedModel, tone: pkg?.tone || 'grotesque',
+      customPrompt: pkg?.customPrompt || article.customPrompt || '',
       isDraft: !pkg, matchingPkg: pkg, bundleDir: pkg?.bundleDir, folderName: pkg?.folderName,
     })
   }
@@ -509,7 +510,7 @@ export default function App() {
       </ErrorBoundary>
 
       <footer className="app-footer">
-        <p>ChaosChronicle PoC · Новости из открытых RSS-лент · ИИ: Gemini 3.7 Flash, DeepSeek R1, Qwen</p>
+        <p>OCEANVS OCCIDENTALIS · Западный Океан · Новости из открытых RSS-лент · ИИ: Gemini 3.7 Flash, DeepSeek R1, Qwen</p>
       </footer>
     </div>
   )

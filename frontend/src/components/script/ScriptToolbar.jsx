@@ -22,6 +22,8 @@ export default function ScriptToolbar({
   const [factsLoading, setFactsLoading] = useState(false)
   const [showFactsModal, setShowFactsModal] = useState(false)
   const [factsCount, setFactsCount] = useState(10)
+  const [customPrompt, setCustomPrompt] = useState(pkg?.customPrompt || '')
+  const [showPrompt, setShowPrompt] = useState(Boolean(pkg?.customPrompt))
 
   const currentConcept = getConceptConfig(selectedConcept, customConceptWord)
 
@@ -66,7 +68,7 @@ export default function ScriptToolbar({
 
   const handleConfirmFacts = (chosenFacts) => {
     setShowFactsModal(false)
-    onRegenerate(selectedStyle, selectedModel, selectedTone, chosenFacts, selectedConcept, scriptFormat, customConceptWord)
+    onRegenerate(selectedStyle, selectedModel, selectedTone, chosenFacts, selectedConcept, scriptFormat, customConceptWord, customPrompt)
   }
 
   return (
@@ -182,7 +184,7 @@ export default function ScriptToolbar({
         <button
           type="button"
           className="refresh-btn"
-          onClick={() => onRegenerate(selectedStyle, selectedModel, selectedTone, null, selectedConcept, scriptFormat, customConceptWord)}
+          onClick={() => onRegenerate(selectedStyle, selectedModel, selectedTone, null, selectedConcept, scriptFormat, customConceptWord, customPrompt)}
           disabled={regenerating}
           style={{
             fontSize: '0.82rem',
@@ -252,7 +254,49 @@ export default function ScriptToolbar({
             {factsLoading ? '⏳...' : `🔍 Извлечь`}
           </button>
         </div>
+
+        {/* Кнопка открытия промпта */}
+        <button
+          type="button"
+          onClick={() => setShowPrompt(prev => !prev)}
+          style={{
+            fontSize: '0.76rem',
+            padding: '0.35rem 0.65rem',
+            background: customPrompt ? '#4338ca' : '#1e1b4b',
+            border: '1px solid #6366f1',
+            color: '#e0e7ff',
+            borderRadius: '6px',
+            fontWeight: 700,
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.3rem',
+          }}
+          title="Задать индивидуальный промпт / пожелания к тексту"
+        >
+          <span>🎯</span>
+          <span>{customPrompt ? 'Промпт задан ✏️' : '+ Добавить промпт'}</span>
+        </button>
       </div>
+
+      {/* Блок ввода индивидуального промпта */}
+      {showPrompt && (
+        <div style={{ width: '100%', background: '#0f172a', border: '1px solid #6366f1', borderRadius: '8px', padding: '0.6rem 0.85rem', marginTop: '0.4rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#e0e7ff', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <span>🎯</span> Индивидуальный промпт / Пожелания к тексту:
+            </span>
+            <span style={{ fontSize: '0.7rem', color: '#a5b4fc' }}>Учитывается кнопками «✨ Фельетон / ✨ По пунктам»</span>
+          </div>
+          <textarea
+            value={customPrompt}
+            onChange={e => setCustomPrompt(e.target.value)}
+            placeholder="Например: Сделай особый акцент на военных аспектах, начни с вопроса к зрителю, раскрой мотивы Кремля и заверши мощным выводом..."
+            rows={2}
+            style={{ width: '100%', background: '#020617', border: '1px solid #4338ca', borderRadius: '6px', color: '#fff', padding: '0.45rem 0.65rem', fontSize: '0.82rem', resize: 'vertical', minHeight: '50px', lineHeight: 1.4, fontFamily: 'inherit' }}
+          />
+        </div>
+      )}
 
       {showFactsModal && (
         <YouTubeFactsModal

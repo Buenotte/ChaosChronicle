@@ -966,7 +966,7 @@ router.get('/api/news', async (req, res) => {
 // POST /api/news/custom - Пользовательская новость (из YouTube, Telegram, Twitter)
 router.post('/api/news/custom', (req, res) => {
   try {
-    const { title, summary = '', category = 'absurd', source = 'Своя новость', link = '', imageUrl = null } = req.body;
+    const { title, summary = '', category = 'absurd', source = 'Своя новость', link = '', imageUrl = null, customPrompt = '' } = req.body;
     if (!title?.trim()) return res.status(400).json({ success: false, error: 'Заголовок обязателен' });
 
     const customArticle = {
@@ -977,6 +977,7 @@ router.post('/api/news/custom', (req, res) => {
       source: source.trim() || 'Своя новость',
       category: category || 'absurd',
       link: link.trim() || '',
+      customPrompt: typeof customPrompt === 'string' ? customPrompt.trim() : '',
       pubDate: new Date().toISOString(),
       relativeTime: 'Только что',
       imageUrl: imageUrl || null,

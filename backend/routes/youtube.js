@@ -163,9 +163,14 @@ export async function buildYouTubeScript(rawText, selectedStyle, metadata = {}) 
 5. 🔢 Диктор ОБЯЗАН вести точный счет («${concept.labelSingle} 1: ...», «${concept.labelSingle} 2: ...») и последовательно раскрыть КАЖДЫЙ из ${factsCount} пунктов по порядку с деталями и глубиной.
 6. Чистый монолог диктора для озвучки (${wordCountTarget}):`;
 
+  const customPromptSection = (metadata.customPrompt && metadata.customPrompt.trim())
+    ? `\n🎯 ДОПОЛНИТЕЛЬНЫЕ ТРЕБОВАНИЯ И ПОЖЕЛАНИЯ АВТОРА К СЦЕНАРИЮ:\n"${metadata.customPrompt.trim()}"\nОБЯЗАТЕЛЬНО УЧТИ ЭТИ ПОЖЕЛАНИЯ ПРИ СОЗДАНИИ ТЕКСТА!\n`
+    : '';
+
   const userPrompt = `ИСТОЧНИК: YouTube "${metadata.title || 'YouTube'}" (${metadata.channel || ''})
 ${metadata.duration ? `ПРОДОЛЖИТЕЛЬНОСТЬ ИСХОДНИКА: ${Math.round(metadata.duration / 60)} мин.` : ''}
 ${factsPrompt}
+${customPromptSection}
 ТЕКСТ ИЗ АУДИО / СУТЬ ВИДЕО (ДЛЯ ДОПОЛНИТЕЛЬНОГО КОНТЕКСТА И ДЕТАЛЕЙ):
 """
 ${rawText.slice(0, 60000)}
@@ -207,8 +212,15 @@ router.post('/api/youtube/extract-facts', async (req, res) => {
         try { manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8')); } catch {}
       }
       if (!title) title = manifest.title || manifest.original_title || path.basename(targetFolder);
-      if (!force && Array.isArray(manifest.facts) && manifest.facts.length >= targetCount && manifest.conceptType === conceptType && (!customWord || manifest.customWord === customWord)) {
+      // Wenn der Aufrufer explizit neuen Text (inputText) übergeben hat oder force=true, Cache überspringen!
+      if (!force && !inputText && Array.isArray(manifest.facts) && manifest.facts.length >= targetCount && manifest.conceptType === conceptType && (!customWord || manifest.customWord === customWord)) {
         return res.json({ success: true, facts: manifest.facts.slice(0, targetCount), factsCount: Math.min(manifest.facts.length, targetCount), title, conceptType, customWord, cached: true });
+      }
+      if (inputText) {
+        fs.writeFileSync(path.join(targetFolder, 'original_news.txt'), inputText, 'utf-8');
+        fs.writeFileSync(path.join(targetFolder, 'source.txt'), inputText, 'utf-8');
+        manifest.original_news = inputText;
+        manifest.summary = inputText;
       }
       if (!rawText) {
         const origPath = path.join(targetFolder, 'original_news.txt'), srcPath = path.join(targetFolder, 'source.txt'), mdPath = path.join(targetFolder, 'script.md');
@@ -438,14 +450,23 @@ ${rawText}
 // POST /api/youtube/regenerate-script
 router.post('/api/youtube/regenerate-script', async (req, res) => {
   try {
-    const { bundleDir, folderName, style = 'scipop', selectedFacts, conceptType: reqConceptType, customWord: reqCustomWord, scriptFormat = 'facts' } = req.body;
+    const { bundleDir, folderName, style = 'scipop', selectedFacts, conceptType: reqConceptType, customWord: reqCustomWord, scriptFormat = 'facts', customPrompt = '', originalNews, summary, clearCachedFacts = false } = req.body;
     const targetFolder = bundleDir || (folderName ? path.join(newsDir, folderName) : null);
     if (!targetFolder || !fs.existsSync(targetFolder)) return res.status(404).json({ success: false, error: 'Папка пакета не найдена' });
 
+    let incomingText = (originalNews || summary || req.body.sourceText || '').trim();
     let sourceText = '';
-    const origPath = path.join(targetFolder, 'original_news.txt'), txtPath = path.join(targetFolder, 'script.txt');
-    if (fs.existsSync(origPath)) sourceText = fs.readFileSync(origPath, 'utf-8');
-    else if (fs.existsSync(txtPath)) sourceText = fs.readFileSync(txtPath, 'utf-8');
+    const origPath = path.join(targetFolder, 'original_news.txt'), txtPath = path.join(targetFolder, 'script.txt'), srcPath = path.join(targetFolder, 'source.txt');
+
+    if (incomingText) {
+      sourceText = incomingText;
+      fs.writeFileSync(origPath, incomingText, 'utf-8');
+      fs.writeFileSync(srcPath, incomingText, 'utf-8');
+    } else {
+      if (fs.existsSync(origPath)) sourceText = fs.readFileSync(origPath, 'utf-8');
+      else if (fs.existsSync(srcPath)) sourceText = fs.readFileSync(srcPath, 'utf-8');
+      else if (fs.existsSync(txtPath)) sourceText = fs.readFileSync(txtPath, 'utf-8');
+    }
     if (!sourceText.trim()) return res.status(400).json({ success: false, error: 'Исходный текст отсутствует' });
 
     let meta = {};
@@ -454,12 +475,25 @@ router.post('/api/youtube/regenerate-script', async (req, res) => {
       try { meta = JSON.parse(fs.readFileSync(jsonPath, 'utf-8')); } catch {}
     }
 
+    if (incomingText) {
+      meta.original_news = incomingText;
+      meta.summary = incomingText;
+    }
+
     const conceptType = reqConceptType || meta.conceptType || 'facts';
     const customWord = reqCustomWord !== undefined ? reqCustomWord : (meta.customWord || '');
     const concept = getConceptInfo(conceptType, customWord);
     const selectedStyle = YOUTUBE_STYLES[style] || YOUTUBE_STYLES.scipop;
 
-    const effectiveFacts = selectedFacts !== undefined ? selectedFacts : meta.selectedFacts;
+    let effectiveFacts = null;
+    if (selectedFacts !== undefined && selectedFacts !== null) {
+      effectiveFacts = selectedFacts;
+    } else if (!clearCachedFacts && !incomingText) {
+      effectiveFacts = meta.selectedFacts || meta.facts || null;
+    }
+
+    const effectiveCustomPrompt = (customPrompt || meta.customPrompt || '').trim();
+
     const generatedScript = await buildYouTubeScript(sourceText, selectedStyle, {
       title: meta.title || meta.original_title,
       channel: meta.youtubeMetadata?.channel,
@@ -467,6 +501,7 @@ router.post('/api/youtube/regenerate-script', async (req, res) => {
       conceptType,
       customWord,
       scriptFormat,
+      customPrompt: effectiveCustomPrompt,
     });
     const wordCount = generatedScript.split(/\s+/).filter(Boolean).length;
     fs.writeFileSync(txtPath, generatedScript, 'utf-8');
@@ -477,12 +512,17 @@ router.post('/api/youtube/regenerate-script', async (req, res) => {
       titleVariants = tvRes?.variants || [];
     } catch {}
 
-    if (selectedFacts && Array.isArray(selectedFacts) && selectedFacts.length > 0) {
-      const factsFormatted = `📌 ВЫБРАННЫЕ КЛЮЧЕВЫЕ ${concept.headerWord} И ТЕМЫ ДЛЯ СЦЕНАРИЯ (${selectedFacts.length}):\n\n` +
-        selectedFacts.map((f, i) => `${i + 1}. 🌟 ${f.title}\n${f.text}`).join('\n\n');
+    if (effectiveFacts && Array.isArray(effectiveFacts) && effectiveFacts.length > 0) {
+      const factsFormatted = `📌 ВЫБРАННЫЕ КЛЮЧЕВЫЕ ${concept.headerWord} И ТЕМЫ ДЛЯ СЦЕНАРИЯ (${effectiveFacts.length}):\n\n` +
+        effectiveFacts.map((f, i) => `${i + 1}. 🌟 ${f.title}\n${f.text}`).join('\n\n');
 
-      fs.writeFileSync(path.join(targetFolder, 'facts.json'), JSON.stringify(selectedFacts, null, 2), 'utf-8');
+      fs.writeFileSync(path.join(targetFolder, 'facts.json'), JSON.stringify(effectiveFacts, null, 2), 'utf-8');
       fs.writeFileSync(path.join(targetFolder, 'facts.txt'), factsFormatted, 'utf-8');
+    } else if (clearCachedFacts || incomingText) {
+      try {
+        if (fs.existsSync(path.join(targetFolder, 'facts.json'))) fs.unlinkSync(path.join(targetFolder, 'facts.json'));
+        if (fs.existsSync(path.join(targetFolder, 'facts.txt'))) fs.unlinkSync(path.join(targetFolder, 'facts.txt'));
+      } catch {}
     }
 
     if (fs.existsSync(jsonPath)) {
@@ -495,9 +535,17 @@ router.post('/api/youtube/regenerate-script', async (req, res) => {
         m.conceptType = conceptType;
         if (customWord) m.customWord = customWord;
         m.scriptFormat = scriptFormat;
-        if (selectedFacts !== undefined) {
-          m.selectedFacts = selectedFacts;
-          m.facts = selectedFacts;
+        if (incomingText) {
+          m.original_news = incomingText;
+          m.summary = incomingText;
+        }
+        if (effectiveCustomPrompt) m.customPrompt = effectiveCustomPrompt;
+        if (effectiveFacts && Array.isArray(effectiveFacts) && effectiveFacts.length > 0) {
+          m.selectedFacts = effectiveFacts;
+          m.facts = effectiveFacts;
+        } else if (clearCachedFacts || incomingText) {
+          delete m.selectedFacts;
+          delete m.facts;
         }
         if (titleVariants.length > 0) {
           m.title_variants = titleVariants;

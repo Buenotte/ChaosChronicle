@@ -18,6 +18,7 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onOpenPackag
   const [selectedModel, setSelectedModel] = useState(feuilleton.modelName || feuilleton.model || 'gemini')
   const [selectedTone, setSelectedTone] = useState(feuilleton.tone || 'grotesque')
   const [scriptFormat, setScriptFormat] = useState(feuilleton.scriptFormat || 'feuilleton') // 'feuilleton' (цельный текст) vs 'facts' (по пунктам со счетом)
+  const [customPrompt, setCustomPrompt] = useState(feuilleton.customPrompt || '')
   const [regenerating, setRegenerating] = useState(false)
   const [saving, setSaving] = useState(false)
   const [savedInfo, setSavedInfo] = useState(feuilleton.bundleDir || feuilleton.matchingPkg ? (feuilleton.matchingPkg || feuilleton) : null)
@@ -32,6 +33,7 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onOpenPackag
       setSelectedModel(feuilleton.modelName || feuilleton.model || 'gemini')
       setSelectedTone(feuilleton.tone || 'grotesque')
       setScriptFormat(feuilleton.scriptFormat || 'feuilleton')
+      setCustomPrompt(feuilleton.customPrompt || '')
       setSavedInfo(feuilleton.bundleDir || feuilleton.matchingPkg ? (feuilleton.matchingPkg || feuilleton) : null)
 
       const fName = feuilleton.folderName || feuilleton.matchingPkg?.folderName || ''
@@ -124,6 +126,7 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onOpenPackag
           style: newStyle,
           tone: newTone,
           scriptFormat: newFormat,
+          customPrompt: customPrompt.trim(),
           source: feuilleton.source,
           imageUrl: feuilleton.imageUrl,
           images: feuilleton.images || [],
@@ -131,6 +134,7 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onOpenPackag
           bundleDir: feuilleton.bundleDir || feuilleton.matchingPkg?.bundleDir || savedInfo?.bundleDir,
           url: feuilleton.url || feuilleton.link || feuilleton.matchingPkg?.url || '',
           saveToPackage: Boolean(feuilleton.folderName || feuilleton.matchingPkg?.folderName || savedInfo?.folderName),
+          clearCachedFacts: true,
         }),
       })
       const data = await res.json()
@@ -168,6 +172,7 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onOpenPackag
           images: feuilleton.images || [], folderName: savedInfo?.folderName || feuilleton.folderName || feuilleton.matchingPkg?.folderName,
           summary: effectiveOrig,
           original_news: effectiveOrig,
+          customPrompt: customPrompt ? customPrompt.trim() : '',
         }),
       })
       const data = await res.json()
@@ -181,6 +186,7 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onOpenPackag
         style: selectedStyle,
         model: selectedModel,
         tone: selectedTone,
+        customPrompt: customPrompt ? customPrompt.trim() : '',
         original_news: effectiveOrig,
         summary: effectiveOrig,
       }
@@ -325,6 +331,23 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onOpenPackag
                   )}
                 </div>
               )}
+            </div>
+
+            {/* Дополнительный промпт / пожелания автора к ИИ */}
+            <div style={{ background: '#1e1b4b', padding: '0.85rem 1rem', borderRadius: '10px', border: '1px solid #6366f1' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                <label style={{ fontSize: '0.88rem', fontWeight: 700, color: '#e0e7ff', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <span>🎯</span> Индивидуальный промпт / Пожелания к сценарию (опционально):
+                </label>
+                <span style={{ fontSize: '0.72rem', color: '#a5b4fc' }}>ИИ обязательно учтет при генерации</span>
+              </div>
+              <textarea
+                value={customPrompt}
+                onChange={e => setCustomPrompt(e.target.value)}
+                placeholder="Например: Сделай особый акцент на военных аспектах, начни с вопроса к зрителю, раскрой мотивы Кремля и заверши мощным выводом..."
+                rows={2}
+                style={{ width: '100%', background: '#0f172a', border: '1px solid #4338ca', borderRadius: '6px', color: '#fff', padding: '0.55rem 0.75rem', fontSize: '0.84rem', resize: 'vertical', minHeight: '60px', lineHeight: 1.45, fontFamily: 'inherit' }}
+              />
             </div>
 
             {/* 1. Выбор ИИ Модели */}
@@ -520,6 +543,23 @@ export default function FeuilletonModal({ feuilleton, onOpenPhotos, onOpenPackag
                   )}
                 </div>
               )}
+            </div>
+
+            {/* Дополнительный промпт / пожелания автора к ИИ (при перегенерации) */}
+            <div style={{ background: '#1e1b4b', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px solid #4338ca' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#e0e7ff', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <span>🎯</span> Индивидуальный промпт / Пожелания к перегенерации (опционально):
+                </span>
+                <span style={{ fontSize: '0.7rem', color: '#a5b4fc' }}>Учитывается кнопкой «🔄 Сгенерировать заново»</span>
+              </div>
+              <textarea
+                value={customPrompt}
+                onChange={e => setCustomPrompt(e.target.value)}
+                placeholder="Например: Сделай особый акцент на военных аспектах, начни с вопроса к зрителю, раскрой мотивы Кремля и заверши мощным выводом..."
+                rows={1}
+                style={{ width: '100%', background: '#0f172a', border: '1px solid #6366f1', borderRadius: '6px', color: '#fff', padding: '0.45rem 0.65rem', fontSize: '0.82rem', resize: 'vertical', minHeight: '44px', lineHeight: 1.4, fontFamily: 'inherit' }}
+              />
             </div>
 
             {/* ⚡ 3-секундные вирусные хуки для YouTube */}

@@ -18,6 +18,7 @@ const STYLES = {
   kasjanov: { file: 'kasjanov_style.txt', label: '🪖 Юрий Касьянов', focus: 'Военно-инженерный реализм, акцент на ТТХ, дронах, логистике, точный расчет и уязвимости врага.' },
   klimovski: { file: 'klimovski_style.txt', label: '🔬 Юрий Климовский', focus: 'Клинический геополитический реализм, анатомия решений Кремля, клановые интересы элит.' },
   gibrid: { file: 'gibrid_style.txt', label: '⚡ Гибридный стиль (3 в 1)', focus: 'Синтез сатиры Голобуцкого, военного реализма Касьянова и геополитической анатомии Климовского.' },
+  short_sarcasm: { label: '⚡ Хлесткий Сарказм (Коротко & Просто)', focus: 'Простой разговорный слог, впечатляющий хук, едкая ирония и высокий темп. Высмеивай нелепость и абсурд строго в рамках фактов темы без навязанных политических штампов.' },
 };
 
 export function stripBloggerNames(text = '') {
@@ -64,10 +65,10 @@ export function cleanExtractedTitle(raw = '', fallback = '') {
   t = t.replace(/["'{}]+/g, '').trim().replace(/^(?:title|заголовок)[:\s-]+/i, '').trim();
   t = stripBloggerNames(t);
   if (!t || t.length < 5) t = fallback;
-  if (!t.toLowerCase().includes('chaos chronicle') && !t.toLowerCase().includes('chaoschronicle')) {
-    t = `${t} | Chaos Chronicle`;
+  if (!t.toLowerCase().includes('oceanvs occidentalis') && !t.toLowerCase().includes('oceanus occidentalis') && !t.toLowerCase().includes('chaos chronicle') && !t.toLowerCase().includes('chaoschronicle')) {
+    t = `${t} | OCEANVS OCCIDENTALIS`;
   }
-  return t.replace(/(?:\s*\|\s*Chaos\s*Chronicle\s*)+/gi, ' | Chaos Chronicle').slice(0, 95);
+  return t.replace(/(?:\s*\|\s*(?:Chaos\s*Chronicle|OCEANVS\s*OCCIDENTALIS|Oceanus\s*Occidentalis)\s*)+/gi, ' | OCEANVS OCCIDENTALIS').slice(0, 95);
 }
 
 const MODEL_MAP = {
@@ -117,20 +118,20 @@ export async function generateYouTubeMetadata({
 
   const effectiveStyle = (style === 'analytics') ? 'gibrid' : style;
   const styleCfg = STYLES[effectiveStyle] || STYLES.golubuzki;
-  const fallbackTitle = `🔥 ${effectiveTitle.toUpperCase().slice(0, 65)} | ChaosChronicle`;
-  const fallbackDesc = `${effectiveTitle}.\n\n⚡ Главные факты и скрытые мотивы\n⚡ Последствия для фронта и мировой геополитики\n⚡ Реальный расклад сил\n\n🔔 Подписывайтесь на канал ChaosChronicle, жмите на колокольчик 🔔 и пишите комментарии!\n\n#ChaosChronicle #новости #политика #аналитика #геополитика`;
-  const fallbackTags = `ChaosChronicle, новости, мировые новости, политика, аналитика, геополитика, факты, события, ${effectiveTitle.slice(0, 30)}`;
-  const fallbackHashtags = `#ChaosChronicle #новости #политика #аналитика #геополитика`;
-  const fallbackFb = `🔥 ${effectiveTitle.toUpperCase()}\n\nГлавные события дня, скрытые мотивы и реальные последствия без цензуры и пропаганды.\n\n📺 Смотрите подробности на канале Chaos Chronicle:\n👉 [ССЫЛКА НА ВАШЕ ВИДЕО В YOUTUBE] 🔔\n\n🔔 Подпишитесь, чтобы не пропустить новые сводки! 🔔\n\n#ChaosChronicle #Chaos_Chronicle #новости #политика #аналитика`;
+  const fallbackTitle = `🔥 ${effectiveTitle.toUpperCase().slice(0, 60)} | OCEANVS OCCIDENTALIS`;
+  const fallbackDesc = `${effectiveTitle}.\n\n⚡ Главные факты и скрытые мотивы\n⚡ Последствия для фронта и мировой геополитики\n⚡ Реальный расклад сил\n\n🔔 Подписывайтесь на канал OCEANVS OCCIDENTALIS | Западный Океан, жмите на колокольчик 🔔 и пишите комментарии!\n\n#OCEANVS_OCCIDENTALIS #ЗападныйОкеан #новости #политика #аналитика #геополитика`;
+  const fallbackTags = `OCEANVS OCCIDENTALIS, Западный Океан, Oceanus Occidentalis, новости, мировые новости, политика, аналитика, геополитика, факты, события, ${effectiveTitle.slice(0, 30)}`;
+  const fallbackHashtags = `#OCEANVS_OCCIDENTALIS #ЗападныйОкеан #новости #политика #аналитика #геополитика`;
+  const fallbackFb = `🔥 ${effectiveTitle.toUpperCase()}\n\nГлавные события дня, скрытые мотивы и реальные последствия без цензуры и пропаганды.\n\n📺 Смотрите подробности на канале OCEANVS OCCIDENTALIS | Западный Океан:\n👉 [ССЫЛКА НА ВАШЕ ВИДЕО В YOUTUBE] 🔔\n\n🔔 Подпишитесь, чтобы не пропустить новые сводки! 🔔\n\n#OCEANVS_OCCIDENTALIS #ЗападныйОкеан #новости #политика #аналитика`;
 
   const ensureFacebookPostCta = (raw) => {
     let p = (raw || '').trim();
-    if (!p.includes('Chaos Chronicle') && !p.includes('ChaosChronicle')) p = `📺 Канал Chaos Chronicle:\n${p}`;
+    if (!p.includes('OCEANVS OCCIDENTALIS') && !p.includes('Oceanus Occidentalis') && !p.includes('Chaos Chronicle')) p = `📺 Канал OCEANVS OCCIDENTALIS | Западный Океан:\n${p}`;
     if (!p.includes('[ССЫЛКА НА ВАШЕ ВИДЕО В YOUTUBE]') && !p.includes('[ССЫЛКА НА ВИДЕО В YOUTUBE]')) p += '\n\n👉 [ССЫЛКА НА ВАШЕ ВИДЕО В YOUTUBE] 🔔';
     const cta = 'Подпишитесь, чтобы не пропустить новые сводки! 🔔';
     if (!p.includes('Подпишитесь, чтобы не пропустить новые сводки!')) {
       const h = p.indexOf('#');
-      p = h > -1 ? `${p.slice(0, h).trimEnd()}\n\n🔔 ${cta}\n\n${p.slice(h).trimStart()}` : `${p}\n\n🔔 ${cta}\n\n#ChaosChronicle #новости #политика #аналитика`;
+      p = h > -1 ? `${p.slice(0, h).trimEnd()}\n\n🔔 ${cta}\n\n${p.slice(h).trimStart()}` : `${p}\n\n🔔 ${cta}\n\n#OCEANVS_OCCIDENTALIS #ЗападныйОкеан #новости #политика #аналитика`;
     }
     return p;
   };
@@ -146,32 +147,36 @@ export async function generateYouTubeMetadata({
   const chosenModel = MODEL_MAP[model] || model || 'google/gemini-2.5-flash';
   const isAnalytics = (style === 'analytics' || tone === 'analytics');
   const isYtTopic = ['scipop', 'mystery', 'tech_future', 'psychology', 'storytelling'].includes(effectiveStyle);
+  const isNonPolitical = isYtTopic || ['psikh', 'emigr', 'kultura', 'tekh'].includes(manifest.category) ||
+    (/(?:психолог|манипуляц|мозг\b|отношен|старост|старик|детств|сон\b|памят|самооценк|здоровь|биолог)/i.test(effectiveTitle) && !/(?:всу\b|минобороны|путин|трамп|кремл|зеленск|дрон|обстрел|снаряд|оккупац|войн)/i.test(effectiveTitle));
 
   const ruleInstruction = isYtTopic
     ? 'Захватывающий, понятный и живой научно-популярный стиль для широкой аудитории. Раскрывай суть явлений, законов и парадоксов.'
     : isAnalytics
     ? 'Умный, интригующий журналистский стиль (причины, военные ТТХ, геополитические ставки и выводы).'
+    : effectiveStyle === 'short_sarcasm'
+    ? 'Простой, живой разговорный слог, впечатляющий хук и едкая ирония. Опирайся строго на предоставленный материал БЕЗ выдуманных политических штампов и клише.'
     : 'Используй парадоксы, яркие контрасты и живые метафоры. БЕЗ слова «сатира», БЕЗ имен блогеров в тегах/хэштегах.';
 
   const strictNegativeRule = `
 СТРОЖАЙШИЕ ЗАПРЕТЫ (КАТЕГОРИЧЕСКИ НЕЛЬЗЯ ПИСАТЬ):
 - КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО писать от первого лица («мы», «я», «мы разбираем», «наш анализ», «мы видим», «сегодня мы»).
 - КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО использовать слова и штампы: «Разбираем», «Анализируем», «Разбор», «Глубокая аналитика», «Без гротеска».
-${isYtTopic ? '- КАТЕГОРИЧЕСКИ ЗАПРЕЩЕН формат интервью: не упоминай имена гостей, врачей или интервьюеров.' : ''}
+${(isYtTopic || isNonPolitical) ? '- КАТЕГОРИЧЕСКИ ЗАПРЕЩЕН формат интервью: не упоминай имена гостей, врачей или интервьюеров.' : ''}
 - ПОВЕСТВОВАНИЕ СТРОГО В ТРЕТЬЕМ ЛИЦЕ: говори прямо о фактах, событиях, решениях, ТТХ и последствиях!`;
 
-  let systemPrompt = `Ты — ведущий YouTube-продюсер канала Chaos Chronicle.
+  let systemPrompt = `Ты — ведущий YouTube-продюсер канала «OCEANVS OCCIDENTALIS | Западный Океан» (Oceanus Occidentalis).
 На основе материала создай метаданные для YouTube и Facebook в стиле: ${styleCfg.label}
 ФОКУС: ${styleCfg.focus}
-${isYtTopic ? '' : 'ПОЗИЦИЯ: СТРОГО НА СТОРОНЕ УКРАИНЫ.\n'}ПРАВИЛО: ${ruleInstruction}
+${isNonPolitical ? '' : 'ПОЗИЦИЯ: СТРОГО НА СТОРОНЕ УКРАИНЫ И СВОБОДНОГО МИРА.\n'}ПРАВИЛО: ${ruleInstruction}
 ${strictNegativeRule}`;
 
   if (section === 'title') {
     systemPrompt += isYtTopic
-      ? `\nСоздай ТОЛЬКО 1 захватывающий YouTube-заголовок (до 75 символов) с интригой/научным парадоксом и эмодзи | Chaos Chronicle. БЕЗ сатиры и политики.\nОтветь СТРОГО JSON: { "title": "..." }`
+      ? `\nСоздай ТОЛЬКО 1 захватывающий YouTube-заголовок (до 75 символов) с интригой/научным парадоксом и эмодзи | OCEANVS OCCIDENTALIS. БЕЗ сатиры и политики.\nОтветь СТРОГО JSON: { "title": "..." }`
       : isAnalytics
-      ? `\nСоздай ТОЛЬКО 1 ёмкий, интригующий аналитический YouTube-заголовок (до 75 символов) с сутью интриги и эмодзи | Chaos Chronicle. БЕЗ гротескного цирка.\nОтветь СТРОГО JSON: { "title": "..." }`
-      : `\nСоздай ТОЛЬКО 1 убойный, супер-кликабельный YouTube-заголовок (до 75 символов) с интригой/парадоксом и эмодзи | Chaos Chronicle.\nОтветь СТРОГО JSON: { "title": "..." }`;
+      ? `\nСоздай ТОЛЬКО 1 ёмкий, интригующий аналитический YouTube-заголовок (до 75 символов) с сутью интриги и эмодзи | OCEANVS OCCIDENTALIS. БЕЗ гротескного цирка.\nОтветь СТРОГО JSON: { "title": "..." }`
+      : `\nСоздай ТОЛЬКО 1 убойный, супер-кликабельный YouTube-заголовок (до 75 символов) с интригой/парадоксом и эмодзи | OCEANVS OCCIDENTALIS.\nОтветь СТРОГО JSON: { "title": "..." }`;
   } else if (section === 'description') {
     systemPrompt += isYtTopic
       ? `\nСоздай ТОЛЬКО описание для YouTube БЕЗ приветствий (суть темы в 1-2 ёмких абзацах, 3 ключевых факта ⚡ по теме, призыв 🔔, тематические хэштеги), а также keywords теги и хэштеги. БЕЗ сатиры и политики.\nОтветь СТРОГО JSON: { "description": "...", "tags": "...", "hashtags": "..." }`
@@ -186,10 +191,10 @@ ${strictNegativeRule}`;
       : `\nСоздай ТОЛЬКО готовый вирусный пост для Facebook (40-70 слов, БЕЗ приветствий, с сочным сатирическим гротеском и парадоксом из текста, ссылка 👉 [ССЫЛКА НА ВАШЕ ВИДЕО В YOUTUBE] 🔔, фраза «Подпишитесь, чтобы не пропустить новые сводки! 🔔», хэштеги).\nОтветь СТРОГО JSON: { "facebookPost": "..." }`;
   } else {
     systemPrompt += isYtTopic
-      ? `\nОтветь СТРОГО JSON:\n{\n  "title": "Захватывающий YouTube-заголовок (до 75 символов) с парадоксом/интригой и эмодзи | Chaos Chronicle",\n  "description": "Описание темы для YouTube БЕЗ приветствий: 1-2 ёмких абзаца, 3 пункта ⚡ с фактами/парадоксами, призыв 🔔, тематические хэштеги.",\n  "tags": "Теги через запятую для YouTube Studio по теме выпуска",\n  "hashtags": "#ChaosChronicle #научпоп #факты #наука #история #технологии",\n  "facebookPost": "Пост для Facebook: увлекательный факт или интрига темы без цензуры и политики"\n}`
+      ? `\nОтветь СТРОГО JSON:\n{\n  "title": "Захватывающий YouTube-заголовок (до 75 символов) с парадоксом/интригой и эмодзи | OCEANVS OCCIDENTALIS",\n  "description": "Описание темы для YouTube БЕЗ приветствий: 1-2 ёмких абзаца, 3 пункта ⚡ с фактами/парадоксами, призыв 🔔, тематические хэштеги.",\n  "tags": "Теги через запятую для YouTube Studio по теме выпуска",\n  "hashtags": "#OCEANVS_OCCIDENTALIS #научпоп #факты #наука #история #технологии",\n  "facebookPost": "Пост для Facebook: увлекательный факт или интрига темы без цензуры и политики"\n}`
       : isAnalytics
-      ? `\nОтветь СТРОГО JSON:\n{\n  "title": "Интригующий аналитический заголовок (до 75 символов) с эмодзи | Chaos Chronicle",\n  "description": "Описание YouTube БЕЗ приветствий: суть темы (факты, скрытые мотивы, расстановка сил), 3 пункта ⚡ с фактами/последствиями, призыв 🔔, хэштеги.",\n  "tags": "Теги через запятую для YouTube Studio (без слова сатира и имен)",\n  "hashtags": "#ChaosChronicle #новости #аналитика #политика #геополитика",\n  "facebookPost": "Короткий пост для Facebook: суть и скрытые мотивы события без цензуры"\n}`
-      : `\nОтветь СТРОГО JSON:\n{\n  "title": "Хлёсткий кликабельный YouTube-заголовок (до 75 символов) с парадоксом и эмодзи | Chaos Chronicle",\n  "description": "Описание YouTube БЕЗ приветствий: суть темы с ярким гротеском, 3 пункта ⚡ с метафорами из текста, призыв 🔔, хэштеги.",\n  "tags": "Теги через запятую для YouTube Studio (без слова сатира и имен)",\n  "hashtags": "#ChaosChronicle #новости #аналитика #политика #геополитика",\n  "facebookPost": "Короткий вирусный пост для Facebook с ярким сатирическим парадоксом и гротеском"\n}`;
+      ? `\nОтветь СТРОГО JSON:\n{\n  "title": "Интригующий аналитический заголовок (до 75 символов) с эмодзи | OCEANVS OCCIDENTALIS",\n  "description": "Описание YouTube БЕЗ приветствий: суть темы (факты, скрытые мотивы, расстановка сил), 3 пункта ⚡ с фактами/последствиями, призыв 🔔, хэштеги.",\n  "tags": "Теги через запятую для YouTube Studio (без слова сатира и имен)",\n  "hashtags": "#OCEANVS_OCCIDENTALIS #ЗападныйОкеан #новости #аналитика #политика #геополитика",\n  "facebookPost": "Короткий пост для Facebook: суть и скрытые мотивы события без цензуры"\n}`
+      : `\nОтветь СТРОГО JSON:\n{\n  "title": "Хлёсткий кликабельный YouTube-заголовок (до 75 символов) с парадоксом и эмодзи | OCEANVS OCCIDENTALIS",\n  "description": "Описание YouTube БЕЗ приветствий: суть темы с ярким гротеском, 3 пункта ⚡ с метафорами из текста, призыв 🔔, хэштеги.",\n  "tags": "Теги через запятую для YouTube Studio (без слова сатира и имен)",\n  "hashtags": "#OCEANVS_OCCIDENTALIS #ЗападныйОкеан #новости #аналитика #политика #геополитика",\n  "facebookPost": "Короткий вирусный пост для Facebook с ярким сатирическим парадоксом и гротеском"\n}`;
   }
 
   const kwInstruction = keywords && keywords.trim()

@@ -9,6 +9,7 @@ export default function CustomNewsModal({ isOpen, onClose, onNewsCreated }) {
   const [category, setCategory] = useState('absurd')
   const [source, setSource] = useState('YouTube')
   const [link, setLink] = useState('')
+  const [customPrompt, setCustomPrompt] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [ocrLoading, setOcrLoading] = useState(false)
   const [previewUrl, setPreviewUrl] = useState(null)
@@ -139,6 +140,7 @@ export default function CustomNewsModal({ isOpen, onClose, onNewsCreated }) {
           category,
           source: source.trim() || 'Своя новость',
           link: link.trim(),
+          customPrompt: customPrompt.trim(),
         }),
       })
 
@@ -149,6 +151,7 @@ export default function CustomNewsModal({ isOpen, onClose, onNewsCreated }) {
         onClose()
         setTitle('')
         setSummary('')
+        setCustomPrompt('')
         setPreviewUrl(null)
       } else {
         toast.error(data.error || 'Ошибка при добавлении новости', { id: toastId })
@@ -299,6 +302,24 @@ export default function CustomNewsModal({ isOpen, onClose, onNewsCreated }) {
                 style={{ width: '100%', background: '#1f2937', border: '1px solid #4b5563', borderRadius: '6px', color: '#fff', padding: '0.5rem 0.6rem', fontSize: '0.84rem' }}
               />
             </div>
+          </div>
+
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
+              <label style={{ fontSize: '0.82rem', fontWeight: 600, color: '#a78bfa', margin: 0, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <span>🎯</span> Пожелания к генерации / Промпт для ИИ (опционально)
+              </label>
+              <span style={{ fontSize: '0.7rem', color: '#9ca3af' }}>
+                Учитывается при создании фельетона
+              </span>
+            </div>
+            <textarea
+              rows={2}
+              placeholder="Например: Сделай особый акцент на абсурдности ситуации, упомяни чиновников, пиши с едкой иронией и неожиданным финалом..."
+              value={customPrompt}
+              onChange={e => setCustomPrompt(e.target.value)}
+              style={{ width: '100%', background: '#1e1b4b', border: '1px solid #6366f1', borderRadius: '6px', color: '#e0e7ff', padding: '0.5rem 0.75rem', fontSize: '0.84rem', resize: 'vertical', minHeight: '60px', lineHeight: 1.45 }}
+            />
           </div>
 
           <div>

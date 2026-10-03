@@ -32,8 +32,8 @@ const handleSavePackage = async (req, res) => {
     const articleUrl = url || original_url || link || '';
     let rawOriginal = (req.body.summary || req.body.original_news || req.body.originalNews || req.body.sourceText || req.body.originalText || req.body.telegramText || '').trim();
 
-    // Auto-scrape full text from Web URL if text is short (< 1200 chars) or forceScrape requested
-    if ((rawOriginal.length < 1200 || req.body.forceScrape) && articleUrl && /^https?:\/\//i.test(articleUrl)) {
+    // Scrape nur wenn kein Text vorhanden oder forceScrape explizit angefordert (niemals gekürzten Nutzertext überschreiben!)
+    if ((!rawOriginal || req.body.forceScrape) && articleUrl && /^https?:\/\//i.test(articleUrl)) {
       try {
         const scraped = await scrapeArticleText(articleUrl);
         if (scraped && scraped.length > rawOriginal.length) rawOriginal = scraped;
@@ -46,11 +46,19 @@ const handleSavePackage = async (req, res) => {
     }
 
     const words = text ? text.split(/\s+/).filter(Boolean).length : 0;
+    const customPromptVal = (req.body.customPrompt || '').trim();
     const manifest = {
       title: title || 'Ohne Titel', original_title: title || 'Ohne Titel', url: articleUrl, date: date || now.toISOString(),
       model, style: req.body.style || style || 'clickbait', source, summary: rawOriginal, original_news: rawOriginal,
+      customPrompt: customPromptVal,
       word_count: words, created_at: now.toISOString(), photos: [], audio: 'audio.mp3', video: 'video.mp4',
     };
+
+    if (customPromptVal) {
+      try {
+        fs.writeFileSync(path.join(bundleDir, 'prompt.txt'), customPromptVal, 'utf-8');
+      } catch {}
+    }
 
     if (rawOriginal) {
       try {
@@ -257,11 +265,16 @@ router.post('/api/save-script-text', async (req, res) => {
       fs.writeFileSync(path.join(targetDir, 'source.txt'), originalNews, 'utf-8');
       fs.writeFileSync(path.join(targetDir, 'original_news.txt'), originalNews, 'utf-8');
     }
-    if (Array.isArray(facts)) {
+    if (Array.isArray(facts) && facts.length > 0) {
       fs.writeFileSync(path.join(targetDir, 'facts.json'), JSON.stringify(facts, null, 2), 'utf-8');
       const factsFormatted = `📌 ИЗВЛЕЧЕННЫЕ КЛЮЧЕВЫЕ ПУНКТЫ (${facts.length}):\n\n` +
         facts.map((f, i) => `${i + 1}. 🌟 ${f.title}\n${f.text}`).join('\n\n');
       fs.writeFileSync(path.join(targetDir, 'facts.txt'), factsFormatted, 'utf-8');
+    } else if (req.body.clearFacts || (Array.isArray(facts) && facts.length === 0)) {
+      try {
+        if (fs.existsSync(path.join(targetDir, 'facts.json'))) fs.unlinkSync(path.join(targetDir, 'facts.json'));
+        if (fs.existsSync(path.join(targetDir, 'facts.txt'))) fs.unlinkSync(path.join(targetDir, 'facts.txt'));
+      } catch {}
     }
 
     const jsonPath = path.join(targetDir, 'project.json');
@@ -270,7 +283,13 @@ router.post('/api/save-script-text', async (req, res) => {
         const manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
         if (typeof text === 'string') { manifest.word_count = text.split(/\s+/).filter(Boolean).length; manifest.text_updated_at = new Date().toISOString(); }
         if (typeof originalNews === 'string' && originalNews.trim()) { manifest.original_news = originalNews; manifest.summary = originalNews; }
-        if (Array.isArray(facts)) { manifest.facts = facts; manifest.selectedFacts = facts; }
+        if (Array.isArray(facts) && facts.length > 0) {
+          manifest.facts = facts;
+          manifest.selectedFacts = facts;
+        } else if (req.body.clearFacts || (Array.isArray(facts) && facts.length === 0)) {
+          delete manifest.facts;
+          delete manifest.selectedFacts;
+        }
         fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2), 'utf-8');
       } catch {}
     }

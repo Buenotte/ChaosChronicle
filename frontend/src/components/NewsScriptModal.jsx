@@ -78,7 +78,7 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
     }
   }, [isDragging])
 
-  const handleRegenerateScript = async (styleToUse = selectedStyle, modelToUse = selectedModel, toneToUse = selectedTone, chosenFacts = null, conceptToUse = pkg.conceptType || 'facts', scriptFormat = pkg.scriptFormat || 'feuilleton', customWord = pkg.customWord || '') => {
+  const handleRegenerateScript = async (styleToUse = selectedStyle, modelToUse = selectedModel, toneToUse = selectedTone, chosenFacts = null, conceptToUse = pkg.conceptType || 'facts', scriptFormat = pkg.scriptFormat || 'feuilleton', customWord = pkg.customWord || '', customPrompt = pkg.customPrompt || '') => {
     setRegenerating(true)
     const isYt = ['scipop', 'mystery', 'tech_future', 'psychology', 'storytelling', 'short_sarcasm'].includes(styleToUse) || pkg.isYouTube
     const allStyles = [...FEUILLETON_STYLES, ...YOUTUBE_TOPIC_STYLES]
@@ -93,15 +93,39 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
 
     try {
       const endpoint = isYt ? '/api/youtube/regenerate-script' : '/api/generate-feuilleton'
+      const effectiveOriginal = (originalNews || pkg.original_news || pkg.summary || '').trim()
       const payload = isYt
-        ? { folderName: pkg.folderName, bundleDir: pkg.bundleDir, style: styleToUse, selectedFacts: chosenFacts, conceptType: conceptToUse, customWord, scriptFormat }
-        : {
-            folderName: pkg.folderName, bundleDir: pkg.bundleDir, url: pkg.url || pkg.link || '',
-            title: pkg.original_title || pkg.title,
-            summary: originalNews || pkg.original_news || pkg.summary || (text ? text.slice(0, 350) : '') || '',
+        ? {
+            folderName: pkg.folderName,
+            bundleDir: pkg.bundleDir,
+            style: styleToUse,
+            originalNews: effectiveOriginal,
+            summary: effectiveOriginal,
             selectedFacts: chosenFacts,
-            style: styleToUse, tone: toneToUse, source: pkg.source || '', model: modelToUse, conceptType: conceptToUse, customWord, scriptFormat,
+            conceptType: conceptToUse,
+            customWord,
+            scriptFormat,
+            customPrompt: customPrompt ? customPrompt.trim() : '',
+            clearCachedFacts: !chosenFacts,
+          }
+        : {
+            folderName: pkg.folderName,
+            bundleDir: pkg.bundleDir,
+            url: pkg.url || pkg.link || '',
+            title: pkg.original_title || pkg.title,
+            summary: effectiveOriginal || (text ? text.slice(0, 350) : '') || '',
+            original_news: effectiveOriginal,
+            selectedFacts: chosenFacts,
+            style: styleToUse,
+            tone: toneToUse,
+            source: pkg.source || '',
+            model: modelToUse,
+            conceptType: conceptToUse,
+            customWord,
+            scriptFormat,
+            customPrompt: customPrompt ? customPrompt.trim() : '',
             saveToPackage: Boolean(pkg.folderName || pkg.bundleDir),
+            clearCachedFacts: !chosenFacts,
           }
 
       const res = await fetch(endpoint, {
@@ -151,7 +175,14 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
       const res = await fetch('/api/save-script-text', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bundleDir: pkg.bundleDir, folderName: pkg.folderName, text, originalNews, facts: extractedFacts }),
+        body: JSON.stringify({
+          bundleDir: pkg.bundleDir,
+          folderName: pkg.folderName,
+          text,
+          originalNews,
+          facts: extractedFacts,
+          clearFacts: (!extractedFacts || extractedFacts.length === 0),
+        }),
       })
       const data = await res.json()
       if (!res.ok || !data.success) throw new Error(data.error || 'Ошибка сохранения текста')
@@ -298,7 +329,16 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
                 {isEditingOriginal ? (
                   <textarea
                     value={originalNews}
-                    onChange={e => setOriginalNews(e.target.value)}
+                    onChange={e => {
+                      const val = e.target.value
+                      setOriginalNews(val)
+                      pkg.original_news = val
+                      pkg.summary = val
+                      // При редактировании оригинала старые извлеченные факты становятся неактуальными!
+                      setExtractedFacts([])
+                      pkg.facts = []
+                      pkg.selectedFacts = []
+                    }}
                     placeholder="Вставьте или отредактируйте полный оригинальный текст новости здесь..."
                     style={{
                       width: '100%', minHeight: '140px', background: '#030712', color: '#f8fafc',
