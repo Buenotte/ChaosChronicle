@@ -119,10 +119,10 @@ export async function getWhisperTimedWords(audioPath, targetDur, targetFolder) {
 export async function processRenderShort({
   bundleDir: inputBundleDir, folderName, duration = 16, hookTitle = '', showHookTitle = true, font: reqFont = 'impact',
   fontSize = 90, fontColor = 'yellow', strokeWidth = 8, strokeColor = 'black', shadowDistance = 4, shadowColor = 'black',
-  wordColors = null, wordFontSizes = null, posY = 200, shadowStyle = 'hard', boxEnabled = true, boxColor = 'black', boxOpacity = 75,
+  wordColors = null, wordFontSizes = null, posY = 200, lineSpacing = 20, shadowStyle = 'hard', boxEnabled = true, boxColor = 'black', boxOpacity = 75,
   lineBadges = null, selectedPhoto = null, speechSubtitlesEnabled = true, speechColor = 'yellow', speechInactiveColor = 'white',
   speechFontSize = 115, speechPosY = 980, speechFont = 'impact', speechBoxMode = 'pill', speechBoxColor = 'black',
-  speechBoxOpacity = 88, speechPacing = 'wave', speechStrokeWidth = 12, speechShadowDistance = 6, speechText: inputSpeech = null,
+  speechBoxOpacity = 88, speechPacing = 'wave', speechStrokeWidth = 12, speechShadowDistance = 6, speechLineSpacing = 10, speechWordSpacing = 14, speechText: inputSpeech = null,
 }) {
   let targetFolder = inputBundleDir || (folderName ? path.join(newsDir, folderName) : null);
   if (!targetFolder || !fs.existsSync(targetFolder)) {
@@ -201,13 +201,13 @@ export async function processRenderShort({
     const assContent = buildAssShortsSubtitle(wrappedText, {
       font: reqFont, fontSize: effectiveSize, fontColor, strokeWidth: Math.max(0, Math.min(Number(strokeWidth) ?? 8, 28)),
       strokeColor: effectiveStrokeColor, shadowDistance: Math.max(0, Math.min(Number(shadowDistance) ?? 4, 30)), shadowColor,
-      posY: Math.max(20, Math.min(Number(posY) || 200, 1800)), wordColors, wordFontSizes, lineBadges, boxEnabled, boxColor, boxOpacity,
+      posY: Math.max(20, Math.min(Number(posY) || 200, 1800)), lineSpacing: Number(lineSpacing ?? 20), wordColors, wordFontSizes, lineBadges, boxEnabled, boxColor, boxOpacity,
       showHookTitle: showHookTitle !== false, speechSubtitlesEnabled: speechSubtitlesEnabled !== false, speechText, duration: targetDur,
       totalAudioDuration: totalAudioDur, speechFontSize: Number(speechFontSize) || 115, speechColor: speechColor || 'yellow',
       speechInactiveColor: speechInactiveColor || 'white', speechPosY: Number(speechPosY) || 980, speechFont: speechFont || reqFont || 'impact',
       speechBoxMode: speechBoxMode || 'pill', speechBoxColor: speechBoxColor || 'black', speechBoxOpacity: Number(speechBoxOpacity) || 88,
       speechPacing: speechPacing || 'wave', speechStrokeWidth: Number(speechStrokeWidth) || 12, speechShadowDistance: Number(speechShadowDistance) || 6,
-      whisperWords,
+      speechLineSpacing: Number(speechLineSpacing ?? 10), speechWordSpacing: Number(speechWordSpacing ?? 14), whisperWords,
     });
     const assFile = path.join(os.tmpdir(), `short_ass_${Date.now()}_${Math.random().toString(36).slice(2, 6)}.ass`);
     tempFiles.push(assFile);
@@ -260,13 +260,15 @@ export async function processRenderShort({
 
   const shortsConfig = {
     duration: targetDur, hookTitle, showHookTitle: showHookTitle !== false, font: reqFont, fontSize: effectiveSize,
-    fontColor, posY: Math.max(20, Math.min(Number(posY) || 200, 1800)), strokeWidth: Math.max(0, Math.min(Number(strokeWidth) ?? 8, 28)), strokeColor: effectiveStrokeColor,
+    fontColor, posY: Math.max(20, Math.min(Number(posY) || 200, 1800)), lineSpacing: Number(lineSpacing ?? 20),
+    strokeWidth: Math.max(0, Math.min(Number(strokeWidth) ?? 8, 28)), strokeColor: effectiveStrokeColor,
     shadowDistance: Math.max(0, Math.min(Number(shadowDistance) ?? 4, 30)), shadowColor, wordColors, wordFontSizes, shadowStyle, boxEnabled,
     boxColor, boxOpacity, lineBadges: lineBadges || null, selectedPhoto, speechSubtitlesEnabled: speechSubtitlesEnabled !== false,
     speechFont: speechFont || reqFont || 'impact', speechColor: speechColor || 'yellow', speechInactiveColor: speechInactiveColor || 'white',
     speechFontSize: Number(speechFontSize) || 115, speechPosY: Number(speechPosY) || 980, speechBoxMode: speechBoxMode || 'pill',
     speechBoxColor: speechBoxColor || 'black', speechBoxOpacity: Number(speechBoxOpacity) || 88, speechPacing: speechPacing || 'wave',
     speechStrokeWidth: Number(speechStrokeWidth) || 12, speechShadowDistance: Number(speechShadowDistance) || 6,
+    speechLineSpacing: Number(speechLineSpacing ?? 10), speechWordSpacing: Number(speechWordSpacing ?? 14),
   };
 
   const jsonPath = path.join(targetFolder, 'project.json');
@@ -292,10 +294,10 @@ export async function processPreviewShortFrame(options) {
   const {
     bundleDir: inputBundleDir, folderName, selectedPhoto, hookTitle = '', showHookTitle = true, font: reqFont = 'impact',
     fontSize = 90, fontColor = 'yellow', strokeWidth = 8, strokeColor = 'black', shadowDistance = 4, shadowColor = 'black',
-    wordColors = null, wordFontSizes = null, posY = 200, shadowStyle = 'hard', boxEnabled = true, boxColor = 'black', boxOpacity = 75,
+    wordColors = null, wordFontSizes = null, posY = 200, lineSpacing = 20, shadowStyle = 'hard', boxEnabled = true, boxColor = 'black', boxOpacity = 75,
     lineBadges = null, speechSubtitlesEnabled = true, speechColor = 'yellow', speechInactiveColor = 'white', speechFontSize = 115,
     speechPosY = 980, speechFont = 'impact', speechBoxMode = 'pill', speechBoxColor = 'black', speechBoxOpacity = 88,
-    speechPacing = 'wave', speechStrokeWidth = 12, speechShadowDistance = 6, speechText: inputSpeech = null,
+    speechPacing = 'wave', speechStrokeWidth = 12, speechShadowDistance = 6, speechLineSpacing = 10, speechWordSpacing = 14, speechText: inputSpeech = null,
   } = options;
 
   let targetFolder = inputBundleDir || (folderName ? path.join(newsDir, folderName) : null);
@@ -319,12 +321,14 @@ export async function processPreviewShortFrame(options) {
       font: reqFont, fontSize: effectiveSize, fontColor, strokeWidth: Math.max(0, Math.min(Number(strokeWidth) ?? 8, 28)),
       strokeColor: FFMPEG_SHORTS_COLOR_MAP[strokeColor] || strokeColor || '#000000',
       shadowDistance: Math.max(0, Math.min(Number(shadowDistance) ?? 4, 30)), shadowColor, posY: Math.max(20, Math.min(Number(posY) || 200, 1800)),
+      lineSpacing: Number(lineSpacing ?? 20),
       wordColors, wordFontSizes, lineBadges, boxEnabled, boxColor, boxOpacity, showHookTitle: showHookTitle !== false,
       speechSubtitlesEnabled: speechSubtitlesEnabled !== false, speechText, duration: 20, totalAudioDuration: 20,
       speechFontSize: Number(speechFontSize) || 115, speechColor: speechColor || 'yellow', speechInactiveColor: speechInactiveColor || 'white',
       speechPosY: Number(speechPosY) || 980, speechFont: speechFont || reqFont || 'impact', speechBoxMode: speechBoxMode || 'pill',
       speechBoxColor: speechBoxColor || 'black', speechBoxOpacity: Number(speechBoxOpacity) || 88, speechPacing: speechPacing || 'wave',
-      speechStrokeWidth: Number(speechStrokeWidth) || 12, speechShadowDistance: Number(speechShadowDistance) || 6, whisperWords: null,
+      speechStrokeWidth: Number(speechStrokeWidth) || 12, speechShadowDistance: Number(speechShadowDistance) || 6,
+      speechLineSpacing: Number(speechLineSpacing ?? 10), speechWordSpacing: Number(speechWordSpacing ?? 14), whisperWords: null,
     });
     assFile = path.join(os.tmpdir(), `preview_short_ass_${Date.now()}_${Math.random().toString(36).slice(2, 6)}.ass`);
     fs.writeFileSync(assFile, assContent, 'utf-8');
@@ -347,6 +351,7 @@ export async function processPreviewVideoFrame(options) {
     subtitleBoxMode = 'pill', subtitleBoxColor = 'black', subtitleBoxOpacity = 82,
     subtitlePacing = 'wave', subtitleStrokeWidth = 4, subtitleShadowDistance = 2,
     subtitleLineMode = 'auto', subtitleMaxWords = 0, subtitleMaxChars = 0,
+    subtitleWordSpacing = 10, subtitleLineSpacing = 10,
     wordColors = null, wordFontSizes = null,
     speechText: inputSpeech = null,
   } = options;
@@ -394,6 +399,8 @@ export async function processPreviewVideoFrame(options) {
       speechLineMode: subtitleLineMode || 'auto',
       speechMaxWords: Number(subtitleMaxWords) || 0,
       speechMaxChars: Number(subtitleMaxChars) || 0,
+      speechWordSpacing: Number(subtitleWordSpacing) || 10,
+      speechLineSpacing: Number(subtitleLineSpacing) || 10,
       wordColors,
       wordFontSizes,
       whisperWords: null,

@@ -2,7 +2,8 @@ import { TEXT_COLORS, BOX_COLORS, SHORTS_FONTS } from './shortsConfig'
 
 export default function ShortsSpeechSubtitlesControls({
   enabled, setEnabled, font, setFont, color, setColor, inactiveColor, setInactiveColor, fontSize, setFontSize,
-  posY, setPosY, boxMode, setBoxMode, boxColor, setBoxColor, boxOpacity, setBoxOpacity, pacing, setPacing, onDirty,
+  posY, setPosY, boxMode, setBoxMode, boxColor, setBoxColor, boxOpacity, setBoxOpacity, pacing, setPacing,
+  speechLineSpacing = 10, setSpeechLineSpacing, speechWordSpacing = 14, setSpeechWordSpacing, onDirty,
 }) {
   const isBoxOn = (boxMode || 'pill') !== 'none'
 
@@ -89,6 +90,66 @@ export default function ShortsSpeechSubtitlesControls({
                 <button type="button" onClick={() => { setPosY(980); if (onDirty) onDirty(); }} style={{ flex: 1, background: posY > 870 && posY < 1100 ? '#0284c7' : '#1e293b', color: '#fff', border: '1px solid #334155', borderRadius: '4px', padding: '0.25rem', fontSize: '0.7rem', cursor: 'pointer' }}>980px</button>
                 <button type="button" onClick={() => { setPosY(1200); if (onDirty) onDirty(); }} style={{ flex: 1, background: posY >= 1100 ? '#0284c7' : '#1e293b', color: '#fff', border: '1px solid #334155', borderRadius: '4px', padding: '0.25rem', fontSize: '0.7rem', cursor: 'pointer' }}>1200px</button>
               </div>
+            </div>
+          </div>
+
+          <div style={{ background: '#090d16', padding: '0.45rem 0.65rem', borderRadius: '6px', border: '1px solid #1e293b' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
+              <span style={{ fontSize: '0.74rem', color: '#94a3b8', fontWeight: 600 }}>↕️ Отступ между строками субтитров: {speechLineSpacing ?? 10}px</span>
+              {setSpeechLineSpacing && Number(speechLineSpacing ?? 10) !== 10 && (
+                <button
+                  type="button"
+                  onClick={() => { setSpeechLineSpacing(10); if (onDirty) onDirty(); }}
+                  style={{ background: 'none', border: 'none', color: '#06b6d4', fontSize: '0.72rem', cursor: 'pointer', textDecoration: 'underline' }}
+                >
+                  Сброс (10px)
+                </button>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.7rem', color: '#64748b' }}>0px</span>
+              <input
+                type="range"
+                min="0"
+                max="50"
+                step="2"
+                value={speechLineSpacing ?? 10}
+                onChange={e => { if (setSpeechLineSpacing) setSpeechLineSpacing(Number(e.target.value)); if (onDirty) onDirty(); }}
+                style={{ flex: 1, accentColor: '#06b6d4', cursor: 'pointer' }}
+              />
+              <span style={{ fontSize: '0.72rem', color: '#06b6d4', minWidth: '35px', textAlign: 'right', fontWeight: 700 }}>
+                {speechLineSpacing ?? 10}px
+              </span>
+            </div>
+          </div>
+
+          <div style={{ background: '#090d16', padding: '0.45rem 0.65rem', borderRadius: '6px', border: '1px solid #1e293b' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
+              <span style={{ fontSize: '0.74rem', color: '#94a3b8', fontWeight: 600 }}>↔️ Отступ между словами: +{speechWordSpacing ?? 14}px</span>
+              {setSpeechWordSpacing && Number(speechWordSpacing ?? 14) !== 14 && (
+                <button
+                  type="button"
+                  onClick={() => { setSpeechWordSpacing(14); if (onDirty) onDirty(); }}
+                  style={{ background: 'none', border: 'none', color: '#06b6d4', fontSize: '0.72rem', cursor: 'pointer', textDecoration: 'underline' }}
+                >
+                  Сброс (14px)
+                </button>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.7rem', color: '#64748b' }}>0px</span>
+              <input
+                type="range"
+                min="0"
+                max="45"
+                step="2"
+                value={speechWordSpacing ?? 14}
+                onChange={e => { if (setSpeechWordSpacing) setSpeechWordSpacing(Number(e.target.value)); if (onDirty) onDirty(); }}
+                style={{ flex: 1, accentColor: '#06b6d4', cursor: 'pointer' }}
+              />
+              <span style={{ fontSize: '0.72rem', color: '#06b6d4', minWidth: '35px', textAlign: 'right', fontWeight: 700 }}>
+                +{speechWordSpacing ?? 14}px
+              </span>
             </div>
           </div>
 

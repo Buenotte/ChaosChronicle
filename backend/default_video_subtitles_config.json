@@ -13,5 +13,7 @@
   "subtitleShadowDistance": 2,
   "subtitleLineMode": "auto",
   "subtitleMaxWords": 8,
-  "subtitleMaxChars": 70
+  "subtitleMaxChars": 70,
+  "subtitleWordSpacing": 10,
+  "subtitleLineSpacing": 10
 }

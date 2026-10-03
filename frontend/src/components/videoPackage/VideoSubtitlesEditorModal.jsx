@@ -48,6 +48,8 @@ export default function VideoSubtitlesEditorModal({
   const [subtitleLineMode, setSubtitleLineMode] = useState(cfg.subtitleLineMode || 'auto') // 'auto' | 'single' | 'double'
   const [subtitleMaxWords, setSubtitleMaxWords] = useState(cfg.subtitleMaxWords || 8)
   const [subtitleMaxChars, setSubtitleMaxChars] = useState(cfg.subtitleMaxChars || 70)
+  const [subtitleWordSpacing, setSubtitleWordSpacing] = useState(cfg.subtitleWordSpacing ?? 10)
+  const [subtitleLineSpacing, setSubtitleLineSpacing] = useState(cfg.subtitleLineSpacing ?? 10)
   const [wordColors, setWordColors] = useState(cfg.wordColors || null)
   const [wordFontSizes, setWordFontSizes] = useState(cfg.wordFontSizes || null)
 
@@ -82,6 +84,8 @@ export default function VideoSubtitlesEditorModal({
     if (loadedCfg.subtitleLineMode) setSubtitleLineMode(loadedCfg.subtitleLineMode)
     if (loadedCfg.subtitleMaxWords !== undefined) setSubtitleMaxWords(Number(loadedCfg.subtitleMaxWords) || 8)
     if (loadedCfg.subtitleMaxChars !== undefined) setSubtitleMaxChars(Number(loadedCfg.subtitleMaxChars) || 70)
+    if (loadedCfg.subtitleWordSpacing !== undefined) setSubtitleWordSpacing(Number(loadedCfg.subtitleWordSpacing) ?? 10)
+    if (loadedCfg.subtitleLineSpacing !== undefined) setSubtitleLineSpacing(Number(loadedCfg.subtitleLineSpacing) ?? 10)
     if (loadedCfg.wordColors !== undefined) setWordColors(loadedCfg.wordColors)
     if (loadedCfg.wordFontSizes !== undefined) setWordFontSizes(loadedCfg.wordFontSizes)
     if (loadedCfg.selectedPhoto !== undefined) setSelectedPhoto(loadedCfg.selectedPhoto)
@@ -256,6 +260,8 @@ export default function VideoSubtitlesEditorModal({
           subtitleLineMode,
           subtitleMaxWords: Number(subtitleMaxWords) || 8,
           subtitleMaxChars: Number(subtitleMaxChars) || 70,
+          subtitleWordSpacing: Number(subtitleWordSpacing) ?? 10,
+          subtitleLineSpacing: Number(subtitleLineSpacing) ?? 10,
           wordColors,
           wordFontSizes,
         }),
@@ -296,6 +302,8 @@ export default function VideoSubtitlesEditorModal({
         subtitleLineMode,
         subtitleMaxWords: Number(subtitleMaxWords) || 8,
         subtitleMaxChars: Number(subtitleMaxChars) || 70,
+        subtitleWordSpacing: Number(subtitleWordSpacing) ?? 10,
+        subtitleLineSpacing: Number(subtitleLineSpacing) ?? 10,
         wordColors,
         wordFontSizes,
         selectedPhoto,
@@ -309,7 +317,7 @@ export default function VideoSubtitlesEditorModal({
       if (data.success) {
         pkg.videoConfig = data.videoConfig
         if (onConfigSaved) onConfigSaved(data.videoConfig)
-        toast.success('💾 Настройки субтитров 16:9 сохранены в пакет!')
+        toast.success('💾 Настройки субтитров 16:9 сохранены в проект!')
       } else {
         toast.error('Ошибка сохранения: ' + (data.error || 'Сбой'))
       }
@@ -339,6 +347,8 @@ export default function VideoSubtitlesEditorModal({
         subtitleLineMode,
         subtitleMaxWords: Number(subtitleMaxWords) || 8,
         subtitleMaxChars: Number(subtitleMaxChars) || 70,
+        subtitleWordSpacing: Number(subtitleWordSpacing) ?? 10,
+        subtitleLineSpacing: Number(subtitleLineSpacing) ?? 10,
       }
       const res = await fetch('/api/default-video-subtitles-config', {
         method: 'POST',
@@ -382,6 +392,8 @@ export default function VideoSubtitlesEditorModal({
           subtitleLineMode: 'auto',
           subtitleMaxWords: 8,
           subtitleMaxChars: 70,
+          subtitleWordSpacing: 10,
+          subtitleLineSpacing: 10,
           wordColors: null,
           wordFontSizes: null,
         })
@@ -444,6 +456,7 @@ export default function VideoSubtitlesEditorModal({
     const customWordSize = (wordFontSizes && wordFontSizes[globalIndexInWave] && Number(wordFontSizes[globalIndexInWave]) > 0)
       ? `${(Number(wordFontSizes[globalIndexInWave]) * scaleRatio).toFixed(2)}px`
       : undefined
+    const cssWordMargin = Math.max(1, Math.round(((Number(subtitleWordSpacing ?? 10) + 12) * scaleRatio) / 2))
 
     return (
       <span
@@ -458,10 +471,9 @@ export default function VideoSubtitlesEditorModal({
              ${strokePx.toFixed(2)}px  ${strokePx.toFixed(2)}px 0 #000,
              0px ${shadowPx.toFixed(2)}px ${(shadowPx * 2).toFixed(2)}px rgba(0,0,0,0.9)
           `,
-          transform: isHighlighted ? 'scale(1.12)' : 'scale(1.0)',
-          transition: 'all 0.12s ease-out',
+          transform: 'none',
           display: 'inline-block',
-          margin: '0 0.18em',
+          margin: `0 ${cssWordMargin}px`,
         }}
       >
         {word}
@@ -831,6 +843,38 @@ export default function VideoSubtitlesEditorModal({
                               type="range" min="0" max="8" step="1"
                               value={subtitleShadowDistance}
                               onChange={e => { setSubtitleShadowDistance(Number(e.target.value)); setViewMode('editor') }}
+                              style={{ width: '100%', accentColor: '#06b6d4' }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Word Spacing & Line Spacing */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', paddingTop: '0.35rem', borderTop: '1px solid #1e293b' }}>
+                          <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
+                              <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>↔️ Отступ слов (+{subtitleWordSpacing}px):</span>
+                              {subtitleWordSpacing !== 10 && (
+                                <button type="button" onClick={() => { setSubtitleWordSpacing(10); setViewMode('editor') }} style={{ background: 'none', border: 'none', color: '#06b6d4', fontSize: '0.62rem', cursor: 'pointer', padding: 0 }}>Сброс</button>
+                              )}
+                            </div>
+                            <input
+                              type="range" min="0" max="35" step="1"
+                              value={subtitleWordSpacing}
+                              onChange={e => { setSubtitleWordSpacing(Number(e.target.value)); setViewMode('editor') }}
+                              style={{ width: '100%', accentColor: '#06b6d4' }}
+                            />
+                          </div>
+                          <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
+                              <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>↕️ Межстрочный (+{subtitleLineSpacing}px):</span>
+                              {subtitleLineSpacing !== 10 && (
+                                <button type="button" onClick={() => { setSubtitleLineSpacing(10); setViewMode('editor') }} style={{ background: 'none', border: 'none', color: '#06b6d4', fontSize: '0.62rem', cursor: 'pointer', padding: 0 }}>Сброс</button>
+                              )}
+                            </div>
+                            <input
+                              type="range" min="0" max="40" step="1"
+                              value={subtitleLineSpacing}
+                              onChange={e => { setSubtitleLineSpacing(Number(e.target.value)); setViewMode('editor') }}
                               style={{ width: '100%', accentColor: '#06b6d4' }}
                             />
                           </div>
@@ -1230,10 +1274,10 @@ export default function VideoSubtitlesEditorModal({
                             flexWrap: isMultiLine ? 'nowrap' : 'wrap',
                             justifyContent: 'center',
                             alignItems: 'center',
-                            gap: isMultiLine ? '0.15em' : '0.25em',
+                            gap: isMultiLine ? `${Math.max(2, Math.round(((Number(subtitleLineSpacing ?? 10) + 10) / 1080) * ((previewWidth || 340) * 9 / 16)))}px` : '0px',
                             background: isBoxOn ? (subtitleBoxMode === 'glow' ? 'rgba(0,0,0,0.85)' : boxRgba) : 'transparent',
                             borderRadius: subtitleBoxMode === 'pill' ? '9999px' : (subtitleBoxMode === 'solid' ? '6px' : '9999px'),
-                            padding: isBoxOn ? (isMultiLine ? '0.35em 0.85em' : '0.25em 0.8em') : '0',
+                            padding: isBoxOn ? (isMultiLine ? '0.4em 1.1em' : '0.3em 1.1em') : '0',
                             border: subtitleBoxMode === 'glow' ? `2px solid ${activeColorHex}` : 'none',
                             boxShadow: subtitleBoxMode === 'glow'
                               ? `0 0 16px ${activeColorHex}88, 0 4px 10px rgba(0,0,0,0.8)`

@@ -16,6 +16,7 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
   const [shadowDistance, setShadowDistance] = useState(cfg.shadowDistance ?? 4), [shadowColor, setShadowColor] = useState(cfg.shadowColor || 'black'), [shadowStyle, setShadowStyle] = useState(cfg.shadowStyle || 'hard')
   const [wordColors, setWordColors] = useState(cfg.wordColors || null), [wordFontSizes, setWordFontSizes] = useState(cfg.wordFontSizes || null)
   const [boxEnabled, setBoxEnabled] = useState(cfg.boxEnabled ?? true), [boxColor, setBoxColor] = useState(cfg.boxColor || 'black'), [boxOpacity, setBoxOpacity] = useState(cfg.boxOpacity ?? 75), [posY, setPosY] = useState(cfg.posY || 200)
+  const [lineSpacing, setLineSpacing] = useState(cfg.lineSpacing ?? 20), [speechLineSpacing, setSpeechLineSpacing] = useState(cfg.speechLineSpacing ?? 10), [speechWordSpacing, setSpeechWordSpacing] = useState(cfg.speechWordSpacing ?? 14)
   const [speechSubtitlesEnabled, setSpeechSubtitlesEnabled] = useState(cfg.speechSubtitlesEnabled ?? true), [speechFont, setSpeechFont] = useState(cfg.speechFont || 'impact')
   const [speechColor, setSpeechColor] = useState(cfg.speechColor || 'yellow'), [speechInactiveColor, setSpeechInactiveColor] = useState(cfg.speechInactiveColor || 'white'), [speechFontSize, setSpeechFontSize] = useState(cfg.speechFontSize || 115)
   const [speechPosY, setSpeechPosY] = useState(cfg.speechPosY || 980), [speechBoxMode, setSpeechBoxMode] = useState(cfg.speechBoxMode || 'pill'), [speechPacing, setSpeechPacing] = useState(cfg.speechPacing || 'wave')
@@ -49,6 +50,9 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
     if (loadedCfg.boxColor) setBoxColor(loadedCfg.boxColor)
     if (loadedCfg.boxOpacity !== undefined) setBoxOpacity(loadedCfg.boxOpacity)
     if (loadedCfg.posY !== undefined) setPosY(loadedCfg.posY)
+    if (loadedCfg.lineSpacing !== undefined) setLineSpacing(loadedCfg.lineSpacing)
+    if (loadedCfg.speechLineSpacing !== undefined) setSpeechLineSpacing(loadedCfg.speechLineSpacing)
+    if (loadedCfg.speechWordSpacing !== undefined) setSpeechWordSpacing(loadedCfg.speechWordSpacing)
     if (loadedCfg.speechSubtitlesEnabled !== undefined) setSpeechSubtitlesEnabled(loadedCfg.speechSubtitlesEnabled)
     if (loadedCfg.speechFont) setSpeechFont(loadedCfg.speechFont)
     if (loadedCfg.speechColor) setSpeechColor(loadedCfg.speechColor)
@@ -121,8 +125,8 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
       const res = await fetch('/api/preview-short-frame', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          bundleDir: pkg.bundleDir, folderName: pkg.folderName, selectedPhoto, hookTitle: text, showHookTitle, font, fontSize: Number(fontSize) || 110, fontColor, strokeWidth: Number(strokeWidth) || 0, strokeColor, shadowDistance: Number(shadowDistance) || 0, shadowColor, shadowStyle, wordColors, wordFontSizes, boxEnabled: !!boxEnabled, boxColor, boxOpacity: boxEnabled ? Number(boxOpacity) || 75 : 0, posY: Number(posY) || 200, lineBadges,
-          speechSubtitlesEnabled, speechFont, speechColor, speechInactiveColor, speechFontSize: Number(speechFontSize) || 115, speechPosY: Number(speechPosY) || 980, speechBoxMode, speechBoxColor, speechBoxOpacity: Number(speechBoxOpacity) || 88, speechPacing,
+          bundleDir: pkg.bundleDir, folderName: pkg.folderName, selectedPhoto, hookTitle: text, showHookTitle, font, fontSize: Number(fontSize) || 110, fontColor, strokeWidth: Number(strokeWidth) || 0, strokeColor, shadowDistance: Number(shadowDistance) || 0, shadowColor, shadowStyle, wordColors, wordFontSizes, boxEnabled: !!boxEnabled, boxColor, boxOpacity: boxEnabled ? Number(boxOpacity) || 75 : 0, posY: Number(posY) || 200, lineSpacing: Number(lineSpacing ?? 20), lineBadges,
+          speechSubtitlesEnabled, speechFont, speechColor, speechInactiveColor, speechFontSize: Number(speechFontSize) || 115, speechPosY: Number(speechPosY) || 980, speechBoxMode, speechBoxColor, speechBoxOpacity: Number(speechBoxOpacity) || 88, speechPacing, speechLineSpacing: Number(speechLineSpacing ?? 10), speechWordSpacing: Number(speechWordSpacing ?? 14),
         }),
       })
       const data = await res.json()
@@ -140,7 +144,8 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
     if (Array.isArray(bCfg.lineTilts) && bCfg.lineTilts[idx] !== undefined && Number(bCfg.lineTilts[idx]) !== 0) lineAngle = Number(bCfg.lineTilts[idx]) || 0
     else if (bCfg.tiltMode === 'zigzag') lineAngle = [-2.0, 1.8, -1.6, 2.0][idx % 4]
     else if (bCfg.tiltMode === 'custom' && Array.isArray(bCfg.lineTilts) && bCfg.lineTilts[idx] !== undefined) lineAngle = Number(bCfg.lineTilts[idx]) || 0
-    const outerStyle = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 'max-content', margin: '2px 0', transform: lineAngle !== 0 ? `rotate(${lineAngle}deg)` : undefined, transformOrigin: 'center center' }
+    const cssGap = Math.max(0, Math.round(((Number(lineSpacing ?? 20)) / 1080) * 240))
+    const outerStyle = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 'max-content', margin: 0, transform: lineAngle !== 0 ? `rotate(${lineAngle}deg)` : undefined, transformOrigin: 'center center' }
     if (!isBadgesOn) return { outerStyle, innerStyle: {} }
     const isLineOn = Array.isArray(bCfg.linesEnabled) ? bCfg.linesEnabled[idx] !== false : true
     if (!isLineOn) return { outerStyle, innerStyle: {} }
@@ -176,9 +181,9 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
     bundleDir: pkg?.bundleDir, folderName: pkg?.folderName, duration: Number(duration) || 25, hookTitle: text, showHookTitle,
     font, fontSize: Number(fontSize) || 110, fontColor, strokeWidth: Number(strokeWidth) || 0, strokeColor, shadowDistance: Number(shadowDistance) || 0,
     shadowColor, shadowStyle, wordColors, wordFontSizes, boxEnabled: !!boxEnabled, boxColor, boxOpacity: boxEnabled ? Number(boxOpacity) || 75 : 0,
-    posY: Number(posY) || 200, lineBadges, selectedPhoto, speechSubtitlesEnabled, speechFont, speechColor, speechInactiveColor,
+    posY: Number(posY) || 200, lineSpacing: Number(lineSpacing ?? 20), lineBadges, selectedPhoto, speechSubtitlesEnabled, speechFont, speechColor, speechInactiveColor,
     speechFontSize: Number(speechFontSize) || 115, speechPosY: Number(speechPosY) || 980, speechBoxMode, speechBoxColor,
-    speechBoxOpacity: Number(speechBoxOpacity) || 88, speechPacing,
+    speechBoxOpacity: Number(speechBoxOpacity) || 88, speechPacing, speechLineSpacing: Number(speechLineSpacing ?? 10), speechWordSpacing: Number(speechWordSpacing ?? 14),
   })
 
   const handleSaveConfig = async () => {
@@ -271,6 +276,8 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
                   fontSize={speechFontSize} setFontSize={setSpeechFontSize} posY={speechPosY} setPosY={setSpeechPosY}
                   boxMode={speechBoxMode} setBoxMode={setSpeechBoxMode} boxColor={speechBoxColor} setBoxColor={setSpeechBoxColor}
                   boxOpacity={speechBoxOpacity} setBoxOpacity={setSpeechBoxOpacity} pacing={speechPacing} setPacing={setSpeechPacing}
+                  speechLineSpacing={speechLineSpacing} setSpeechLineSpacing={setSpeechLineSpacing}
+                  speechWordSpacing={speechWordSpacing} setSpeechWordSpacing={setSpeechWordSpacing}
                   onDirty={() => setViewMode('editor')}
                 />
               )}
@@ -281,7 +288,7 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
                   strokeWidth={strokeWidth} setStrokeWidth={setStrokeWidth} strokeColor={strokeColor} setStrokeColor={setStrokeColor}
                   shadowDistance={shadowDistance} setShadowDistance={setShadowDistance} shadowColor={shadowColor} setShadowColor={setShadowColor}
                   wordColors={wordColors} setWordColors={setWordColors} wordFontSizes={wordFontSizes} setWordFontSizes={setWordFontSizes}
-                  posY={posY} setPosY={setPosY} lineBadges={lineBadges} setLineBadges={setLineBadges} boxEnabled={boxEnabled} setBoxOpacity={setBoxOpacity} setBoxEnabled={setBoxEnabled}
+                  posY={posY} setPosY={setPosY} lineSpacing={lineSpacing} setLineSpacing={setLineSpacing} lineBadges={lineBadges} setLineBadges={setLineBadges} boxEnabled={boxEnabled} setBoxOpacity={setBoxOpacity} setBoxEnabled={setBoxEnabled}
                   wordsList={wordsList} displayText={displayText} onDirty={() => setViewMode('editor')}
                 />
               )}
@@ -314,7 +321,8 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
                     {showHookTitle && (
                       <div style={{
                         position: 'absolute', top: `${(posY / 1920) * 100}%`, left: '50%', transform: 'translateX(-50%)',
-                        width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', textAlign: 'center',
+                        width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center',
+                        gap: `${Math.max(0, Math.round(((Number(lineSpacing ?? 20)) / 1080) * 240))}px`, textAlign: 'center',
                         zIndex: 10, pointerEvents: 'none', opacity: activeTab === 'title' ? 1 : 0.28, transition: 'opacity 0.25s ease',
                       }}>
                         {(() => {
@@ -361,7 +369,7 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
                           return (
                             <span style={{
                               fontFamily: activeSpeechFontFamily, fontSize: `${((speechFontSize * FONT_SCALE_CSS) / 1080) * 240}px`, fontWeight: 900,
-                              textTransform: 'uppercase', lineHeight: 1.1, color: '#FFFFFF', WebkitTextStroke: '1.8px #000',
+                              textTransform: 'uppercase', lineHeight: (1.0 + (Number(speechLineSpacing ?? 10) / 100)).toFixed(2), color: '#FFFFFF', WebkitTextStroke: '1.8px #000',
                               textShadow: '0 3px 8px rgba(0,0,0,0.95), 2px 2px 0 #000',
                               background: speechBoxMode === 'none' ? 'transparent' : speechBgRgba, border: speechBorder, boxShadow: speechShadow,
                               padding: speechBoxMode === 'none' ? '0' : '4px 14px', borderRadius: speechRadius, display: 'inline-block',
@@ -376,23 +384,28 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
                                 const activeInWave = activeGlobal % waveSize, splitIdx = (waveWords.length > 2) ? Math.ceil(waveWords.length / 2) : waveWords.length
                                 const line1 = waveWords.slice(0, splitIdx), line2 = (waveWords.length > 2) ? waveWords.slice(splitIdx) : []
 
-                                const renderLine = (wList, offset) => (
-                                  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.32em', lineHeight: 1.15 }}>
-                                    {wList.map((w, subIdx) => {
-                                      const curIdx = offset + subIdx
-                                      return (
-                                        <span key={subIdx} style={{
-                                          color: (curIdx === activeInWave) ? (TEXT_COLORS.find(c => c.id === speechColor)?.hex || '#FFE600') : (TEXT_COLORS.find(c => c.id === speechInactiveColor)?.hex || '#FFFFFF'),
-                                          transform: (curIdx === activeInWave) ? 'scale(1.15)' : 'scale(1)',
-                                          display: 'inline-block', transition: 'all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                                        }}>
-                                          {w}
-                                        </span>
-                                      )
-                                    })}
-                                  </div>
-                                )
-                                return (<div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'center' }}>{renderLine(line1, 0)}{line2.length > 0 && renderLine(line2, splitIdx)}</div>)
+                                const renderLine = (wList, offset) => {
+                                  const cssWordGap = Math.max(3, Math.round(((Number(speechWordSpacing ?? 14) + 16) / 1080) * 240))
+                                  return (
+                                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: `${cssWordGap}px`, lineHeight: 1.18 }}>
+                                      {wList.map((w, subIdx) => {
+                                        const curIdx = offset + subIdx
+                                        const isActive = (curIdx === activeInWave)
+                                        return (
+                                          <span key={subIdx} style={{
+                                            color: isActive ? (TEXT_COLORS.find(c => c.id === speechColor)?.hex || '#FFE600') : (TEXT_COLORS.find(c => c.id === speechInactiveColor)?.hex || '#FFFFFF'),
+                                            textShadow: isActive ? '0 0 10px rgba(255,230,0,0.6), 0 3px 8px rgba(0,0,0,0.95)' : '0 3px 8px rgba(0,0,0,0.95)',
+                                            display: 'inline-block',
+                                          }}>
+                                            {w}
+                                          </span>
+                                        )
+                                      })}
+                                    </div>
+                                  )
+                                }
+                                const speechCssGap = Math.max(0, Math.round(((Number(speechLineSpacing ?? 10) + 12) / 1080) * 240))
+                                return (<div style={{ display: 'flex', flexDirection: 'column', gap: `${speechCssGap}px`, alignItems: 'center' }}>{renderLine(line1, 0)}{line2.length > 0 && renderLine(line2, splitIdx)}</div>)
                               })()}
                             </span>
                           )

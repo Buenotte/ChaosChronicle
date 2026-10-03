@@ -169,6 +169,8 @@ const handleGenerateVideo = async (req, res) => {
       subtitleLineMode = 'auto',
       subtitleMaxWords = 0,
       subtitleMaxChars = 0,
+      subtitleWordSpacing = 10,
+      subtitleLineSpacing = 10,
       wordColors = null,
       wordFontSizes = null,
     } = req.body;
@@ -337,6 +339,8 @@ const handleGenerateVideo = async (req, res) => {
               speechLineMode: subtitleLineMode || 'auto',
               speechMaxWords: Number(subtitleMaxWords) || 0,
               speechMaxChars: Number(subtitleMaxChars) || 0,
+              speechWordSpacing: Number(subtitleWordSpacing) || 10,
+              speechLineSpacing: Number(subtitleLineSpacing) || 10,
               wordColors,
               wordFontSizes,
               whisperWords,
@@ -502,6 +506,8 @@ const handleGenerateVideo = async (req, res) => {
           subtitleLineMode: subtitleLineMode || 'auto',
           subtitleMaxWords: Number(subtitleMaxWords) || 0,
           subtitleMaxChars: Number(subtitleMaxChars) || 0,
+          subtitleWordSpacing: Number(subtitleWordSpacing) || 10,
+          subtitleLineSpacing: Number(subtitleLineSpacing) || 10,
           wordColors: wordColors || null,
           wordFontSizes: wordFontSizes || null,
           transition: transition || 'concat',
@@ -626,8 +632,8 @@ router.post('/api/save-shorts-config', (req, res) => {
   try {
     const {
       bundleDir: inputBundleDir, folderName, duration, hookTitle, showHookTitle, font, fontSize, fontColor, strokeWidth, strokeColor, shadowDistance, shadowColor, shadowStyle,
-      wordColors, wordFontSizes, boxEnabled, boxColor, boxOpacity, posY, lineBadges, selectedPhoto, speechSubtitlesEnabled, speechFont, speechColor, speechInactiveColor,
-      speechFontSize, speechPosY, speechBoxMode, speechBoxColor, speechBoxOpacity, speechPacing, speechStrokeWidth, speechShadowDistance,
+      wordColors, wordFontSizes, boxEnabled, boxColor, boxOpacity, posY, lineSpacing, lineBadges, selectedPhoto, speechSubtitlesEnabled, speechFont, speechColor, speechInactiveColor,
+      speechFontSize, speechPosY, speechBoxMode, speechBoxColor, speechBoxOpacity, speechPacing, speechStrokeWidth, speechShadowDistance, speechLineSpacing, speechWordSpacing,
     } = req.body;
 
     const newsDir = path.resolve(__dirname, '../../news');
@@ -660,6 +666,7 @@ router.post('/api/save-shorts-config', (req, res) => {
       boxColor: boxColor || 'black',
       boxOpacity: boxEnabled ? (Number(boxOpacity) ?? 75) : 0,
       posY: Number(posY) || 200,
+      lineSpacing: Number(lineSpacing ?? 20),
       lineBadges: lineBadges || null,
       selectedPhoto: selectedPhoto || null,
       speechSubtitlesEnabled: speechSubtitlesEnabled !== false,
@@ -674,6 +681,8 @@ router.post('/api/save-shorts-config', (req, res) => {
       speechPacing: speechPacing || 'wave',
       speechStrokeWidth: Number(speechStrokeWidth) ?? 12,
       speechShadowDistance: Number(speechShadowDistance) ?? 6,
+      speechLineSpacing: Number(speechLineSpacing ?? 10),
+      speechWordSpacing: Number(speechWordSpacing ?? 14),
       savedAt: new Date().toISOString(),
     };
 
@@ -767,6 +776,7 @@ router.post('/api/save-video-config', (req, res) => {
       includeKaraokeSubtitles, subtitleColor, subtitleInactiveColor, subtitleFontSize, subtitleFont,
       subtitlePosY, subtitleBoxMode, subtitleBoxColor, subtitleBoxOpacity, subtitlePacing,
       subtitleStrokeWidth, subtitleShadowDistance, subtitleLineMode, subtitleMaxWords, subtitleMaxChars,
+      subtitleWordSpacing, subtitleLineSpacing,
       wordColors, wordFontSizes, selectedPhoto, transition, includeSubBanner, subBannerTime, bannerStyle,
     } = req.body;
 
@@ -798,6 +808,8 @@ router.post('/api/save-video-config', (req, res) => {
       subtitleLineMode: subtitleLineMode || 'auto',
       subtitleMaxWords: Number(subtitleMaxWords) || 0,
       subtitleMaxChars: Number(subtitleMaxChars) || 0,
+      subtitleWordSpacing: Number(subtitleWordSpacing) || 10,
+      subtitleLineSpacing: Number(subtitleLineSpacing) || 10,
       wordColors: wordColors || null,
       wordFontSizes: wordFontSizes || null,
       selectedPhoto: selectedPhoto || null,

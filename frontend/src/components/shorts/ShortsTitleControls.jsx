@@ -18,6 +18,7 @@ export default function ShortsTitleControls({
   lineBadges, setLineBadges,
   boxEnabled, setBoxOpacity, setBoxEnabled,
   wordsList, displayText,
+  lineSpacing = 20, setLineSpacing,
   onDirty,
 }) {
   return (
@@ -87,6 +88,38 @@ export default function ShortsTitleControls({
             <div>
               <span style={{ fontSize: '0.72rem', color: '#9ca3af', display: 'block' }}>📍 Высота Y ({posY}px):</span>
               <input type="range" min="40" max="1750" value={posY} onChange={e => { setPosY(Number(e.target.value)); onDirty() }} style={{ width: '100%' }} />
+            </div>
+          </div>
+
+          <div style={{ background: '#090d16', padding: '0.45rem 0.65rem', borderRadius: '6px', border: '1px solid #374151' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#38bdf8' }}>
+                ↕️ Отступ между строками: {lineSpacing ?? 20}px
+              </span>
+              {setLineSpacing && Number(lineSpacing ?? 20) !== 20 && (
+                <button
+                  type="button"
+                  onClick={() => { setLineSpacing(20); onDirty(); }}
+                  style={{ background: 'none', border: 'none', color: '#f43f5e', fontSize: '0.72rem', cursor: 'pointer', textDecoration: 'underline' }}
+                >
+                  Сброс (20px)
+                </button>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.7rem', color: '#6b7280' }}>-20px</span>
+              <input
+                type="range"
+                min="-20"
+                max="90"
+                step="2"
+                value={lineSpacing ?? 20}
+                onChange={e => { if (setLineSpacing) setLineSpacing(Number(e.target.value)); onDirty(); }}
+                style={{ flex: 1, accentColor: '#38bdf8', cursor: 'pointer' }}
+              />
+              <span style={{ fontSize: '0.72rem', color: '#38bdf8', minWidth: '35px', textAlign: 'right', fontWeight: 700 }}>
+                {lineSpacing ?? 20}px
+              </span>
             </div>
           </div>
 

@@ -25,18 +25,18 @@ export const toShortsAssStyleColor = (col, alpha = '00') => {
 export function estimateCharWidth(ch, font, sz) {
   const f = (font || '').toLowerCase();
   let fontScale = 1.0;
-  if (f.includes('impact')) fontScale = 0.72;
-  else if (f.includes('buran')) fontScale = 0.82;
-  else if (f.includes('russo')) fontScale = 0.95;
+  if (f.includes('impact')) fontScale = 0.90;
+  else if (f.includes('buran')) fontScale = 0.85;
+  else if (f.includes('russo')) fontScale = 1.08;
   else if (f.includes('unbounded') || f.includes('arial')) fontScale = 1.05;
-  else if (f.includes('rubik') || f.includes('delagothic') || f.includes('seymour')) fontScale = 1.15;
+  else if (f.includes('rubik') || f.includes('delagothic') || f.includes('seymour')) fontScale = 1.25;
 
-  if ('I1!|:;.,\'"il'.includes(ch)) return sz * 0.22 * fontScale;
-  if (ch === ' ') return sz * 0.25 * fontScale;
-  if ('Jtfjr-()[]'.includes(ch)) return sz * 0.32 * fontScale;
-  if ('ГТLEFZ7'.includes(ch)) return sz * 0.42 * fontScale;
-  if ('ЖМФШЩЫЮMW@#%&—'.includes(ch)) return sz * 0.72 * fontScale;
-  return sz * 0.50 * fontScale;
+  if ('I1!|:;.,\'"il·'.includes(ch)) return sz * 0.28 * fontScale;
+  if (ch === ' ') return sz * 0.30 * fontScale;
+  if ('Jtfjr-()[]'.includes(ch)) return sz * 0.38 * fontScale;
+  if ('ГТLEFZ7'.includes(ch)) return sz * 0.52 * fontScale;
+  if ('ЖМФШЩЫЮMW@#%&—'.includes(ch)) return sz * 0.88 * fontScale;
+  return sz * 0.65 * fontScale;
 }
 
 export function getBadgeVector(style, w, h, seed = 0) {
@@ -142,15 +142,17 @@ export function generateSpeechDialogueEvents(opts = {}) {
   const highlightTag = toShortsAssTagColor(speechColor || 'yellow'), inactiveTag = toShortsAssTagColor(speechInactiveColor || 'white');
   const dialogues = [];
   const centerX = Math.round(resX / 2);
-  const maxSafeW = Math.round(resX * (isLandscape ? 0.94 : 0.88));
+  const maxSafeW = Math.round(resX * (isLandscape ? 0.90 : 0.80));
+  const rawWordGap = Number(opts.speechWordSpacing);
+  const wordGap = (!isNaN(rawWordGap) && rawWordGap >= 0) ? rawWordGap : (isLandscape ? 10 : 14);
 
   const calcLineW = (words, sz) => {
     let w = 0;
     words.forEach((tw, idx) => {
       for (const c of tw.word) w += estimateCharWidth(c, speechFont, sz);
-      if (idx > 0) w += sz * 0.26;
+      if (idx > 0) w += wordGap + (sz * 0.16);
     });
-    return w;
+    return Math.round(w);
   };
 
   waveChunks.forEach((chunk, chunkIdx) => {
@@ -196,11 +198,21 @@ export function generateSpeechDialogueEvents(opts = {}) {
       }
     }
 
+    const targetFontSize = Number(speechFontSize) || (isLandscape ? 44 : 115);
+    const rawSpeechLineGap = Number(opts.speechLineSpacing);
+    const speechLineGap = (!isNaN(rawSpeechLineGap)) ? rawSpeechLineGap : 10;
+
+    const lineStep = Math.round(targetFontSize * 1.18 + speechLineGap);
+    const halfStep = Math.round(lineStep / 2);
+
+    const padX = isLandscape ? Math.max(90, Math.round(baseFontSize * 2.2)) : 130;
+    const boxW = Math.min(Math.round(resX * 0.96), Math.max(220, Math.round(maxLineW + padX)));
+
     if (speechBoxMode !== 'none') {
-      const boxW = Math.min(Math.round(resX * 0.94), Math.max(180, Math.round(maxLineW + (isLandscape ? 50 : 70))));
-      const boxH = isMultiLine ? Math.round(baseFontSize * 1.95 + 30) : Math.round(baseFontSize * 1.25 + 20);
+      const padY = isLandscape ? Math.max(16, Math.round(baseFontSize * 0.35)) : 26;
+      const boxH = isMultiLine ? Math.round(lineStep + baseFontSize + padY * 2) : Math.round(baseFontSize * 1.15 + padY * 2);
       const badgeX = Math.max(20, Math.round(centerX - boxW / 2)), badgeY = Math.round(speechPosY - boxH / 2);
-      const r = speechBoxMode === 'solid' ? 6 : (isLandscape ? 12 : 24);
+      const r = speechBoxMode === 'solid' ? 6 : (isLandscape ? 14 : 24);
       const poly = `m ${r} 0 l ${boxW - r} 0 l ${boxW} ${r} l ${boxW} ${boxH - r} l ${boxW - r} ${boxH} l ${r} ${boxH} l 0 ${boxH - r} l 0 ${r}`;
       const op = Math.max(0, Math.min(100, Number(speechBoxOpacity) ?? 82)), assAlphaNum = Math.round(255 * (1 - op / 100));
       const boxAlpha = assAlphaNum.toString(16).padStart(2, '0').toUpperCase();
@@ -214,22 +226,35 @@ export function generateSpeechDialogueEvents(opts = {}) {
       const wStartSec = (activeIdx === 0) ? chunkStart : activeTw.start, wEndSec = nextTw ? nextTw.start : chunkEnd;
       const wStart = formatAssTime(wStartSec), wEnd = formatAssTime(Math.max(wStartSec + 0.1, wEndSec));
       
-      const formatWords = (wList, offset) => wList.map((tw, subIdx) => {
-        const globalWIdx = offset + subIdx, isCurrent = (globalWIdx === activeIdx);
-        let colTag = isCurrent ? highlightTag : inactiveTag;
-        if (Array.isArray(opts.wordColors) && opts.wordColors[globalWIdx]) {
-          colTag = toShortsAssTagColor(opts.wordColors[globalWIdx]);
-        }
-        let wSz = baseFontSize;
-        if (Array.isArray(opts.wordFontSizes) && opts.wordFontSizes[globalWIdx] && Number(opts.wordFontSizes[globalWIdx]) > 0) {
-          wSz = Number(opts.wordFontSizes[globalWIdx]);
-        }
-        const scaleTag = isCurrent ? '\\fscx112\\fscy112' : '\\fscx100\\fscy100';
-        return `{\\c${colTag}\\fs${wSz}${scaleTag}\\bord${bW}\\3c${strokeTag}\\shad${sD}\\4c${shadowTag}}${tw.word.toUpperCase()}`;
-      }).join(' ');
+      const formatWords = (wList, offset) => {
+        const parts = [];
+        wList.forEach((tw, subIdx) => {
+          const globalWIdx = offset + subIdx, isCurrent = (globalWIdx === activeIdx);
+          let colTag = isCurrent ? highlightTag : inactiveTag;
+          if (Array.isArray(opts.wordColors) && opts.wordColors[globalWIdx]) {
+            colTag = toShortsAssTagColor(opts.wordColors[globalWIdx]);
+          }
+          let wSz = baseFontSize;
+          if (Array.isArray(opts.wordFontSizes) && opts.wordFontSizes[globalWIdx] && Number(opts.wordFontSizes[globalWIdx]) > 0) {
+            wSz = Number(opts.wordFontSizes[globalWIdx]);
+          }
+          const activeBorder = isCurrent && speechBoxMode === 'none' ? Math.min(bW + 2, 16) : bW;
+          if (subIdx > 0) {
+            parts.push(`{\\fsp${wordGap}} {\\fsp0}`);
+          }
+          parts.push(`{\\c${colTag}\\fs${wSz}\\bord${activeBorder}\\3c${strokeTag}\\shad${sD}\\4c${shadowTag}}${tw.word.toUpperCase()}`);
+        });
+        return parts.join('');
+      };
 
-      const styledText = isMultiLine ? `${formatWords(line1Words, 0)}\\N${formatWords(line2Words, splitIdx)}` : formatWords(line1Words, 0);
-      dialogues.push(`Dialogue: 2,${wStart},${wEnd},Speech,,0,0,0,,{\\an5\\pos(${centerX},${speechPosY})}${styledText}`);
+      if (isMultiLine) {
+        const line1Y = speechPosY - halfStep;
+        const line2Y = speechPosY + halfStep;
+        dialogues.push(`Dialogue: 2,${wStart},${wEnd},Speech,,0,0,0,,{\\an5\\pos(${centerX},${line1Y})}${formatWords(line1Words, 0)}`);
+        dialogues.push(`Dialogue: 2,${wStart},${wEnd},Speech,,0,0,0,,{\\an5\\pos(${centerX},${line2Y})}${formatWords(line2Words, splitIdx)}`);
+      } else {
+        dialogues.push(`Dialogue: 2,${wStart},${wEnd},Speech,,0,0,0,,{\\an5\\pos(${centerX},${speechPosY})}${formatWords(line1Words, 0)}`);
+      }
     });
   });
 
@@ -294,7 +319,9 @@ export function buildAssShortsSubtitle(wrappedText, options = {}) {
         const rawPadX = (Array.isArray(bCfg.linePadX) && bCfg.linePadX[idx] !== undefined) ? Number(bCfg.linePadX[idx]) : (bCfg.padX !== undefined ? Number(bCfg.padX) : defPadX);
         const rawPadY = (Array.isArray(bCfg.linePadY) && bCfg.linePadY[idx] !== undefined) ? Number(bCfg.linePadY[idx]) : (bCfg.padY !== undefined ? Number(bCfg.padY) : defPadY);
         const padX = Math.max(10, Math.min(140, !isNaN(rawPadX) ? rawPadX : defPadX)), padY = Math.max(2, Math.min(60, !isNaN(rawPadY) ? rawPadY : defPadY));
-        const lineH = Math.round(effectiveSize * 0.74) + padY * 2, lineStep = lineH + 20;
+        const rawLineGap = Number(options.lineSpacing);
+        const lineGap = (!isNaN(rawLineGap)) ? rawLineGap : 20;
+        const lineH = Math.round(effectiveSize * 0.74) + padY * 2, lineStep = lineH + lineGap;
         const approxW = Math.min(1000, Math.max(120, Math.round(lineTextW + padX * 2))), badgeX = Math.max(20, Math.round(540 - approxW / 2));
         const curLineY = posY + idx * lineStep, pivotX = 540, pivotY = Math.round(curLineY + lineH / 2);
         const zAngles = [-2.0, 1.8, -1.6, 2.0];
@@ -317,15 +344,21 @@ export function buildAssShortsSubtitle(wrappedText, options = {}) {
         dialogues.push(`Dialogue: 1,0:00:00.00,0:01:00.00,Title,,0,0,0,,{\\an5\\pos(540,${pivotY})\\org(${pivotX},${pivotY})${lAngle !== 0 ? `\\frz${lAngle}` : ''}}${wordFrags}`);
       });
     } else {
-      const assLines = lines.map((line) => {
+      const rawLineGap = Number(options.lineSpacing);
+      const lineGap = (!isNaN(rawLineGap)) ? rawLineGap : 20;
+      const lineH = Math.round(effectiveSize * 0.74);
+      const lineStep = lineH + lineGap;
+
+      lines.forEach((line, idx) => {
         const words = line.split(/\s+/).filter(Boolean);
-        return words.map(w => {
+        const curLineY = posY + idx * lineStep;
+        const wordFrags = words.map(w => {
           const curIdx = wordIdx++, wCol = (wordColors && wordColors[curIdx]) ? wordColors[curIdx] : fontColor;
           const wSz = (wordFontSizes && wordFontSizes[curIdx] && Number(wordFontSizes[curIdx]) > 0) ? Number(wordFontSizes[curIdx]) : effectiveSize;
           return `{\\c${toShortsAssTagColor(wCol)}\\fs${wSz}\\bord${bWidth}\\3c${toShortsAssTagColor(strokeColor || 'black')}\\shad${sDist}\\4c${toShortsAssTagColor(shadowColor || 'black')}}${w}`;
         }).join(' ');
+        dialogues.push(`Dialogue: 1,0:00:00.00,0:01:00.00,Title,,0,0,0,,{\\an8\\pos(540,${curLineY})}${wordFrags}`);
       });
-      dialogues.push(`Dialogue: 1,0:00:00.00,0:01:00.00,Title,,0,0,0,,{\\an8\\pos(540,${posY})}${assLines.join('\\N')}`);
     }
   }
 
@@ -334,6 +367,8 @@ export function buildAssShortsSubtitle(wrappedText, options = {}) {
       speechText, duration, totalAudioDuration, speechFontSize, speechColor, speechInactiveColor,
       speechPosY, speechStrokeWidth, speechStrokeColor: 'black', speechShadowDistance, speechShadowColor: 'black',
       speechBoxMode, speechBoxColor, speechBoxOpacity, speechPacing, speechFont: assSpeechFontName, whisperWords: options.whisperWords,
+      speechLineSpacing: options.speechLineSpacing,
+      speechWordSpacing: options.speechWordSpacing,
     });
     dialogues.push(...speechEvents);
   }
@@ -347,6 +382,7 @@ export function buildAssVideoSubtitle(speechText, options = {}) {
     speechInactiveColor = 'white', speechPosY = 960, speechFont = 'RussoOne-Regular.ttf',
     speechBoxMode = 'pill', speechBoxColor = 'black', speechBoxOpacity = 82,
     speechPacing = 'wave', speechStrokeWidth = 4, speechShadowDistance = 2,
+    speechWordSpacing = 10, speechLineSpacing = 10,
     whisperWords = null, resX = 1920, resY = 1080,
   } = options;
 
@@ -377,6 +413,8 @@ export function buildAssVideoSubtitle(speechText, options = {}) {
     speechLineMode: options.speechLineMode || 'auto',
     speechMaxWords: options.speechMaxWords || 0,
     speechMaxChars: options.speechMaxChars || 0,
+    speechWordSpacing: options.speechWordSpacing ?? options.subtitleWordSpacing ?? speechWordSpacing,
+    speechLineSpacing: options.speechLineSpacing ?? options.subtitleLineSpacing ?? speechLineSpacing,
     speechFont: assSpeechFontName,
     wordColors: options.wordColors,
     wordFontSizes: options.wordFontSizes,
