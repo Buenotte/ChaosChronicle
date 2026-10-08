@@ -84,8 +84,8 @@ export default function NewsScriptModal({ pkg, onClose, onSaved }) {
     const allStyles = [...FEUILLETON_STYLES, ...YOUTUBE_TOPIC_STYLES]
     const styleName = allStyles.find(s => s.id === styleToUse)?.name || styleToUse
     const modelName = AI_MODELS.find(m => m.id === modelToUse)?.name || modelToUse
-    const toneLabel = toneToUse === 'analytics' ? '🧠 Аналитика' : '💥 Сатира'
-    const formatLabel = scriptFormat === 'feuilleton' ? '🎭 Фельетон' : '🔢 По пунктам'
+    const isYtNonSatire = isYt && !['short_sarcasm', 'golubuzki'].includes(styleToUse)
+    const formatLabel = scriptFormat === 'feuilleton' ? (isYtNonSatire ? '🎙️ Цельный рассказ' : '🎭 Фельетон') : '🔢 По пунктам'
     const hasFacts = Array.isArray(chosenFacts) && chosenFacts.length > 0
     const toastId = toast.loading(hasFacts ? `✨ Сценарий (${formatLabel}, ${chosenFacts.length} пунктов)...` : `🔄 Генерация (${formatLabel}, напрямую из оригинала)...`, {
       description: `${modelName} | ${styleName}`,

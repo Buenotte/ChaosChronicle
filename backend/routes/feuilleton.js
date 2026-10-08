@@ -91,7 +91,7 @@ export function buildStyledFeuilletonPrompt(newsTitle, newsSummary = '', styleKe
     let ytSys = ytCfg.systemInstruction;
     if (hasExtractedFacts) {
       if (isNarrativeFormat) {
-        ytSys = ytSys.replace(/\(СТРОГО 400–550 слов\)/g, `(ОБЪЕМ: ${wordCountTarget}, ЦЕЛЬНЫЙ ЗАХВАТЫВАЮЩИЙ РАССКАЗ/ФЕЛЬЕТОН БЕЗ СЧЕТА И НУМЕРАЦИИ ВСЛУХ, НА ОСНОВЕ ВСЕХ ${factsCount} ТЕМ)`);
+        ytSys = ytSys.replace(/\(СТРОГО 400–550 слов\)/g, `(ОБЪЕМ: ${wordCountTarget}, ЦЕЛЬНЫЙ ЗАХВАТЫВАЮЩИЙ РАССКАЗ/СЦЕНАРИЙ БЕЗ СЧЕТА И НУМЕРАЦИИ ВСЛУХ, НА ОСНОВЕ ВСЕХ ${factsCount} ТЕМ)`);
       } else {
         ytSys = ytSys.replace(/\(СТРОГО 400–550 слов\)/g, `(ОБЪЕМ: ${wordCountTarget}, ОБЯЗАТЕЛЬНО ХУК С ОБЪЯВЛЕНИЕМ ${factsCount} ${concept.labelPlural.toUpperCase()}, СЧЕТ ВСЛУХ И РАЗБОР ВСЕХ ${factsCount} ПУНКТОВ)`);
       }

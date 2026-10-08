@@ -1,4 +1,5 @@
 import VoiceSelector, { ALL_VOICES as VOICES } from '../common/VoiceSelector'
+import CustomAudioPlayer from '../common/CustomAudioPlayer'
 
 export { VOICES }
 
@@ -37,15 +38,15 @@ export default function PackageAudioSection({
 
         {/* Плеер при наличии готового аудио */}
         {audioState.hasAudio && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', background: '#18181b', padding: '0.65rem', borderRadius: '8px', border: '1px solid #27272a' }}>
-            <audio controls src={audioState.audioUrl} style={{ width: '100%', height: '36px' }} />
-            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+            <CustomAudioPlayer src={audioState.audioUrl} title="Готовый дикторский голос (audio.mp3)" />
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
               <button
                 className="copy-btn"
-                style={{ background: '#3f3f46', fontSize: '0.8rem', padding: '0.3rem 0.65rem' }}
+                style={{ background: '#3f3f46', fontSize: '0.8rem', padding: '0.35rem 0.75rem' }}
                 onClick={onOpenAudioModal}
               >
-                🎙️ Открыть плеер озвучки
+                🎙️ Открыть студию озвучки
               </button>
             </div>
           </div>

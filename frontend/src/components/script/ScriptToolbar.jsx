@@ -26,6 +26,7 @@ export default function ScriptToolbar({
   const [showPrompt, setShowPrompt] = useState(Boolean(pkg?.customPrompt))
 
   const currentConcept = getConceptConfig(selectedConcept, customConceptWord)
+  const isYouTubeTopicStyle = ['scipop', 'mystery', 'tech_future', 'psychology', 'storytelling'].includes(selectedStyle)
 
   const handleOpenFacts = async (targetCount = factsCount, conceptToUse = selectedConcept, customWordToUse = customConceptWord) => {
     const conceptCfg = getConceptConfig(conceptToUse, customWordToUse)
@@ -133,7 +134,7 @@ export default function ScriptToolbar({
           )}
         </div>
 
-        {/* Переключатель: Цельный фельетон vs По пунктам со счетом */}
+        {/* Переключатель: Цельный текст / рассказ vs По пунктам со счетом */}
         <div style={{ display: 'flex', alignItems: 'center', background: '#020617', borderRadius: '6px', padding: '2px', border: '1px solid #d97706' }}>
           <button
             type="button"
@@ -149,9 +150,9 @@ export default function ScriptToolbar({
               cursor: 'pointer',
               transition: 'all 0.15s ease',
             }}
-            title="Цельный фельетон / связный монолог диктора без счета и номеров пунктов вслух"
+            title={isYouTubeTopicStyle ? "Цельный связный монолог/рассказ диктора без счета и номеров пунктов вслух" : "Цельный фельетон / связный монолог диктора без счета и номеров пунктов вслух"}
           >
-            🎭 Фельетон
+            {isYouTubeTopicStyle ? '🎙️ Цельный рассказ' : '🎭 Фельетон'}
           </button>
           <button
             type="button"
@@ -173,10 +174,12 @@ export default function ScriptToolbar({
           </button>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', background: '#0f172a', borderRadius: '6px', padding: '2px', border: '1px solid #334155' }}>
-          <button type="button" onClick={() => setSelectedTone('grotesque')} style={{ background: selectedTone === 'grotesque' ? '#dc2626' : 'transparent', color: selectedTone === 'grotesque' ? '#fff' : '#94a3b8', border: 'none', borderRadius: '4px', padding: '0.22rem 0.45rem', fontSize: '0.75rem', fontWeight: selectedTone === 'grotesque' ? 700 : 500, cursor: 'pointer' }}>💥 Сатира</button>
-          <button type="button" onClick={() => setSelectedTone('analytics')} style={{ background: selectedTone === 'analytics' ? '#2563eb' : 'transparent', color: selectedTone === 'analytics' ? '#fff' : '#94a3b8', border: 'none', borderRadius: '4px', padding: '0.22rem 0.45rem', fontSize: '0.75rem', fontWeight: selectedTone === 'analytics' ? 700 : 500, cursor: 'pointer' }}>🧠 Аналитика</button>
-        </div>
+        {!isYouTubeTopicStyle && (
+          <div style={{ display: 'flex', alignItems: 'center', background: '#0f172a', borderRadius: '6px', padding: '2px', border: '1px solid #334155' }}>
+            <button type="button" onClick={() => setSelectedTone('grotesque')} style={{ background: selectedTone === 'grotesque' ? '#dc2626' : 'transparent', color: selectedTone === 'grotesque' ? '#fff' : '#94a3b8', border: 'none', borderRadius: '4px', padding: '0.22rem 0.45rem', fontSize: '0.75rem', fontWeight: selectedTone === 'grotesque' ? 700 : 500, cursor: 'pointer' }}>💥 Сатира</button>
+            <button type="button" onClick={() => setSelectedTone('analytics')} style={{ background: selectedTone === 'analytics' ? '#2563eb' : 'transparent', color: selectedTone === 'analytics' ? '#fff' : '#94a3b8', border: 'none', borderRadius: '4px', padding: '0.22rem 0.45rem', fontSize: '0.75rem', fontWeight: selectedTone === 'analytics' ? 700 : 500, cursor: 'pointer' }}>🧠 Аналитика</button>
+          </div>
+        )}
       </div>
 
       <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -200,9 +203,9 @@ export default function ScriptToolbar({
             gap: '0.4rem',
             boxShadow: scriptFormat === 'feuilleton' ? '0 2px 10px rgba(124, 58, 237, 0.45)' : '0 2px 10px rgba(217, 119, 6, 0.45)',
           }}
-          title={scriptFormat === 'feuilleton' ? "Сгенерировать цельный фельетон без счета вслух" : "Сгенерировать сценарий с голосовым счетом всех пунктов"}
+          title={scriptFormat === 'feuilleton' ? (isYouTubeTopicStyle ? "Сгенерировать цельный связный рассказ без счета вслух" : "Сгенерировать цельный фельетон без счета вслух") : "Сгенерировать сценарий с голосовым счетом всех пунктов"}
         >
-          {regenerating ? '⏳ Генерация...' : (scriptFormat === 'feuilleton' ? '✨ Фельетон (цельный)' : '✨ По пунктам (со счетом)')}
+          {regenerating ? '⏳ Генерация...' : (scriptFormat === 'feuilleton' ? (isYouTubeTopicStyle ? '✨ Цельный рассказ' : '✨ Фельетон (цельный)') : '✨ По пунктам (со счетом)')}
         </button>
 
         {/* Дополнительная опция: Выбор и извлечение пунктов (Selectbox от 5 до 15) */}
@@ -286,7 +289,9 @@ export default function ScriptToolbar({
             <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#e0e7ff', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
               <span>🎯</span> Индивидуальный промпт / Пожелания к тексту:
             </span>
-            <span style={{ fontSize: '0.7rem', color: '#a5b4fc' }}>Учитывается кнопками «✨ Фельетон / ✨ По пунктам»</span>
+            <span style={{ fontSize: '0.7rem', color: '#a5b4fc' }}>
+              {isYouTubeTopicStyle ? 'Учитывается кнопками «✨ Цельный рассказ / ✨ По пунктам»' : 'Учитывается кнопками «✨ Фельетон / ✨ По пунктам»'}
+            </span>
           </div>
           <textarea
             value={customPrompt}

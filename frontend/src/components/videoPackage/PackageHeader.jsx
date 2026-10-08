@@ -15,6 +15,7 @@ export default function PackageHeader({
   onOpenTitleVariants,
   onOpenScript,
   onOpenPhotos,
+  onOpenAudio,
   onOpenShorts,
   onOpenYouTube,
   onDeletePackage,
@@ -215,12 +216,14 @@ export default function PackageHeader({
             📸 photos/ ({actualPhotoCount}) {actualPhotoCount > 0 ? '✅' : '❌'}
           </button>
 
-          <span
-            className={`saved-status-badge ${audioState.hasAudio ? 'active' : 'inactive'}`}
-            title="Аудио-озвучка (audio.mp3)"
+          <button
+            type="button"
+            className={`saved-status-badge ${audioState.hasAudio ? 'active' : 'inactive'} ${onOpenAudio ? 'clickable' : ''}`}
+            onClick={onOpenAudio}
+            title="Аудио-озвучка (audio.mp3) — нажмите, чтобы открыть плеер и генератор озвучки"
           >
             🎙️ audio.mp3 {audioState.hasAudio ? '✅' : '❌'}
-          </span>
+          </button>
 
           <span
             className={`saved-status-badge ${videoState.hasVideo ? 'active' : 'inactive'}`}

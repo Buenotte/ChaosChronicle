@@ -103,10 +103,16 @@ export async function saveNewsPhotos({ title = 'News', bundleDir: inputBundleDir
     // B. Base64 Data URL
     if (imgUrl.startsWith('data:image/')) {
       try {
-        const m = imgUrl.match(/^data:image\/([a-zA-Z0-9]+);base64,(.+)$/);
-        if (m) {
-          const dataExt = m[1] === 'jpeg' ? 'jpg' : m[1];
-          addBuffer(Buffer.from(m[2], 'base64'), dataExt);
+        const commaIdx = imgUrl.indexOf(',');
+        if (commaIdx !== -1) {
+          const mimePart = imgUrl.slice(0, commaIdx).toLowerCase();
+          const base64Data = imgUrl.slice(commaIdx + 1);
+          let dataExt = 'jpg';
+          if (mimePart.includes('png')) dataExt = 'png';
+          else if (mimePart.includes('webp')) dataExt = 'webp';
+          else if (mimePart.includes('gif')) dataExt = 'gif';
+          else if (mimePart.includes('avif')) dataExt = 'avif';
+          addBuffer(Buffer.from(base64Data, 'base64'), dataExt);
           continue;
         }
       } catch {}
@@ -240,11 +246,19 @@ export async function saveSingleNewsPhoto({ title = 'News', bundleDir: inputBund
   let buffer = null;
   let ext = 'jpg';
   if (photoUrl.startsWith('data:image/')) {
-    const m = photoUrl.match(/^data:image\/([a-zA-Z0-9]+);base64,(.+)$/);
-    if (m) {
-      ext = m[1] === 'jpeg' ? 'jpg' : m[1];
-      buffer = Buffer.from(m[2], 'base64');
-    }
+    try {
+      const commaIdx = photoUrl.indexOf(',');
+      if (commaIdx !== -1) {
+        const mimePart = photoUrl.slice(0, commaIdx).toLowerCase();
+        const base64Data = photoUrl.slice(commaIdx + 1);
+        if (mimePart.includes('png')) ext = 'png';
+        else if (mimePart.includes('webp')) ext = 'webp';
+        else if (mimePart.includes('gif')) ext = 'gif';
+        else if (mimePart.includes('avif')) ext = 'avif';
+        else ext = 'jpg';
+        buffer = Buffer.from(base64Data, 'base64');
+      }
+    } catch {}
   } else if (photoUrl.startsWith('/news-static/')) {
     const rel = decodeURIComponent(photoUrl.replace(/^\/news-static\//, '').split('?')[0]);
     const fullP = path.resolve(newsDir, rel);
@@ -268,10 +282,10 @@ export async function saveSingleNewsPhoto({ title = 'News', bundleDir: inputBund
 
   if (!buffer || buffer.length < 50) throw new Error('Ungültige Bilddaten');
 
-  // Prüfe gegen existierende Fotos auf Duplikate
+  // Prüfe gegen existierende Fotos auf Duplikate per MD5-Hash (Kryptografische Prüfsumme)
   const folderBase = path.basename(bundleDir);
   const newHash = crypto.createHash('md5').update(buffer).digest('hex');
-  const existingFiles = fs.readdirSync(photosDir).filter(f => /\.(jpg|jpeg|png|webp)/i.test(f));
+  const existingFiles = fs.readdirSync(photosDir).filter(f => /\.(jpg|jpeg|png|webp|avif)/i.test(f));
   for (const f of existingFiles) {
     try {
       const eBuf = fs.readFileSync(path.join(photosDir, f));
@@ -284,8 +298,21 @@ export async function saveSingleNewsPhoto({ title = 'News', bundleDir: inputBund
     } catch {}
   }
 
-  const nextNum = existingFiles.length + 1;
-  const targetFilename = `photo_${String(nextNum).padStart(2, '0')}.${ext || 'jpg'}`;
+  // Kollisionsfreie Nummerierung ermitteln (höchste vergebene Nummer + 1, niemals bestehende Dateien überschreiben)
+  let maxNum = 0;
+  for (const f of existingFiles) {
+    const m = f.match(/^photo_(\d+)/i);
+    if (m) {
+      const num = parseInt(m[1], 10);
+      if (!isNaN(num) && num > maxNum) maxNum = num;
+    }
+  }
+  let nextNum = Math.max(existingFiles.length + 1, maxNum + 1);
+  let targetFilename = `photo_${String(nextNum).padStart(2, '0')}.${ext || 'jpg'}`;
+  while (fs.existsSync(path.join(photosDir, targetFilename))) {
+    nextNum++;
+    targetFilename = `photo_${String(nextNum).padStart(2, '0')}.${ext || 'jpg'}`;
+  }
   fs.writeFileSync(path.join(photosDir, targetFilename), buffer);
 
   const jsonPath = path.join(bundleDir, 'project.json');
@@ -293,7 +320,7 @@ export async function saveSingleNewsPhoto({ title = 'News', bundleDir: inputBund
   if (fs.existsSync(jsonPath)) {
     try { manifest = JSON.parse(fs.readFileSync(jsonPath, 'utf-8')); } catch {}
   }
-  const updatedFiles = fs.readdirSync(photosDir).filter(f => /\.(jpg|jpeg|png|webp)/i.test(f));
+  const updatedFiles = fs.readdirSync(photosDir).filter(f => /\.(jpg|jpeg|png|webp|avif)/i.test(f)).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
   manifest.photos = updatedFiles.map(f => `photos/${f}`);
   manifest.photos_count = updatedFiles.length;
   manifest.photos_updated_at = new Date().toISOString();

@@ -250,6 +250,7 @@ router.get('/api/news-photos', async (req, res) => {
 router.post('/api/save-news-photos', async (req, res) => {
   try {
     const result = await saveNewsPhotos(req.body);
+    invalidatePackagesCache();
     res.json(result);
   } catch (err) {
     console.error('Save photos error:', err.message);
@@ -261,6 +262,7 @@ router.post('/api/save-news-photos', async (req, res) => {
 router.post('/api/save-single-photo', async (req, res) => {
   try {
     const result = await saveSingleNewsPhoto(req.body);
+    invalidatePackagesCache();
     res.json(result);
   } catch (err) {
     console.error('Save single photo error:', err.message);
@@ -272,6 +274,7 @@ router.post('/api/save-single-photo', async (req, res) => {
 router.post('/api/delete-photo', async (req, res) => {
   try {
     const result = deleteNewsPhoto(req.body);
+    invalidatePackagesCache();
     res.json(result);
   } catch (err) {
     console.error('Delete photo error:', err.message);
@@ -349,6 +352,7 @@ router.post('/api/deduplicate-photos', async (req, res) => {
   try {
     const { folderName, bundleDir } = req.body;
     const result = await deduplicatePackagePhotos({ folderName, bundleDir });
+    invalidatePackagesCache();
     res.json(result);
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

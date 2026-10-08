@@ -43,12 +43,16 @@ router.post('/api/generate-audio', async (req, res) => {
     const txtPath = path.join(bundleDir, 'script.txt');
     const audioPath = path.join(bundleDir, 'audio.mp3');
 
-    if (!fs.existsSync(txtPath) && text) {
-      const cleanSpeechText = text
-        .split('\n\n')
-        .filter(p => !p.startsWith('[B-Roll:'))
-        .join('\n\n');
-      fs.writeFileSync(txtPath, cleanSpeechText, 'utf-8');
+    // Quelle der Wahrheit ist script.txt auf der Festplatte (wird von Generator und Editor-Speichern geschrieben).
+    // Ein vom Frontend mitgesendeter Text kann veraltet sein und darf script.txt NICHT überschreiben –
+    // ausser der Client verlangt es explizit (useProvidedText = Editor-Text bewusst verwenden) oder die Datei fehlt.
+    const cleanProvided = (text || '')
+      .split('\n\n')
+      .filter(p => !p.trim().startsWith('[B-Roll:'))
+      .join('\n\n')
+      .trim();
+    if (cleanProvided && (req.body.useProvidedText === true || !fs.existsSync(txtPath))) {
+      fs.writeFileSync(txtPath, cleanProvided, 'utf-8');
     }
 
     if (!fs.existsSync(txtPath)) {
@@ -70,30 +74,59 @@ router.post('/api/generate-audio', async (req, res) => {
       }
 
       const voiceId = customVoiceId || voiceCfg.voiceId || 'pNInz6obpgDQGcFmaJgB';
-      const elRes = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
-        method: 'POST',
-        headers: {
-          'xi-api-key': apiKey,
-          'Content-Type': 'application/json',
-          'Accept': 'audio/mpeg',
-        },
-        body: JSON.stringify({
-          text: speechText,
-          model_id: 'eleven_multilingual_v2',
-          voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.75,
-          },
-        }),
-      });
 
-      if (!elRes.ok) {
-        const errJson = await elRes.json().catch(() => ({}));
-        throw new Error(errJson.detail?.message || `ElevenLabs API error: ${elRes.status}`);
+      // Text in Chunks <= 4500 Zeichen teilen (an Absatz-, dann Satzgrenzen), damit nichts abgeschnitten wird
+      const MAX_CHUNK = 4500;
+      const splitLong = (para) => {
+        const sentences = para.match(/[^.!?…]+[.!?…]+["»”)]*\s*|[^.!?…]+$/g) || [para];
+        const out = []; let cur = '';
+        for (const s of sentences) {
+          if ((cur + s).length > MAX_CHUNK && cur) { out.push(cur.trim()); cur = ''; }
+          cur += s;
+        }
+        if (cur.trim()) out.push(cur.trim());
+        return out;
+      };
+      const chunks = []; let curChunk = '';
+      for (const para of speechText.split(/\n{2,}/).map(p => p.trim()).filter(Boolean)) {
+        const pieces = para.length > MAX_CHUNK ? splitLong(para) : [para];
+        for (const piece of pieces) {
+          if ((curChunk + '\n\n' + piece).length > MAX_CHUNK && curChunk) { chunks.push(curChunk); curChunk = ''; }
+          curChunk = curChunk ? `${curChunk}\n\n${piece}` : piece;
+        }
+      }
+      if (curChunk) chunks.push(curChunk);
+
+      const audioBuffers = [];
+      for (let i = 0; i < chunks.length; i++) {
+        const elRes = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`, {
+          method: 'POST',
+          headers: {
+            'xi-api-key': apiKey,
+            'Content-Type': 'application/json',
+            'Accept': 'audio/mpeg',
+          },
+          body: JSON.stringify({
+            text: chunks[i],
+            model_id: 'eleven_multilingual_v2',
+            previous_text: i > 0 ? chunks[i - 1].slice(-300) : undefined,
+            next_text: i < chunks.length - 1 ? chunks[i + 1].slice(0, 300) : undefined,
+            voice_settings: {
+              stability: 0.5,
+              similarity_boost: 0.75,
+            },
+          }),
+        });
+
+        if (!elRes.ok) {
+          const errJson = await elRes.json().catch(() => ({}));
+          throw new Error(errJson.detail?.message || `ElevenLabs API error: ${elRes.status} (Teil ${i + 1}/${chunks.length})`);
+        }
+        audioBuffers.push(Buffer.from(await elRes.arrayBuffer()));
       }
 
-      const arrayBuf = await elRes.arrayBuffer();
-      fs.writeFileSync(audioPath, Buffer.from(arrayBuf));
+      fs.writeFileSync(audioPath, Buffer.concat(audioBuffers));
+      console.log(`🎙️ [ElevenLabs] ${speechText.length} Zeichen / ${speechText.split(/\s+/).filter(Boolean).length} Wörter in ${chunks.length} Teil(en) vertont`);
 
       const jsonPath = path.join(bundleDir, 'project.json');
       if (fs.existsSync(jsonPath)) {
@@ -117,6 +150,8 @@ router.post('/api/generate-audio', async (req, res) => {
         voice: voiceCfg.label,
         provider: 'elevenlabs',
         voiceKey: effectiveVoiceKey,
+        spokenChars: speechText.length,
+        spokenWords: speechText.split(/\s+/).filter(Boolean).length,
       });
     }
 

@@ -9,6 +9,7 @@ import VideoSubtitlesEditorModal from './videoPackage/VideoSubtitlesEditorModal'
 import PackageHeader from './videoPackage/PackageHeader'
 import PackageThumbnailSection from './videoPackage/PackageThumbnailSection'
 import PackageAudioSection from './videoPackage/PackageAudioSection'
+import { ALL_VOICES } from './common/VoiceSelector'
 import PackageVideoSection from './videoPackage/PackageVideoSection'
 import PackageShortsSection from './videoPackage/PackageShortsSection'
 import PackageYouTubeSection from './videoPackage/PackageYouTubeSection'
@@ -31,13 +32,14 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
   const [currentTime, setCurrentTime] = useState(0), [duration, setDuration] = useState(0)
   const [generatingAudio, setGeneratingAudio] = useState(false), [generatingVideo, setGeneratingVideo] = useState(false)
   const [videoProgress, setVideoProgress] = useState(0), [progressLog, setProgressLog] = useState('')
-  const [selectedVoice, setSelectedVoice] = useState('el_adam'), [selectedTransition, setSelectedTransition] = useState('concat')
+  const [selectedVoice, setSelectedVoice] = useState('el_adam'), [selectedTransition, setSelectedTransition] = useState('crossfade')
   const [includeSubBanner, setIncludeSubBanner] = useState(true), [subBannerTime, setSubBannerTime] = useState(25), [bannerStyle, setBannerStyle] = useState('modern_dark')
   const [includeKaraokeSubtitles, setIncludeKaraokeSubtitles] = useState(pkg.videoConfig?.includeKaraokeSubtitles ?? true)
   const [videoConfig, setVideoConfig] = useState(pkg.videoConfig || null)
   const [showVideoSubtitlesModal, setShowVideoSubtitlesModal] = useState(false)
 
-  const [audioState, setAudioState] = useState({ hasAudio: !!pkg.hasAudio, audioUrl: pkg.audioUrl })
+  const initialAudioUrl = pkg.audioUrl || (pkg.folderName && pkg.hasAudio ? `/news-static/${pkg.folderName}/audio.mp3` : null)
+  const [audioState, setAudioState] = useState({ hasAudio: !!pkg.hasAudio, audioUrl: initialAudioUrl })
   const [videoState, setVideoState] = useState({ hasVideo: !!pkg.hasVideo, videoUrl: pkg.videoUrl })
   const [shortState, setShortState] = useState({ hasShort: !!pkg.hasShort, shortUrl: pkg.folderName ? `/news-static/${pkg.folderName}/short.mp4` : null })
   const [youtubeState, setYoutubeState] = useState({ hasYouTube: !!pkg.hasYouTubeMetadata, hasFacebook: !!pkg.hasFacebookPost })
@@ -129,7 +131,8 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
   }
 
   useEffect(() => {
-    setAudioState({ hasAudio: !!pkg.hasAudio, audioUrl: pkg.audioUrl })
+    const currentAudioUrl = pkg.audioUrl || (pkg.folderName && pkg.hasAudio ? `/news-static/${pkg.folderName}/audio.mp3` : null)
+    setAudioState({ hasAudio: !!pkg.hasAudio, audioUrl: currentAudioUrl })
     setVideoState({ hasVideo: !!pkg.hasVideo, videoUrl: pkg.videoUrl })
     setShortState({ hasShort: !!pkg.hasShort, shortUrl: pkg.folderName ? `/news-static/${pkg.folderName}/short.mp4?t=${Date.now()}` : null })
     setShortsConfig(pkg.shortsConfig || null)
@@ -143,11 +146,31 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
     })
     setIsPlaying(false)
     setCurrentTime(0)
+    if (pkg?.voiceKey) {
+      setSelectedVoice(pkg.voiceKey)
+    } else if (pkg?.voice) {
+      const matched = ALL_VOICES.find(v => v.id === pkg.voice || v.name === pkg.voice || pkg.voice.includes(v.id) || pkg.voice.includes(v.name.split(' ')[1]))
+      if (matched) setSelectedVoice(matched.id)
+    }
     setCurrentThumbnail(pkg.hasThumbnail && pkg.folderName ? `/news-static/${pkg.folderName}/thumbnail/thumbnail.jpg?t=${Date.now()}` : (pkg.thumbnailUrl || null))
 
-    // Prüfen, ob für dieses Paket aktuell ein Video gerendert wird (selbst wenn das Modal geschlossen war)
     const folder = pkg?.folderName || (pkg?.bundleDir ? pkg.bundleDir.split(/[/\\]/).pop() : '')
     if (folder) {
+      // 1. Stets den neuesten Text von der Festplatte synchronisieren
+      fetch(`/api/package-script-text?folderName=${encodeURIComponent(folder)}&bundleDir=${encodeURIComponent(pkg?.bundleDir || '')}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data?.success && data?.text) {
+            pkg.scriptTxt = data.text
+            pkg.hasScriptTxt = true
+            pkg.hasScriptMd = true
+            if (data.originalNews) pkg.original_news = data.originalNews
+            if (data.summary) pkg.summary = data.summary
+          }
+        })
+        .catch(() => {})
+
+      // 2. Video-Status prüfen
       fetch(`/api/video-status?folderName=${encodeURIComponent(folder)}&bundleDir=${encodeURIComponent(pkg?.bundleDir || '')}`)
         .then(r => r.json())
         .then(st => {
@@ -197,10 +220,20 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
     const toastId = toast.loading('🎙️ Генерация аудио-озвучки...')
     try {
       setGeneratingAudio(true)
-      const res = await fetch('/api/generate-audio', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bundleDir: pkg.bundleDir, folderName: pkg.folderName, voice: selectedVoice }) })
+      const res = await fetch('/api/generate-audio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bundleDir: pkg.bundleDir,
+          folderName: pkg.folderName,
+          voice: selectedVoice,
+          voiceKey: selectedVoice,
+        }),
+      })
       const data = await res.json()
       if (data?.success) {
-        setAudioState({ hasAudio: true, audioUrl: data.audioUrl }); toast.success('🎙️ Озвучка успешно сгенерирована!', { id: toastId })
+        setAudioState({ hasAudio: true, audioUrl: `${data.audioUrl}?t=${Date.now()}` })
+        toast.success('🎙️ Озвучка успешно сгенерирована!', { id: toastId, description: data.spokenWords ? `Озвучено слов: ${data.spokenWords} (${data.spokenChars} символов) из script.txt` : undefined })
         if (onRefresh) onRefresh()
       } else { toast.error('❌ Ошибка: ' + (data?.error || 'Неизвестная ошибка'), { id: toastId }) }
     } catch (err) { toast.error('❌ Ошибка аудио: ' + err.message, { id: toastId }) }
@@ -441,6 +474,7 @@ export default function VideoPackageModal({ pkg, onOpenPhotos, onOpenScriptText,
           videoState={videoState} shortState={shortState} youtubeState={youtubeState} currentThumbnail={currentThumbnail} isMaximized={isMaximized}
           setIsMaximized={setIsMaximized} onOpenTitleVariants={() => setShowTitleVariantsModal(true)}
           onOpenScript={() => onOpenScriptText && onOpenScriptText(pkg)} onOpenPhotos={() => onOpenPhotos && onOpenPhotos(pkg)}
+          onOpenAudio={() => onOpenAudio && onOpenAudio(pkg)}
           onOpenShorts={() => setShowShortsEditorModal(true)} onOpenYouTube={() => setShowYouTubeModal(true)}
           onDeletePackage={handleDeletePackage}
           onTitleSaved={(newTitle, newThumb) => {

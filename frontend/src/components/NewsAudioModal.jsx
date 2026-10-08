@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 import VoiceSelector, { ALL_VOICES } from './common/VoiceSelector'
+import CustomAudioPlayer from './common/CustomAudioPlayer'
 import ModalHeader from './common/ModalHeader'
 
 export default function NewsAudioModal({ pkg, onClose, onRefresh }) {
@@ -85,7 +86,6 @@ export default function NewsAudioModal({ pkg, onClose, onRefresh }) {
         body: JSON.stringify({
           bundleDir: pkg.bundleDir,
           folderName: pkg.folderName,
-          text: pkg.scriptTxt || pkg.scriptMd || '',
           voiceKey: selectedVoice,
         }),
       })
@@ -161,14 +161,9 @@ export default function NewsAudioModal({ pkg, onClose, onRefresh }) {
           />
 
           {hasAudioFile && computedAudioUrl ? (
-            <div className="audio-player-box" style={{ padding: '1.2rem' }}>
-              <div className="audio-player-title" style={{ fontSize: '0.92rem', marginBottom: '0.75rem', color: '#60a5fa', fontWeight: 600 }}>
-                🎙️ Текущий аудио-файл (audio.mp3):
-              </div>
-              <audio controls src={computedAudioUrl} className="audio-element">
-                Ваш браузер не поддерживает элемент audio.
-              </audio>
-              <div style={{ marginTop: '0.85rem', textAlign: 'right' }}>
+            <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <CustomAudioPlayer src={computedAudioUrl} title="Текущий аудио-файл (audio.mp3)" />
+              <div style={{ textAlign: 'right' }}>
                 <button
                   className="audio-gen-btn"
                   onClick={handleGenerateAudioInModal}

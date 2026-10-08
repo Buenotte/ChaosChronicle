@@ -15,18 +15,24 @@ export const ALL_VOICES = [
 export default function VoiceSelector({
   selectedVoice,
   onVoiceChange,
+  onChange,
   voices = ALL_VOICES,
   label = 'Голос:',
   disabled = false,
   style = {},
   selectStyle = {},
 }) {
+  const handleChange = (val) => {
+    if (onVoiceChange) onVoiceChange(val)
+    if (onChange) onChange(val)
+  }
+
   return (
     <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', ...style }}>
       {label && <label style={{ fontSize: '0.8rem', color: '#9ca3af', fontWeight: 600 }}>{label}</label>}
       <select
         value={selectedVoice}
-        onChange={e => onVoiceChange && onVoiceChange(e.target.value)}
+        onChange={e => handleChange(e.target.value)}
         disabled={disabled}
         style={{
           background: '#181c27',

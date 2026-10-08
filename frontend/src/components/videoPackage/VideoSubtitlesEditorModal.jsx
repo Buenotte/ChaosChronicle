@@ -123,13 +123,16 @@ export default function VideoSubtitlesEditorModal({
       }
     }).catch(() => {})
 
+    if (pkg?.scriptTxt) {
+      setSpeechScriptText(pkg.scriptTxt)
+    }
     if (pkg?.folderName) {
-      fetch(`/news-static/${pkg.folderName}/script.txt`)
+      fetch(`/news-static/${pkg.folderName}/script.txt?t=${Date.now()}`)
         .then(r => r.ok ? r.text() : '')
         .then(t => { if (t) setSpeechScriptText(t) })
         .catch(() => {})
     }
-  }, [pkg?.folderName])
+  }, [pkg?.folderName, pkg?.scriptTxt])
 
   useEffect(() => {
     if (!isSubtitlesPlaying) return

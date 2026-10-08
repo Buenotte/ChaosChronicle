@@ -366,7 +366,8 @@ const handleGenerateVideo = async (req, res) => {
 
       if (isXfade) {
         const N = activeFrames.length;
-        const D = Math.min(0.4, (audioDuration / N) * 0.25);
+        // D = Überblendungsdauer in Sekunden (xfade duration); max. 1.0s bzw. 40% der Foto-Dauer
+        const D = Math.max(0.1, Math.min(1.0, (audioDuration / N) * 0.4));
         const Tbase = (audioDuration + (N - 1) * D) / N;
         const step = Tbase - D;
 
