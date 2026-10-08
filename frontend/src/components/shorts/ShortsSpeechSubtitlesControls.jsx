@@ -2,8 +2,10 @@ import { TEXT_COLORS, BOX_COLORS, SHORTS_FONTS } from './shortsConfig'
 
 export default function ShortsSpeechSubtitlesControls({
   enabled, setEnabled, font, setFont, color, setColor, inactiveColor, setInactiveColor, fontSize, setFontSize,
+  effectiveFontSize,
   posY, setPosY, boxMode, setBoxMode, boxColor, setBoxColor, boxOpacity, setBoxOpacity, pacing, setPacing,
-  speechLineSpacing = 10, setSpeechLineSpacing, speechWordSpacing = 14, setSpeechWordSpacing, onDirty,
+  speechLineSpacing = 10, setSpeechLineSpacing, speechWordSpacing = 14, setSpeechWordSpacing,
+  strokeWidth = 12, setStrokeWidth, shadowDistance = 6, setShadowDistance, onDirty,
 }) {
   const isBoxOn = (boxMode || 'pill') !== 'none'
 
@@ -29,7 +31,9 @@ export default function ShortsSpeechSubtitlesControls({
               </select>
             </div>
             <div>
-              <span style={{ fontSize: '0.74rem', color: '#94a3b8', display: 'block', marginBottom: '0.2rem' }}>📏 Размер ({fontSize || 115}px):</span>
+              <span style={{ fontSize: '0.74rem', color: '#94a3b8', display: 'block', marginBottom: '0.2rem' }}>
+                📏 Размер ({fontSize || 115}px{effectiveFontSize && effectiveFontSize < (fontSize || 115) ? ` ➔ авто: ${effectiveFontSize}px` : ''}):
+              </span>
               <input type="range" min="70" max="160" value={fontSize || 115} onChange={e => { setFontSize(Number(e.target.value)); if (onDirty) onDirty(); }} style={{ width: '100%', accentColor: '#06b6d4' }} />
             </div>
           </div>
@@ -150,6 +154,28 @@ export default function ShortsSpeechSubtitlesControls({
               <span style={{ fontSize: '0.72rem', color: '#06b6d4', minWidth: '35px', textAlign: 'right', fontWeight: 700 }}>
                 +{speechWordSpacing ?? 14}px
               </span>
+            </div>
+          </div>
+
+          {/* 🖋️ ОБВОДКА И ТЕНЬ СУБТИТРОВ */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', background: '#090d16', padding: '0.45rem 0.65rem', borderRadius: '6px', border: '1px solid #1e293b' }}>
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
+                <span style={{ fontSize: '0.74rem', color: '#94a3b8', fontWeight: 600 }}>🖋️ Контур: {strokeWidth ?? 12}px</span>
+                {setStrokeWidth && Number(strokeWidth ?? 12) !== 12 && (
+                  <button type="button" onClick={() => { setStrokeWidth(12); if (onDirty) onDirty(); }} style={{ background: 'none', border: 'none', color: '#06b6d4', fontSize: '0.7rem', cursor: 'pointer', textDecoration: 'underline' }}>12px</button>
+                )}
+              </div>
+              <input type="range" min="0" max="24" step="1" value={strokeWidth ?? 12} onChange={e => { if (setStrokeWidth) setStrokeWidth(Number(e.target.value)); if (onDirty) onDirty(); }} style={{ width: '100%', accentColor: '#06b6d4', cursor: 'pointer' }} />
+            </div>
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
+                <span style={{ fontSize: '0.74rem', color: '#94a3b8', fontWeight: 600 }}>👥 Тень: {shadowDistance ?? 6}px</span>
+                {setShadowDistance && Number(shadowDistance ?? 6) !== 6 && (
+                  <button type="button" onClick={() => { setShadowDistance(6); if (onDirty) onDirty(); }} style={{ background: 'none', border: 'none', color: '#06b6d4', fontSize: '0.7rem', cursor: 'pointer', textDecoration: 'underline' }}>6px</button>
+                )}
+              </div>
+              <input type="range" min="0" max="18" step="1" value={shadowDistance ?? 6} onChange={e => { if (setShadowDistance) setShadowDistance(Number(e.target.value)); if (onDirty) onDirty(); }} style={{ width: '100%', accentColor: '#06b6d4', cursor: 'pointer' }} />
             </div>
           </div>
 

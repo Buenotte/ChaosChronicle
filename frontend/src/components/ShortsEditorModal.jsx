@@ -5,7 +5,7 @@ import ShortsCustomPlayer from './shorts/ShortsCustomPlayer'
 import { STROKE_COLORS, SHADOW_COLORS } from './shorts/ShortsTypographyControls'
 import ShortsSpeechSubtitlesControls from './shorts/ShortsSpeechSubtitlesControls'
 import ShortsTitleControls from './shorts/ShortsTitleControls'
-import { SHORTS_FONTS, TEXT_COLORS, BOX_COLORS, wrapShortsText, extractCleanSpeechText } from './shorts/shortsConfig'
+import { SHORTS_FONTS, TEXT_COLORS, BOX_COLORS, wrapShortsText, extractCleanSpeechText, estimateCharWidth, calculateEffectiveSpeechFontSize, calculateUniformSpeechFontSize } from './shorts/shortsConfig'
 
 export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortState, generatingShort, onGenerateShort, onCancelShort, onConfigSaved, onClose }) {
   const cfg = pkg?.shortsConfig || {}
@@ -17,6 +17,7 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
   const [wordColors, setWordColors] = useState(cfg.wordColors || null), [wordFontSizes, setWordFontSizes] = useState(cfg.wordFontSizes || null)
   const [boxEnabled, setBoxEnabled] = useState(cfg.boxEnabled ?? true), [boxColor, setBoxColor] = useState(cfg.boxColor || 'black'), [boxOpacity, setBoxOpacity] = useState(cfg.boxOpacity ?? 75), [posY, setPosY] = useState(cfg.posY || 200)
   const [lineSpacing, setLineSpacing] = useState(cfg.lineSpacing ?? 20), [speechLineSpacing, setSpeechLineSpacing] = useState(cfg.speechLineSpacing ?? 10), [speechWordSpacing, setSpeechWordSpacing] = useState(cfg.speechWordSpacing ?? 14)
+  const [speechStrokeWidth, setSpeechStrokeWidth] = useState(cfg.speechStrokeWidth ?? 12), [speechShadowDistance, setSpeechShadowDistance] = useState(cfg.speechShadowDistance ?? 6)
   const [speechSubtitlesEnabled, setSpeechSubtitlesEnabled] = useState(cfg.speechSubtitlesEnabled ?? true), [speechFont, setSpeechFont] = useState(cfg.speechFont || 'impact')
   const [speechColor, setSpeechColor] = useState(cfg.speechColor || 'yellow'), [speechInactiveColor, setSpeechInactiveColor] = useState(cfg.speechInactiveColor || 'white'), [speechFontSize, setSpeechFontSize] = useState(cfg.speechFontSize || 115)
   const [speechPosY, setSpeechPosY] = useState(cfg.speechPosY || 980), [speechBoxMode, setSpeechBoxMode] = useState(cfg.speechBoxMode || 'pill'), [speechPacing, setSpeechPacing] = useState(cfg.speechPacing || 'wave')
@@ -63,6 +64,8 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
     if (loadedCfg.speechPacing) setSpeechPacing(loadedCfg.speechPacing)
     if (loadedCfg.speechBoxColor) setSpeechBoxColor(loadedCfg.speechBoxColor)
     if (loadedCfg.speechBoxOpacity !== undefined) setSpeechBoxOpacity(loadedCfg.speechBoxOpacity)
+    if (loadedCfg.speechStrokeWidth !== undefined) setSpeechStrokeWidth(loadedCfg.speechStrokeWidth)
+    if (loadedCfg.speechShadowDistance !== undefined) setSpeechShadowDistance(loadedCfg.speechShadowDistance)
     if (loadedCfg.lineBadges) setLineBadges(loadedCfg.lineBadges)
     if (loadedCfg.selectedPhoto !== undefined) setSelectedPhoto(loadedCfg.selectedPhoto)
   }
@@ -122,11 +125,14 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
   const handleInstantFramePreview = async () => {
     try {
       setRenderingFrame(true)
+      setIsSubtitlesPlaying(false)
+      setGlobalWordIdx(0)
       const res = await fetch('/api/preview-short-frame', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           bundleDir: pkg.bundleDir, folderName: pkg.folderName, selectedPhoto, hookTitle: text, showHookTitle, font, fontSize: Number(fontSize) || 110, fontColor, strokeWidth: Number(strokeWidth) || 0, strokeColor, shadowDistance: Number(shadowDistance) || 0, shadowColor, shadowStyle, wordColors, wordFontSizes, boxEnabled: !!boxEnabled, boxColor, boxOpacity: boxEnabled ? Number(boxOpacity) || 75 : 0, posY: Number(posY) || 200, lineSpacing: Number(lineSpacing ?? 20), lineBadges,
           speechSubtitlesEnabled, speechFont, speechColor, speechInactiveColor, speechFontSize: Number(speechFontSize) || 115, speechPosY: Number(speechPosY) || 980, speechBoxMode, speechBoxColor, speechBoxOpacity: Number(speechBoxOpacity) || 88, speechPacing, speechLineSpacing: Number(speechLineSpacing ?? 10), speechWordSpacing: Number(speechWordSpacing ?? 14),
+          speechStrokeWidth: Number(speechStrokeWidth) ?? 12, speechShadowDistance: Number(speechShadowDistance) ?? 6,
         }),
       })
       const data = await res.json()
@@ -184,6 +190,7 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
     posY: Number(posY) || 200, lineSpacing: Number(lineSpacing ?? 20), lineBadges, selectedPhoto, speechSubtitlesEnabled, speechFont, speechColor, speechInactiveColor,
     speechFontSize: Number(speechFontSize) || 115, speechPosY: Number(speechPosY) || 980, speechBoxMode, speechBoxColor,
     speechBoxOpacity: Number(speechBoxOpacity) || 88, speechPacing, speechLineSpacing: Number(speechLineSpacing ?? 10), speechWordSpacing: Number(speechWordSpacing ?? 14),
+    speechStrokeWidth: Number(speechStrokeWidth) ?? 12, speechShadowDistance: Number(speechShadowDistance) ?? 6,
   })
 
   const handleSaveConfig = async () => {
@@ -269,18 +276,32 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
                   🔝 Заголовок {showHookTitle ? '🟢' : '⚪'}
                 </button>
               </div>
-              {activeTab === 'speech' && (
-                <ShortsSpeechSubtitlesControls
-                  enabled={speechSubtitlesEnabled} setEnabled={setSpeechSubtitlesEnabled} font={speechFont} setFont={setSpeechFont}
-                  color={speechColor} setColor={setSpeechColor} inactiveColor={speechInactiveColor} setInactiveColor={setSpeechInactiveColor}
-                  fontSize={speechFontSize} setFontSize={setSpeechFontSize} posY={speechPosY} setPosY={setSpeechPosY}
-                  boxMode={speechBoxMode} setBoxMode={setSpeechBoxMode} boxColor={speechBoxColor} setBoxColor={setSpeechBoxColor}
-                  boxOpacity={speechBoxOpacity} setBoxOpacity={setSpeechBoxOpacity} pacing={speechPacing} setPacing={setSpeechPacing}
-                  speechLineSpacing={speechLineSpacing} setSpeechLineSpacing={setSpeechLineSpacing}
-                  speechWordSpacing={speechWordSpacing} setSpeechWordSpacing={setSpeechWordSpacing}
-                  onDirty={() => setViewMode('editor')}
-                />
-              )}
+              {activeTab === 'speech' && (() => {
+                const rawSpeech = extractCleanSpeechText(speechScriptText || pkg?.scriptTxt || pkg?.scriptMd || text || '')
+                const rawWords = rawSpeech.split(/\s+/).filter(Boolean)
+                const currentUniformSize = calculateUniformSpeechFontSize({
+                  allWords: rawWords,
+                  font: speechFont,
+                  fontSize: speechFontSize,
+                  wordGap: Number(speechWordSpacing ?? 14),
+                  pacing: speechPacing,
+                  maxSafeW: 864,
+                })
+                return (
+                  <ShortsSpeechSubtitlesControls
+                    enabled={speechSubtitlesEnabled} setEnabled={setSpeechSubtitlesEnabled} font={speechFont} setFont={setSpeechFont}
+                    color={speechColor} setColor={setSpeechColor} inactiveColor={speechInactiveColor} setInactiveColor={setSpeechInactiveColor}
+                    fontSize={speechFontSize} setFontSize={setSpeechFontSize} effectiveFontSize={currentUniformSize} posY={speechPosY} setPosY={setSpeechPosY}
+                    boxMode={speechBoxMode} setBoxMode={setSpeechBoxMode} boxColor={speechBoxColor} setBoxColor={setSpeechBoxColor}
+                    boxOpacity={speechBoxOpacity} setBoxOpacity={setSpeechBoxOpacity} pacing={speechPacing} setPacing={setSpeechPacing}
+                    speechLineSpacing={speechLineSpacing} setSpeechLineSpacing={setSpeechLineSpacing}
+                    speechWordSpacing={speechWordSpacing} setSpeechWordSpacing={setSpeechWordSpacing}
+                    strokeWidth={speechStrokeWidth} setStrokeWidth={setSpeechStrokeWidth}
+                    shadowDistance={speechShadowDistance} setShadowDistance={setSpeechShadowDistance}
+                    onDirty={() => setViewMode('editor')}
+                  />
+                )
+              })()}
               {activeTab === 'title' && (
                 <ShortsTitleControls
                   showHookTitle={showHookTitle} setShowHookTitle={setShowHookTitle} text={text} setText={setText}
@@ -359,54 +380,93 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
                         opacity: activeTab === 'speech' ? 1 : 0.28, transition: 'opacity 0.25s ease',
                       }}>
                         {(() => {
+                          const rawSpeech = extractCleanSpeechText(speechScriptText || pkg?.scriptTxt || pkg?.scriptMd || text || '')
+                          const rawWords = rawSpeech.split(/\s+/).filter(Boolean)
+                          const isSingle = speechPacing === 'single', isTwo = speechPacing === 'blitz' || speechPacing === 'two'
+                          const waveSize = isSingle ? 1 : (isTwo ? 2 : 4), totalWords = rawWords.length > 0 ? rawWords.length : waveSize
+                          const activeGlobal = globalWordIdx % totalWords, waveStart = Math.floor(activeGlobal / waveSize) * waveSize
+                          const waveWords = rawWords.length > 0 ? rawWords.slice(waveStart, waveStart + waveSize) : (isSingle ? ['СУБТИТРЫ'] : (isTwo ? ['СУБТИТРЫ', 'РЕЧИ'] : ['СУБТИТРЫ', 'РЕЧИ', 'В', 'КАДРЕ']))
+                          const activeInWave = activeGlobal % waveSize
+
+                          // Exakte Zeilen-Aufteilung wie im FFmpeg ASS Backend:
+                          const isMultiLine = waveWords.length > 2
+                          const splitIdx = isMultiLine ? Math.ceil(waveWords.length / 2) : waveWords.length
+                          const line1 = waveWords.slice(0, splitIdx)
+                          const line2 = isMultiLine ? waveWords.slice(splitIdx) : []
+
+                          // Exakte Berechnung der einheitlichen Schriftgröße für alle Zeilen (identisch zu FFmpeg):
+                          const effectiveFontSize = calculateUniformSpeechFontSize({
+                            allWords: rawWords.length > 0 ? rawWords : [...line1, ...line2],
+                            font: speechFont,
+                            fontSize: speechFontSize,
+                            wordGap: Number(speechWordSpacing ?? 14),
+                            pacing: speechPacing,
+                            maxSafeW: 864, // 80% von 1080px
+                          })
+                          const cssFontSize = ((effectiveFontSize * FONT_SCALE_CSS) / 1080) * 240
+
+                          // Exakte Zeilenabstand-Berechnung synchron zum FFmpeg lineStep:
+                          const lineStep = Math.round(effectiveFontSize * 1.10 + Number(speechLineSpacing ?? 10) * 1.5)
+                          const cssLineStep = (lineStep / 1080) * 240
+                          const speechCssGap = Math.max(2, Math.round(cssLineStep - (cssFontSize * 0.95)))
+
+                          // Exakte Wortabstand-Berechnung synchron zum FFmpeg ASS Spacing:
+                          const wordGap = Number(speechWordSpacing ?? 14)
+                          const cssWordGap = Math.max(2, Math.round(((wordGap + effectiveFontSize * 0.28) / 1080) * 240))
+
+                          // Exakte Kontur- und Schattenbreiten synchron zu FFmpeg:
+                          const bW = Number(speechStrokeWidth ?? 12)
+                          const sD = Number(speechShadowDistance ?? 6)
+                          const cssStrokeW = Math.max(0, ((bW / 1080) * 240)).toFixed(2)
+                          const cssActiveStrokeW = (speechBoxMode === 'none' ? Math.min(Number(cssStrokeW) + 0.45, 3.5) : Number(cssStrokeW)).toFixed(2)
+                          const cssShadowD = Math.max(0, ((sD / 1080) * 240)).toFixed(2)
+                          const cssShadow = Number(cssShadowD) > 0 ? `${cssShadowD}px ${cssShadowD}px 0px #000` : 'none'
+
+                          // Placard / Hintergrund-Box Styling synchron zu FFmpeg:
                           const speechBoxHex = BOX_COLORS.find(c => c.id === speechBoxColor)?.hex || (typeof speechBoxColor === 'string' && speechBoxColor.startsWith('#') ? speechBoxColor : '#000000')
                           const sbR = parseInt(speechBoxHex.slice(1, 3) || '0', 16) || 0, sbG = parseInt(speechBoxHex.slice(3, 5) || '0', 16) || 0, sbB = parseInt(speechBoxHex.slice(5, 7) || '0', 16) || 0
                           const sbAlpha = ((Number(speechBoxOpacity) ?? 88) / 100).toFixed(2), speechBgRgba = `rgba(${sbR}, ${sbG}, ${sbB}, ${sbAlpha})`
-                          const speechRadius = speechBoxMode === 'solid' ? '4px' : (speechBoxMode === 'pill' ? '20px' : '8px')
+                          const speechRadius = speechBoxMode === 'solid' ? '2px' : (speechBoxMode === 'pill' ? '6px' : '4px')
                           const speechBorder = speechBoxMode === 'glow' ? `1.5px solid ${TEXT_COLORS.find(c => c.id === speechColor)?.hex || '#FFE600'}` : 'none'
-                          const speechShadow = speechBoxMode === 'glow' ? `0 0 12px ${TEXT_COLORS.find(c => c.id === speechColor)?.hex || '#FFE600'}` : (speechBoxMode === 'none' ? 'none' : '0 4px 15px rgba(0,0,0,0.7)')
+                          const speechShadowBox = speechBoxMode === 'glow' ? `0 0 10px ${TEXT_COLORS.find(c => c.id === speechColor)?.hex || '#FFE600'}` : (speechBoxMode === 'none' ? 'none' : '0 2px 8px rgba(0,0,0,0.7)')
+
+                          const renderLine = (wList, offset) => (
+                            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: `${cssWordGap}px`, lineHeight: 1.0 }}>
+                              {wList.map((w, subIdx) => {
+                                const curIdx = offset + subIdx
+                                const isActive = (curIdx === activeInWave)
+                                return (
+                                  <span key={subIdx} style={{
+                                    fontFamily: activeSpeechFontFamily,
+                                    fontSize: `${cssFontSize}px`,
+                                    fontWeight: 900,
+                                    textTransform: 'uppercase',
+                                    lineHeight: 1.0,
+                                    color: isActive ? (TEXT_COLORS.find(c => c.id === speechColor)?.hex || '#FFE600') : (TEXT_COLORS.find(c => c.id === speechInactiveColor)?.hex || '#FFFFFF'),
+                                    WebkitTextStroke: `${isActive ? cssActiveStrokeW : cssStrokeW}px #000`,
+                                    textShadow: cssShadow,
+                                    display: 'inline-block',
+                                  }}>
+                                    {w}
+                                  </span>
+                                )
+                              })}
+                            </div>
+                          )
 
                           return (
                             <span style={{
-                              fontFamily: activeSpeechFontFamily, fontSize: `${((speechFontSize * FONT_SCALE_CSS) / 1080) * 240}px`, fontWeight: 900,
-                              textTransform: 'uppercase', lineHeight: (1.0 + (Number(speechLineSpacing ?? 10) / 100)).toFixed(2), color: '#FFFFFF', WebkitTextStroke: '1.8px #000',
-                              textShadow: '0 3px 8px rgba(0,0,0,0.95), 2px 2px 0 #000',
-                              background: speechBoxMode === 'none' ? 'transparent' : speechBgRgba, border: speechBorder, boxShadow: speechShadow,
-                              padding: speechBoxMode === 'none' ? '0' : '4px 14px', borderRadius: speechRadius, display: 'inline-block',
+                              background: speechBoxMode === 'none' ? 'transparent' : speechBgRgba,
+                              border: speechBorder,
+                              boxShadow: speechShadowBox,
+                              padding: speechBoxMode === 'none' ? '0' : '5px 14px',
+                              borderRadius: speechRadius,
+                              display: 'inline-block',
                             }}>
-                              {(() => {
-                                const rawSpeech = extractCleanSpeechText(speechScriptText || pkg?.scriptTxt || pkg?.scriptMd || text || '')
-                                const rawWords = rawSpeech.split(/\s+/).filter(Boolean)
-                                const isSingle = speechPacing === 'single', isTwo = speechPacing === 'blitz' || speechPacing === 'two'
-                                const waveSize = isSingle ? 1 : (isTwo ? 2 : 4), totalWords = rawWords.length > 0 ? rawWords.length : waveSize
-                                const activeGlobal = globalWordIdx % totalWords, waveStart = Math.floor(activeGlobal / waveSize) * waveSize
-                                const waveWords = rawWords.length > 0 ? rawWords.slice(waveStart, waveStart + waveSize) : (isSingle ? ['СУБТИТРЫ'] : (isTwo ? ['СУБТИТРЫ', 'РЕЧИ'] : ['СУБТИТРЫ', 'РЕЧИ', 'В', 'КАДРЕ']))
-                                const activeInWave = activeGlobal % waveSize, splitIdx = (waveWords.length > 2) ? Math.ceil(waveWords.length / 2) : waveWords.length
-                                const line1 = waveWords.slice(0, splitIdx), line2 = (waveWords.length > 2) ? waveWords.slice(splitIdx) : []
-
-                                const renderLine = (wList, offset) => {
-                                  const cssWordGap = Math.max(3, Math.round(((Number(speechWordSpacing ?? 14) + 16) / 1080) * 240))
-                                  return (
-                                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: `${cssWordGap}px`, lineHeight: 1.18 }}>
-                                      {wList.map((w, subIdx) => {
-                                        const curIdx = offset + subIdx
-                                        const isActive = (curIdx === activeInWave)
-                                        return (
-                                          <span key={subIdx} style={{
-                                            color: isActive ? (TEXT_COLORS.find(c => c.id === speechColor)?.hex || '#FFE600') : (TEXT_COLORS.find(c => c.id === speechInactiveColor)?.hex || '#FFFFFF'),
-                                            textShadow: isActive ? '0 0 10px rgba(255,230,0,0.6), 0 3px 8px rgba(0,0,0,0.95)' : '0 3px 8px rgba(0,0,0,0.95)',
-                                            display: 'inline-block',
-                                          }}>
-                                            {w}
-                                          </span>
-                                        )
-                                      })}
-                                    </div>
-                                  )
-                                }
-                                const speechCssGap = Math.max(0, Math.round(((Number(speechLineSpacing ?? 10) + 12) / 1080) * 240))
-                                return (<div style={{ display: 'flex', flexDirection: 'column', gap: `${speechCssGap}px`, alignItems: 'center' }}>{renderLine(line1, 0)}{line2.length > 0 && renderLine(line2, splitIdx)}</div>)
-                              })()}
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: `${speechCssGap}px`, alignItems: 'center' }}>
+                                {renderLine(line1, 0)}
+                                {line2.length > 0 && renderLine(line2, splitIdx)}
+                              </div>
                             </span>
                           )
                         })()}

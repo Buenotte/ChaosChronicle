@@ -155,6 +155,32 @@ export function generateSpeechDialogueEvents(opts = {}) {
     return Math.round(w);
   };
 
+  // Ermittle eine einheitliche globale Schriftgröße für alle Untertitel-Zeilen im gesamten Video,
+  // damit die Schriftgröße nicht von Abschnitt zu Abschnitt unruhig hin- und herspringt.
+  let uniformFontSize = Number(speechFontSize) || (isLandscape ? 44 : 115);
+  waveChunks.forEach((chunk) => {
+    let isMulti = (lineMode === 'double') ? (chunk.length >= 2) : ((lineMode === 'single') ? false : (isLandscape ? (chunk.length >= 8) : (chunk.length > 2)));
+    let sIdx = isMulti ? Math.ceil(chunk.length / 2) : chunk.length;
+    let l1 = chunk.slice(0, sIdx), l2 = isMulti ? chunk.slice(sIdx) : [];
+    let w1 = calcLineW(l1, uniformFontSize), w2 = isMulti ? calcLineW(l2, uniformFontSize) : 0;
+    let maxW = Math.max(w1, w2);
+    if (maxW > maxSafeW) {
+      if (lineMode === 'auto' && !isMulti && chunk.length >= 4) {
+        isMulti = true;
+        sIdx = Math.ceil(chunk.length / 2);
+        l1 = chunk.slice(0, sIdx);
+        l2 = chunk.slice(sIdx);
+        w1 = calcLineW(l1, uniformFontSize);
+        w2 = calcLineW(l2, uniformFontSize);
+        maxW = Math.max(w1, w2);
+      }
+      if (maxW > maxSafeW) {
+        const fittedSize = Math.max(isLandscape ? 22 : 75, Math.floor(uniformFontSize * (maxSafeW / maxW)));
+        if (fittedSize < uniformFontSize) uniformFontSize = fittedSize;
+      }
+    }
+  });
+
   waveChunks.forEach((chunk, chunkIdx) => {
     const nextChunk = waveChunks[chunkIdx + 1];
     const chunkStart = Math.max(0, chunk[0].start), lastWordEnd = chunk[chunk.length - 1].end;
@@ -162,7 +188,8 @@ export function generateSpeechDialogueEvents(opts = {}) {
     const chunkEnd = Math.min(maxEnd, Math.max(chunkStart + 0.3, lastWordEnd + 0.2));
     const chunkStartTime = formatAssTime(chunkStart), chunkEndTime = formatAssTime(chunkEnd);
 
-    let baseFontSize = Number(speechFontSize) || (isLandscape ? 44 : 115);
+    // Einheitliche Schriftgröße für alle Untertitel-Zeilen
+    let baseFontSize = uniformFontSize;
     
     let isMultiLine = false;
     if (lineMode === 'double') {
@@ -198,11 +225,12 @@ export function generateSpeechDialogueEvents(opts = {}) {
       }
     }
 
-    const targetFontSize = Number(speechFontSize) || (isLandscape ? 44 : 115);
-    const rawSpeechLineGap = Number(opts.speechLineSpacing);
-    const speechLineGap = (!isNaN(rawSpeechLineGap)) ? rawSpeechLineGap : 10;
+    const effectiveFontSize = baseFontSize;
+    const rawSpeechLineGap = Number(opts.speechLineSpacing ?? opts.subtitleLineSpacing);
+    const speechLineGap = (!isNaN(rawSpeechLineGap) && rawSpeechLineGap >= 0) ? rawSpeechLineGap : 10;
 
-    const lineStep = Math.round(targetFontSize * 1.18 + speechLineGap);
+    // Wirksamer, visuell spürbarer Zeilenabstand (line spacing)
+    const lineStep = Math.round(effectiveFontSize * 1.10 + speechLineGap * 1.5);
     const halfStep = Math.round(lineStep / 2);
 
     const padX = isLandscape ? Math.max(90, Math.round(baseFontSize * 2.2)) : 130;
@@ -231,13 +259,11 @@ export function generateSpeechDialogueEvents(opts = {}) {
         wList.forEach((tw, subIdx) => {
           const globalWIdx = offset + subIdx, isCurrent = (globalWIdx === activeIdx);
           let colTag = isCurrent ? highlightTag : inactiveTag;
-          if (Array.isArray(opts.wordColors) && opts.wordColors[globalWIdx]) {
-            colTag = toShortsAssTagColor(opts.wordColors[globalWIdx]);
+          if (Array.isArray(opts.speechWordColors) && opts.speechWordColors[globalWIdx]) {
+            colTag = toShortsAssTagColor(opts.speechWordColors[globalWIdx]);
           }
-          let wSz = baseFontSize;
-          if (Array.isArray(opts.wordFontSizes) && opts.wordFontSizes[globalWIdx] && Number(opts.wordFontSizes[globalWIdx]) > 0) {
-            wSz = Number(opts.wordFontSizes[globalWIdx]);
-          }
+          // Alle Wörter in den Untertiteln haben eine einheitliche, saubere Schriftgröße
+          const wSz = baseFontSize;
           const activeBorder = isCurrent && speechBoxMode === 'none' ? Math.min(bW + 2, 16) : bW;
           if (subIdx > 0) {
             parts.push(`{\\fsp${wordGap}} {\\fsp0}`);
@@ -270,6 +296,7 @@ export function buildAssShortsSubtitle(wrappedText, options = {}) {
     speechFontSize = 115, speechColor = 'yellow', speechInactiveColor = 'white', speechPosY = 980, speechFont = 'impact',
     speechBoxMode = 'pill', speechBoxColor = 'black', speechBoxOpacity = 88,
     speechPacing = 'wave', speechStrokeWidth = 8, speechShadowDistance = 4,
+    speechLineSpacing = 10, speechWordSpacing = 14,
   } = options;
 
   const fontNameMap = {
@@ -367,8 +394,8 @@ export function buildAssShortsSubtitle(wrappedText, options = {}) {
       speechText, duration, totalAudioDuration, speechFontSize, speechColor, speechInactiveColor,
       speechPosY, speechStrokeWidth, speechStrokeColor: 'black', speechShadowDistance, speechShadowColor: 'black',
       speechBoxMode, speechBoxColor, speechBoxOpacity, speechPacing, speechFont: assSpeechFontName, whisperWords: options.whisperWords,
-      speechLineSpacing: options.speechLineSpacing,
-      speechWordSpacing: options.speechWordSpacing,
+      speechLineSpacing: options.speechLineSpacing ?? options.subtitleLineSpacing ?? speechLineSpacing,
+      speechWordSpacing: options.speechWordSpacing ?? options.subtitleWordSpacing ?? speechWordSpacing,
     });
     dialogues.push(...speechEvents);
   }
@@ -417,7 +444,6 @@ export function buildAssVideoSubtitle(speechText, options = {}) {
     speechLineSpacing: options.speechLineSpacing ?? options.subtitleLineSpacing ?? speechLineSpacing,
     speechFont: assSpeechFontName,
     wordColors: options.wordColors,
-    wordFontSizes: options.wordFontSizes,
     whisperWords,
     resX,
     resY,

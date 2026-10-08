@@ -62,3 +62,76 @@ export function extractCleanSpeechText(raw) {
     .trim()
 }
 
+// Schätzung der Zeichenbreite (Charakter-Breite für exakte FFmpeg-Synchronisation)
+export function estimateCharWidth(ch, font = 'impact', sz = 110) {
+  const f = (font || '').toLowerCase()
+  let fontScale = 1.0
+  if (f.includes('impact')) fontScale = 0.90
+  else if (f.includes('buran')) fontScale = 0.85
+  else if (f.includes('russo')) fontScale = 1.08
+  else if (f.includes('unbounded') || f.includes('arial')) fontScale = 1.05
+  else if (f.includes('rubik') || f.includes('delagothic') || f.includes('seymour')) fontScale = 1.25
+  else if (f.includes('saxonia')) fontScale = 0.88
+
+  if ('I1!|:;.,\'"il·'.includes(ch)) return sz * 0.28 * fontScale
+  if (ch === ' ') return sz * 0.30 * fontScale
+  if ('Jtfjr-()[]'.includes(ch)) return sz * 0.38 * fontScale
+  if ('ГТLEFZ7'.includes(ch)) return sz * 0.52 * fontScale
+  if ('ЖМФШЩЫЮMW@#%&—'.includes(ch)) return sz * 0.88 * fontScale
+  return sz * 0.65 * fontScale
+}
+
+// Berechnung der wirksamen Schriftgröße (Auto-Shrink bei Überbreite für 1:1 Übereinstimmung mit FFmpeg)
+export function calculateEffectiveSpeechFontSize({ words1 = [], words2 = [], font = 'impact', fontSize = 115, wordGap = 14, maxSafeW = 864 }) {
+  let baseFontSize = Number(fontSize) || 115
+  const calcLineW = (words, sz) => {
+    let w = 0
+    words.forEach((tw, idx) => {
+      const text = typeof tw === 'string' ? tw : (tw?.word || '')
+      for (const c of text) w += estimateCharWidth(c, font, sz)
+      if (idx > 0) w += wordGap + (sz * 0.16)
+    })
+    return Math.round(w)
+  }
+  const w1 = calcLineW(words1, baseFontSize)
+  const w2 = words2.length > 0 ? calcLineW(words2, baseFontSize) : 0
+  const maxLineW = Math.max(w1, w2)
+  if (maxLineW > maxSafeW) {
+    baseFontSize = Math.max(75, Math.floor(baseFontSize * (maxSafeW / maxLineW)))
+  }
+  return baseFontSize
+}
+
+// Berechnung einer einheitlichen globalen Schriftgröße für alle Zeilen im gesamten Video (verhindert Größensprünge)
+export function calculateUniformSpeechFontSize({ allWords = [], font = 'impact', fontSize = 115, wordGap = 14, pacing = 'wave', maxSafeW = 864 }) {
+  let uniformSize = Number(fontSize) || 115
+  if (!allWords || allWords.length === 0) return uniformSize
+  const isSingle = pacing === 'single', isTwo = pacing === 'blitz' || pacing === 'two'
+  const waveSize = isSingle ? 1 : (isTwo ? 2 : 4)
+  const calcLineW = (words, sz) => {
+    let w = 0
+    words.forEach((tw, idx) => {
+      const text = typeof tw === 'string' ? tw : (tw?.word || '')
+      for (const c of text) w += estimateCharWidth(c, font, sz)
+      if (idx > 0) w += wordGap + (sz * 0.16)
+    })
+    return Math.round(w)
+  }
+
+  for (let i = 0; i < allWords.length; i += waveSize) {
+    const chunk = allWords.slice(i, i + waveSize)
+    const isMulti = chunk.length > 2
+    const splitIdx = isMulti ? Math.ceil(chunk.length / 2) : chunk.length
+    const line1 = chunk.slice(0, splitIdx)
+    const line2 = isMulti ? chunk.slice(splitIdx) : []
+    const w1 = calcLineW(line1, uniformSize)
+    const w2 = isMulti ? calcLineW(line2, uniformSize) : 0
+    const maxW = Math.max(w1, w2)
+    if (maxW > maxSafeW) {
+      const fitted = Math.max(75, Math.floor(uniformSize * (maxSafeW / maxW)))
+      if (fitted < uniformSize) uniformSize = fitted
+    }
+  }
+  return uniformSize
+}
+
