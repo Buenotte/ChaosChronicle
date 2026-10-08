@@ -356,7 +356,8 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
                                 <span
                                   style={{
                                     ...innerStyle, fontFamily: activeFontFamily, lineHeight: 1, fontWeight: 900, textTransform: 'uppercase',
-                                    WebkitTextStroke: strokeWidth > 0 ? `${(((strokeWidth * FONT_SCALE_CSS) / 1080) * 240).toFixed(2)}px ${activeStrokeHex}` : 'none', textShadow: activeShadowCss,
+                                    WebkitTextStroke: strokeWidth > 0 ? `${Math.min(1.4, ((strokeWidth * FONT_SCALE_CSS) / 1080) * 240 * 0.45).toFixed(2)}px ${activeStrokeHex}` : 'none',
+                                    paintOrder: 'stroke fill', WebkitPaintOrder: 'stroke fill', textShadow: activeShadowCss,
                                   }}
                                 >
                                   {lineWords.map((w, wSubIdx) => {
@@ -415,10 +416,14 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
                           const cssWordGap = Math.max(2, Math.round(((wordGap + effectiveFontSize * 0.28) / 1080) * 240))
 
                           // Exakte Kontur- und Schattenbreiten synchron zu FFmpeg:
+                          // In FFmpeg liegt die Kontur (Outline) HINTER den Buchstaben.
+                          // Im Browser zeichnet -webkit-text-stroke zentriert auf der Glyphen-Kante.
+                          // Durch 'paintOrder: stroke fill' und eine passende Skalierung für das 240px-Vorschaufenster
+                          // bleibt die Buchstaben-Füllung (Gelb / Cyan) zu 100% leuchtend und wird nicht von innen geschwärzt!
                           const bW = Number(speechStrokeWidth ?? 12)
                           const sD = Number(speechShadowDistance ?? 6)
-                          const cssStrokeW = Math.max(0, ((bW / 1080) * 240)).toFixed(2)
-                          const cssActiveStrokeW = (speechBoxMode === 'none' ? Math.min(Number(cssStrokeW) + 0.45, 3.5) : Number(cssStrokeW)).toFixed(2)
+                          const cssStrokeW = Math.max(0, Math.min(1.2, ((bW / 1080) * 240) * 0.45)).toFixed(2)
+                          const cssActiveStrokeW = (speechBoxMode === 'none' ? Math.min(Number(cssStrokeW) + 0.3, 1.5) : Number(cssStrokeW)).toFixed(2)
                           const cssShadowD = Math.max(0, ((sD / 1080) * 240)).toFixed(2)
                           const cssShadow = Number(cssShadowD) > 0 ? `${cssShadowD}px ${cssShadowD}px 0px #000` : 'none'
 
@@ -444,6 +449,8 @@ export default function ShortsEditorModal({ pkg, previewPhotoUrl = '', shortStat
                                     lineHeight: 1.0,
                                     color: isActive ? (TEXT_COLORS.find(c => c.id === speechColor)?.hex || '#FFE600') : (TEXT_COLORS.find(c => c.id === speechInactiveColor)?.hex || '#FFFFFF'),
                                     WebkitTextStroke: `${isActive ? cssActiveStrokeW : cssStrokeW}px #000`,
+                                    paintOrder: 'stroke fill',
+                                    WebkitPaintOrder: 'stroke fill',
                                     textShadow: cssShadow,
                                     display: 'inline-block',
                                   }}>
